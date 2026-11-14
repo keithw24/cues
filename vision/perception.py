@@ -1,0 +1,42 @@
+"""Shapes of the per-seat perception results that stages share through ctx.
+
+Stages write these into the pipeline's shared ctx dict:
+
+    ctx["hands"]      -> dict[seat_id, list[Hand]]
+    ctx["faces"]      -> dict[seat_id, Face]
+    ctx["match"]      -> dict[seat_id, Match]
+    ctx["expression"] -> dict[seat_id, dict[label, probability]]   (smoothed)
+
+A seat with nothing detected is simply missing from the dict.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
+
+
+@dataclass
+class Hand:
+    landmarks: np.ndarray  # (21, 3) MediaPipe normalised x, y, z
+    handedness: str  # "Left" or "Right", as MediaPipe reports it
+    seat_id: str
+
+    @property
+    def wrist(self) -> tuple[float, float]:
+        return float(self.landmarks[0, 0]), float(self.landmarks[0, 1])
+
+
+@dataclass
+class Face:
+    box: tuple[int, int, int, int]  # x0, y0, x1, y1 in pixels
+    crop: np.ndarray  # RGB face crop (with padding) for the expression model
+    seat_id: str
+
+
+@dataclass
+class Match:
+    activity_id: str
+    score: float | None  # 0..1, None when the task has no recorded examples yet
+    reason: str = ""  # why score is None, for display

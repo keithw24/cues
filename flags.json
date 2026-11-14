@@ -4,5 +4,29 @@
     "default": false,
     "owner": "keith",
     "ticket": "T3"
+  },
+  "vision.hands": {
+    "description": "MediaPipe hand tracking, with each hand assigned to a seat.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T5"
+  },
+  "vision.faces": {
+    "description": "MediaPipe face detection and the face crop per seat.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T6"
+  },
+  "vision.gestures": {
+    "description": "Gesture match score per seat against the teacher's recorded examples.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T11"
+  },
+  "vision.expression": {
+    "description": "HSEmotion facial-expression context per seat (supporting evidence only).",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T10"
   }
 }
