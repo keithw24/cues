@@ -29,7 +29,7 @@ from agent.assessment import AgentAssessment
 from agent.context_enricher import EnrichedEvaluationContext
 from agent.progress_history import ProgressHistoryStore
 from agent.prompt_history import PromptHistoryStore
-from agent.teacher_review import TeacherReview, TeacherReviewStore
+from agent.teacher_review import TeacherReview, TeacherReviewStorage, TeacherReviewStore
 
 
 @dataclass(frozen=True)
@@ -272,7 +272,7 @@ class CuesDeepAgent:
         history: ProgressHistoryStore,
         budgets: AgentBudgets = AgentBudgets(),
         prompt_history: PromptHistoryStore | None = None,
-        reviews: TeacherReviewStore | None = None,
+        reviews: TeacherReviewStorage | None = None,
     ) -> None:
         self.model = model
         self.history = history
@@ -425,7 +425,7 @@ def create_cues_deep_agent(
     *,
     budgets: AgentBudgets = AgentBudgets(),
     prompt_history: PromptHistoryStore | None = None,
-    reviews: TeacherReviewStore | None = None,
+    reviews: TeacherReviewStorage | None = None,
 ) -> CuesDeepAgent:
     """Require a tool-capable injected model; no provider/model default is selected."""
     return CuesDeepAgent(model, history, budgets, prompt_history, reviews)

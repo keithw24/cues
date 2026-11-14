@@ -3,6 +3,8 @@
 Requires GROQ_API_KEY (environment or ignored root .env). Uses only synthetic data.
 This script makes paid/rate-limited API calls; it is not collected by pytest.
 Tool choices are observed, never forced. Inspect rationales against logged evidence.
+Review actions use runtime-selected storage and persist when Supabase is configured.
+Use --offline-reviews to explicitly retain review actions only in memory.
 """
 
 import argparse
@@ -10,20 +12,20 @@ import json
 import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_groq import ChatGroq
 
 from agent.context_enricher import ContextEnricher, EnrichedEvaluationContext
-from agent.deep_agent import create_cues_deep_agent, serialize_agent_context, validate_assessment
+from agent.deep_agent import serialize_agent_context, validate_assessment
 from agent.escalation import EscalationDecision
 from agent.progress import ProgressState
 from agent.progress_history import ProgressHistoryStore
 from agent.prompt_history import PromptHistoryEntry, PromptHistoryStore
 from agent.router import AgentEvaluationRequest
-from agent.teacher_review import TeacherReviewStore
+from agent.runtime import create_runtime_agent
 from shared.contracts import Activity, SeatState
 
 MODEL = "openai/gpt-oss-20b"
@@ -41,10 +43,14 @@ SCENARIOS = (
 
 def scenario(
     name: str,
+    *,
+    session_id: UUID | None = None,
+    seat_id: str = "SIM-A",
+    observed_at: datetime | None = None,
 ) -> tuple[EnrichedEvaluationContext, ProgressHistoryStore, PromptHistoryStore]:
     """Build independent synthetic current contexts and prior summary histories."""
-    now = datetime(2026, 11, 14, 2, 10, tzinfo=UTC)
-    session = UUID(int=1)
+    now = observed_at or datetime(2026, 11, 14, 2, 10, tzinfo=UTC)
+    session = session_id if session_id is not None else UUID(int=1)
     activity = Activity(
         id="raise_hand", name="Raise your hand", check_type="rule", no_progress_seconds=30
     )
@@ -52,7 +58,7 @@ def scenario(
     prolonged = name == "prolonged_review_action"
     request = AgentEvaluationRequest(
         session,
-        "SIM-A",
+        seat_id,
         activity.id,
         now,
         ProgressState(
@@ -115,8 +121,10 @@ def scenario(
     return ContextEnricher([activity]).enrich(request), store, prompts
 
 
-def evaluate(name: str, model: ChatGroq) -> dict:
-    context, store, prompts = scenario(name)
+def evaluate(name: str, model: ChatGroq, *, offline_reviews: bool = False) -> dict:
+    context, store, prompts = scenario(
+        name, session_id=uuid4(), seat_id="S1-L", observed_at=datetime.now(UTC)
+    )
     payload = serialize_agent_context(context)
     # Evaluation questions distinguish the requested assessment, not which tools
     # must be called. No stored outcomes are revealed in the question.
@@ -168,8 +176,9 @@ def evaluate(name: str, model: ChatGroq) -> dict:
         "input": json.loads(model_input),
     }
     print(f"\nScenario: {name}", flush=True)
-    reviews = TeacherReviewStore()
-    agent = create_cues_deep_agent(model, store, prompt_history=prompts, reviews=reviews)
+    agent = create_runtime_agent(model, store, prompt_history=prompts, offline=offline_reviews)
+    reviews = agent.reviews
+    report["review_storage"] = type(reviews).__name__
     graph = agent.build(context)
     final = None
     try:
@@ -207,7 +216,8 @@ def evaluate(name: str, model: ChatGroq) -> dict:
                         isinstance(m, AIMessage) for m in messages[index + 1 :]
                     )
     report["review_action_called"] = "request_teacher_review" in report["tools_called"]
-    pending = reviews.get_pending_reviews()
+    # Scope logging to this synthetic evaluation; never dump other stored reviews.
+    pending = [r for r in reviews.get_pending_reviews() if r.evaluation == context.request]
     report["created_reviews"] = [r.model_dump(mode="json") for r in pending]
     report["created_review_context_verified"] = bool(pending) and all(
         r.evaluation == context.request and r.status == "pending" for r in pending
@@ -233,6 +243,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default=MODEL)
     parser.add_argument(
+        "--offline-reviews",
+        action="store_true",
+        help="Explicitly keep review actions in memory even if Supabase is configured.",
+    )
+    parser.add_argument(
         "--scenario",
         choices=SCENARIOS,
         action="append",
@@ -244,7 +259,10 @@ def main() -> int:
         print("Live evaluation not run: set GROQ_API_KEY locally; never paste or commit it.")
         return 2
     model = ChatGroq(model=args.model, temperature=0, max_retries=2, timeout=20)
-    reports = [evaluate(name, model) for name in (args.scenario or SCENARIOS)]
+    reports = [
+        evaluate(name, model, offline_reviews=args.offline_reviews)
+        for name in (args.scenario or SCENARIOS)
+    ]
     exercised = {
         tool["tool"]
         for r in reports
