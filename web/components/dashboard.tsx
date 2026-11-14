@@ -490,33 +490,35 @@ export default function Dashboard({
       />
       <main id="main-content" className="dashboard-main">
         {roomViewEnabled ? (
-          <header className="room-header">
-            <div>
-              <h1>your classroom</h1>
-              <p className="room-subtitle">
-                {activity}
-                {allSimulated ? " · simulated class" : null}
-              </p>
-            </div>
-            <div className="room-actions">
-              {activityPopover}
-              <button
-                type="button"
-                className="room-details-toggle"
-                aria-expanded={drawerOpen}
-                aria-controls="room-drawer"
-                ref={drawerToggle}
-                onClick={() => {
-                  detailOpener.current = drawerToggle.current;
-                  setDrawerOpen(true);
-                  requestAnimationFrame(() => drawerClose.current?.focus());
-                }}
-              >
-                <WorkspaceIcon name="camera" />
-                Camera and details
-              </button>
-            </div>
-          </header>
+          <>
+            <header className="room-header">
+              <div>
+                <h1>your classroom</h1>
+                <p className="room-subtitle">
+                  {activity}
+                  {allSimulated ? " · simulated class" : null}
+                </p>
+              </div>
+              <div className="room-actions">
+                <button
+                  type="button"
+                  className="room-details-toggle"
+                  aria-expanded={drawerOpen}
+                  aria-controls="room-drawer"
+                  ref={drawerToggle}
+                  onClick={() => {
+                    detailOpener.current = drawerToggle.current;
+                    setDrawerOpen(true);
+                    requestAnimationFrame(() => drawerClose.current?.focus());
+                  }}
+                >
+                  <WorkspaceIcon name="camera" />
+                  Camera and details
+                </button>
+              </div>
+            </header>
+            <div className="room-session">{activityPopover}</div>
+          </>
         ) : (
           <>
             <div className="ws-hero">

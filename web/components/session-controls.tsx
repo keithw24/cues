@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { WorkspaceIcon } from "@/components/workspace-icon";
 import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -272,107 +273,144 @@ export function SessionControls({
       </details>
     );
   const controlState = sessionControlState(snapshot, refreshRequired);
+  const session = snapshot?.session ?? null;
+  const changed =
+    !!session && !!selection && session.current_activity_id !== selection;
+  const ownership = !snapshot
+    ? null
+    : !session
+      ? "No active session. Pick an activity to start."
+      : sessionOwnership(session, user) === "owned"
+        ? "Your session is running."
+        : sessionOwnership(session, user) === "unowned"
+          ? "An earlier session has no owner. End it, then start your own."
+          : sessionOwnership(session, user) === "other"
+            ? "This session belongs to another teacher. Changing its activity keeps its owner."
+            : "A session is running. Its owner is unavailable.";
+  // Refresh and sign out are secondary: an icon and a quiet text button.
+  const refreshButton = (
+    <button
+      type="button"
+      className="session-icon"
+      aria-label="Refresh session"
+      title="Refresh session"
+      disabled={busy}
+      onClick={() => setRefreshKey((n) => n + 1)}
+    >
+      <WorkspaceIcon name="refresh" />
+    </button>
+  );
+  const signOutButton = (
+    <button
+      type="button"
+      className="session-quiet"
+      disabled={busy}
+      onClick={() =>
+        void client.auth.signOut().then(({ error }) => {
+          if (error) setError("Could not sign out. Try again.");
+        })
+      }
+    >
+      Sign out
+    </button>
+  );
+  // The session could not load (for example, this account is not assigned to
+  // the station): say so plainly instead of showing controls that can't act.
+  if (!snapshot && error && controlState === "refresh")
+    return (
+      <div className="session-controls is-blocked" aria-busy={busy}>
+        <p className="session-blocked" role="alert">
+          <WorkspaceIcon name="lock" />
+          <span>{error}</span>
+        </p>
+        <div className="session-row">
+          <Link className="session-quiet" href="/settings/stations">
+            Station access
+          </Link>
+          {refreshButton}
+          {signOutButton}
+        </div>
+      </div>
+    );
   return (
     <div className="session-controls" aria-busy={busy}>
-      <label htmlFor="session-activity">Activity</label>
-      <select
-        id="session-activity"
-        value={selection}
-        onChange={(e) => setSelection(e.target.value)}
-        disabled={
-          busy || controlState === "loading" || controlState === "refresh"
-        }
-      >
-        <option value="">Select activity</option>
-        {snapshot?.activities.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
+      <div className="session-row">
+        <label className="sr-only" htmlFor="session-activity">
+          Activity
+        </label>
+        <select
+          id="session-activity"
+          value={selection}
+          onChange={(e) => setSelection(e.target.value)}
+          disabled={
+            busy || controlState === "loading" || controlState === "refresh"
+          }
+        >
+          <option value="">
+            {controlState === "loading"
+              ? "Loading activities…"
+              : "Pick an activity"}
           </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        disabled={
-          busy ||
-          !snapshot ||
-          !selection ||
-          refreshRequired ||
-          !!snapshot.session
-        }
-        onClick={() => void act(selection)}
-      >
-        {pendingAction === "start" ? "Starting…" : "Start Session"}
-      </button>
-      <button
-        type="button"
-        disabled={
-          busy ||
-          !snapshot?.session ||
-          !selection ||
-          refreshRequired ||
-          snapshot.session.current_activity_id === selection
-        }
-        onClick={() => void act(selection)}
-      >
-        {pendingAction === "change" ? "Changing…" : "Change activity"}
-      </button>
-      <button
-        type="button"
-        disabled={busy || !snapshot?.session || refreshRequired}
-        onClick={() => void act(null)}
-      >
-        {pendingAction === "end" ? "Ending…" : "End Session"}
-      </button>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => setRefreshKey((n) => n + 1)}
-      >
-        Refresh session
-      </button>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() =>
-          void client.auth.signOut().then(({ error }) => {
-            if (error) setError("Could not sign out. Try again.");
-          })
-        }
-      >
-        Sign out
-      </button>
+          {snapshot?.activities.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+        {!session ? (
+          <button
+            type="button"
+            className="session-primary"
+            disabled={busy || !snapshot || !selection || refreshRequired}
+            onClick={() => void act(selection)}
+          >
+            {pendingAction === "start" ? "Starting…" : "Start session"}
+          </button>
+        ) : (
+          <>
+            {changed ? (
+              <button
+                type="button"
+                className="session-primary"
+                disabled={busy || refreshRequired}
+                onClick={() => void act(selection)}
+              >
+                {pendingAction === "change" ? "Changing…" : "Change activity"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="session-secondary"
+              disabled={busy || refreshRequired}
+              onClick={() => void act(null)}
+            >
+              {pendingAction === "end" ? "Ending…" : "End session"}
+            </button>
+          </>
+        )}
+        {refreshButton}
+        {signOutButton}
+      </div>
       {snapshot ? (
-        <span className="session-sync-status" role="status">
-          {stationSyncLabel(snapshot, now)}
-        </span>
+        <div className="session-meta">
+          <span role="status">
+            {ownership}
+            {session ? ` · ${stationSyncLabel(snapshot, now)}` : ""}
+          </span>
+          <details className="session-details">
+            <summary>Details</summary>
+            <p>Station: {station}</p>
+            <p>Session: {session?.id ?? "None"}</p>
+            <p>Activity: {session?.current_activity_id ?? "None"}</p>
+            <p>Owner: {session?.teacher_id ?? "Unowned / unavailable"}</p>
+          </details>
+        </div>
       ) : null}
-      {snapshot ? (
-        <details className="session-sync-status">
-          <summary>
-            Session status · {station} ·{" "}
-            {snapshot.session ? "Active" : "Inactive"}
-          </summary>
-          <p>Session: {snapshot.session?.id ?? "None"}</p>
-          <p>Activity: {snapshot.session?.current_activity_id ?? "None"}</p>
-          <p>
-            Owner: {snapshot.session?.teacher_id ?? "Unowned / unavailable"}
-          </p>
-        </details>
-      ) : null}
-      {snapshot ? (
-        <p className="session-ownership" role="status">
-          {!snapshot.session
-            ? `No active session at ${station}. Select an activity to start.`
-            : sessionOwnership(snapshot.session, user) === "owned"
-              ? `Your session at ${station}. End it before starting another.`
-              : sessionOwnership(snapshot.session, user) === "unowned"
-                ? `Previous session at ${station} has no teacher owner. End it, then select an activity and start your own session.`
-                : sessionOwnership(snapshot.session, user) === "other"
-                  ? `This ${station} session belongs to another teacher. Changing its activity keeps its owner.`
-                  : `Active session at ${station}. Teacher ownership is unavailable.`}
+      {error ? (
+        <p className="session-error" role="alert">
+          {error}
         </p>
       ) : null}
-      {error ? <p role="alert">{error}</p> : null}
     </div>
   );
 }
