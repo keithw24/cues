@@ -18,7 +18,19 @@ def test_dynamic_uses_only_review_session_owner(monkeypatch, tmp_path, owner, ph
     session_query.execute.side_effect = [
         SimpleNamespace(data=[{"teacher_id": owner}]),
         SimpleNamespace(data=[{"phone_number": phone}]),
+        SimpleNamespace(
+            data=[
+                {
+                    "notification_opt_in": True,
+                    "notification_phone": phone,
+                    "photon_registration_status": "registered",
+                    "photon_project_id": "project",
+                    "registration_attempt": "attempt",
+                }
+            ]
+        ),
     ]
+    client.rpc.return_value.execute.return_value.data = True
     send = MagicMock(return_value=SimpleNamespace(returncode=0, stdout='{"accepted":true}'))
     monkeypatch.setattr("agent.notifications.subprocess.run", send)
     review = TeacherReviewStore().request_teacher_review(request(), assessment())
@@ -38,6 +50,44 @@ def test_dynamic_uses_only_review_session_owner(monkeypatch, tmp_path, owner, ph
     assert "+12025550999" not in send.call_args.kwargs["input"]
     client.table.return_value.select.return_value.eq.assert_any_call("user_id", owner)
     assert phone not in review.model_dump_json()
+
+
+@pytest.mark.parametrize(
+    "eligibility",
+    [
+        {},
+        {"notification_opt_in": False},
+        {"notification_opt_in": True, "photon_registration_status": "failed"},
+        {
+            "notification_opt_in": True,
+            "photon_registration_status": "registered",
+            "notification_phone": "+12025550102",
+            "photon_project_id": "project",
+        },
+    ],
+)
+def test_dynamic_requires_current_phone_consent_and_project(monkeypatch, tmp_path, eligibility):
+    client = MagicMock()
+    client.table.return_value.select.return_value.eq.return_value.execute.side_effect = [
+        SimpleNamespace(data=[{"teacher_id": "a"}]),
+        SimpleNamespace(data=[{"phone_number": "+12025550101"}]),
+        SimpleNamespace(data=[eligibility]),
+    ]
+    send = MagicMock()
+    monkeypatch.setattr("agent.notifications.subprocess.run", send)
+    review = TeacherReviewStore().request_teacher_review(request(), assessment())
+    notifier = spectrum_notifier(
+        {
+            "SPECTRUM_PROJECT_ID": "project",
+            "SPECTRUM_PROJECT_SECRET": "secret",
+            "SPECTRUM_TEACHER_PHONE": "+12025550999",
+        },
+        tmp_path,
+        client,
+    )
+    with pytest.raises(RuntimeError, match="notification"):
+        notifier.notify_pending_review(review)
+    send.assert_not_called()
 
 
 @pytest.mark.parametrize("missing", ["owner", "profile", "phone"])

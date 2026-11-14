@@ -251,11 +251,11 @@ test("a new session must come back owned by the signed-in teacher", async () => 
     changeSession(mock(created).client, "S1", null, "raise_hand", null),
   );
 });
-test("sessions without the ownership column still work before migration 006", async () => {
+test("fresh authenticated sessions require the deployed ownership projection", async () => {
   const { client } = mock({ ...session, revision: 0 });
-  const result = await changeSession(client, "S1", null, "raise_hand", teacher);
-  assert.equal("teacher_id" in result, false);
-  assert.equal(sessionOwnership(result, teacher), "unknown");
+  await assert.rejects(
+    changeSession(client, "S1", null, "raise_hand", teacher),
+  );
 });
 test("session ownership labels", () => {
   assert.equal(
@@ -274,4 +274,99 @@ test("session ownership labels", () => {
     "other",
   );
   assert.throws(() => parseSession({ ...session, teacher_id: "nobody" }, "S1"));
+});
+
+test("retiring a seeded unowned session never claims it", async () => {
+  const old = { ...session, teacher_id: null };
+  const ended = {
+    ...old,
+    revision: old.revision + 1,
+    ended_at: "2026-11-14T13:00:00Z",
+  };
+  const value = mock(ended);
+  assert.equal(
+    (await changeSession(value.client, "S1", old, null, teacher)).teacher_id,
+    null,
+  );
+  assert.deepEqual(value.calls[0], {
+    name: "end_station_session",
+    args: {
+      p_station_id: "S1",
+      p_expected_session_id: old.id,
+      p_expected_revision: old.revision,
+    },
+  });
+  await assert.rejects(
+    changeSession(
+      mock({ ...ended, teacher_id: teacher }).client,
+      "S1",
+      old,
+      null,
+      teacher,
+    ),
+  );
+});
+
+test("seeded end -> fresh owned start -> read/refresh -> end -> new UUID uses only existing RPCs", async () => {
+  let active: Session | null = { ...session, teacher_id: null };
+  let latest = active;
+  let sequence = 0;
+  const calls: { name: string; args: Record<string, unknown> }[] = [];
+  const client = {
+    rpc(name: string, args: Record<string, unknown>) {
+      calls.push({ name, args });
+      assert.equal(Object.hasOwn(args, "teacher_id"), false);
+      assert.equal(Object.hasOwn(args, "p_teacher_id"), false);
+      let data: unknown;
+      if (name === "read_station_session")
+        data = {
+          session: active,
+          latest_session: latest,
+          activities: [{ id: "raise_hand", name: "Raise hand" }],
+        };
+      else {
+        assert.equal(args.p_expected_session_id, active?.id ?? null);
+        assert.equal(args.p_expected_revision, active?.revision ?? null);
+        if (name === "end_station_session") {
+          data = latest = {
+            ...active!,
+            revision: active!.revision + 1,
+            ended_at: "2026-11-14T13:00:00Z",
+          };
+          active = null;
+        } else {
+          active = active
+            ? {
+                ...active,
+                revision: active.revision + 1,
+                current_activity_id: String(args.p_activity_id),
+              }
+            : {
+                ...session,
+                id: `00000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+                revision: 0,
+                teacher_id: teacher,
+                current_activity_id: String(args.p_activity_id),
+              };
+          data = latest = active;
+        }
+      }
+      return { abortSignal: () => Promise.resolve({ data, error: null }) };
+    },
+  } as unknown as SupabaseClient;
+  const old = (await readSession(client, "S1")).session!;
+  assert.equal(old.teacher_id, null);
+  await changeSession(client, "S1", old, null, teacher);
+  assert.equal((await readSession(client, "S1")).session, null);
+  const first = await changeSession(client, "S1", null, "raise_hand", teacher);
+  assert.equal(first.teacher_id, teacher);
+  assert.equal(first.station_id, "S1");
+  assert.equal(first.ended_at, null);
+  assert.equal(first.current_activity_id, "raise_hand");
+  assert.notEqual(first.id, old.id);
+  assert.deepEqual((await readSession(client, "S1")).session, first);
+  assert.ok((await changeSession(client, "S1", first, null, teacher)).ended_at);
+  const second = await changeSession(client, "S1", null, "raise_hand", teacher);
+  assert.notEqual(first.id, second.id);
+  assert.equal(second.teacher_id, teacher);
 });

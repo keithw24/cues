@@ -47,7 +47,6 @@ export default function Landing() {
       <header className="ln-nav">
         <Link href="/" className="ln-brand" aria-label="Cues home">
           <CuesMark className="ln-brand-mark" />
-          Cues
         </Link>
         <nav aria-label="Main">
           <a href="#how">How it works</a>

@@ -379,27 +379,29 @@ export default function Dashboard({
     else if (selectedId) seatButtons.current.get(selectedId)?.focus();
   };
 
-  const activityPopover = (
-    <details className="activity-popover">
-      <summary>
-        Manage activity
-        <WorkspaceIcon name="chevronDown" />
-      </summary>
-      <div className="activity-popover-body">
-        <h2>Session controls</h2>
-        {sessionControlsEnabled && client ? (
-          <SessionControls
-            client={client}
-            station={stationId}
-            onActivity={setSessionActivity}
-            teacherLoginEnabled={teacherLoginEnabled}
-          />
-        ) : (
+  // Session controls sit in the toolbar (main, PR #48); the popover is only
+  // the fallback when they are not connected.
+  const activityPopover =
+    sessionControlsEnabled && client ? (
+      <section className="session-toolbar" aria-label="Session controls">
+        <SessionControls
+          client={client}
+          station={stationId}
+          onActivity={setSessionActivity}
+          teacherLoginEnabled={teacherLoginEnabled}
+        />
+      </section>
+    ) : (
+      <details className="activity-popover">
+        <summary>
+          Session controls
+          <WorkspaceIcon name="chevronDown" />
+        </summary>
+        <div className="activity-popover-body">
           <p>Session controls are not connected in this environment.</p>
-        )}
-      </div>
-    </details>
-  );
+        </div>
+      </details>
+    );
   const allSimulated =
     seats.length > 0 && seats.every((seat) => seat.is_simulated);
   const simulatedChip =

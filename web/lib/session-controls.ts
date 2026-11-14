@@ -198,9 +198,11 @@ export async function changeSession(
       (result.id !== session.id || result.revision !== session.revision + 1)) ||
     (!session && result.revision !== 0) ||
     // The database sets the owner from auth.uid(); the browser only checks it.
-    (!session &&
-      "teacher_id" in result &&
-      (!teacherId || result.teacher_id !== teacherId)) ||
+    (!session && teacherId !== null && result.teacher_id !== teacherId) ||
+    (!session && "teacher_id" in result && !teacherId) ||
+    (session &&
+      "teacher_id" in session &&
+      result.teacher_id !== session.teacher_id) ||
     (activityId === null
       ? !result.ended_at
       : result.ended_at || result.current_activity_id !== activityId)

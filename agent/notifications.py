@@ -1,6 +1,7 @@
 """Teacher-only notification boundary; transport is supplied by backend setup."""
 
 import json
+import logging
 import os
 import subprocess
 from collections.abc import Callable
@@ -63,14 +64,21 @@ def spectrum_notifier(config: dict, root: Path, client=None) -> ReviewNotifier |
                     owner = sessions[0].get("teacher_id") if sessions else None
                     if not owner:
                         raise RuntimeError("Session has no teacher owner")
-                    profiles = (
-                        client.table("teacher_profiles")
-                        .select("phone_number")
-                        .eq("user_id", owner)
-                        .execute()
-                        .data
+                    from agent.notification_activation import send_to_teacher
+
+                    status = send_to_teacher(
+                        client,
+                        config,
+                        root,
+                        owner,
+                        f"Cues: Seat {review.evaluation.seat_id} may need attention. "
+                        "Open Cues to review.",
                     )
-                    phone = profiles[0].get("phone_number") if profiles else None
+                    if status == "pending":
+                        logging.getLogger(__name__).warning(
+                            "Teacher notification activating: target_not_allowed"
+                        )
+                    return
                 except RuntimeError:
                     raise
                 except Exception:
@@ -80,6 +88,8 @@ def spectrum_notifier(config: dict, root: Path, client=None) -> ReviewNotifier |
             if not isinstance(phone, str) or not re.fullmatch(r"\+[1-9][0-9]{7,14}", phone):
                 raise RuntimeError("Teacher profile/static destination requires an E.164 phone")
             env = dict(os.environ)
+            for credential in ("PHOTON_TOKEN", "DASHBOARD_TOKEN"):
+                env.pop(credential, None)
             # Remove inherited static destination even when the nested env contains one.
             env.pop("SPECTRUM_TEACHER_PHONE", None)
             env["CUES_USE_STATIC_TEACHER_PHONE"] = mode

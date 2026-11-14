@@ -10,6 +10,7 @@ import {
   type TeacherProfile,
 } from "@/lib/teacher-profile";
 import "./teacher-profile.css";
+import { DemoNotifications } from "@/components/demo-notifications";
 
 /** Split a stored E.164 number back into a listed country code and the rest. */
 function splitPhone(phone: string | null) {
@@ -134,7 +135,7 @@ export default function TeacherProfileForm() {
       </div>
     );
   return (
-    <form className="integration-details profile-form" onSubmit={save}>
+    <><form className="integration-details profile-form" onSubmit={save}>
       <dl>
         <div>
           <dt>Email</dt>
@@ -207,5 +208,9 @@ export default function TeacherProfileForm() {
         <p className="integration-note">Saved as {profile.phone_number}</p>
       ) : null}
     </form>
+    <DemoNotifications client={client} phone={profile?.phone_number ?? null}
+      phoneDirty={normalizedPhone !== (profile?.phone_number ?? null) || phoneInvalid}
+      profileSaving={state === "saving"} />
+    </>
   );
 }
