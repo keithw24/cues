@@ -11,13 +11,19 @@ For a new hand vector v:
 The score is a match score, not a probability: it says how close the hand is
 to the teacher's examples.
 
-The rejection threshold is calibrated from the examples themselves. For each
-target example we measure the distance to its nearest other example; the
-average of those is how far a genuine attempt typically lands from the
-nearest example. The threshold is SCALE times that, so a typical genuine
-attempt scores about 1 - 1/SCALE (0.83 with SCALE = 6). A floor stops a few
-near-identical examples from making it impossibly strict. Each activity's
-success / review thresholds are applied elsewhere.
+The rejection threshold (the distance at which the score reaches 0) is
+calibrated from the examples:
+
+* Spread: the median distance between any two target examples. Frames from
+  one 2-second take are almost identical, so nearest-neighbour distances
+  hugely understate how much a genuine attempt varies; the median over all
+  pairs reflects variation across takes.
+* threshold = SCALE x spread, so an attempt as different as two typical
+  examples still scores about 1 - 1/SCALE (0.8 with SCALE = 5).
+* If rest examples exist, the threshold is capped at REST_CAP x the distance
+  from the targets to the nearest rest example, so a rest pose always scores
+  low even if the targets are spread out.
+* A floor stops a few near-identical examples from making it impossibly strict.
 """
 
 from __future__ import annotations
@@ -29,17 +35,23 @@ import numpy as np
 from vision.gestures.templates import Templates
 
 MIN_REJECTION = 0.5
-SCALE = 6.0
+SCALE = 5.0
+REST_CAP = 0.8
 
 
-def calibrate_rejection(target: np.ndarray, floor: float = MIN_REJECTION) -> float:
-    """SCALE x mean nearest-other-example distance among targets, at least `floor`."""
+def calibrate_rejection(
+    target: np.ndarray, rest: np.ndarray | None = None, floor: float = MIN_REJECTION
+) -> float:
+    """Distance at which the score reaches 0. See the module docstring."""
     if len(target) < 2:
         return floor
     dists = np.linalg.norm(target[:, None, :] - target[None, :, :], axis=-1)
-    np.fill_diagonal(dists, np.inf)
-    typical = float(dists.min(axis=1).mean())
-    return max(floor, SCALE * typical)
+    spread = float(np.median(dists[np.triu_indices(len(target), k=1)]))
+    threshold = max(floor, SCALE * spread)
+    if rest is not None and len(rest):
+        gap = float(np.linalg.norm(target[:, None, :] - rest[None, :, :], axis=-1).min())
+        threshold = min(threshold, max(floor, REST_CAP * gap))
+    return threshold
 
 
 @dataclass
@@ -54,7 +66,7 @@ class Matcher:
         target, rest = templates.arrays()
         if len(target) == 0:
             raise ValueError(f"no target examples recorded for {templates.activity_id!r}")
-        threshold = rejection if rejection is not None else calibrate_rejection(target)
+        threshold = rejection if rejection is not None else calibrate_rejection(target, rest)
         return cls(templates.activity_id, target, rest, threshold)
 
     def distances(self, vector: np.ndarray) -> tuple[float, float]:

@@ -26,7 +26,7 @@ import time
 PERCEPTION_FLAGS = ("vision.hands", "vision.faces", "vision.gestures", "vision.expression")
 
 
-def format_seat(seat, task, match, expression, top: int = 3) -> str:
+def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False) -> str:
     lines = [f"Seat: {seat}", f"Task: {task}"]
     if match is None:
         lines.append("Match score: -- (no hand in this seat)")
@@ -34,6 +34,8 @@ def format_seat(seat, task, match, expression, top: int = 3) -> str:
         lines.append(f"Match score: -- ({match.reason})")
     else:
         lines.append(f"Match score: {match.score:.2f}")
+        if debug and match.detail:
+            lines.append(f"  ({match.detail})")
     if not expression:
         lines.append("Expression: -- (no face in this seat)")
     else:
@@ -43,13 +45,13 @@ def format_seat(seat, task, match, expression, top: int = 3) -> str:
     return "\n".join(lines)
 
 
-def format_snapshot(ctx, seat_ids, tasks, top: int = 3) -> str:
+def format_snapshot(ctx, seat_ids, tasks, top: int = 3, debug: bool = False) -> str:
     blocks = []
     for seat in seat_ids:
         task = tasks.for_seat(seat)
         match = ctx.get("match", {}).get(seat)
         expression = ctx.get("expression", {}).get(seat)
-        blocks.append(format_seat(seat, task, match, expression, top))
+        blocks.append(format_seat(seat, task, match, expression, top, debug))
     return "\n\n".join(blocks)
 
 
@@ -63,6 +65,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--task", help="current task for both seats (default: CUES_TASK)")
     parser.add_argument("--seconds", type=float, help="stop after this many seconds")
     parser.add_argument("--top", type=int, default=3, help="expression labels to show (max 8)")
+    parser.add_argument("--debug", action="store_true", help="show raw gesture distances")
     args = parser.parse_args(argv)
 
     if args.all_on:
@@ -91,7 +94,8 @@ def main(argv: list[str] | None = None) -> None:
         while args.seconds is None or time.monotonic() - started < args.seconds:
             time.sleep(1.0)
             print("\033[2J\033[H" if os.isatty(1) else "-" * 40 + "\n", end="")
-            print(format_snapshot(pipeline.ctx, ZONES.seat_ids, TASKS, args.top), flush=True)
+            snapshot = format_snapshot(pipeline.ctx, ZONES.seat_ids, TASKS, args.top, args.debug)
+            print(snapshot, flush=True)
             print(f"\n[{pipeline.health()['fps']} fps]", flush=True)
     except KeyboardInterrupt:
         pass

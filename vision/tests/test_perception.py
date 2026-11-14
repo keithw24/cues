@@ -133,7 +133,28 @@ def test_rest_examples_lower_the_score_of_rest_like_hands():
 def test_calibration_floor_and_scale():
     assert calibrate_rejection(np.zeros((1, 63))) == 0.5
     spread = np.array([[0.0] * 63, [1.0] + [0.0] * 62])
-    assert calibrate_rejection(spread) == pytest.approx(6.0)  # SCALE x nearest distance 1.0
+    assert calibrate_rejection(spread) == pytest.approx(5.0)  # SCALE x median spread 1.0
+
+
+def test_calibration_is_capped_by_distance_to_rest():
+    target = np.array([[0.0] * 63, [1.0] + [0.0] * 62])  # spread 1.0 -> 5.0 uncapped
+    rest = np.array([[3.0] + [0.0] * 62])  # nearest target 2.0 away -> cap 1.6
+    assert calibrate_rejection(target, rest) == pytest.approx(1.6)
+
+
+def test_attempts_from_a_different_take_still_score_well():
+    """Two takes of the same gesture, each with near-identical frames inside."""
+    base = normalize(hand_points(shape_seed=1))
+    take_a = base + RNG.normal(0, 0.03, 63)
+    take_b = base + RNG.normal(0, 0.03, 63)
+    t = tpl.Templates("g")
+    t.add("target", [take_a + RNG.normal(0, 0.003, 63) for _ in range(20)])
+    t.add("target", [take_b + RNG.normal(0, 0.003, 63) for _ in range(20)])
+    t.add("rest", [normalize(hand_points(shape_seed=2))])
+    m = Matcher.from_templates(t)
+    live = base + RNG.normal(0, 0.03, 63)  # a third, new attempt
+    assert m.score(live) >= 0.7
+    assert m.score(normalize(hand_points(shape_seed=2))) < 0.2
 
 
 def test_matcher_needs_target_examples():
@@ -195,6 +216,7 @@ def test_gesture_stage_scores_current_task(tmp_path):
     ctx = {"hands": {"S1-L": [Hand(hand_points((0.2, 0.5), shape_seed=1), "Right", "S1-L")]}}
     stage.process(None, ctx)
     assert ctx["match"]["S1-L"].score > 0.8
+    assert "nearest target" in ctx["match"]["S1-L"].detail
     assert "S1-R" not in ctx["match"]  # no hand there
 
 
@@ -322,3 +344,14 @@ def test_recorder_countdown_collects_nothing():
     rec = Recorder(FakeCap(), FakeHandDetector([hand]), recording_zones(None), None, False)
     vectors, _ = rec.run(0.1, "Get ready")
     assert vectors == []
+
+
+def test_standard_frame_crops_instead_of_stretching():
+    from vision.camera import standard_frame
+
+    wide = np.zeros((720, 1280, 3), np.uint8)
+    wide[:, 160:1120] = 255  # the central 4:3 region is white, the sides black
+    out = standard_frame(wide)
+    assert out.shape == (480, 640, 3)
+    assert out.min() == 255  # only the centre was kept: no black sides squeezed in
+    assert standard_frame(np.zeros((480, 640, 3), np.uint8)).shape == (480, 640, 3)

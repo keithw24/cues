@@ -24,6 +24,7 @@ import time
 import cv2
 import numpy as np
 
+from vision.camera import standard_frame
 from vision.gestures import templates as tpl
 from vision.gestures.matcher import calibrate_rejection
 from vision.gestures.normalize import normalize
@@ -88,7 +89,7 @@ class Recorder:
             if not ok:
                 continue
             frames += 1
-            bgr = cv2.resize(bgr, (640, 480))
+            bgr = standard_frame(bgr)
             rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
             result = self.detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
             hand = pick_hand(hands_from_result(result, self.zones), self.seat)
@@ -157,6 +158,9 @@ def main(argv: list[str] | None = None) -> None:
     cap = cv2.VideoCapture(args.camera)
     if not cap.isOpened():
         raise SystemExit("Could not open the camera. Is the vision service running?")
+    # Same request as the vision service, so recorded and live frames match.
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     templates = tpl.load(activity.id)
     rec = Recorder(cap, detector, recording_zones(args.seat), args.seat, not args.no_preview)
     if rec.preview:
@@ -187,7 +191,7 @@ def main(argv: list[str] | None = None) -> None:
     target, rest = templates.arrays()
     print(f"\nSaved {path}: {len(target)} target, {len(rest)} rest examples.")
     if len(target):
-        print(f"Calibrated rejection threshold: {calibrate_rejection(target):.3f}")
+        print(f"Calibrated rejection threshold: {calibrate_rejection(target, rest):.3f}")
     if len(target) and not len(rest):
         print("Tip: record some 'rest' examples too, so other hand shapes score low.")
 

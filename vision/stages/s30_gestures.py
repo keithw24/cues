@@ -65,8 +65,15 @@ class GesturesStage:
             if matcher is None:
                 result[seat] = Match(activity_id, None, reason)
                 continue
-            scores = [matcher.score(normalize(h.landmarks, h.handedness)) for h in hands[seat]]
-            result[seat] = Match(activity_id, max(scores))
+            best = max(
+                (normalize(h.landmarks, h.handedness) for h in hands[seat]), key=matcher.score
+            )
+            d_target, d_rest = matcher.distances(best)
+            detail = (
+                f"nearest target {d_target:.2f}, nearest rest {d_rest:.2f}, "
+                f"score reaches 0 at {matcher.rejection_threshold:.2f}"
+            )
+            result[seat] = Match(activity_id, matcher.score(best), detail=detail)
         ctx["match"] = result
 
     def draw(self, image, ctx) -> None:

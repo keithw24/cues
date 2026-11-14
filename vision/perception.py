@@ -40,3 +40,4 @@ class Match:
     activity_id: str
     score: float | None  # 0..1, None when the task has no recorded examples yet
     reason: str = ""  # why score is None, for display
+    detail: str = ""  # raw distances, shown by `vision.watch --debug`
