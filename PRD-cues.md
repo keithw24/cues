@@ -207,8 +207,11 @@ The station laptop runs a Python vision service responsible for webcam capture, 
 
 ### 6.1 Camera
 
-- Logitech webcam.
-- Start at 640×480.
+- Logitech C930e (1080p, 16:9, 90° field of view), chosen during the build for its wide view of a table of children.
+- The camera is asked for 1280×720; every frame is processed at **960×540 (16:9)** without cropping, so children at the edges of the wide view stay in frame. A 4:3 camera would lose its top and bottom edges rather than be stretched.
+- Hand shapes, finger checks, shoulder width and hand-to-person distances convert x by the frame's aspect ratio, so scores do not depend on the frame shape. Recorded custom gestures carry a format version and must be re-recorded after a camera change.
+- Measured on the station laptop (synthetic frames): all models together ≈ 13 ms per frame at 960×540, well above the camera's 30 fps.
+- Select the camera with `CUES_CAMERA_INDEX` (on a Mac with a built-in camera, the USB camera is usually 1).
 - Target a smooth enough frame rate for interaction rather than maximum throughput.
 - The vision service owns webcam access to avoid multiple processes competing for the device.
 

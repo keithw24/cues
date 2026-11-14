@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import time
 from collections.abc import Iterator
@@ -31,7 +32,7 @@ from dataclasses import asdict, dataclass
 import cv2
 import numpy as np
 
-from vision.camera import standard_frame
+from vision.camera import FRAME_HEIGHT, FRAME_WIDTH, open_capture, standard_frame
 
 FACE_HZ = 5.0
 EXPRESSION_HZ = 3.0
@@ -77,13 +78,11 @@ def frames(args: argparse.Namespace) -> Iterator[np.ndarray]:
     if args.fake:
         rng = np.random.default_rng(0)
         while time.monotonic() < deadline:
-            yield rng.integers(0, 255, (480, 640, 3), dtype=np.uint8)
+            yield rng.integers(0, 255, (FRAME_HEIGHT, FRAME_WIDTH, 3), dtype=np.uint8)
         return
-    cap = cv2.VideoCapture(args.video if args.video else args.camera)
+    cap = cv2.VideoCapture(args.video) if args.video else open_capture(args.camera)
     if not cap.isOpened():
         raise SystemExit("Could not open the camera/video. Check permissions or --camera index.")
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     try:
         while time.monotonic() < deadline:
             ok, image = cap.read()
@@ -188,7 +187,7 @@ def print_report(report: dict) -> None:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--seconds", type=float, default=30)
-    parser.add_argument("--camera", type=int, default=0)
+    parser.add_argument("--camera", type=int, default=int(os.environ.get("CUES_CAMERA_INDEX", "0")))
     parser.add_argument("--video", help="benchmark on a video file instead of the camera")
     parser.add_argument("--fake", action="store_true", help="synthetic frames, no camera")
     parser.add_argument("--json", action="store_true", help="print the report as JSON")

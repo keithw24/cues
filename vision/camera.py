@@ -3,6 +3,13 @@
 The vision service is the only process that opens the webcam. A background
 thread reads frames continuously and keeps only the newest one, so slow
 consumers never build up a backlog.
+
+Station camera: Logitech C930e (1080p, 16:9, 90-degree field of view).
+The camera is asked for CAPTURE_WIDTH x CAPTURE_HEIGHT (1280x720), and every
+frame is brought to FRAME_WIDTH x FRAME_HEIGHT (960x540, 16:9) by
+standard_frame. Keeping 16:9 keeps the full wide view, so children at the
+sides of the table stay in frame. Set the camera with CUES_CAMERA_INDEX (on a
+Mac with a built-in camera the USB camera is usually 1).
 """
 
 from __future__ import annotations
@@ -15,8 +22,24 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-DEFAULT_WIDTH = 640
-DEFAULT_HEIGHT = 480
+FRAME_WIDTH = 960
+FRAME_HEIGHT = 540
+ASPECT = FRAME_WIDTH / FRAME_HEIGHT  # 16:9; x and y of normalised landmarks differ by this
+CAPTURE_WIDTH = 1280
+CAPTURE_HEIGHT = 720
+
+# Older names, kept for callers that pass a size explicitly.
+DEFAULT_WIDTH = FRAME_WIDTH
+DEFAULT_HEIGHT = FRAME_HEIGHT
+
+
+def open_capture(index: int) -> cv2.VideoCapture:
+    """Open a camera and ask for the station capture size (1280x720)."""
+    cap = cv2.VideoCapture(index)
+    if cap.isOpened():
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAPTURE_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAPTURE_HEIGHT)
+    return cap
 
 
 @dataclass
@@ -29,9 +52,10 @@ class Frame:
 def standard_frame(image: np.ndarray, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
     """Centre-crop to the target aspect ratio, then resize. Never stretches.
 
-    Cameras return different shapes (16:9, 4:3). Stretching a 16:9 frame to
-    4:3 changes a hand's proportions, so gestures recorded one way would not
-    match the other. Every frame the vision code uses goes through here.
+    Cameras return different shapes (16:9, 4:3). Stretching changes a hand's
+    proportions, so gestures recorded one way would not match the other.
+    Every frame the vision code uses goes through here. With the 16:9 station
+    camera nothing is cropped; a 4:3 camera loses its top and bottom edges.
     """
     h, w = image.shape[:2]
     target = width / height
@@ -105,14 +129,13 @@ class OpenCVCamera(Camera):
         self._cap: cv2.VideoCapture | None = None
 
     def _open(self) -> None:
-        cap = cv2.VideoCapture(self.index)
+        cap = open_capture(self.index)
         if not cap.isOpened():
             raise RuntimeError(
                 f"Could not open camera {self.index}. Check it is connected and that this "
-                "terminal has camera permission (System Settings > Privacy > Camera)."
+                "terminal has camera permission (System Settings > Privacy > Camera). "
+                "For the USB camera try CUES_CAMERA_INDEX=1."
             )
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         self._cap = cap
 
     def _close(self) -> None:

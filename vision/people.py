@@ -27,6 +27,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from vision.camera import ASPECT
+
 MAX_PEOPLE = 4
 RELEASE_SECONDS = 10.0
 MIN_IOU = 0.2
@@ -60,7 +62,8 @@ class Person:
     def shoulder_width(self) -> float:
         lx, ly, _ = self.point(LEFT_SHOULDER)
         rx, ry, _ = self.point(RIGHT_SHOULDER)
-        return float(np.hypot(lx - rx, ly - ry))
+        # In units of frame height: x is converted by the frame's aspect ratio.
+        return float(np.hypot((lx - rx) * ASPECT, ly - ry))
 
 
 def person_color(person_id: str) -> tuple[int, int, int]:
@@ -207,7 +210,7 @@ class PeopleGrouping:
             limit = max(person.shoulder_width, 0.05)  # reach scales with body size
             for wrist in (LEFT_WRIST, RIGHT_WRIST):
                 wx, wy, _ = person.point(wrist)
-                d = float(np.hypot(wx - hx, wy - hy))
+                d = float(np.hypot((wx - hx) * ASPECT, wy - hy))
                 if d <= limit and (best_d is None or d < best_d):
                     best, best_d = pid, d
         if best is not None:

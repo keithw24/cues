@@ -30,6 +30,8 @@ import os
 
 import numpy as np
 
+from vision.camera import ASPECT
+
 WRIST, INDEX_MCP, PINKY_MCP = 0, 5, 17
 FINGERS = ((5, 8), (9, 12), (13, 16), (17, 20))  # (knuckle, tip): index..little
 EXTENDED_RATIO = 1.6
@@ -39,7 +41,7 @@ SIDE_SINE = 0.25  # below this |sin(angle)|, the hand is seen edge-on
 
 def palm_side(landmarks: np.ndarray, handedness: str) -> str:
     """'palm', 'back' or 'side': which side of the hand faces the camera."""
-    pts = np.asarray(landmarks, dtype=np.float64)[:, :2]
+    pts = np.asarray(landmarks, dtype=np.float64)[:, :2] * (ASPECT, 1.0)  # x in y units
     v1, v2 = pts[INDEX_MCP] - pts[WRIST], pts[PINKY_MCP] - pts[WRIST]
     norm = float(np.linalg.norm(v1) * np.linalg.norm(v2))
     if norm < 1e-9:
@@ -57,7 +59,7 @@ def palm_side(landmarks: np.ndarray, handedness: str) -> str:
 
 
 def extended_fingers(landmarks: np.ndarray) -> int:
-    pts = np.asarray(landmarks, dtype=np.float64)[:, :2]
+    pts = np.asarray(landmarks, dtype=np.float64)[:, :2] * (ASPECT, 1.0)  # x in y units
     count = 0
     for knuckle, tip in FINGERS:
         k = np.linalg.norm(pts[knuckle] - pts[WRIST])

@@ -129,3 +129,11 @@ uv run pytest vision                                        # tests (hardware te
   detail instead.
 - **One hand per person:** the best-matching hand for gestures, the highest
   hand for raise-hand.
+
+## Update: Logitech C930e, 16:9
+
+- Station camera is the Logitech C930e. Frames are processed at 960x540
+  (16:9, full wide view, no cropping); the camera is asked for 1280x720.
+- Set `CUES_CAMERA_INDEX=1` in `.env` if the Mac's built-in camera is 0.
+- Geometry is aspect-corrected; recorded custom gestures (format 4) must be
+  re-recorded. Thumbs-up is built in (Gesture Recognizer) and needs nothing.
