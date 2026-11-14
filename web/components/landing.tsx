@@ -169,7 +169,7 @@ export default function Landing() {
             The camera stays in the classroom
           </h2>
           <p data-reveal style={{ "--i": 1 } as CSSProperties}>
-            Video stays on the station laptop. Only structured status updates,
+            Student camera images and video stay on the classroom laptop. Only structured status updates,
             such as “Seat 1 finished thumbs up”, leave it.
           </p>
           <ul className="ln-facts">

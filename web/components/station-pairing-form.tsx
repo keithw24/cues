@@ -28,7 +28,7 @@ export default function StationPairingForm() {
       } catch (error) {
         if (!disposed && current === epoch.current) {
           setState(error instanceof StationSignInRequired ? "signed-out" : "error");
-          setMessage(error instanceof Error ? error.message : "Station access unavailable.");
+          setMessage(error instanceof Error ? error.message : "Camera links are unavailable.");
         }
       }
     }
@@ -52,21 +52,21 @@ export default function StationPairingForm() {
       const station = await redeemStationCode(client, code);
       if (current !== epoch.current) return;
       setMemberships(previous => [...new Set([...previous, station])].sort());
-      setMessage(`Connected to ${station}`); setCode(""); setState("ready");
+      setMessage(`Linked to camera ${station}`); setCode(""); setState("ready");
     } catch (error) {
       if (current !== epoch.current) return;
       setState(error instanceof StationSignInRequired ? "signed-out" : "ready");
-      setMessage(error instanceof Error ? error.message : "Could not connect station.");
+      setMessage(error instanceof Error ? error.message : "Could not link the camera.");
     } finally { locked.current = false; }
   }
   if (!client) return <p role="alert">Teacher accounts are not configured in this environment.</p>;
-  if (state === "signed-out") return <div className="integration-details"><p>Sign in to connect a station.</p><Link href="/login">Teacher sign in</Link></div>;
-  if (state === "loading") return <p role="status">Loading station access…</p>;
+  if (state === "signed-out") return <div className="integration-details"><p>Sign in to link a classroom camera.</p><Link href="/login">Teacher sign in</Link></div>;
+  if (state === "loading") return <p role="status">Loading your cameras…</p>;
   if (state === "error") return <div className="integration-details"><p role="alert">{message}</p><button onClick={() => setRetry(value => value + 1)}>Retry</button></div>;
   return <form className="integration-details profile-form" onSubmit={submit} aria-busy={state === "saving"}>
-    {memberships.length ? <section><h2>Connected stations</h2><ul>{memberships.map(id => <li key={id}>{id}</li>)}</ul></section> : <p>No stations connected.</p>}
+    {memberships.length ? <section><h2>Linked cameras</h2><ul>{memberships.map(id => <li key={id}>{id}</li>)}</ul></section> : <p>No cameras linked yet.</p>}
     <label className="profile-field"><span>Pairing code</span><input value={code} onChange={event => setCode(event.target.value)} maxLength={128} autoComplete="off" spellCheck={false} disabled={state === "saving"} /></label>
-    <button className="primary-button" type="submit" disabled={state === "saving" || !code.trim()}>{state === "saving" ? "Connecting…" : "Connect station"}</button>
+    <button className="primary-button" type="submit" disabled={state === "saving" || !code.trim()}>{state === "saving" ? "Connecting…" : "Link camera"}</button>
     {message ? <p role="status" aria-live="polite">{message}</p> : null}
     <Link className="quiet-link" href="/dashboard">Back to classroom</Link>
   </form>;
