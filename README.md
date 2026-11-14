@@ -51,14 +51,16 @@ Perception runs on the station laptop. Only structured events are synced; rules 
 | Path | Contents / ownership |
 |---|---|
 | `vision/` | Local FastAPI camera/pipeline foundation, model loaders, benchmark, event emitter, and tests — Keith |
-| `web/` | Next.js App Router scaffold for the dashboard/station UI; Supabase product integration — Evan |
+| `web/` | Next.js App Router scaffold — Evan owns frontend, app backend, and Supabase product integration |
+| `shared/` | Canonical Pydantic contracts, synthetic JSON fixtures, and contract tests |
 | `PRD-cues.md` | Product requirements, architecture, shared event schema, and team responsibilities |
 | `pyproject.toml`, `uv.lock`, `.python-version` | Shared Python environment |
-| `.env.example`, `vision/.env.example` | Root credentials template and current vision configuration |
+| `.env.example` | Shared root credentials template |
+| `TEAM_WORKFLOW.md` | Personal branches, ownership boundaries, and shared contract decisions |
 | `flags.json` | Feature-flag registry |
 | `.github/`, `.claude/agents/`, `CLAUDE.md`, `AGENTS.md` | CI, PR template, review guidance, and contributor/agent instructions |
 
-Michelle owns the planned rules/agent backend. This checkout has no `agent/` or `backend/` directory yet; its existing FastAPI entry point is `vision.app:app`.
+Michelle owns agent/routing (rules, Deep Agents, Groq, Photon, and the agent approval workflow). Evan owns the frontend and app backend. This checkout has no `agent/` or `backend/` directory yet; its existing FastAPI entry point is `vision.app:app`.
 
 ## Development setup
 
@@ -82,9 +84,9 @@ Open `http://127.0.0.1:8000/health` for status or `/stream` for the local camera
 Existing checks (hardware tests skipped by default):
 
 ```bash
-uv run pytest vision
-uv run ruff check vision
-uv run ruff format --check vision
+uv run pytest vision shared/tests
+uv run ruff check vision shared
+uv run ruff format --check vision shared
 ```
 
 The model benchmark is `uv run python -m vision.bench`; its first run downloads model weights and it uses the webcam by default.
@@ -113,7 +115,7 @@ The root `.env.example` contains:
 | `GROQ_API_KEY` | Agent inference credentials |
 | `PHOTON_API_KEY` | Teacher notification credentials |
 
-The current vision client separately loads `vision/.env` and expects `SUPABASE_URL` + `SUPABASE_KEY` (the station service-role key), not `SUPABASE_SERVICE_ROLE_KEY`. If configuring that client, run `cp vision/.env.example vision/.env` and fill in those values. That template also documents `CUES_STATION_ID`, optional `CUES_SESSION_ID`, and `CUES_CAMERA_INDEX`. Without Supabase credentials, the event emitter writes local JSONL files under `vision/logs/`; failed Supabase writes also fall back there.
+The vision client loads the root `.env` and reads `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. Optional settings in that file or the shell include `CUES_STATION_ID`, `CUES_SESSION_ID`, `CUES_CAMERA_INDEX`, and `CUES_CAMERA=fake`. Events go to Supabase only when `vision.supabase_events` is enabled and credentials are configured; otherwise they stay in local JSONL files under `vision/logs/`. Failed Supabase writes also fall back there.
 
 Never commit `.env` files or secrets, and never expose service-role, Groq, or Photon keys through browser-visible `NEXT_PUBLIC_*` variables. The root template does not yet wire up the planned agent integrations.
 
@@ -125,20 +127,20 @@ For frontend dependencies, run `npm install <package>` inside `web/` and commit 
 
 ## Branches
 
-These branches currently exist locally and on `origin`:
+Follow [TEAM_WORKFLOW.md](TEAM_WORKFLOW.md):
 
 | Branch | Work area |
 |---|---|
 | `main` | Integration / stable shared branch |
-| `frontend` | UI |
-| `agent` | Deep Agents + Groq + Photon |
-| `backend` | FastAPI / Supabase / rules / shared backend |
-| `vision` | MediaPipe + HSEmotion + gesture matching |
-| `benchmark` | CV/runtime performance testing |
-| `events` | Event schema/emission |
-| `setup` | Environment/tooling |
+| `keith` | Computer vision / local perception |
+| `evan` | Frontend / app backend / Supabase |
+| `michelle` | Agent / routing / rules / Groq / Photon |
 
-For new work, the team workflow in `CLAUDE.md` uses one ticket per `feat/<ticket>-<short-name>` branch and PR, normally based on `main`. Use the PR template and keep changes scoped.
+Work on your personal branch, keep commits small and scoped, and integrate through `main`. Follow `TEAM_WORKFLOW.md` for branch synchronization and use the PR template for review.
+
+## Shared contracts
+
+The agreed contracts use UUIDs for session/alert IDs, all 12 PRD event types, the PRD session/timestamp fields, `label`/`probability` for expression context, and `Activity.id` with `activity_id` on references. See `TEAM_WORKFLOW.md` §3. The `shared/contracts.py` Pydantic models are authoritative; synthetic JSON examples live in `shared/fixtures/`. See [shared/README.md](shared/README.md) for usage. The vision emitter validates and serializes these shared contracts.
 
 ## Product principles
 

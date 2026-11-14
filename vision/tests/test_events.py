@@ -1,9 +1,16 @@
 import json
 import os
+from datetime import UTC, datetime
+from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
 
-from vision.events import Emitter, Event, JsonlSink
+from shared.contracts import Event, SeatState
+from vision.events import Emitter, JsonlSink
+
+SESSION_ID = UUID("550e8400-e29b-41d4-a716-446655440000")
+NOW = datetime(2026, 11, 14, 2, tzinfo=UTC)
 
 
 class MemorySink:
@@ -26,91 +33,173 @@ class FailingSink:
         raise ConnectionError("offline")
 
 
-def test_event_row_matches_contract():
-    event = Event(type="attempt_success", seat_id="S1-L", activity_id="raise_hand", score=0.9)
-    row = event.to_row()
-    assert set(row) == {
-        "session_id",
-        "station_id",
-        "seat_id",
-        "type",
-        "activity_id",
-        "score",
-        "payload",
-        "created_at",
-    }
-    assert row["payload"] == {"source": "auto"}
-    assert row["created_at"].endswith("Z")
+def event(**changes):
+    return Event.model_validate(
+        dict(
+            session_id=SESSION_ID,
+            station_id="S1",
+            seat_id="S1-L",
+            type="attempt_miss",
+            activity_id="raise_hand",
+            score=0.3,
+            created_at=NOW,
+        )
+        | changes
+    )
 
 
-def test_event_rejects_unknown_type_and_bad_score():
-    with pytest.raises(ValueError):
-        Event(type="emotion_detected", seat_id="S1-L")
-    with pytest.raises(ValueError):
-        Event(type="attempt_miss", seat_id="S1-L", score=1.5)
+def state(**changes):
+    return SeatState.model_validate(
+        dict(session_id=SESSION_ID, seat_id="S1-L", status="in_progress", updated_at=NOW) | changes
+    )
 
 
-def test_emitter_fills_session_and_station():
+@pytest.fixture
+def make_emitter():
+    emitters = []
+
+    def make(sink, **kwargs):
+        emitter = Emitter(sink, **kwargs)
+        emitters.append(emitter)
+        return emitter
+
+    yield make
+    for emitter in emitters:
+        emitter.close()
+
+
+def test_vision_uses_canonical_event():
+    from vision import events
+
+    assert events.Event is Event
+    assert events.SeatState is SeatState
+
+
+def test_emitter_serializes_shared_event_without_overriding_ids(make_emitter):
     sink = MemorySink()
-    emitter = Emitter(sink, session_id="sess-1", station_id="S1")
-    emitter.emit(Event(type="attempt_miss", seat_id="S1-R", activity_id="thumbs_up", score=0.3))
-    emitter.close()
-    assert sink.events[0]["session_id"] == "sess-1"
-    assert sink.events[0]["station_id"] == "S1"
+    emitter = make_emitter(sink, station_id="OTHER")
+    model = event()
+    before = model.model_dump()
+    emitter.emit(model)
+    emitter.flush()
+    row = sink.events[0]
+    assert Event.model_validate(row) == model
+    assert row["session_id"] == str(SESSION_ID)
+    assert row["station_id"] == "S1"
+    assert row["created_at"] == "2026-11-14T02:00:00Z"
+    assert model.model_dump() == before
+    json.dumps(row)  # No UUID, enum, or datetime objects reach sinks.
 
 
-def test_seat_state_only_sends_given_fields():
-    sink = MemorySink()
-    emitter = Emitter(sink, session_id="sess-1")
-    emitter.update_seat_state("S1-L", status="in_progress")
-    emitter.close()
-    row = sink.states[0]
-    assert row["seat_id"] == "S1-L"
-    assert row["status"] == "in_progress"
-    assert "task_score" not in row
-    assert "updated_at" in row
-
-
-def test_seat_state_rejects_unknown_status():
-    emitter = Emitter(MemorySink())
+def test_emitter_defaults_are_valid_for_producer_models(make_emitter):
+    emitter = make_emitter(MemorySink(), session_id=str(SESSION_ID))
+    assert emitter.session_id == SESSION_ID
+    assert isinstance(make_emitter(MemorySink()).session_id, UUID)
     with pytest.raises(ValueError):
-        emitter.update_seat_state("S1-L", status="struggling")
-    emitter.close()
+        Emitter(MemorySink(), session_id="sess-1")
 
 
-def test_failed_write_goes_to_fallback():
+def test_seat_state_sends_complete_snapshot_and_clears_old_values(make_emitter):
+    sink = MemorySink()
+    emitter = make_emitter(sink)
+    emitter.update_seat_state(
+        state(
+            activity_id="raise_hand",
+            task_score=0.7,
+            expression_context={"label": "neutral", "probability": 0.74},
+        )
+    )
+    emitter.update_seat_state(state(status="idle"))
+    emitter.flush()
+    row = sink.states[-1]
+    assert SeatState.model_validate(row).status == "idle"
+    assert row["session_id"] == str(SESSION_ID)
+    assert row["activity_id"] is None
+    assert row["task_score"] is None
+    assert row["expression_context"] is None
+    assert row["updated_at"] == "2026-11-14T02:00:00Z"
+    json.dumps(row)
+
+
+@pytest.mark.parametrize("target", ["event", "state"])
+def test_mutated_invalid_models_are_rejected_before_writing(make_emitter, target):
+    sink = MemorySink()
+    emitter = make_emitter(sink)
+    if target == "event":
+        model = event()
+        model.score = 2
+        with pytest.raises(ValidationError):
+            emitter.emit(model)
+    else:
+        model = state()
+        model.task_score = 2
+        with pytest.raises(ValidationError):
+            emitter.update_seat_state(model)
+    emitter.flush()
+    assert sink.events == []
+    assert sink.states == []
+
+
+def test_queued_rows_are_detached_from_mutable_models(make_emitter):
+    sink = MemorySink()
+    emitter = make_emitter(sink)
+    model = event(payload={"metadata": {"source": "auto"}})
+    emitter.emit(model)
+    model.payload["metadata"]["source"] = "changed"
+    emitter.flush()
+    assert sink.events[0]["payload"]["metadata"]["source"] == "auto"
+
+
+def test_failed_write_goes_to_fallback(make_emitter):
     fallback = MemorySink()
-    emitter = Emitter(FailingSink(), fallback=fallback)
-    emitter.emit(Event(type="tracking_lost", seat_id="S1-L"))
-    emitter.update_seat_state("S1-L", status="tracking_lost")
-    emitter.close()
-    assert len(fallback.events) == 1
-    assert len(fallback.states) == 1
+    emitter = make_emitter(FailingSink(), fallback=fallback)
+    emitter.emit(event(type="tracking_lost", score=None))
+    emitter.update_seat_state(state(status="tracking_lost"))
+    emitter.flush()
+    assert Event.model_validate(fallback.events[0]).type == "tracking_lost"
+    assert SeatState.model_validate(fallback.states[0]).status == "tracking_lost"
 
 
-def test_jsonl_sink_appends_lines(tmp_path):
-    sink = JsonlSink(tmp_path)
-    emitter = Emitter(sink)
-    emitter.emit(Event(type="attempt_success", seat_id="S1-L"))
-    emitter.emit(Event(type="attempt_miss", seat_id="S1-L"))
-    emitter.close()
+def test_jsonl_sink_appends_valid_shared_contracts(tmp_path, make_emitter):
+    emitter = make_emitter(JsonlSink(tmp_path))
+    emitter.emit(event(type="attempt_success"))
+    emitter.emit(event())
+    emitter.update_seat_state(state())
+    emitter.flush()
     lines = (tmp_path / "events.jsonl").read_text().splitlines()
-    assert [json.loads(line)["type"] for line in lines] == ["attempt_success", "attempt_miss"]
+    assert [Event.model_validate_json(line).type for line in lines] == [
+        "attempt_success",
+        "attempt_miss",
+    ]
+    line = (tmp_path / "seat_state.jsonl").read_text().strip()
+    assert SeatState.model_validate_json(line).seat_id == "S1-L"
+
+
+def test_demo_emits_shared_contracts(monkeypatch, capsys):
+    from vision import events
+
+    sink = MemorySink()
+    emitter = Emitter(sink, session_id=SESSION_ID, station_id="DEMO")
+    monkeypatch.setattr(events, "emitter_from_env", lambda: emitter)
+    events.main(["--demo"])
+    assert Event.model_validate(sink.events[0]).station_id == "DEMO"
+    assert SeatState.model_validate(sink.states[0]).seat_id == "DEMO-L"
+    assert "DEMO-L" in capsys.readouterr().out
 
 
 @pytest.mark.skipif(
     not (os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
     reason="needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
 )
-def test_supabase_round_trip():
+def test_supabase_round_trip(make_emitter):
     from vision.events import SupabaseSink
     from vision.supabase_client import get_client
 
     client = get_client()
     marker = "S1-TEST"
-    emitter = Emitter(SupabaseSink(client))
-    emitter.emit(Event(type="attempt_success", seat_id=marker, activity_id="raise_hand", score=1))
-    emitter.close()
+    emitter = make_emitter(SupabaseSink(client))
+    emitter.emit(event(type="attempt_success", seat_id=marker, score=1))
+    emitter.flush()
     rows = client.table("events").select("*").eq("seat_id", marker).execute().data
     assert rows
 

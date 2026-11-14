@@ -1,0 +1,60 @@
+[
+  {
+    "seat_id": "S1-L",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "activity_id": null,
+    "status": "idle",
+    "task_score": null,
+    "expression_context": null,
+    "updated_at": "2026-11-14T02:00:00Z"
+  },
+  {
+    "seat_id": "S1-L",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "activity_id": "custom_gesture_01",
+    "status": "in_progress",
+    "task_score": 0.31,
+    "expression_context": {
+      "label": "neutral",
+      "probability": 0.74,
+      "supporting_only": true
+    },
+    "updated_at": "2026-11-14T02:01:00Z"
+  },
+  {
+    "seat_id": "S1-L",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "activity_id": "custom_gesture_01",
+    "status": "review",
+    "task_score": 0.65,
+    "expression_context": null,
+    "updated_at": "2026-11-14T02:02:00Z"
+  },
+  {
+    "seat_id": "S1-L",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "activity_id": "custom_gesture_01",
+    "status": "done",
+    "task_score": 0.91,
+    "expression_context": null,
+    "updated_at": "2026-11-14T02:03:00Z"
+  },
+  {
+    "seat_id": "S1-L",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "activity_id": "custom_gesture_01",
+    "status": "needs_help",
+    "task_score": 0.35,
+    "expression_context": null,
+    "updated_at": "2026-11-14T02:04:00Z"
+  },
+  {
+    "seat_id": "S1-L",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "activity_id": "custom_gesture_01",
+    "status": "tracking_lost",
+    "task_score": null,
+    "expression_context": null,
+    "updated_at": "2026-11-14T02:05:00Z"
+  }
+]

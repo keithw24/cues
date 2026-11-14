@@ -5,7 +5,8 @@
 - Read the product/architecture source of truth, [PRD-cues.md](PRD-cues.md), before implementing product behavior. The requested `prd.md` is named `PRD-cues.md` in this repository; do not create a duplicate.
 - `pyproject.toml` and `uv.lock` define the shared Python environment; `web/package.json` and `web/package-lock.json` define frontend dependencies.
 - Inspect existing code before assuming paths, commands, or capabilities. Code establishes what is implemented; the PRD defines intended behavior. Surface discrepancies rather than silently rewriting architecture.
-- Consult `CLAUDE.md` for team workflow, feature flags, and pre-merge review; follow `web/AGENTS.md` for frontend edits.
+- Read `TEAM_WORKFLOW.md` for team branches, ownership, and shared contract decisions. It takes precedence over older branch/ownership guidance. Consult `CLAUDE.md` for feature flags and pre-merge review; follow `web/AGENTS.md` for frontend edits.
+- Agreed contracts: UUID session/alert IDs; all 12 PRD event types; retain `SeatState.session_id`/`updated_at` and `Alert.created_at`/`resolved_at`; expression `label`/`probability`; `Activity.id` with `activity_id` on references. The `shared/contracts.py` Pydantic definitions are authoritative; JSON examples are illustrative. Import these models rather than maintaining independent Python definitions. The vision emitter imports these shared models; do not introduce component-specific copies.
 
 ## 2. Current architecture
 
@@ -56,8 +57,8 @@ git branch --show-current
 ```
 
 - Preserve other developers' changes. Do not delete unrelated files, reset their work, force push, merge without an explicit request, or modify another component unnecessarily.
-- Keep changes and commits scoped to the assigned task. Follow the one-ticket/one-branch/one-PR workflow and `.github/pull_request_template.md`; identify cross-owner changes in the PR.
-- `main` is the integration branch. Existing work-area branches: `frontend`, `agent`, `backend`, `vision`; supporting branches: `benchmark`, `events`, `setup`. A branch name does not imply a same-named directory exists.
+- Keep changes and commits scoped to the assigned task. Follow the personal-branch workflow in `TEAM_WORKFLOW.md` and `.github/pull_request_template.md`; identify cross-owner changes in the PR.
+- `main` is the integration branch. Keith works on `keith`, Evan on `evan`, and Michelle on `michelle`. A branch name does not imply a same-named directory exists.
 
 ## 7. Code ownership / boundaries
 
@@ -66,8 +67,8 @@ Inspect the actual tree before adding or assuming directories. Integration is sh
 | Area | Responsibility |
 |---|---|
 | Vision — Keith (`vision/`) | Webcam input, MediaPipe, normalized landmarks, local gesture templates, nearest-neighbor match score, HSEmotion, tracking state, structured perception events. Keep agent logic out. |
-| Backend — Michelle; Supabase schema/realtime — Evan | FastAPI, Supabase integration, event handling, rules, shared API contracts. Current FastAPI service lives in `vision/`; a separate backend directory is not present. |
-| Agent — Michelle (planned) | Deep Agents, Groq, tools, intervention decisions, Photon, teacher approval. Operates on structured state, never camera frames. |
+| App backend — Evan | App-facing APIs, Supabase schema/integration, realtime product state, and app support for teacher decisions. Current local vision FastAPI service remains in Keith’s `vision/`; no separate app backend directory exists yet. |
+| Agent / routing — Michelle (planned) | Event routing, rules, alert cooldowns, Deep Agents, Groq, tools, intervention decisions, Photon, agent approval workflow. Operates on structured state, never camera frames. |
 | Frontend — Evan (`web/`) | Teacher dashboard, station UI, realtime display, task selection, voice controls, alert approval/dismissal, gesture recording controls. Currently a scaffold. |
 
 Event/table changes affect shared contracts in PRD §17. Update affected components and the PRD together and record Keith, Evan, and Michelle's sign-off in the PR, per `CLAUDE.md`.
@@ -112,16 +113,16 @@ Photon messages contain minimal structured information: no images, raw camera da
 - Use only simulated student data during the hackathon. Identify seats by position, not biometric identity.
 - Preserve `.gitignore` protections for local templates, captures, weights, logs, and secrets. The documented developer-recorded built-in `thumbs_up.json` exception contains no student data; do not generalize it to student templates.
 - Root `.env.example` defines `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, and `PHOTON_API_KEY`. Do not commit `.env` or expose privileged/API keys in `NEXT_PUBLIC_*`.
-- Current vision client loads `vision/.env` and reads `SUPABASE_URL` + `SUPABASE_KEY`; see `vision/.env.example` for station/session/camera settings. Do not assume the root service-role variable is consumed by that client.
+- Current vision client loads the root `.env` and reads `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. Station/session/camera settings may also be set there or in the shell; do not introduce a second credentials convention.
 
 ## 12. Verification and feature flags
 
 Run checks relevant to changes. Existing vision CI commands, from the root:
 
 ```bash
-uv run pytest vision
-uv run ruff check vision
-uv run ruff format --check vision
+uv run pytest vision shared/tests
+uv run ruff check vision shared
+uv run ruff format --check vision shared
 ```
 
 Hardware tests are skipped by default; `CUES_HARDWARE=1 uv run pytest vision` opts in. Record manual camera/model/Supabase/Photon verification still needed. Frontend has `npm run lint` and `npm run build` inside `web/`; inspect scripts before assuming other checks.

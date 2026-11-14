@@ -56,7 +56,7 @@ Keith's output is structured state/events.
 
 ---
 
-### Evan — app / frontend + Supabase-facing product
+### Evan — frontend / app backend / Supabase-facing product
 
 Primary responsibility:
 
@@ -74,6 +74,7 @@ Owns:
 - Tailwind
 - teacher dashboard
 - student/station page
+- app backend and app-facing APIs
 - Supabase schema and realtime subscriptions
 - seat cards
 - task controls
@@ -144,7 +145,16 @@ flowchart LR
 
 ## 3. Shared contracts
 
-These interfaces should be agreed on early and changed carefully.
+These interfaces are shared by all three components and must be changed carefully.
+
+Agreed contract decisions:
+
+- Session IDs and alert IDs are UUIDs; station, seat, and activity IDs remain strings.
+- Preserve all 12 event types listed below.
+- Retain `SeatState.session_id` and `SeatState.updated_at`, plus `Alert.created_at` and nullable `Alert.resolved_at`, from PRD §17.
+- Expression context uses `label` and `probability`; sustained events also carry `duration_seconds` and `supporting_only: true`.
+- An activity uses `id`; other objects reference it with `activity_id`.
+- The Pydantic models in `shared/contracts.py` are authoritative for exchanged data; these JSON examples are illustrative. Synthetic examples live in `shared/fixtures/`. The vision emitter validates and serializes these shared models.
 
 All three parts should be able to develop against fake versions of these objects.
 
@@ -158,7 +168,7 @@ Example:
 
 ```json
 {
-  "session_id": "demo",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
   "station_id": "S1",
   "seat_id": "S1-L",
   "type": "attempt_miss",
@@ -169,7 +179,7 @@ Example:
 }
 ```
 
-Initial event types:
+Event types:
 
 ```text
 attempt_success
@@ -179,6 +189,11 @@ no_progress
 tracking_lost
 expression_context
 teacher_verified
+agent_invoked
+alert_created
+teacher_approved
+teacher_dismissed
+intervention_applied
 ```
 
 ---
@@ -194,13 +209,16 @@ Example:
 ```json
 {
   "seat_id": "S1-L",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
   "activity_id": "custom_gesture_01",
   "status": "in_progress",
   "task_score": 0.31,
   "expression_context": {
     "label": "neutral",
-    "probability": 0.74
-  }
+    "probability": 0.74,
+    "supporting_only": true
+  },
+  "updated_at": "2026-11-14T02:00:00Z"
 }
 ```
 
@@ -227,7 +245,7 @@ Example:
 
 ```json
 {
-  "id": "abc123",
+  "id": "550e8400-e29b-41d4-a716-446655440001",
   "seat_id": "S1-L",
   "reason": "repeated_misses",
   "priority": "high",
@@ -236,7 +254,9 @@ Example:
     "attempts": 3,
     "expression_signal": true
   },
-  "status": "pending"
+  "status": "pending",
+  "created_at": "2026-11-14T02:00:10Z",
+  "resolved_at": null
 }
 ```
 
