@@ -48,7 +48,8 @@ export function watchTeacherReviews(
   let queued = false;
   let revision = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  // Sessions the signed-in teacher owns, as of the last read.
+  // The teacher whose queue is on screen, and the sessions they own.
+  let shownTeacher: string | null = null;
   let owned = new Set<string>();
   const abort = new AbortController();
   const signal = () =>
@@ -57,6 +58,16 @@ export function watchTeacherReviews(
     if (disposed) return;
     state = { ...state, ...patch };
     notify(state);
+  };
+  // Never leave one teacher's queue on screen for another (or for no one).
+  const forget = (teacherId: string | null) => {
+    if (teacherId === shownTeacher) return;
+    shownTeacher = teacherId;
+    owned = new Set();
+    publish({
+      reviews: null,
+      error: teacherId ? null : SIGN_IN_TO_SEE_REVIEWS,
+    });
   };
   async function refresh() {
     if (disposed) return;
@@ -69,9 +80,9 @@ export function watchTeacherReviews(
     publish({ loading: true });
     try {
       const { data: auth } = await client.auth.getSession();
-      const teacherId = auth.session?.user.id;
+      const teacherId = auth.session?.user.id ?? null;
+      forget(teacherId);
       if (!teacherId) {
-        owned = new Set();
         publish({ reviews: null, error: SIGN_IN_TO_SEE_REVIEWS });
         return;
       }
@@ -86,11 +97,12 @@ export function watchTeacherReviews(
         .filter((id): id is string => typeof id === "string");
       let data: unknown[] = [];
       if (ids.length > 0) {
+        // RLS (own_teacher_reviews_read) already limits rows to this teacher's
+        // sessions; listing every session id would grow the URL without bound.
         const read = await client
           .from("teacher_reviews")
           .select(REVIEW_COLUMNS)
           .eq("status", "pending")
-          .in("session_id", ids)
           .abortSignal(signal());
         if (read.error) throw new Error("Review read failed");
         data = read.data ?? [];
@@ -102,10 +114,18 @@ export function watchTeacherReviews(
       }
       owned = new Set(ids);
       publish({
-        reviews: pendingReviews(parseTeacherReviews(data)),
+        // Defense in depth: drop any row outside the teacher's own sessions.
+        reviews: pendingReviews(parseTeacherReviews(data)).filter((review) =>
+          owned.has(review.session_id),
+        ),
         error: null,
       });
     } catch {
+      // A failure from before a sign-in change must not replace newer state.
+      if (startedAtRevision !== revision) {
+        queued = true;
+        return;
+      }
       publish({
         error:
           "Teacher reviews could not be loaded. Seat observations are still available.",
@@ -163,17 +183,20 @@ export function watchTeacherReviews(
       publish({ connection: "disconnected" });
   });
   // Signing in or out changes which reviews are readable; reload for the new teacher.
-  const { data: authWatch } = client.auth.onAuthStateChange((event) => {
-    if (disposed || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")
-      return;
-    revision++;
-    if (event === "SIGNED_OUT") {
-      owned = new Set();
-      publish({ reviews: null, error: SIGN_IN_TO_SEE_REVIEWS });
-    }
-    // Defer: Supabase calls inside this callback can deadlock the auth lock.
-    setTimeout(() => void refresh(), 0);
-  });
+  const { data: authWatch } = client.auth.onAuthStateChange(
+    (event, session) => {
+      if (
+        disposed ||
+        event === "INITIAL_SESSION" ||
+        event === "TOKEN_REFRESHED"
+      )
+        return;
+      revision++;
+      forget(event === "SIGNED_OUT" ? null : (session?.user.id ?? null));
+      // Defer: Supabase calls inside this callback can deadlock the auth lock.
+      setTimeout(() => void refresh(), 0);
+    },
+  );
   void refresh();
   return {
     refresh,

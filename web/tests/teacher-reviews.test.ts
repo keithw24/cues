@@ -52,13 +52,20 @@ function harness(
   enabled = true,
   initialFailure = false,
   initialRows: unknown = [row],
-  { signedIn = true, ownedSessions = [row.session_id] } = {},
+  {
+    signedIn = true,
+    ownedSessions = { [TEACHER]: [row.session_id] } as Record<string, string[]>,
+  } = {},
 ) {
   let rows: unknown = initialRows;
   let teacher: string | null = signedIn ? TEACHER : null;
-  let authChange: (event: string) => void = () => {};
+  let authChange: (
+    event: string,
+    session: { user: { id: string } } | null,
+  ) => void = () => {};
   let authUnsubscribed = false;
-  const reviewFilters: unknown[] = [];
+  let sessionsFail = false;
+  const calls = { getSession: 0, sessions: 0, authWatchers: 0 };
   let nextReadGate: Promise<void> | undefined;
   let fail = initialFailure;
   let reads = 0;
@@ -85,10 +92,14 @@ function harness(
       return channel;
     },
     auth: {
-      getSession: async () => ({
-        data: { session: teacher ? { user: { id: teacher } } : null },
-      }),
-      onAuthStateChange(callback: (event: string) => void) {
+      getSession: async () => {
+        calls.getSession++;
+        return {
+          data: { session: teacher ? { user: { id: teacher } } : null },
+        };
+      },
+      onAuthStateChange(callback: typeof authChange) {
+        calls.authWatchers++;
         authChange = callback;
         return {
           data: {
@@ -110,10 +121,13 @@ function harness(
               eq(column: string, value: string) {
                 assert.equal(column, "teacher_id");
                 assert.equal(value, teacher);
+                calls.sessions++;
                 return {
                   abortSignal: async () => ({
-                    data: ownedSessions.map((id) => ({ id })),
-                    error: null,
+                    data: sessionsFail
+                      ? null
+                      : (ownedSessions[value] ?? []).map((id) => ({ id })),
+                    error: sessionsFail ? { message: "denied" } : null,
                   }),
                 };
               },
@@ -129,23 +143,18 @@ function harness(
               assert.equal(column, "status");
               assert.equal(value, "pending");
               return {
-                in(scope: string, ids: string[]) {
-                  reviewFilters.push({ [scope]: ids });
+                abortSignal: async (signal: AbortSignal) => {
+                  reads++;
+                  signals.push(signal);
+                  const data = structuredClone(rows);
+                  const gate = nextReadGate;
+                  nextReadGate = undefined;
+                  await gate;
                   return {
-                    abortSignal: async (signal: AbortSignal) => {
-                      reads++;
-                      signals.push(signal);
-                      const data = structuredClone(rows);
-                      const gate = nextReadGate;
-                      nextReadGate = undefined;
-                      await gate;
-                      return {
-                        data,
-                        error: fail
-                          ? { message: "private database internals" }
-                          : null,
-                      };
-                    },
+                    data,
+                    error: fail
+                      ? { message: "private database internals" }
+                      : null,
                   };
                 },
               };
@@ -187,14 +196,17 @@ function harness(
     removed: () => removed,
     filter: () => filter,
     signals,
-    reviewFilters,
+    calls,
+    failSessions() {
+      sessionsFail = true;
+    },
     signIn(id = TEACHER) {
       teacher = id;
-      authChange("SIGNED_IN");
+      authChange("SIGNED_IN", { user: { id } });
     },
     signOut() {
       teacher = null;
-      authChange("SIGNED_OUT");
+      authChange("SIGNED_OUT", null);
     },
     authUnsubscribed: () => authUnsubscribed,
   };
@@ -248,6 +260,7 @@ test("flag off creates no review requests or subscriptions", async () => {
   assert.equal(h.reads(), 0);
   assert.equal(h.channels(), 0);
   assert.equal(h.removed(), 0);
+  assert.deepEqual(h.calls, { getSession: 0, sessions: 0, authWatchers: 0 });
   assert.equal(h.observed.at(-1)?.connection, "disabled");
 });
 test("initial read and reconnect load real pending rows, independent of seats", async () => {
@@ -507,10 +520,18 @@ test("reconnect replaces the snapshot with missed changes and never appends dupl
 });
 
 test("reviews are read only for sessions the signed-in teacher owns", async () => {
-  const h = harness();
+  const foreign = {
+    ...row,
+    id: "55555555-5555-4555-8555-555555555555",
+    session_id: "00000000-0000-4000-8000-000000000099",
+  };
+  // Even if the server returned another teacher's row, it never reaches the queue.
+  const h = harness(true, false, [row, foreign]);
   await settled();
-  assert.deepEqual(h.reviewFilters.at(-1), { session_id: [row.session_id] });
-  assert.equal(h.observed.at(-1)?.reviews?.length, 1);
+  assert.deepEqual(
+    h.observed.at(-1)?.reviews?.map((review) => review.id),
+    [row.id],
+  );
   assert.equal(h.observed.at(-1)?.error, null);
   h.feed.dispose();
   assert.equal(h.authUnsubscribed(), true);
@@ -525,13 +546,18 @@ test("signed out, the queue asks the teacher to sign in instead of failing", asy
   await debounce();
   assert.equal(h.observed.at(-1)?.reviews?.length, 1);
   assert.equal(h.observed.at(-1)?.error, null);
+  const readsBeforeSignOut = h.reads();
   h.signOut();
   assert.equal(h.observed.at(-1)?.reviews, null);
   assert.equal(h.observed.at(-1)?.error, SIGN_IN_TO_SEE_REVIEWS);
+  await debounce();
+  assert.equal(h.observed.at(-1)?.reviews, null);
+  assert.equal(h.observed.at(-1)?.error, SIGN_IN_TO_SEE_REVIEWS);
+  assert.equal(h.reads(), readsBeforeSignOut);
   h.feed.dispose();
 });
 test("a teacher with no sessions sees an empty queue without querying reviews", async () => {
-  const h = harness(true, false, [row], { ownedSessions: [] });
+  const h = harness(true, false, [row], { ownedSessions: {} });
   await settled();
   assert.equal(h.reads(), 0);
   assert.deepEqual(h.observed.at(-1)?.reviews, []);
@@ -550,5 +576,41 @@ test("realtime rows from another teacher's session never enter the queue", async
     },
   });
   assert.deepEqual(h.observed.at(-1)?.reviews, []);
+  h.feed.dispose();
+});
+test("switching teachers clears the previous teacher's queue at once", async () => {
+  const OTHER = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const h = harness(true, false, [row], { ownedSessions: { [TEACHER]: [row.session_id] } });
+  await settled();
+  assert.equal(h.observed.at(-1)?.reviews?.length, 1);
+  // Teacher B signs in over teacher A, with no sign-out in between.
+  h.signIn(OTHER);
+  assert.equal(h.observed.at(-1)?.reviews, null);
+  await debounce();
+  // B owns no sessions, so A's review never comes back.
+  assert.deepEqual(h.observed.at(-1)?.reviews, []);
+  h.feed.dispose();
+});
+test("a failed session read shows the load error, not the sign-in message", async () => {
+  const h = harness();
+  h.failSessions();
+  await settled();
+  assert.equal(h.reads(), 0);
+  assert.equal(h.observed.at(-1)?.reviews, null);
+  assert.match(h.observed.at(-1)?.error ?? "", /could not be loaded/);
+  h.feed.dispose();
+});
+test("a read that fails after sign-out cannot replace the sign-in message", async () => {
+  const h = harness();
+  await settled();
+  const release = h.holdNextRead();
+  h.fail();
+  void h.feed.refresh();
+  await settled();
+  h.signOut();
+  release();
+  await debounce();
+  assert.equal(h.observed.at(-1)?.reviews, null);
+  assert.equal(h.observed.at(-1)?.error, SIGN_IN_TO_SEE_REVIEWS);
   h.feed.dispose();
 });
