@@ -38,8 +38,8 @@ def test_side_does_not_change_when_the_hand_tilts():
 
 
 def test_left_hand_is_handled():
-    # The person's left hand palm-out looks like a mirrored right hand; MediaPipe says "Right".
-    assert palm_side(mirror(open_palm()), "Right") == "palm"
+    # The person's left hand palm-out looks like a mirrored right hand; MediaPipe says "Left".
+    assert palm_side(mirror(open_palm()), "Left") == "palm"
 
 
 def test_flip_setting_swaps_palm_and_back(monkeypatch):

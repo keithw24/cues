@@ -11,11 +11,11 @@ Palm or back (palm_side):
     raised hand or thumbs-up still reads correctly. When the hand is seen
     edge-on (the two vectors nearly in line) the result is "side".
 
-    MediaPipe labels handedness assuming a mirrored (selfie) image. Vision
-    passes the camera picture unmirrored, so a MediaPipe "Left" is the
-    person's right hand. If palm and back come out swapped on a particular
-    camera (for example one that mirrors its own output), set
-    CUES_PALM_FLIP=1.
+    Checked on the station camera: MediaPipe's "Right" label is the person's
+    right hand in the picture vision passes it. (An earlier version assumed
+    the opposite, which swapped palm and back.) If palm and back come out
+    swapped on a different camera, for example one that mirrors its own
+    output, set CUES_PALM_FLIP=1.
 
 Open hand (is_open):
     A finger is extended when its tip is clearly further from the wrist than
@@ -48,8 +48,8 @@ def palm_side(landmarks: np.ndarray, handedness: str) -> str:
     if abs(sine) < SIDE_SINE:
         return "side"
     # In image coordinates (y down), the person's right hand with the palm to
-    # the camera gives a negative sine. MediaPipe's "Left" = the person's right.
-    persons_right = handedness.lower() == "left"
+    # the camera gives a negative sine. MediaPipe's "Right" = the person's right.
+    persons_right = handedness.lower() == "right"
     palm = (sine < 0) if persons_right else (sine > 0)
     if os.environ.get("CUES_PALM_FLIP", "0") in ("1", "true"):
         palm = not palm

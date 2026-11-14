@@ -1,12 +1,12 @@
 """Realistic synthetic MediaPipe hands for tests (normalised image coordinates).
 
-The person's right hand, as an unmirrored camera sees it; MediaPipe labels it
-"Left". s = hand size.
+The person's right hand, as the station camera sees it; MediaPipe labels it
+"Right". s = hand size.
 """
 
 import numpy as np
 
-PERSONS_RIGHT = "Left"  # MediaPipe's label for the person's right hand (unmirrored image)
+PERSONS_RIGHT = "Right"  # MediaPipe's label for the person's right hand (station camera)
 
 
 def _hand(cx, cy, s, knuckle_xs, tip_reach, thumb_tip):
