@@ -100,5 +100,17 @@
     "default": false,
     "owner": "keith",
     "ticket": "session-controls"
+  },
+  "vision.all_scores": {
+    "description": "Display-only readout of every task's score for every person (overlay and vision.watch). Not sent to Supabase.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "all-gestures-readout"
+  },
+  "vision.custom_gestures": {
+    "description": "Dashboard API to create teacher-recorded gestures (/gestures). Definitions and examples stay in vision/templates/ on this laptop.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "custom-gestures"
   }
 }
