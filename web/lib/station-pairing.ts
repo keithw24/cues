@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export class StationSignInRequired extends Error {
-  constructor() { super("Sign in to connect a station."); }
+  constructor() { super("Sign in to link a classroom camera."); }
 }
 async function currentUser(client: SupabaseClient) {
   try {

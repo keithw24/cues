@@ -32,14 +32,14 @@ export async function resolveDefaultStation(client: SupabaseClient): Promise<Def
       .rpc("get_or_create_my_default_station")
       .abortSignal(AbortSignal.timeout(12000));
   } catch {
-    throw new Error("Your station could not be loaded. Check your connection and try again.");
+    throw new Error("Your classroom camera could not be loaded. Check your connection and try again.");
   }
   if (response.error?.code === "42501") throw new StationSignInRequired();
   if (response.error)
-    throw new Error("Your station could not be loaded. Check your connection and try again.");
+    throw new Error("Your classroom camera could not be loaded. Check your connection and try again.");
   try {
     return parseDefaultStation(response.data);
   } catch {
-    throw new Error("Your station could not be loaded. Check your connection and try again.");
+    throw new Error("Your classroom camera could not be loaded. Check your connection and try again.");
   }
 }

@@ -282,21 +282,21 @@ export default function Dashboard({
                 message:
                   cause instanceof Error
                     ? cause.message
-                    : "Your station could not be loaded.",
+                    : "Your classroom camera could not be loaded.",
               },
         );
       }
     };
     void client.auth.getSession().then(({ data }) => {
       if (disposed) return;
-      if (data.session) setDefaultStation({ id: null, message: "Finding your station…" });
+      if (data.session) setDefaultStation({ id: null, message: "Finding your classroom camera…" });
       void resolve(Boolean(data.session));
     });
     const { data } = client.auth.onAuthStateChange((event, session) => {
       if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
       // A different account: never keep the previous teacher's station on screen.
       setDefaultStation(
-        session ? { id: null, message: "Finding your station…" } : signedOut,
+        session ? { id: null, message: "Finding your classroom camera…" } : signedOut,
       );
       // Defer: Supabase calls inside this callback can deadlock the auth lock.
       setTimeout(() => void resolve(Boolean(session)), 0);
@@ -412,8 +412,8 @@ export default function Dashboard({
   );
   // With no live connection we can't tell whether the camera is on.
   const cameraOffMessage = observationOptions.connected
-    ? "The camera is off. People appear here when the station camera sees them."
-    : "Updates paused. Reconnecting to the station…";
+    ? "The camera is off. People appear here when your classroom camera sees them."
+    : "Updates paused. Reconnecting…";
   const peopleCount = feed.snapshot ? inView.length : "—";
   const workingCount = countStatus("in_progress");
   const completedCount = countStatus("done");
@@ -1200,11 +1200,11 @@ export default function Dashboard({
         )}
         <footer className="workspace-footer">
           <span>
-            Student camera images and video stay on the station laptop.
+            Student camera images and video stay on the classroom laptop.
           </span>
           <span>
             {sessionControlsEnabled
-              ? "Session controls use saved station state."
+              ? "Session controls use your camera's saved state."
               : "Session controls are not connected."}
           </span>
         </footer>

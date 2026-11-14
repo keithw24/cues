@@ -130,19 +130,19 @@ export function stationSyncLabel(
     runtime.revision === (expected?.revision ?? null);
   if (!fresh || !matches)
     return snapshot.session
-      ? "Waiting for station to sync"
+      ? "Waiting for the camera to sync"
       : expected?.ended_at
-        ? "Waiting for station to stop"
-        : "Waiting for station";
-  if (runtime.status === "error") return "Activity unavailable on station";
+        ? "Waiting for the camera to stop"
+        : "Waiting for the camera";
+  if (runtime.status === "error") return "Activity unavailable on the camera";
   if (!snapshot.session)
     return runtime.status === "idle"
-      ? "Station idle"
-      : "Waiting for station to stop";
+      ? "Camera idle"
+      : "Waiting for the camera to stop";
   return runtime.status === "ready" &&
     runtime.activity_id === snapshot.session.current_activity_id
     ? "Activity synced"
-    : "Waiting for station to sync";
+    : "Waiting for the camera to sync";
 }
 export async function readSession(
   client: SupabaseClient,
@@ -152,10 +152,10 @@ export async function readSession(
     .rpc("read_station_session", { p_station_id: station })
     .abortSignal(AbortSignal.timeout(12000));
   if (error?.code === '42501')
-    throw new Error('Not authorized for this station. Ask an administrator to assign your teacher account.');
+    throw new Error("This classroom camera isn't linked to your account yet.");
   if (error || !data || !Array.isArray(data.activities))
     throw new Error(
-      "Session could not be loaded. Check your station access and retry.",
+      "Session could not be loaded. Check your camera link and retry.",
     );
   const activities = data.activities.map((a: { id: string; name: string }) => {
     if (

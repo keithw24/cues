@@ -10,7 +10,7 @@ const questions = [
   },
   {
     q: "Does classroom video leave the room?",
-    a: "No. Camera images and video stay on the station laptop. Only structured status updates, such as “Seat 2 finished thumbs up”, are sent on.",
+    a: "No. Camera images and video stay on the classroom laptop. Only structured status updates, such as “Seat 2 finished thumbs up”, are sent on.",
   },
   {
     q: "Does Cues recognise faces or read emotions?",
@@ -22,7 +22,7 @@ const questions = [
   },
   {
     q: "What do I need to run it?",
-    a: "A laptop with a webcam at the station, and a browser for your dashboard.",
+    a: "A laptop with a webcam in the classroom, and a browser for your dashboard.",
   },
   {
     q: "Is any real student data used?",

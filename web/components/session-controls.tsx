@@ -113,7 +113,7 @@ export function SessionControls({
           const message =
             cause instanceof Error
               ? cause.message
-              : "Session could not be refreshed. Check your station access and retry.";
+              : "Session could not be refreshed. Check your camera link and retry.";
           if (!loaded) {
             onActivity("Session unavailable");
             setLoadError(message);
@@ -235,7 +235,7 @@ export function SessionControls({
   if (!station)
     return (
       <span role="status">
-        {stationMessage || "Session station is not configured."}
+        {stationMessage || "No classroom camera is set up yet."}
       </span>
     );
   if (!user && teacherLoginEnabled)

@@ -46,7 +46,7 @@ test("signed-out callers cannot read memberships or redeem codes", async () => {
 test("form source exposes controls, loading protection and existing memberships", () => {
   // Source contract only; the repo's Node test runner does not mount React components.
   const source = readFileSync(new URL("../components/station-pairing-form.tsx", import.meta.url), "utf8");
-  for (const label of ["Pairing code", "Connect station", "Connected stations", "Connected to", "Back to classroom"])
+  for (const label of ["Pairing code", "Link camera", "Linked cameras", "Linked to camera", "Back to classroom"])
     assert.ok(source.includes(label));
   assert.match(source, /disabled=\{state === "saving" \|\| !code.trim\(\)\}/);
   assert.ok(source.includes('locked.current = true'));
