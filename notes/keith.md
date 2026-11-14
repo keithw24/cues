@@ -109,11 +109,11 @@ uv run pytest vision                                        # tests (hardware te
 
 ## Needs from Evan
 
-- **`seat_state` has no `tracking_valid` column**, but the shared `SeatState`
-  contract has it. Vision currently drops that field before writing to
-  Supabase, so writes do not fail. Please add
-  `alter table public.seat_state add column tracking_valid boolean;` and tell
-  me, so I can remove the filter (`SEAT_STATE_COLUMNS` in `vision/events.py`).
+- **Resolved November 14:** migration 005 added nullable
+  `seat_state.tracking_valid` to hosted Supabase. Vision's complete upsert now
+  succeeds without filtering the shared contract. A live publisher-path check
+  persisted `true` for a valid observation and `false` with null `task_score`
+  for tracking loss.
 - **Supabase keys** for the station laptop (`SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY` in the root `.env`) and a `sessions` row id for
   `CUES_SESSION_ID`, so the CV -> Supabase step can be tested for real.

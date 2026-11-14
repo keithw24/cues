@@ -366,3 +366,46 @@ def test_hosted_smoke_uses_runtime_and_cleans_only_its_probe(
     else:
         assert "error_type" not in report and report["checks"]["actual_action_created_review"]
     assert [row["id"] for row in db.rows] == [str(unrelated.id)]
+
+
+@pytest.mark.parametrize("delivery_failure", [False, True])
+@pytest.mark.parametrize("resolution", ["confirm_needs_attention", "dismiss_review"])
+def test_new_persisted_review_notifies_once_without_changing_review(
+    database, delivery_failure, caplog, resolution
+):
+    from agent.notifications import PhotonNotifier
+
+    calls = []
+
+    def send(message, review_id):
+        calls.append((message, review_id))
+        if delivery_failure:
+            raise RuntimeError("private provider detail")
+
+    db, client = database
+    notifier = PhotonNotifier(send)
+    store = SupabaseTeacherReviewStore(client, clock=lambda: NOW, notifier=notifier)
+    review = store.request_teacher_review(evaluation(), assessment())
+    assert store.get_review(review.id) == review
+    assert store.request_teacher_review(evaluation(), assessment()) == review
+    other_process = SupabaseTeacherReviewStore(client, notifier=notifier)
+    assert other_process.request_teacher_review(evaluation(), assessment()) == review
+    assert calls == [("Cues: Seat A may need attention. Open Cues to review.", str(review.id))]
+    assert review.assessment.rationale not in calls[0][0]
+    getattr(store, resolution)(review.id)
+    assert len(calls) == 1
+    if delivery_failure:
+        assert "pending review retained" in caplog.text
+        assert "private provider detail" not in caplog.text
+
+
+def test_failed_persistence_does_not_notify(database):
+    from unittest.mock import Mock
+
+    db, client = database
+    notifier = Mock()
+    db.fail_method = "POST"
+    store = SupabaseTeacherReviewStore(client, notifier=notifier)
+    with pytest.raises(TeacherReviewPersistenceError):
+        store.request_teacher_review(evaluation(), assessment())
+    notifier.notify_pending_review.assert_not_called()

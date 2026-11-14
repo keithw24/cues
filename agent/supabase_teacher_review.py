@@ -1,6 +1,7 @@
 """Explicitly injected server-side persistence; no environment-triggered writes."""
 
 import json
+import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Literal
@@ -11,6 +12,7 @@ from postgrest.exceptions import APIError
 from pydantic import TypeAdapter
 
 from agent.assessment import AgentAssessment
+from agent.notifications import ReviewNotifier
 from agent.router import AgentEvaluationRequest
 from agent.teacher_review import TeacherReview, validate_review_request
 from supabase import Client
@@ -78,9 +80,16 @@ class SupabaseTeacherReviewStore:
     no automatic migrations, and no global client/environment state.
     """
 
-    def __init__(self, client: Client, *, clock: Callable[[], datetime] | None = None):
+    def __init__(
+        self,
+        client: Client,
+        *,
+        clock: Callable[[], datetime] | None = None,
+        notifier: ReviewNotifier | None = None,
+    ):
         self.client = client
         self._clock = clock or (lambda: datetime.now(UTC))
+        self._notifier = notifier
 
     @staticmethod
     def _execute(query) -> list[dict]:
@@ -114,6 +123,7 @@ class SupabaseTeacherReviewStore:
                 row, on_conflict="evaluation", ignore_duplicates=True
             )
         )
+        created = bool(rows)
         if not rows:
             rows = self._execute(
                 self.client.table("teacher_reviews")
@@ -126,6 +136,17 @@ class SupabaseTeacherReviewStore:
         stored = self._decode(rows[0])
         if stored.status != "pending":
             raise ValueError("review already resolved")
+        # Only the INSERT winner delivers. Conflict reuse across processes never
+        # notifies. Delivery failure cannot undo an authoritative persisted row.
+        if created and stored.id == review.id and self._notifier is not None:
+            try:
+                self._notifier.notify_pending_review(stored.model_copy(deep=True))
+            except Exception as error:
+                logging.getLogger(__name__).error(
+                    "Teacher notification failed for review %s (%s); pending review retained",
+                    stored.id,
+                    type(error).__name__,
+                )
         return stored
 
     def get_review(self, review_id: UUID) -> TeacherReview:

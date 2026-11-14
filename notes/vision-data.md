@@ -224,8 +224,8 @@ From `web/lib/dashboard-feed.ts`, the dashboard reads `seats`, `seat_state`,
 - `agent/progress.py` reads `SeatState` snapshots: `status`, `task_score`,
   `activity_id` and **`tracking_valid`**. A snapshot only counts when
   `tracking_valid is True` and status is not `idle` / `tracking_lost`.
-- `tracking_valid` is now sent on every row; the `seat_state` table still
-  needs the column (Gaps, item 1).
+- `tracking_valid` is sent on every row and is persisted by the hosted
+  `seat_state` table. Historical rows from before migration 005 remain null.
 - `agent/escalation.py` uses `expression_context` only to raise priority on
   stalled progress, matching the "supporting only" rule.
 - The rules engine reads `events` per `seat_id`; with person ids, history
@@ -233,13 +233,17 @@ From `web/lib/dashboard-feed.ts`, the dashboard reads `seats`, `seat_state`,
 
 ## Gaps (owned by Evan unless noted)
 
-1. **Add the `tracking_valid` column (Evan, Supabase schema):**
-   `alter table public.seat_state add column tracking_valid boolean;`
-   Vision always sends this field. Until the column exists in the live project,
-   `seat_state` writes fail and vision falls back to
-   `vision/logs/seat_state.json` (latest row per person).
-2. Show person ids on the dashboard: `seats` rows for `S1-P1`...`S1-P4` (or
+1. Show person ids on the dashboard: `seats` rows for `S1-P1`...`S1-P4` (or
    cards built from `seat_state`), and a read policy that allows them.
-3. Add `thumbs_up` and `custom_gesture_01` to `activities`.
-4. Michelle: support preferences are keyed by `seat_id`, which is now a
+2. Add `thumbs_up` and `custom_gesture_01` to `activities`.
+3. Michelle: support preferences are keyed by `seat_id`, which is now a
    short-lived person id (see `notes/proposal-person-tracking.md`).
+
+## Hosted schema fix (November 14, 2026)
+
+Migration `20261114000500_add_seat_state_tracking_valid.sql` added nullable
+`seat_state.tracking_valid` with no default. The hosted migration and a live
+write/read through `vision.events.SupabaseSink` were verified: valid tracking
+persisted `true` with a score, tracking loss persisted `false` with a null score,
+and `updated_at` advanced. The isolated synthetic row was removed afterward.
+Current SeatState publishing is no longer blocked by the schema mismatch.
