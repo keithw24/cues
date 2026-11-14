@@ -3,6 +3,7 @@ import time
 import cv2
 import numpy as np
 import pytest
+
 from vision.camera import FakeCamera, Frame, OpenCVCamera
 from vision.pipeline import Pipeline, RateMeter, discover_stages
 
