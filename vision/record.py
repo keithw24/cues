@@ -47,6 +47,12 @@ class AllHands:
         return "any"
 
 
+def mediapipe_image(rgb):
+    import mediapipe as mp
+
+    return mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+
+
 class Cancelled(Exception):
     """The user pressed q in the preview window."""
 
@@ -54,18 +60,20 @@ class Cancelled(Exception):
 class Recorder:
     """Reads the camera, finds the hand, shows a live preview, collects poses."""
 
-    def __init__(self, cap, detector, preview: bool = True) -> None:
+    def __init__(self, cap, detector, preview: bool = True, make_image=None) -> None:
         self.cap = cap
         self.detector = detector
         self.preview = preview
+        # Turns an RGB array into the detector's input. Defaults to a MediaPipe
+        # image; tests pass a plain function so they don't need MediaPipe's
+        # graphics libraries (missing on Linux CI machines).
+        self.make_image = make_image or mediapipe_image
 
     def run(self, seconds: float, banner: str, record: bool = False, fps: float = 10.0):
         """Show the camera for `seconds`; if `record`, collect hand vectors.
 
         Returns (hand vectors, frames looked at).
         """
-        import mediapipe as mp
-
         from vision.stages.s10_hands import hands_from_result
 
         vectors, frames = [], 0
@@ -78,7 +86,7 @@ class Recorder:
             frames += 1
             bgr = standard_frame(bgr)
             rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-            result = self.detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
+            result = self.detector.detect(self.make_image(rgb))
             hand = pick_hand(hands_from_result(result, AllHands()).get("any", []))
             if record and hand is not None and now >= next_sample:
                 vectors.append(normalize(hand.landmarks, hand.handedness))
