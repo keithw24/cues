@@ -1,4 +1,10 @@
 {
+  "web.dashboard": {
+    "description": "Read-only teacher dashboard with simulated Supabase seats and realtime state updates.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "dashboard-foundation"
+  },
   "vision.supabase_events": {
     "description": "Send vision events and seat_state to Supabase. When off, they are written only to vision/logs/*.jsonl.",
     "default": false,
