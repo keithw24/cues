@@ -2,6 +2,7 @@ import json
 import os
 
 import pytest
+
 from vision.events import Emitter, Event, JsonlSink
 
 
@@ -112,3 +113,31 @@ def test_supabase_round_trip():
     emitter.close()
     rows = client.table("events").select("*").eq("seat_id", marker).execute().data
     assert rows
+
+
+def test_flag_off_keeps_events_local_even_with_keys(monkeypatch):
+    from vision import events, flags, supabase_client
+
+    monkeypatch.setattr(supabase_client, "get_client", lambda: object())
+    monkeypatch.setenv("CUES_FLAG_VISION_SUPABASE_EVENTS", "0")
+    flags.load_registry.cache_clear()
+    emitter = events.emitter_from_env()
+    try:
+        assert isinstance(emitter.sink, JsonlSink)
+        assert emitter.fallback is None
+    finally:
+        emitter.close()
+
+
+def test_flag_on_with_keys_uses_supabase(monkeypatch):
+    from vision import events, flags, supabase_client
+
+    monkeypatch.setattr(supabase_client, "get_client", lambda: object())
+    monkeypatch.setenv("CUES_FLAG_VISION_SUPABASE_EVENTS", "1")
+    flags.load_registry.cache_clear()
+    emitter = events.emitter_from_env()
+    try:
+        assert isinstance(emitter.sink, events.SupabaseSink)
+        assert isinstance(emitter.fallback, JsonlSink)
+    finally:
+        emitter.close()

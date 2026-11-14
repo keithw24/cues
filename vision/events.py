@@ -198,14 +198,16 @@ class Emitter:
 
 
 def emitter_from_env() -> Emitter:
-    """Supabase when configured, else local JSONL. JSONL is always the fallback.
+    """Supabase when the `vision.supabase_events` flag is on and keys are set;
+    otherwise local JSONL. JSONL is always the fallback.
 
     CUES_STATION_ID (default S1) and CUES_SESSION_ID (default: new UUID) set the ids.
     """
+    from vision import flags
     from vision.supabase_client import get_client
 
     local = JsonlSink()
-    client = get_client()
+    client = get_client() if flags.enabled("vision.supabase_events") else None
     sink: Sink = SupabaseSink(client) if client is not None else local
     log.info("events go to %s", "Supabase" if client is not None else f"{LOG_DIR}/*.jsonl")
     return Emitter(

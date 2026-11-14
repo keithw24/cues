@@ -126,6 +126,6 @@ uv run ruff format --check vision
 
 Hardware tests are skipped by default; `CUES_HARDWARE=1 uv run pytest vision` opts in. Record manual camera/model/Supabase/Photon verification still needed. Frontend has `npm run lint` and `npm run build` inside `web/`; inspect scripts before assuming other checks.
 
-Follow `CLAUDE.md` for feature flags: add needed entries to `flags.json`, default new features off until verified, and verify the flag-off fallback. Infrastructure needs no flag. The flag helpers/module gating described there are not yet implemented; do not assume registry entries alone disable code. The current emitter selects Supabase based on credentials.
+Follow `CLAUDE.md` for feature flags: add needed entries to `flags.json`, default new features off until verified, and verify the flag-off fallback. Infrastructure needs no flag. The vision helper (`vision/flags.py`) and vision module gating exist; the vision event emitter sends to Supabase only when `vision.supabase_events` is on and credentials are set. The `agent/` and `web/` helpers are not yet implemented, so in those areas registry entries alone do not disable code.
 
 Before a requested merge, follow the pre-merge review procedure in `CLAUDE.md` and require passing applicable CI, resolved blocking findings, and explicit team authorization to merge. Keep unrelated refactors out of the task.

@@ -1,6 +1,7 @@
 import argparse
 
 import pytest
+
 from vision import bench, models
 
 

@@ -81,7 +81,7 @@ Every feature can be turned on and off without a code change. This lets the team
 
 **Reading flags.** Each area has one helper and only reads flags through it: `vision/flags.py`, `agent/flags.py`, `web/lib/flags.ts`. Each helper reads `flags.json`, applies the overrides, and treats an unknown flag name as an error.
 
-**Not built yet:** none of the three helpers exists yet, and neither does the vision loader that skips flagged modules. `vision/flags.py` is the next vision PR. Until it merges, don't merge any vision feature PR that has a flag.
+**Status:** `vision/flags.py` exists. The vision stage and route loaders skip modules whose `FLAG` is off, and `/health` lists every vision flag's current value. `agent/flags.py` and `web/lib/flags.ts` are not built yet; until an area's helper exists, don't merge a feature PR in that area that has a flag.
 
 **Rules for every feature PR:**
 1. Add the feature's flag to `flags.json` in the same PR.
