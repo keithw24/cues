@@ -10,7 +10,8 @@ The vision service reports what happens at each seat as structured events
   set (root .env), events go
   to the Supabase `events` table and seat state to `seat_state`.
 * Without them, or if a Supabase write fails, the same rows are appended to
-  vision/logs/events.jsonl and vision/logs/seat_state.jsonl.
+  vision/logs/events.jsonl (appended) and vision/logs/seat_state.json (latest row
+  per seat).
 
 Try it from the repo root:
 
@@ -43,10 +44,17 @@ class Sink(Protocol):
 
 
 class JsonlSink:
-    """Appends rows to local JSON-lines files. Used offline and as the fallback."""
+    """Local files, used offline and as the fallback. They stay on this laptop.
+
+    * Events are appended to events.jsonl (an audit log, like the events table).
+    * Seat state keeps only the LATEST row per seat_id in seat_state.json, like
+      the Supabase upsert. Appending would build a per-second history of each
+      child's live expression, which the product rules forbid.
+    """
 
     def __init__(self, directory: Path = LOG_DIR) -> None:
         self.directory = directory
+        self._latest: dict[str, dict[str, Any]] = {}
 
     def _append(self, name: str, row: dict[str, Any]) -> None:
         self.directory.mkdir(parents=True, exist_ok=True)
@@ -57,7 +65,12 @@ class JsonlSink:
         self._append("events.jsonl", row)
 
     def write_seat_state(self, row: dict[str, Any]) -> None:
-        self._append("seat_state.jsonl", row)
+        self._latest[str(row["seat_id"])] = row
+        self.directory.mkdir(parents=True, exist_ok=True)
+        path = self.directory / "seat_state.json"
+        tmp = path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(self._latest, indent=1))
+        tmp.replace(path)
 
 
 class SupabaseSink:
@@ -143,21 +156,31 @@ def emitter_from_env() -> Emitter:
     """Supabase when the `vision.supabase_events` flag is on and keys are set;
     otherwise local JSONL. JSONL is always the fallback.
 
-    CUES_STATION_ID (default S1) and CUES_SESSION_ID (default: new UUID) set the ids.
+    CUES_STATION_ID (default S1) sets the station. CUES_SESSION_ID is required
+    when writing to Supabase: a random id would put this run's rows under a
+    session the dashboard is not showing. Offline (JSONL only) a new id is used.
     """
     from vision import flags
     from vision.supabase_client import get_client
 
     local = JsonlSink()
     client = get_client() if flags.enabled("vision.supabase_events") else None
+    session_id = os.environ.get("CUES_SESSION_ID")
+    if client is not None and not session_id:
+        raise RuntimeError(
+            "vision.supabase_events is on but CUES_SESSION_ID is not set. Put the dashboard's "
+            "sessions row id in .env (CUES_SESSION_ID=...), or turn the flag off."
+        )
     sink: Sink = SupabaseSink(client) if client is not None else local
-    log.info("events go to %s", "Supabase" if client is not None else f"{LOG_DIR}/*.jsonl")
-    return Emitter(
+    emitter = Emitter(
         sink,
         fallback=local if client is not None else None,
-        session_id=os.environ.get("CUES_SESSION_ID") or str(uuid.uuid4()),
+        session_id=session_id or str(uuid.uuid4()),
         station_id=os.environ.get("CUES_STATION_ID", "S1"),
     )
+    where = "Supabase" if client is not None else f"{LOG_DIR} (local only)"
+    log.info("events go to %s, session %s", where, emitter.session_id)
+    return emitter
 
 
 def main(argv: list[str] | None = None) -> None:

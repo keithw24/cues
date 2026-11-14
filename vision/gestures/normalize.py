@@ -4,6 +4,9 @@ The vector should change when the hand shape changes, and not when the hand
 moves around the frame, gets closer to the camera, or is a left hand instead of
 a right hand. Steps:
 
+0. Convert x (and z, which MediaPipe gives on the same scale as x) to the
+   same unit as y by multiplying by the frame's aspect ratio (16:9). Without
+   this, a hand's shape would depend on the camera's frame shape.
 1. Move the wrist (landmark 0) to the origin.
 2. Divide by hand size: the LARGEST x-y distance between any two palm points
    (wrist and the four finger knuckles: 0, 5, 9, 13, 17).
@@ -24,6 +27,8 @@ from itertools import combinations
 
 import numpy as np
 
+from vision.camera import ASPECT
+
 WRIST = 0
 PALM_POINTS = (0, 5, 9, 13, 17)
 VECTOR_SIZE = 63
@@ -39,6 +44,8 @@ def hand_size(points: np.ndarray) -> float:
 
 def normalize(landmarks: np.ndarray, handedness: str = "Right") -> np.ndarray:
     points = np.asarray(landmarks, dtype=np.float64).reshape(21, 3).copy()
+    points[:, 0] *= ASPECT  # same unit as y
+    points[:, 2] *= ASPECT
     points -= points[WRIST]
     size = hand_size(points)
     if size < 1e-6:

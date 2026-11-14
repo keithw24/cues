@@ -171,8 +171,8 @@ def test_jsonl_sink_appends_valid_shared_contracts(tmp_path, make_emitter):
         "attempt_success",
         "attempt_miss",
     ]
-    line = (tmp_path / "seat_state.jsonl").read_text().strip()
-    assert SeatState.model_validate_json(line).seat_id == "S1-L"
+    latest = json.loads((tmp_path / "seat_state.json").read_text())
+    assert SeatState.model_validate(latest["S1-L"]).seat_id == "S1-L"
 
 
 def test_demo_emits_shared_contracts(monkeypatch, capsys):

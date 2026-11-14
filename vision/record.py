@@ -19,12 +19,13 @@ little (angle, distance) between takes.
 from __future__ import annotations
 
 import argparse
+import os
 import time
 
 import cv2
 import numpy as np
 
-from vision.camera import standard_frame
+from vision.camera import open_capture, standard_frame
 from vision.gestures import templates as tpl
 from vision.gestures.matcher import calibrate_rejection
 from vision.gestures.normalize import is_reliable, normalize
@@ -86,7 +87,7 @@ class Recorder:
             frames += 1
             bgr = standard_frame(bgr)
             rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-            result = self.detector.detect(self.make_image(rgb))
+            result = self.detector.recognize(self.make_image(rgb))
             hand = pick_hand(hands_from_result(result, AllHands()).get("any", []))
             if record and hand is not None and now >= next_sample:
                 vector = normalize(hand.landmarks, hand.handedness)
@@ -137,7 +138,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--takes", type=int, default=1)
     parser.add_argument("--seconds", type=float, default=2.0)
     parser.add_argument("--fps", type=float, default=10.0)
-    parser.add_argument("--camera", type=int, default=0)
+    parser.add_argument("--camera", type=int, default=int(os.environ.get("CUES_CAMERA_INDEX", "0")))
     parser.add_argument(
         "--delay", type=int, default=10, help="seconds to get ready before the first take"
     )
@@ -155,13 +156,11 @@ def main(argv: list[str] | None = None) -> None:
             "no recording needed"
         )
 
-    detector = models.hand_landmarker(num_hands=4)
-    cap = cv2.VideoCapture(args.camera)
+    # The same model as the live service, so recorded and live hands match.
+    detector = models.gesture_recognizer(num_hands=4)
+    cap = open_capture(args.camera)
     if not cap.isOpened():
         raise SystemExit("Could not open the camera. Is the vision service running?")
-    # Same request as the vision service, so recorded and live frames match.
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     templates = tpl.load(activity.id)
     if templates.stale:
         print(f"Existing {activity.id} examples were recorded with older code and no longer")

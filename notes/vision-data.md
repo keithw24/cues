@@ -155,6 +155,8 @@ Final shape (`shared.contracts.SeatState`), exactly as upserted:
 }
 ```
 
+With no qualifying expression, `"expression_context": null`.
+
 | Field | Type | Notes |
 |---|---|---|
 | `seat_id` | text | person id; primary key |
@@ -164,7 +166,7 @@ Final shape (`shared.contracts.SeatState`), exactly as upserted:
 | `activity_id` | text | the person's current task (from `sessions.current_activity_id`) |
 | `tracking_valid` | boolean | see below |
 | `task_score` | number 0-1 or null | latest score; always null when `tracking_valid` is false |
-| `expression_context` | JSON or null | null when no face is visible; see below |
+| `expression_context` | JSON or null | null unless a negative expression qualifies; see below |
 
 ### `tracking_valid`
 
@@ -180,16 +182,19 @@ Final shape (`shared.contracts.SeatState`), exactly as upserted:
 
 ### Expression persistence (`expression_context`)
 
-- If anger, fear or sadness is at or above 0.5 (smoothed over 2 s), the label
-  is that expression and `duration_seconds` is how long it has stayed at or
-  above 0.5 without a break.
-- Otherwise the label is the strongest expression and `duration_seconds` is
-  how long it has been the strongest.
-- `duration_seconds` is never null once a face has been seen; it resets when
-  the label changes.
-- `supporting_only` is always `true`. The escalation logic uses label,
-  probability and duration together, and expression never decides anything on
-  its own.
+`expression_context` is **null unless it qualifies**. It qualifies when anger,
+fear or sadness has stayed at or above **0.5** (smoothed over 2 s) for at least
+**5 s** without a break: the same rule as Michelle's escalation config
+(`expression_min_probability`, `expression_min_duration_seconds`; a test keeps
+them equal).
+
+- When it qualifies: `label` is that expression, `probability` its current
+  model probability, and `duration_seconds` how long it has persisted (5.0 and
+  growing).
+- Otherwise (neutral, happiness, a negative signal shorter than 5 s or below
+  0.5, or no face): `null`. No live expression is published.
+- `supporting_only` is always `true`. Expression never changes status and
+  never triggers review on its own.
 
 ## 3. What vision reads
 
@@ -232,7 +237,7 @@ From `web/lib/dashboard-feed.ts`, the dashboard reads `seats`, `seat_state`,
    `alter table public.seat_state add column tracking_valid boolean;`
    Vision always sends this field. Until the column exists in the live project,
    `seat_state` writes fail and vision falls back to
-   `vision/logs/seat_state.jsonl`.
+   `vision/logs/seat_state.json` (latest row per person).
 2. Show person ids on the dashboard: `seats` rows for `S1-P1`...`S1-P4` (or
    cards built from `seat_state`), and a read policy that allows them.
 3. Add `thumbs_up` and `custom_gesture_01` to `activities`.

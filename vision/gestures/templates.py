@@ -25,7 +25,8 @@ LABELS = ("target", "rest")
 # version no longer match live hands and must be re-recorded.
 #   1 (no version): stretched frames.  2: frames centre-cropped to 4:3.
 #   3: hand size = largest palm distance (vision.gestures.normalize).
-FORMAT = 3
+#   4: 16:9 station camera (Logitech C930e) and aspect-corrected x/z.
+FORMAT = 4
 
 
 @dataclass

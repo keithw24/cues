@@ -21,15 +21,22 @@ from vision.stages.s35_raise_hand import RaiseHandStage, raise_confidence
 
 
 def pose(cx, cy=0.5, scale=0.1, wrist_up=False, vis=1.0):
-    """A 33-point pose centred at (cx, cy). Shoulders 2*scale wide."""
+    """A 33-point pose centred at (cx, cy) in a 16:9 frame.
+
+    scale is in units of frame height; x offsets are divided by the frame's
+    aspect ratio so the body has real proportions. Shoulders 2*scale wide.
+    """
+    from vision.camera import ASPECT
+
+    sx = scale / ASPECT  # the same real length, in units of frame width
     lm = np.zeros((33, 4), np.float32)
     lm[:, 0], lm[:, 1], lm[:, 3] = cx, cy, vis
     lm[NOSE, :2] = (cx, cy - 1.0 * scale)
-    lm[LEFT_SHOULDER, :2] = (cx + scale, cy)
-    lm[RIGHT_SHOULDER, :2] = (cx - scale, cy)
-    lm[LEFT_WRIST, :2] = (cx + scale, cy + 2 * scale)
-    lm[RIGHT_WRIST, :2] = (cx - scale, cy - 3.5 * scale if wrist_up else cy + 2 * scale)
-    lm[23:25, :2] = [(cx + scale, cy + 3 * scale), (cx - scale, cy + 3 * scale)]  # hips
+    lm[LEFT_SHOULDER, :2] = (cx + sx, cy)
+    lm[RIGHT_SHOULDER, :2] = (cx - sx, cy)
+    lm[LEFT_WRIST, :2] = (cx + sx, cy + 2 * scale)
+    lm[RIGHT_WRIST, :2] = (cx - sx, cy - 3.5 * scale if wrist_up else cy + 2 * scale)
+    lm[23:25, :2] = [(cx + sx, cy + 3 * scale), (cx - sx, cy + 3 * scale)]  # hips
     return lm
 
 
@@ -73,7 +80,7 @@ def test_at_most_four_people():
 
 def test_box_uses_upper_body_only():
     x0, y0, x1, y1 = box_from_landmarks(pose(0.5))
-    assert x0 < 0.4 and x1 > 0.6 and y0 < 0.4
+    assert x0 < 0.44 and x1 > 0.56 and y0 < 0.4  # covers both shoulders
     assert y1 < 0.75  # hips at 0.8 are ignored
 
 

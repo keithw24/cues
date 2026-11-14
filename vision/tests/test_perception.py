@@ -315,7 +315,7 @@ class FakeHandDetector:
     def __init__(self, hands):
         self.result = mp_hand_result(hands)
 
-    def detect(self, image):
+    def recognize(self, image):  # Gesture Recognizer API, as the recorder uses
         return self.result
 
 
@@ -339,15 +339,25 @@ def test_recorder_countdown_collects_nothing():
     assert vectors == []
 
 
-def test_standard_frame_crops_instead_of_stretching():
+def test_standard_frame_keeps_the_full_16_9_view():
+    from vision.camera import FRAME_HEIGHT, FRAME_WIDTH, standard_frame
+
+    assert (FRAME_WIDTH, FRAME_HEIGHT) == (960, 540)
+    wide = np.zeros((720, 1280, 3), np.uint8)
+    wide[:, :8] = 255  # a mark at the far left edge
+    out = standard_frame(wide)
+    assert out.shape == (540, 960, 3)
+    assert out[:, :4].min() > 200  # the left edge was kept, not cropped away
+
+
+def test_standard_frame_crops_a_4_3_camera_instead_of_stretching():
     from vision.camera import standard_frame
 
-    wide = np.zeros((720, 1280, 3), np.uint8)
-    wide[:, 160:1120] = 255  # the central 4:3 region is white, the sides black
-    out = standard_frame(wide)
-    assert out.shape == (480, 640, 3)
-    assert out.min() == 255  # only the centre was kept: no black sides squeezed in
-    assert standard_frame(np.zeros((480, 640, 3), np.uint8)).shape == (480, 640, 3)
+    tall = np.zeros((480, 640, 3), np.uint8)
+    tall[60:420, :] = 255  # the central 16:9 band is white, top and bottom black
+    out = standard_frame(tall)
+    assert out.shape == (540, 960, 3)
+    assert out.min() == 255  # only the centre band kept: no black bars squeezed in
 
 
 def test_recorder_keeps_a_hand_in_the_middle_of_the_frame():

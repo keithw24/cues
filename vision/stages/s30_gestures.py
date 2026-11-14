@@ -77,9 +77,15 @@ def score_gesture(activity, hands, cache: MatcherCache, exclude_palm: bool = Fal
         hands = [h for h in hands if palm_side(h.landmarks, h.handedness) != "palm"]
         if not hands:
             return 0.0, None, "", "palm facing the camera"
-    scored = [
-        (matcher.score(v), v, h) for h in hands for v in [normalize(h.landmarks, h.handedness)]
-    ]
+    scored = []
+    for h in hands:
+        try:
+            v = normalize(h.landmarks, h.handedness)
+        except ValueError:  # degenerate landmarks: skip this hand, keep scoring others
+            continue
+        scored.append((matcher.score(v), v, h))
+    if not scored:
+        return None, None, "hand unreadable", ""
     score, best, hand = max(scored, key=lambda item: item[0])  # one hand per person
     d_target, d_rest = matcher.distances(best)
     detail = (
