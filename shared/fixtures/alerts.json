@@ -1,0 +1,44 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "seat_id": "S1-L",
+    "reason": "repeated_misses",
+    "priority": "high",
+    "suggestion": "Demonstrate the gesture again",
+    "evidence": {
+      "attempts": 3,
+      "expression_signal": true
+    },
+    "status": "pending",
+    "created_at": "2026-11-14T02:03:10Z",
+    "resolved_at": null
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "seat_id": "S1-L",
+    "reason": "repeated_misses",
+    "priority": "high",
+    "suggestion": "Demonstrate the gesture again",
+    "evidence": {
+      "attempts": 3,
+      "expression_signal": true
+    },
+    "status": "approved",
+    "created_at": "2026-11-14T02:03:10Z",
+    "resolved_at": "2026-11-14T02:04:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "seat_id": "S1-L",
+    "reason": "repeated_misses",
+    "priority": "high",
+    "suggestion": "Demonstrate the gesture again",
+    "evidence": {
+      "attempts": 3,
+      "expression_signal": true
+    },
+    "status": "dismissed",
+    "created_at": "2026-11-14T02:03:10Z",
+    "resolved_at": "2026-11-14T02:04:00Z"
+  }
+]

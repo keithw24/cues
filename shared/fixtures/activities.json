@@ -1,0 +1,16 @@
+[
+  {
+    "id": "raise_hand",
+    "name": "Raise your hand",
+    "check_type": "rule",
+    "no_progress_seconds": 30
+  },
+  {
+    "id": "custom_gesture_01",
+    "name": "Custom Gesture 1",
+    "check_type": "gesture",
+    "success_threshold": 0.78,
+    "review_threshold": 0.58,
+    "no_progress_seconds": 30
+  }
+]

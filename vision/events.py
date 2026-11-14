@@ -3,9 +3,11 @@
 The vision service reports what happens at each seat as structured events
 (PRD §17.1) and keeps the live `seat_state` row for each seat up to date.
 
-* `emit(event)` and `update_seat_state(...)` return immediately. A background
-  thread does the network work, so a slow connection never stalls the camera.
-* With SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY set (root .env), events go
+* `emit(event)` and `update_seat_state(state)` validate shared contracts and queue
+  writes. A background thread does the network work, so a slow connection never
+  stalls the camera.
+* With `vision.supabase_events` enabled and SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+  set (root .env), events go
   to the Supabase `events` table and seat state to `seat_state`.
 * Without them, or if a Supabase write fails, the same rows are appended to
   vision/logs/events.jsonl and vision/logs/seat_state.jsonl.
@@ -24,60 +26,15 @@ import os
 import queue
 import threading
 import uuid
-from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
+from shared.contracts import Event, SeatState
+
 log = logging.getLogger(__name__)
 
 LOG_DIR = Path(__file__).parent / "logs"
-
-EVENT_TYPES = frozenset(
-    {
-        "attempt_success",
-        "attempt_miss",
-        "review_needed",
-        "no_progress",
-        "tracking_lost",
-        "expression_context",
-        "teacher_verified",
-        "agent_invoked",
-        "alert_created",
-        "teacher_approved",
-        "teacher_dismissed",
-        "intervention_applied",
-    }
-)
-
-SEAT_STATUSES = frozenset({"idle", "in_progress", "review", "done", "needs_help", "tracking_lost"})
-
-
-def utc_now() -> str:
-    return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
-
-
-@dataclass
-class Event:
-    """One row of the `events` table (PRD §17.1)."""
-
-    type: str
-    seat_id: str
-    activity_id: str | None = None
-    score: float | None = None
-    payload: dict[str, Any] = field(default_factory=lambda: {"source": "auto"})
-    session_id: str | None = None
-    station_id: str | None = None
-    created_at: str = field(default_factory=utc_now)
-
-    def __post_init__(self) -> None:
-        if self.type not in EVENT_TYPES:
-            raise ValueError(f"unknown event type {self.type!r}")
-        if self.score is not None and not 0.0 <= self.score <= 1.0:
-            raise ValueError(f"score must be between 0 and 1, got {self.score}")
-
-    def to_row(self) -> dict[str, Any]:
-        return asdict(self)
 
 
 class Sink(Protocol):
@@ -115,52 +72,36 @@ class SupabaseSink:
 
 
 class Emitter:
-    """Queues events and seat-state updates and writes them on a background thread."""
+    """Queues shared events/snapshots and writes them on a background thread.
+
+    session_id and station_id are producer defaults, not injected into models.
+    Producers include them explicitly when constructing complete shared contracts.
+    """
 
     def __init__(
         self,
         sink: Sink,
         fallback: Sink | None = None,
-        session_id: str | None = None,
+        session_id: uuid.UUID | str | None = None,
         station_id: str = "S1",
     ) -> None:
         self.sink = sink
         self.fallback = fallback
-        self.session_id = session_id
+        self.session_id = uuid.UUID(str(session_id)) if session_id is not None else uuid.uuid4()
         self.station_id = station_id
         self._queue: queue.Queue[tuple[str, dict[str, Any]] | None] = queue.Queue()
         self._thread = threading.Thread(target=self._loop, name="emitter", daemon=True)
         self._thread.start()
 
     def emit(self, event: Event) -> None:
-        event.session_id = event.session_id or self.session_id
-        event.station_id = event.station_id or self.station_id
-        self._queue.put(("event", event.to_row()))
+        """Queue a complete shared event without mutating the producer's model."""
+        validated = Event.model_validate(event.model_dump())
+        self._queue.put(("event", validated.model_dump(mode="json")))
 
-    def update_seat_state(
-        self,
-        seat_id: str,
-        *,
-        status: str | None = None,
-        activity_id: str | None = None,
-        task_score: float | None = None,
-        expression_context: dict[str, Any] | None = None,
-    ) -> None:
-        """Upsert the live seat_state row. Only fields that are passed are sent."""
-        if status is not None and status not in SEAT_STATUSES:
-            raise ValueError(f"unknown seat status {status!r}")
-        row: dict[str, Any] = {"seat_id": seat_id, "updated_at": utc_now()}
-        if self.session_id:
-            row["session_id"] = self.session_id
-        for key, value in (
-            ("status", status),
-            ("activity_id", activity_id),
-            ("task_score", task_score),
-            ("expression_context", expression_context),
-        ):
-            if value is not None:
-                row[key] = value
-        self._queue.put(("seat_state", row))
+    def update_seat_state(self, state: SeatState) -> None:
+        """Queue a complete shared snapshot, including explicit nulls to clear stale state."""
+        validated = SeatState.model_validate(state.model_dump())
+        self._queue.put(("seat_state", validated.model_dump(mode="json")))
 
     def flush(self, timeout: float = 5.0) -> None:
         """Wait until everything queued so far has been written (for tests and shutdown)."""
@@ -227,10 +168,32 @@ def main(argv: list[str] | None = None) -> None:
         return
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     emitter = emitter_from_env()
-    emitter.emit(Event(type="attempt_success", seat_id="S1-L", activity_id="raise_hand", score=1.0))
-    emitter.update_seat_state("S1-L", status="done", activity_id="raise_hand", task_score=1.0)
-    emitter.close()
-    print("Sent a demo attempt_success for S1-L.")
+    try:
+        emitter.emit(
+            Event(
+                session_id=emitter.session_id,
+                station_id=emitter.station_id,
+                type="attempt_success",
+                seat_id=f"{emitter.station_id}-L",
+                activity_id="raise_hand",
+                score=1.0,
+                payload={"source": "auto"},
+                created_at=datetime.now(UTC),
+            )
+        )
+        emitter.update_seat_state(
+            SeatState(
+                session_id=emitter.session_id,
+                seat_id=f"{emitter.station_id}-L",
+                status="done",
+                activity_id="raise_hand",
+                task_score=1.0,
+                updated_at=datetime.now(UTC),
+            )
+        )
+    finally:
+        emitter.close()
+    print(f"Sent a demo attempt_success for {emitter.station_id}-L.")
 
 
 if __name__ == "__main__":

@@ -188,10 +188,10 @@ The model receives structured state such as:
   "time_on_task_seconds": 34,
   "gesture_match_scores": [0.31, 0.38, 0.35],
   "expression_context": {
-    "negative_signal": true,
-    "dominant_label": "sadness",
+    "label": "sadness",
     "probability": 0.63,
-    "duration_seconds": 6
+    "duration_seconds": 6,
+    "supporting_only": true
   }
 }
 ```
@@ -305,12 +305,14 @@ Each activity stores its own matching configuration:
 
 ```json
 {
-  "activity_id": "custom_gesture_01",
+  "id": "custom_gesture_01",
   "check_type": "gesture",
   "success_threshold": 0.78,
   "review_threshold": 0.58,
-  "calibration": {
-    "target_distance_threshold": 0.41
+  "config": {
+    "calibration": {
+      "target_distance_threshold": 0.41
+    }
   }
 }
 ```
@@ -833,13 +835,17 @@ The station interface should not show technical model scores to the student.
 
 ## 17. Data model
 
+Session and alert IDs are UUIDs. Station, seat, and activity IDs are strings. An activity defines `id`; references to it use `activity_id`. Expression context uses `label` and `probability`. Preserve all 12 event types below and the session/timestamp fields in §17.3.
+
+The shared Pydantic models in `shared/contracts.py` are authoritative for exchanged data; JSON examples are illustrative. Synthetic fixtures live in `shared/fixtures/`. The vision emitter validates and serializes these shared models. See `TEAM_WORKFLOW.md` for the agreed team boundaries.
+
 ### 17.1 Event
 
 Vision service / backend → Supabase:
 
 ```json
 {
-  "session_id": "uuid",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
   "station_id": "S1",
   "seat_id": "S1-L",
   "type": "attempt_success",
@@ -1026,7 +1032,7 @@ Responsibilities:
 - tracking-loss handling;
 - practitioner outreach and evidence for the Forward Deployed Challenge (maintained separately from this PRD).
 
-### Evan — Web / realtime product
+### Evan — Frontend / app backend / realtime product
 
 Owns primarily:
 
@@ -1037,6 +1043,7 @@ Supabase
 
 Responsibilities:
 
+- app backend and app-facing APIs;
 - Supabase schema;
 - realtime subscriptions;
 - teacher dashboard;
@@ -1049,17 +1056,18 @@ Responsibilities:
 - station page;
 - simulated seat support.
 
-### Michelle — Agent / backend
+### Michelle — Agent / routing
 
 Owns primarily:
 
 ```text
-agent/
-FastAPI backend
+Agent / routing implementation (planned; no directory yet)
 ```
 
 Responsibilities:
 
+- event routing;
+- alert cooldowns;
 - rules engine;
 - Deep Agents;
 - Groq integration;

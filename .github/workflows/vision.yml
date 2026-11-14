@@ -1,12 +1,13 @@
 name: vision
 
-# Only runs when vision code, the shared Python environment, the flag registry
+# Only runs when vision/shared code, the shared Python environment, the flag registry
 # or this file changes.
 # Don't make this a required status check: PRs that skip it would wait forever.
 on:
   pull_request:
     paths:
       - "vision/**"
+      - "shared/**"
       - "flags.json"
       - "pyproject.toml"
       - "uv.lock"
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - "vision/**"
+      - "shared/**"
       - "flags.json"
       - "pyproject.toml"
       - "uv.lock"
@@ -48,10 +50,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0
 
       - name: Lint
-        run: uv run ruff check vision
+        run: uv run ruff check vision shared
 
       - name: Format check
-        run: uv run ruff format --check vision
+        run: uv run ruff format --check vision shared
 
       - name: Tests (hardware tests skipped)
-        run: uv run pytest vision
+        run: uv run pytest vision shared/tests
