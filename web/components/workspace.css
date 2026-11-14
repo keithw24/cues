@@ -267,15 +267,6 @@
   align-items: flex-end;
   margin-bottom: 28px;
 }
-.dashboard-shell .page-breadcrumb {
-  margin: 0 0 14px;
-  color: var(--ws-page-faint);
-  font-size: 13px;
-  font-weight: 500;
-}
-.dashboard-shell .page-breadcrumb span {
-  color: rgb(255 255 255 / 0.3);
-}
 .dashboard-shell .page-intro h1 {
   margin: 0;
   color: var(--ws-page-ink);
@@ -1009,12 +1000,6 @@
 .dashboard-shell .ws-hero .page-intro h1 {
   color: #ffffff;
 }
-.dashboard-shell .ws-hero .page-breadcrumb {
-  color: rgb(255 255 255 / 0.6);
-}
-.dashboard-shell .ws-hero .page-breadcrumb span {
-  color: rgb(255 255 255 / 0.35);
-}
 .dashboard-shell .ws-hero .page-intro p:not(.page-breadcrumb) {
   color: rgb(255 255 255 / 0.78);
 }
@@ -1254,10 +1239,6 @@ body .dashboard-shell.ws-demo {
 .dashboard-shell.ws-demo .page-intro {
   align-items: flex-start;
   margin-bottom: 18px;
-}
-.dashboard-shell.ws-demo .page-breadcrumb {
-  margin-bottom: 10px;
-  font-size: 12px;
 }
 .dashboard-shell.ws-demo .page-intro h1 {
   font-size: 40px;

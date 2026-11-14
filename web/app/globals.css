@@ -320,17 +320,6 @@ h3 {
   padding: 30px 40px 28px;
   min-width: 0;
 }
-.page-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  margin-bottom: 40px;
-}
-.page-breadcrumb span {
-  color: #b4bbc5;
-}
 .page-intro {
   display: flex;
   justify-content: space-between;
@@ -1286,9 +1275,6 @@ h3 {
   }
   .dashboard-main {
     padding: 24px 20px;
-  }
-  .page-breadcrumb {
-    display: none;
   }
   .page-intro {
     margin: 8px 0 28px;
