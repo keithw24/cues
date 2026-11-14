@@ -33,7 +33,7 @@ export default function LandingFooter({ start }: { start: string }) {
       <div className="ln-footer-top">
         <div className="ln-footer-brand">
           <Link href="/" className="ln-brand" aria-label="Cues home">
-            <CuesMark className="ln-brand-mark" />
+            <CuesMark className="ln-brand-mark" size={30} />
           </Link>
           <p>
             Classroom support for special-education teachers. Built by a student

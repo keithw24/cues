@@ -193,7 +193,7 @@ export default function TeacherLogin({
           </button>
         ) : (
           <Link className="auth-wordmark" href="/" aria-label="Cues home">
-            <CuesMark />
+            <CuesMark size={24} />
           </Link>
         )}
         {switchLink}

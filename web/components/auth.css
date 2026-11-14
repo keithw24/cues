@@ -20,10 +20,13 @@
 }
 .auth-wordmark {
   display: inline-flex;
+  align-items: center;
   padding: 0 4px;
   color: var(--auth-ink);
   text-decoration: none;
-  --cues-mark-accent: #425cc8;
+}
+.auth-wordmark svg {
+  --cues-mark-accent: var(--auth-blue);
 }
 .auth-switch {
   display: inline-flex;
