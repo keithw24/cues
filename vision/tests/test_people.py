@@ -142,10 +142,28 @@ def test_raised_wrist_gives_high_confidence_and_lowered_gives_zero():
     assert down == 0.0
 
 
-def test_low_visibility_lowers_confidence():
+def test_visibility_is_a_gate_not_a_multiplier():
     clear, _ = raise_confidence(Person("S1-P1", (0, 0, 1, 1), pose(0.5, wrist_up=True)))
+    fair, _ = raise_confidence(Person("S1-P1", (0, 0, 1, 1), pose(0.5, wrist_up=True, vis=0.7)))
     faint, _ = raise_confidence(Person("S1-P1", (0, 0, 1, 1), pose(0.5, wrist_up=True, vis=0.4)))
-    assert faint == pytest.approx(clear * 0.4, abs=0.01)
+    assert fair == clear  # partly visible but clearly raised: full score
+    assert faint == 0.0  # not visible enough to judge
+
+
+def wrist_at(height_in_shoulder_widths, scale=0.1):
+    """A pose whose right wrist is the given number of shoulder widths above the shoulders."""
+    lm = pose(0.5, scale=scale)
+    lm[RIGHT_WRIST, 1] = 0.5 - height_in_shoulder_widths * 2 * scale  # shoulder width = 2*scale
+    return Person("S1-P1", (0, 0, 1, 1), lm)
+
+
+def test_head_height_raise_passes_and_half_raise_is_review():
+    head, _ = raise_confidence(wrist_at(1.0))  # about the top of the head
+    half, _ = raise_confidence(wrist_at(0.5))  # around the chin
+    low, _ = raise_confidence(wrist_at(-0.5))  # below the shoulders
+    assert head >= 0.7  # raise_hand success threshold
+    assert 0.4 <= half < 0.7  # review band
+    assert low == 0.0
 
 
 def test_confidence_does_not_depend_on_distance_from_camera():
