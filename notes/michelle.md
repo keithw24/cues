@@ -8,7 +8,7 @@ have been replaced by the verified outcomes and remaining limitations below.
 
 ```mermaid
 flowchart TD
-    A[Supabase seat_state] --> B[SeatStateRuntime: one-second polling]
+    A[Supabase seat_state] --> B[SeatStateRuntime: dev 1s / demo 0.5s polling]
     B --> C[ProgressEvaluator]
     C --> D[ProgressHistoryStore.record]
     C --> E[evaluate_escalation]
@@ -208,7 +208,8 @@ there is no outbox or automatic recovery after a process crash.
 
 `create_seat_state_runtime(model, activities, ...)` in `agent/runtime.py`
 composes the existing nodes. It reuses the authenticated review-store client.
-`SeatStateRuntime.run_forever()` polls public.seat_state once per second;
+`SeatStateRuntime.run_forever()` polls public.seat_state at one-second intervals
+by default; the demo worker explicitly uses half-second intervals;
 `run_once()` supports supervised iterations and tests. No Python Realtime pattern
 previously existed, so polling is used. Exact unchanged rows are skipped.
 
@@ -225,12 +226,41 @@ offline/source injection supports tests. Missing/partial/broken live persistence
 fails clearly.
 
 `agent/worker.py` injects the demo model and loads shared Activity fields from
-Supabase activities at startup. Restart after catalog changes.
+the local vision activity catalog at startup. Restart after catalog changes.
 `./scripts/dev.sh` starts vision, the worker and Next.js through `agent/dev.py`.
 Logs are prefixed; Ctrl-C/SIGTERM terminates process groups. Photon runs on demand.
 See STARTUP.md for exact dependencies, env, flags and manual prerequisites.
 The launcher has passed shell syntax and Python lint checks; a full launch and
 Ctrl-C cleanup were not exercised in the documented startup change.
+
+### Live stalled-progress trace
+
+The camera reproduction confirmed demo mode was active: window/minimum 2s,
+normal 4s, expression-assisted 5s and prolonged 6s. Tracking remained true,
+raise_hand score was 0, and vision status remained in_progress while the agent
+emitted stalled. One-second polling plus HTTP time occasionally skipped a
+roughly one-second heartbeat, yielding a 2.06s gap and resetting progress to
+unknown. Demo now explicitly polls every 0.5s; normal polling and all evaluator
+thresholds remain unchanged. Slow synchronous agent runs can still cause gaps;
+the evaluator conservatively resets instead of treating unseen time as failure.
+
+Startup logs now print actual timing configuration. Per-seat transition logs
+include score/tracking, observation age/gap, progress, escalation, route outcome,
+and evaluation result/review ID, without frame data or teacher contact details.
+The source also reads session_revision for diagnostics.
+
+The original active session's owner had no consent settings. After a new owned
+session was started, the live trace reached stalled at 2.00s, normal evaluation
+at 4.07s (model chose continue_monitoring), then prolonged evaluation at 6.07s.
+Pending review 267e69f2-dc96-423a-890d-1e345a55d688 was persisted at 22:14:33 UTC;
+Spectrum acceptance was recorded at 22:14:35 UTC. Michelle confirmed dashboard
+review and handset message at 5:14 PM. No notification logic or RLS was changed.
+"Working" is the vision status; no separate persisted stalled label exists.
+Fresh session identity resets progress; completion remains latched within a task.
+
+Tests cover demo/dev configuration, heartbeat sampling, transition-only logging,
+new-session reset, and the existing real review-action path. The live success
+preceded the half-second polling adjustment, which applies on the next restart.
 
 ## Verification and remaining work
 

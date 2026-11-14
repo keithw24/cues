@@ -91,6 +91,60 @@ def test_stalled_state_routes_through_enricher_and_agent():
     assert target.agent.contexts[0].request is routed.request
 
 
+def test_demo_rule_stall_logs_transitions_without_per_observation_spam(caplog):
+    import logging
+
+    caplog.set_level(logging.INFO, logger="agent.seat_state_runtime")
+    target = pipeline([activity("raise_hand")])
+    results = feed(target, [snapshot(i, activity_id="raise_hand", score=0) for i in range(10)])
+    assert results[2].progress.trend == "stalled"
+    assert results[4].request is not None
+    assert results[6].escalation.reason == "prolonged_stalled_progress"
+    assert "tracking=True score=0.0" in caplog.text
+    assert "progress=unknown->stalled" in caplog.text
+    assert "escalation=stalled_progress route=evaluate" in caplog.text
+    assert "Agent evaluation started" in caplog.text
+    transitions = [r for r in caplog.records if "vision_status=" in r.message]
+    assert len(transitions) == 4  # initial, stalled, normal, prolonged
+
+
+def test_new_owned_session_restarts_completed_stream():
+    target = pipeline([activity("raise_hand")])
+    completed = target.process_row(snapshot(0, activity_id="raise_hand", status="done"), now=START)
+    assert completed.progress.trend == "completed"
+    rows = [
+        snapshot(i, activity_id="raise_hand", score=0, session_id=UUID(int=2)) for i in range(1, 11)
+    ]
+    results = feed(target, rows)
+    assert results[2].progress.trend == "stalled"
+    assert results[4].request.session_id == UUID(int=2)
+
+
+def test_demo_polling_does_not_skip_one_second_vision_heartbeats():
+    # Model a 1.03s vision heartbeat and 0.10s HTTP fetch overhead. A 1s
+    # sleep after fetching eventually skips a row (2.06s > the 2s gap limit).
+    def simulate(poll_seconds):
+        target = pipeline([activity("raise_hand")])
+        states = []
+        read_at = 0.0
+        while read_at < 20:
+            observation = int(read_at / 1.03) * 1.03
+            result = target.process_row(
+                snapshot(observation, activity_id="raise_hand", score=0),
+                now=START + timedelta(seconds=read_at),
+            )
+            if result is not None:
+                states.append(result)
+            read_at += poll_seconds + 0.10
+        return states
+
+    slower = simulate(1.0)
+    assert any(r.progress.trend == "unknown" for r in slower[4:])
+    faster = simulate(0.5)
+    assert all(r.progress.trend == "stalled" for r in faster[2:])
+    assert any(r.escalation.reason == "prolonged_stalled_progress" for r in faster)
+
+
 def test_tracking_loss_never_routes_or_turns_null_score_into_failure():
     target = pipeline()
     results = feed(
