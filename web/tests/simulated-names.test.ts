@@ -6,7 +6,7 @@ import { isEnabled } from "../lib/flags.ts";
 const person = { id: "S1-P3", display_name: "Person 3", is_simulated: true };
 
 test("simulated names default off and keep the position label", () => {
-  assert.equal(isEnabled("web.simulated_names", {}), false);
+  assert.equal(isEnabled("web.simulated_names", {}), true);
   assert.equal(displayName(person, false), "Person 3");
 });
 

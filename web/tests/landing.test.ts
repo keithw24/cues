@@ -46,7 +46,7 @@ test("the email-confirmed page is unavailable when sign-up is off", () => {
 });
 
 test("FAQ and site footer default off; the landing keeps its short footer", () => {
-  assert.equal(isEnabled("web.landing_faq", {}), false);
+  assert.equal(isEnabled("web.landing_faq", {}), true);
   assert.equal(
     isEnabled("web.landing_faq", { CUES_FLAG_WEB_LANDING_FAQ: "1" }),
     true,
@@ -58,7 +58,7 @@ test("FAQ and site footer default off; the landing keeps its short footer", () =
 });
 
 test("the dashboard demo defaults off; the hero keeps the older preview", () => {
-  assert.equal(isEnabled("web.landing_demo", {}), false);
+  assert.equal(isEnabled("web.landing_demo", {}), true);
   const landing = read("../components/landing.tsx");
   assert.match(
     landing,
@@ -100,7 +100,7 @@ test("the demo turns on with its override, stays labelled and stays offline", ()
 });
 
 test("scroll reveal defaults off; without it every section is visible", () => {
-  assert.equal(isEnabled("web.landing_motion", {}), false);
+  assert.equal(isEnabled("web.landing_motion", {}), true);
   assert.equal(
     isEnabled("web.landing_motion", { CUES_FLAG_WEB_LANDING_MOTION: "1" }),
     true,

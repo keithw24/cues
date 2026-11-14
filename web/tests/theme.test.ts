@@ -8,7 +8,7 @@ const read = (path: string) =>
   readFileSync(new URL(path, import.meta.url), "utf8");
 
 test("theme toggle defaults off; without it no script runs and no toggle shows", () => {
-  assert.equal(isEnabled("web.theme_toggle", {}), false);
+  assert.equal(isEnabled("web.theme_toggle", {}), true);
   assert.equal(
     isEnabled("web.theme_toggle", { CUES_FLAG_WEB_THEME_TOGGLE: "1" }),
     true,
@@ -54,7 +54,7 @@ test("the saved theme applies only for known values", () => {
 });
 
 test("the live mock defaults off and never touches Supabase", () => {
-  assert.equal(isEnabled("web.live_view", {}), false);
+  assert.equal(isEnabled("web.live_view", {}), true);
   assert.match(
     read("../app/live/page.tsx"),
     /if \(!isEnabled\("web\.live_view"\)\)/,

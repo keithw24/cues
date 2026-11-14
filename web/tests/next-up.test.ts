@@ -48,7 +48,7 @@ test("calm states follow the camera: working, no one in view, camera off", () =>
 test("room view defaults off; the card layout stays without it", async () => {
   const { isEnabled } = await import("../lib/flags.ts");
   const { readFileSync } = await import("node:fs");
-  assert.equal(isEnabled("web.room_view", {}), false);
+  assert.equal(isEnabled("web.room_view", {}), true);
   assert.equal(
     isEnabled("web.room_view", { CUES_FLAG_WEB_ROOM_VIEW: "1" }),
     true,

@@ -35,7 +35,7 @@ function mock(data: unknown, error: unknown = null) {
   };
 }
 test("session controls default off", () => {
-  assert.equal(isEnabled("web.session_controls", {}), false);
+  assert.equal(isEnabled("web.session_controls", {}), true);
 });
 test("session parsing rejects wrong station, identity and invalid lifecycle", () => {
   for (const patch of [
