@@ -5,11 +5,11 @@ Runs only when CUES_MODE=recognize. For each person, on every frame:
 1. Score every gesture in vision.mode.RECOGNIZE_SET, with hand-shape rules so
    the two gestures cannot both be true:
    * raise_hand: the pose-based raise confidence, but only if the raised hand
-     is an open palm facing the camera (vision.gestures.hand_pose). A raised
-     thumbs-up or fist scores 0.
-   * gesture tasks (thumbs_up): the best hand against the recorded examples,
-     counting only hands whose palm is NOT facing the camera (back of the
-     hand, or seen edge-on, as a thumbs-up usually is).
+     is an open palm facing the camera (recogniser's Open_Palm + palm side).
+     A raised thumbs-up or fist scores 0.
+   * thumbs_up: the MediaPipe Gesture Recognizer's Thumb_Up score.
+   * recorded gestures: the best hand against the teacher's examples,
+     skipping hands whose palm faces the camera.
 2. The candidate is the gesture with the highest score, if that score is at
    or above that gesture's own success threshold; otherwise "no gesture".
 3. Hysteresis: a new candidate must stay the candidate for SWITCH_SECONDS
@@ -26,13 +26,13 @@ from dataclasses import dataclass
 
 from vision import activities, mode
 from vision.gestures.hand_pose import is_open, palm_side
-from vision.gestures.normalize import normalize
 from vision.grouping import GROUPING
 from vision.perception import Hand
-from vision.stages.s30_gestures import MatcherCache
+from vision.stages.s30_gestures import MatcherCache, score_gesture
 from vision.stages.s35_raise_hand import highest_hand, raise_confidence
 
 SWITCH_SECONDS = 0.5
+OPEN_PALM_MIN = 0.5
 
 
 @dataclass
@@ -40,6 +40,20 @@ class Recognized:
     activity_id: str | None  # None = no gesture recognised
     score: float | None
     hand: Hand | None
+
+
+def has_open_palm(hand) -> bool:
+    """Open palm facing the camera.
+
+    Open: the Gesture Recognizer's Open_Palm score is at least OPEN_PALM_MIN
+    (finger counting is used when there are no recogniser scores). Facing:
+    vision.gestures.hand_pose.palm_side.
+    """
+    if hand is None or palm_side(hand.landmarks, hand.handedness) != "palm":
+        return False
+    if hand.gestures:
+        return hand.gestures.get("Open_Palm", 0.0) >= OPEN_PALM_MIN
+    return is_open(hand.landmarks)
 
 
 def score_gestures(pid: str, ctx: dict, cache: MatcherCache, gesture_ids) -> dict:
@@ -50,30 +64,18 @@ def score_gestures(pid: str, ctx: dict, cache: MatcherCache, gesture_ids) -> dic
     for aid in gesture_ids:
         activity = activities.get(aid)
         if activity.check_type == "gesture":
-            matcher, _ = cache.get(aid)
-            # A thumbs-up shows the back or the edge of the hand, never the palm.
-            usable = [h for h in hands if palm_side(h.landmarks, h.handedness) != "palm"]
-            if matcher is None or not usable:
-                out[aid] = (None if matcher is None else 0.0, None)
-                continue
-            out[aid] = max(
-                ((matcher.score(normalize(h.landmarks, h.handedness)), h) for h in usable),
-                key=lambda item: item[0],
-            )
+            # Recorded gestures skip palm-facing hands; built-in ones (Thumb_Up)
+            # rely on the recogniser, which already tells palm from thumbs-up.
+            score, hand, _, _ = score_gesture(activity, hands, cache, exclude_palm=True)
+            out[aid] = (score, hand)
         elif aid == "raise_hand":
             hand = highest_hand(hands)
             if person is None:
                 out[aid] = (None, hand)
                 continue
             score = raise_confidence(person)[0]
-            # Raised hand only counts as an open palm facing the camera.
-            if (
-                hand is None
-                or palm_side(hand.landmarks, hand.handedness) != "palm"
-                or not (is_open(hand.landmarks))
-            ):
-                score = 0.0
-            out[aid] = (score, hand)
+            # A raised hand only counts as an open palm facing the camera.
+            out[aid] = (score if has_open_palm(hand) else 0.0, hand)
     return out
 
 

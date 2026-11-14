@@ -10,9 +10,9 @@ person scores on *every* known task at the same time, e.g.
 It writes ctx["all_scores"] = {person_id: {activity_id: score or None}}, which
 the overlay and vision.watch show. Nothing here is sent to Supabase.
 
-* Gesture tasks: the best of the person's hands against that gesture's
-  recorded examples. None ("--") when no examples are recorded or no hand
-  is visible.
+* Gesture tasks: built-in ones (thumbs_up) from the MediaPipe Gesture
+  Recognizer; recorded ones against the teacher's examples. None ("--") when
+  no examples are recorded or no hand is visible.
 * raise_hand: the pose-based raise confidence. None when the person is not
   visible.
 """
@@ -20,9 +20,8 @@ the overlay and vision.watch show. Nothing here is sent to Supabase.
 from __future__ import annotations
 
 from vision import activities
-from vision.gestures.normalize import normalize
 from vision.grouping import GROUPING
-from vision.stages.s30_gestures import MatcherCache
+from vision.stages.s30_gestures import MatcherCache, score_gesture
 from vision.stages.s35_raise_hand import raise_confidence
 
 FLAG = "vision.all_scores"
@@ -30,16 +29,11 @@ FLAG = "vision.all_scores"
 
 def all_scores_for(pid: str, ctx: dict, cache: MatcherCache) -> dict[str, float | None]:
     hands = ctx.get("hands", {}).get(pid, [])
-    vectors = [normalize(h.landmarks, h.handedness) for h in hands]
     person = ctx.get("people", {}).get(pid)
     scores: dict[str, float | None] = {}
     for activity in activities.load_activities().values():
         if activity.check_type == "gesture":
-            matcher, _ = cache.get(activity.id)
-            if matcher is None or not vectors:
-                scores[activity.id] = None
-            else:
-                scores[activity.id] = max(matcher.score(v) for v in vectors)
+            scores[activity.id] = score_gesture(activity, hands, cache)[0]
         elif activity.id == "raise_hand":
             scores[activity.id] = raise_confidence(person)[0] if person is not None else None
     return scores

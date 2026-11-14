@@ -149,6 +149,11 @@ def main(argv: list[str] | None = None) -> None:
     activity = activities.get(args.activity_id)
     if activity.check_type != "gesture":
         raise SystemExit(f"{activity.id} is a {activity.check_type} task; nothing to record")
+    if activity.builtin:
+        raise SystemExit(
+            f"{activity.id} uses MediaPipe's built-in {activity.builtin} gesture; "
+            "no recording needed"
+        )
 
     detector = models.hand_landmarker(num_hands=4)
     cap = cv2.VideoCapture(args.camera)

@@ -81,6 +81,10 @@ def gesture_activity(activity_id: str):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     if activity.check_type != "gesture":
         raise HTTPException(status_code=422, detail=f"{activity_id} is not a gesture task")
+    if activity.builtin:
+        raise HTTPException(
+            status_code=422, detail=f"{activity_id} is built in ({activity.builtin}); no recording"
+        )
     return activity
 
 

@@ -262,11 +262,12 @@ def test_all_scores_reports_every_task_at_once(tmp_path):
     t.add("target", [target + np.random.default_rng(1).normal(0, 0.02, 63) for _ in range(4)])
     tpl.save(t, tmp_path)
     ctx, _ = people_ctx(pose(0.3, wrist_up=True))
-    ctx["hands"] = {"S1-P1": [Hand(hand_points((0.3, 0.3), shape_seed=1), "Right", "S1-P1")]}
+    hand = Hand(hand_points((0.3, 0.3), shape_seed=1), "Right", "S1-P1", {"Thumb_Up": 0.91})
+    ctx["hands"] = {"S1-P1": [hand]}
     AllScoresStage(grouping=PeopleGrouping(), cache=MatcherCache(tmp_path)).process(None, ctx)
     scores = ctx["all_scores"]["S1-P1"]
     assert scores["raise_hand"] > 0.9  # hand raised (pose)
-    assert scores["thumbs_up"] > 0.58  # and a thumbs-up, scored at the same time
+    assert scores["thumbs_up"] == pytest.approx(0.91)  # built-in, at the same time
     assert scores["custom_gesture_01"] is None  # no examples recorded
 
 

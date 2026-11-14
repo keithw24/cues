@@ -28,6 +28,9 @@ class Activity:
     review_threshold: float
     no_progress_seconds: int
     keywords: tuple[str, ...] = ()
+    # MediaPipe Gesture Recognizer label (e.g. "Thumb_Up") for built-in gestures.
+    # None = a teacher-recorded gesture, matched against recorded examples.
+    builtin: str | None = None
 
 
 @lru_cache(maxsize=1)
@@ -43,6 +46,7 @@ def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
             review_threshold=float(item["review_threshold"]),
             no_progress_seconds=int(item["no_progress_seconds"]),
             keywords=tuple(item.get("keywords", [])),
+            builtin=item.get("builtin"),
         )
         if activity.check_type not in ("gesture", "rule"):
             raise ValueError(f"{activity.id}: unknown check_type {activity.check_type!r}")

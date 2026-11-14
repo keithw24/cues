@@ -35,7 +35,10 @@ def ctx_with(raised: bool, thumb: bool):
         if thumb
         else open_palm(cy=0.25 if raised else 0.6)
     )
-    ctx["hands"] = {"S1-P1": [Hand(pts, PERSONS_RIGHT, "S1-P1")]}
+    thumb_scores = {"Thumb_Up": 0.92, "Open_Palm": 0.01}
+    palm_scores = {"Thumb_Up": 0.0, "Open_Palm": 0.95}
+    scores = thumb_scores if thumb else palm_scores
+    ctx["hands"] = {"S1-P1": [Hand(pts, PERSONS_RIGHT, "S1-P1", scores)]}
     return ctx
 
 
@@ -148,7 +151,7 @@ def test_scores_respect_hand_side(cache):
         "S1-P1", ctx_with(raised=True, thumb=True), cache, ("thumbs_up", "raise_hand")
     )
     assert scores["raise_hand"][0] == 0.0  # raised, but not an open palm
-    assert scores["thumbs_up"][0] > 0.78
+    assert scores["thumbs_up"][0] == pytest.approx(0.92)
     scores = score_gestures(
         "S1-P1", ctx_with(raised=True, thumb=False), cache, ("thumbs_up", "raise_hand")
     )
@@ -166,3 +169,12 @@ def test_hand_side_always_shown_in_recognise_mode():
     assert "Hand: palm, open (4/4 fingers)" in text  # without --debug
     none = format_seat("S1-P1", "thumbs_up", None, None, recognized=Recognized(None, None, None))
     assert "Hand: none detected" in none
+
+
+def test_raised_palm_that_the_recogniser_does_not_call_open_is_not_a_raised_hand(cache):
+    from vision.stages.s46_recognize import score_gestures
+
+    ctx = ctx_with(raised=True, thumb=False)
+    ctx["hands"]["S1-P1"][0].gestures = {"Open_Palm": 0.2, "Closed_Fist": 0.7}
+    scores = score_gestures("S1-P1", ctx, cache, ("thumbs_up", "raise_hand"))
+    assert scores["raise_hand"][0] == 0.0
