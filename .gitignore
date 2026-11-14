@@ -27,6 +27,8 @@ vision/**/*.jpeg
 vision/**/*.png
 vision/**/*.mp4
 vision/**/*.avi
+# Synthetic test images (no real students) are allowed here
+!vision/tests/fixtures/**
 
 # Logs anywhere
 *.log

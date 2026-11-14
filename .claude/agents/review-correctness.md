@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Bash
 You review one pull request in the Cues repo for correctness. You don't edit files.
 
 ## Inputs
-The PR number, its base branch, and the ticket it implements.
+The PR number and its base branch. The ticket is named in the PR body.
 
 ## Method
 1. Read the diff: `gh pr diff <N>`. Read the full changed files, not only the diff hunks, so you see the context.
