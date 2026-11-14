@@ -71,6 +71,7 @@ class SeatTracker:
         self.seat_id = seat_id
         self.activity = activity
         self.status = "idle"
+        self._status_before_loss: str | None = None
         self.active_seconds = 0.0  # time on task, excluding tracking loss
         self.best_score: float | None = None
         self._last_t: float | None = None
@@ -94,13 +95,19 @@ class SeatTracker:
                 self._unseen_since = t
             if t - self._unseen_since >= TRACKING_LOST_SECONDS and self.status != "tracking_lost":
                 if self.status != "done":
+                    self._status_before_loss = self.status
                     self.status = "tracking_lost"
                     events.append(StatusEvent("tracking_lost"))
             self._reset_band()
             self._hand_in_view = False
             return events
         self._unseen_since = None
-        if self.status in ("idle", "tracking_lost"):
+        if self.status == "tracking_lost":
+            # Back in view: keep what was already known (needs_help, review).
+            before = self._status_before_loss
+            self.status = before if before in ("needs_help", "review") else "in_progress"
+            self._status_before_loss = None
+        elif self.status == "idle":
             self.status = "in_progress"
         if self.status == "done":
             return events

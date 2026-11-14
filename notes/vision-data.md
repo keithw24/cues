@@ -232,7 +232,7 @@ From `web/lib/dashboard-feed.ts`, the dashboard reads `seats`, `seat_state`,
    `alter table public.seat_state add column tracking_valid boolean;`
    Vision always sends this field. Until the column exists in the live project,
    `seat_state` writes fail and vision falls back to
-   `vision/logs/seat_state.jsonl`.
+   `vision/logs/seat_state.json` (latest row per person).
 2. Show person ids on the dashboard: `seats` rows for `S1-P1`...`S1-P4` (or
    cards built from `seat_state`), and a read policy that allows them.
 3. Add `thumbs_up` and `custom_gesture_01` to `activities`.

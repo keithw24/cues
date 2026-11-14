@@ -22,10 +22,12 @@ from typing import Any, Protocol
 import cv2
 import numpy as np
 
-from vision import flags
+from vision import flags, mode
 from vision.camera import Camera, Frame
 
 log = logging.getLogger(__name__)
+
+ERROR_LOG_SECONDS = 5.0
 
 
 class Stage(Protocol):
@@ -41,28 +43,33 @@ class Stage(Protocol):
 
 
 class RateMeter:
-    """Counts events and reports events per second over the last few seconds."""
+    """Counts events and reports events per second over the last few seconds.
+
+    Thread-safe: the pipeline thread calls tick() while /health and
+    vision.watch call rate() from other threads.
+    """
 
     def __init__(self, window_s: float = 2.0) -> None:
         self.window_s = window_s
         self._times: deque[float] = deque()
+        self._lock = threading.Lock()
 
     def tick(self, now: float | None = None) -> None:
         now = time.monotonic() if now is None else now
-        self._times.append(now)
-        self._trim(now)
+        with self._lock:
+            self._times.append(now)
+            while self._times and now - self._times[0] > self.window_s:
+                self._times.popleft()
 
     def rate(self, now: float | None = None) -> float:
+        """Events per second over the window. Read-only: never changes the deque."""
         now = time.monotonic() if now is None else now
-        self._trim(now)
-        if len(self._times) < 2:
+        with self._lock:
+            recent = [t for t in self._times if now - t <= self.window_s]
+        if len(recent) < 2:
             return 0.0
-        span = self._times[-1] - self._times[0]
-        return (len(self._times) - 1) / span if span > 0 else 0.0
-
-    def _trim(self, now: float) -> None:
-        while self._times and now - self._times[0] > self.window_s:
-            self._times.popleft()
+        span = recent[-1] - recent[0]
+        return (len(recent) - 1) / span if span > 0 else 0.0
 
 
 def discover_stages(package: str = "vision.stages") -> list[Stage]:
@@ -105,9 +112,31 @@ class Pipeline:
         self._cond = threading.Condition()
         self._running = False
         self._thread: threading.Thread | None = None
+        self.errors = 0
+        self._last_error_log = float("-inf")
 
     # ---- lifecycle -------------------------------------------------------
+    def load(self) -> None:
+        """Load every stage's models before the frame loop starts.
+
+        Stages may define load() (download and build their model). Doing it here
+        means the first frame is not stalled by downloads, and a stage whose
+        model cannot be loaded is switched off with a logged error instead of
+        retrying on every frame.
+        """
+        ready = []
+        for stage in self.stages:
+            loader = getattr(stage, "load", None)
+            try:
+                if loader is not None:
+                    loader()
+                ready.append(stage)
+            except Exception:
+                log.exception("stage %s could not load its model; it is switched off", stage.name)
+        self.stages = ready
+
     def start(self) -> None:
+        self.load()
         self.camera.start()
         self._running = True
         self._thread = threading.Thread(target=self._loop, name="pipeline", daemon=True)
@@ -163,11 +192,23 @@ class Pipeline:
                 time.sleep(0.005)
                 continue
             last_index = frame.index
-            jpeg = self.step(frame)
+            try:
+                jpeg = self.step(frame)
+            except Exception:  # never let one bad frame stop the pipeline
+                self._log_error("frame failed")
+                continue
             with self._cond:
                 self._jpeg = jpeg
                 self._jpeg_index += 1
                 self._cond.notify_all()
+
+    def _log_error(self, what: str) -> None:
+        """Log an exception at most once every ERROR_LOG_SECONDS (avoid 30/s floods)."""
+        now = time.monotonic()
+        self.errors += 1
+        if now - self._last_error_log >= ERROR_LOG_SECONDS:
+            self._last_error_log = now
+            log.exception("%s (%d errors so far)", what, self.errors)
 
     # ---- outputs ---------------------------------------------------------
     def wait_for_jpeg(self, after: int, timeout: float = 1.0) -> tuple[int, bytes | None]:
@@ -176,10 +217,17 @@ class Pipeline:
             self._cond.wait_for(lambda: self._jpeg_index > after, timeout=timeout)
             return self._jpeg_index, self._jpeg
 
+    def _frame_age(self) -> float | None:
+        frame = self.camera.latest()
+        return None if frame is None else round(time.monotonic() - frame.timestamp, 2)
+
     def health(self) -> dict[str, Any]:
         return {
             "camera_open": self.camera.is_open,
+            "frame_age_seconds": self._frame_age(),
+            "errors": self.errors,
             "fps": round(self.loop_rate.rate(), 1),
             "stages": {name: round(m.rate(), 1) for name, m in self.stage_rates.items()},
             "flags": flags.snapshot(),
+            "mode": mode.current(),
         }

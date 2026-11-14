@@ -87,7 +87,7 @@ class Recorder:
             frames += 1
             bgr = standard_frame(bgr)
             rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-            result = self.detector.detect(self.make_image(rgb))
+            result = self.detector.recognize(self.make_image(rgb))
             hand = pick_hand(hands_from_result(result, AllHands()).get("any", []))
             if record and hand is not None and now >= next_sample:
                 vector = normalize(hand.landmarks, hand.handedness)
@@ -156,7 +156,8 @@ def main(argv: list[str] | None = None) -> None:
             "no recording needed"
         )
 
-    detector = models.hand_landmarker(num_hands=4)
+    # The same model as the live service, so recorded and live hands match.
+    detector = models.gesture_recognizer(num_hands=4)
     cap = open_capture(args.camera)
     if not cap.isOpened():
         raise SystemExit("Could not open the camera. Is the vision service running?")

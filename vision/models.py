@@ -8,12 +8,14 @@ and caches its own ONNX weights on first use.
 from __future__ import annotations
 
 import logging
+import shutil
 import urllib.request
 from pathlib import Path
 
 log = logging.getLogger(__name__)
 
 MODELS_DIR = Path(__file__).parent / "models"
+DOWNLOAD_TIMEOUT = 30  # seconds; a stalled network fails instead of hanging the service
 
 MODEL_URLS = {
     "hand_landmarker.task": (
@@ -47,7 +49,13 @@ def model_path(name: str, models_dir: Path = MODELS_DIR) -> Path:
     models_dir.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".part")
     log.info("downloading %s", name)
-    urllib.request.urlretrieve(MODEL_URLS[name], tmp)
+    try:
+        with urllib.request.urlopen(MODEL_URLS[name], timeout=DOWNLOAD_TIMEOUT) as resp:
+            with open(tmp, "wb") as out:
+                shutil.copyfileobj(resp, out)
+    except Exception:
+        tmp.unlink(missing_ok=True)  # never leave a half-downloaded model behind
+        raise
     tmp.rename(path)
     return path
 

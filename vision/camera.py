@@ -14,6 +14,7 @@ Mac with a built-in camera the USB camera is usually 1).
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
 import time
@@ -21,6 +22,8 @@ from dataclasses import dataclass
 
 import cv2
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 FRAME_WIDTH = 960
 FRAME_HEIGHT = 540
@@ -85,7 +88,9 @@ class Camera:
 
     @property
     def is_open(self) -> bool:
-        return self._running
+        return self._running and self._device_ok
+
+    _device_ok = True  # real cameras set this False while disconnected
 
     def latest(self) -> Frame | None:
         with self._lock:
@@ -117,7 +122,15 @@ class Camera:
 
 
 class OpenCVCamera(Camera):
-    """A real webcam read through OpenCV."""
+    """A real webcam read through OpenCV.
+
+    If reads keep failing for LOST_SECONDS (cable pulled, USB hub reset), the
+    camera is marked not open (so /health shows camera_open: false), released,
+    and reopened every REOPEN_SECONDS until it works again.
+    """
+
+    LOST_SECONDS = 1.0
+    REOPEN_SECONDS = 2.0
 
     def __init__(
         self, index: int = 0, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT
@@ -127,6 +140,7 @@ class OpenCVCamera(Camera):
         self.width = width
         self.height = height
         self._cap: cv2.VideoCapture | None = None
+        self._device_ok = True
 
     def _open(self) -> None:
         cap = open_capture(self.index)
@@ -144,12 +158,30 @@ class OpenCVCamera(Camera):
             self._cap = None
 
     def _loop(self) -> None:
-        while self._running and self._cap is not None:
-            ok, image = self._cap.read()
-            if not ok:
-                time.sleep(0.01)
+        failing_since: float | None = None
+        while self._running:
+            if self._cap is None:  # disconnected: try to reopen
+                cap = open_capture(self.index)
+                if cap.isOpened():
+                    self._cap, self._device_ok, failing_since = cap, True, None
+                    log.warning("camera %s reconnected", self.index)
+                else:
+                    cap.release()
+                    time.sleep(self.REOPEN_SECONDS)
                 continue
-            self._publish(standard_frame(image, self.width, self.height))
+            ok, image = self._cap.read()
+            if ok:
+                failing_since = None
+                self._publish(standard_frame(image, self.width, self.height))
+                continue
+            now = time.monotonic()
+            failing_since = failing_since or now
+            if now - failing_since >= self.LOST_SECONDS:
+                log.warning("camera %s stopped sending frames; reconnecting", self.index)
+                self._device_ok = False
+                self._close()
+            else:
+                time.sleep(0.01)
 
 
 class FakeCamera(Camera):

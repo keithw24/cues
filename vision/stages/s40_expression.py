@@ -65,6 +65,10 @@ class ExpressionStage:
         self._recognizer = recognizer
         self._averages: dict[str, RollingAverage] = {}
 
+    def load(self) -> None:
+        """Load the model now (called by Pipeline.start before the first frame)."""
+        _ = self.recognizer
+
     @property
     def recognizer(self):
         if self._recognizer is None:

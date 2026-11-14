@@ -315,7 +315,7 @@ class FakeHandDetector:
     def __init__(self, hands):
         self.result = mp_hand_result(hands)
 
-    def detect(self, image):
+    def recognize(self, image):  # Gesture Recognizer API, as the recorder uses
         return self.result
 
 

@@ -82,7 +82,7 @@ def test_tracking_valid_survives_serialization_and_jsonl_upsert(tmp_path):
     emitter = Emitter(JsonlSink(tmp_path), session_id=SESSION)
     emitter.update_seat_state(state)
     emitter.close()
-    row = json.loads((tmp_path / "seat_state.jsonl").read_text().splitlines()[0])
+    row = json.loads((tmp_path / "seat_state.json").read_text())["S1-P1"]
     assert row["tracking_valid"] is False
     assert SeatState.model_validate(row).tracking_valid is False
 

@@ -129,6 +129,6 @@ def test_real_camera_produces_frames():
             time.sleep(0.05)
         frame = cam.latest()
         assert frame is not None
-        assert frame.image.shape == (480, 640, 3)
+        assert frame.image.shape == (540, 960, 3)  # 16:9 station frames
     finally:
         cam.stop()

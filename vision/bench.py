@@ -114,7 +114,7 @@ def run(args: argparse.Namespace) -> dict:
     from vision import models
 
     print("Loading models (first run downloads them)...")
-    hands = models.hand_landmarker(num_hands=4)
+    hands = models.gesture_recognizer(num_hands=4)  # the model the service runs
     faces = models.face_detector()
     expr = models.expression_recognizer()
 
@@ -133,7 +133,7 @@ def run(args: argparse.Namespace) -> dict:
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
         a = time.perf_counter()
-        hand_result = hands.detect(image)
+        hand_result = hands.recognize(image)
         b = time.perf_counter()
         face_result = faces.detect(image)
         c = time.perf_counter()
@@ -150,7 +150,7 @@ def run(args: argparse.Namespace) -> dict:
 
     elapsed = time.monotonic() - started
     timings = [
-        summarize("hands (MediaPipe Hand Landmarker)", t_hands),
+        summarize("hands (MediaPipe Gesture Recognizer)", t_hands),
         summarize("faces (MediaPipe face detector)", t_faces),
         summarize("expression (HSEmotion enet_b0_8)", t_expr),
         summarize("all together, every frame", t_total),

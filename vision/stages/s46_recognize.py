@@ -96,17 +96,22 @@ class Recognizer:
     def __init__(self, switch_seconds: float = SWITCH_SECONDS) -> None:
         self.switch_seconds = switch_seconds
         self.shown: str | None = None
-        self._pending: str | None = None
+        self._pending: str | None = None  # meaningful only while _pending_since is set
         self._pending_since: float | None = None
 
     def update(self, t: float, cand: str | None) -> str | None:
+        """Show cand only after it has been the candidate for switch_seconds.
+
+        "No gesture" (cand None) is a candidate like any other, so a one-frame
+        dip does not clear the label either.
+        """
         if cand == self.shown:
-            self._pending = None
+            self._pending_since = None
             return self.shown
-        if cand != self._pending:
+        if self._pending_since is None or cand != self._pending:
             self._pending, self._pending_since = cand, t
         if t - self._pending_since >= self.switch_seconds:
-            self.shown, self._pending = cand, None
+            self.shown, self._pending_since = cand, None
         return self.shown
 
 
