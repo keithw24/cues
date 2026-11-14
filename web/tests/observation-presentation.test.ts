@@ -4,6 +4,7 @@ import {
   inCameraView,
   isFresh,
   observationPresentation,
+  OBSERVATION_FUTURE_SKEW_MS,
   OBSERVATION_STALE_MS,
 } from "../lib/observation-presentation.ts";
 import { parseSnapshot, seatViews, type SeatState } from "../lib/dashboard.ts";
@@ -70,9 +71,26 @@ test("five-second freshness boundary, disconnected data, clock recovery and firs
     ).label,
     "Working",
   );
+  // A row newer than the page's last one-second tick is normal: the camera
+  // reports about once a second, and station and dashboard clocks differ a
+  // little. It stays in view up to the skew allowance, then counts as a bad
+  // clock.
+  for (const ahead of [1, 300, OBSERVATION_FUTURE_SKEW_MS])
+    assert.equal(
+      observationPresentation(
+        { ...state, updated_at: new Date(now + ahead).toISOString() },
+        live,
+      ).label,
+      "Working",
+    );
   assert.equal(
     observationPresentation(
-      { ...state, updated_at: new Date(now + 1).toISOString() },
+      {
+        ...state,
+        updated_at: new Date(
+          now + OBSERVATION_FUTURE_SKEW_MS + 1,
+        ).toISOString(),
+      },
       live,
     ).label,
     "Updates paused",

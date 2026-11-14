@@ -410,6 +410,10 @@ export default function Dashboard({
   const cameraReporting = seats.some((seat) =>
     isFresh(seat.state, observationOptions),
   );
+  // With no live connection we can't tell whether the camera is on.
+  const cameraOffMessage = observationOptions.connected
+    ? "The camera is off. People appear here when the station camera sees them."
+    : "Updates paused. Reconnecting to the station…";
   const peopleCount = feed.snapshot ? inView.length : "—";
   const workingCount = countStatus("in_progress");
   const completedCount = countStatus("done");
@@ -690,7 +694,7 @@ export default function Dashboard({
                     ? "Loading the room…"
                     : cameraReporting
                       ? "No one is in view right now."
-                      : "The camera is off. People appear here when the station camera sees them."
+                      : cameraOffMessage
                 }
                 onSelect={(id, opener) => {
                   const seat = seats.find((item) => item.id === id);
@@ -753,7 +757,7 @@ export default function Dashboard({
                       <p className="strip-empty" role="status">
                         {cameraReporting
                           ? "No one is in view right now."
-                          : "The camera is off. People appear here when the station camera sees them."}
+                          : cameraOffMessage}
                       </p>
                     ) : (
                       <div className="seat-items">
@@ -991,7 +995,7 @@ export default function Dashboard({
                     <p className="strip-empty" role="status">
                       {cameraReporting
                         ? "No one is in view right now."
-                        : "The camera is off. People appear here when the station camera sees them."}
+                        : cameraOffMessage}
                     </p>
                   ) : (
                     <div className="seat-items">

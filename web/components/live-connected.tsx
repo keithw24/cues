@@ -490,7 +490,9 @@ export default function LiveConnected({
               ? "Loading…"
               : cameraReporting
                 ? "No one is in view right now."
-                : "The camera is off. People appear here when the station camera sees them."
+                : !options.connected
+                  ? "Updates paused. Reconnecting to the station…"
+                  : "The camera is off. People appear here when the station camera sees them."
         }
         action={<LiveCameraLink />}
       />

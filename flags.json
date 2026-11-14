@@ -18,7 +18,7 @@
     "ticket": "photon-alert-phone"
   },
   "web.dashboard": {
-    "description": "Read-only teacher dashboard with simulated Supabase seats and realtime state updates.",
+    "description": "Read-only teacher dashboard with Supabase seats and realtime state updates.",
     "default": true,
     "owner": "evan",
     "ticket": "dashboard-foundation"

@@ -1,6 +1,12 @@
 import { statuses, type SeatState } from "./dashboard.ts";
 
 export const OBSERVATION_STALE_MS = 5000;
+/** How far ahead of the page's clock an observation may be and still count
+ * as fresh. The page clock ticks once a second while the camera reports about
+ * once a second, and the station and dashboard can be different laptops, so a
+ * row slightly "in the future" is normal. Beyond this it is treated as a bad
+ * clock and paused. */
+export const OBSERVATION_FUTURE_SKEW_MS = 2000;
 export type ObservationOptions = {
   enabled: boolean;
   now: number | null;
@@ -18,7 +24,7 @@ export function isFresh(
     options.connected &&
     options.now !== null &&
     Number.isFinite(observedAt) &&
-    observedAt <= options.now &&
+    observedAt <= options.now + OBSERVATION_FUTURE_SKEW_MS &&
     options.now - observedAt < OBSERVATION_STALE_MS
   );
 }
