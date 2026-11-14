@@ -23,7 +23,13 @@ import argparse
 import os
 import time
 
-PERCEPTION_FLAGS = ("vision.hands", "vision.faces", "vision.gestures", "vision.expression")
+PERCEPTION_FLAGS = (
+    "vision.hands",
+    "vision.faces",
+    "vision.gestures",
+    "vision.raise_hand",
+    "vision.expression",
+)
 
 
 def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False) -> str:
@@ -60,7 +66,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--all-on",
         action="store_true",
-        help="turn on hands, faces, gestures and expression for this run",
+        help="turn on all perception stages for this run",
     )
     parser.add_argument("--task", help="current task for both seats (default: CUES_TASK)")
     parser.add_argument("--seconds", type=float, help="stop after this many seconds")

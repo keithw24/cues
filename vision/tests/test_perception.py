@@ -355,3 +355,63 @@ def test_standard_frame_crops_instead_of_stretching():
     assert out.shape == (480, 640, 3)
     assert out.min() == 255  # only the centre was kept: no black sides squeezed in
     assert standard_frame(np.zeros((480, 640, 3), np.uint8)).shape == (480, 640, 3)
+
+
+# ---- raise-hand rule -----------------------------------------------------
+def raise_ctx(wrist_y):
+    """One hand in S1-L with its wrist at normalised height wrist_y; face top at y=200px."""
+    pts = hand_points((0.2, wrist_y))
+    face = Face((100, 200, 220, 340), np.zeros((140, 120, 3), np.uint8), "S1-L")
+    return {"hands": {"S1-L": [Hand(pts, "Right", "S1-L")]}, "faces": {"S1-L": face}}
+
+
+def raise_frame(t):
+    return Frame(np.zeros((480, 640, 3), np.uint8), t, 1)
+
+
+def test_raise_hand_needs_wrist_above_face_for_the_hold_time():
+    from vision.stages.s35_raise_hand import RaiseHandStage
+
+    stage = RaiseHandStage(tasks=CurrentTasks("raise_hand"), zones=SeatZones(), hold_seconds=0.5)
+    ctx = raise_ctx(wrist_y=0.2)  # 0.2 * 480 = 96 px, above the face top at 200 px
+    stage.process(raise_frame(10.0), ctx)
+    assert ctx["match"]["S1-L"].score == 0.0  # raised, but not held yet
+    stage.process(raise_frame(10.6), ctx)
+    assert ctx["match"]["S1-L"].score == 1.0  # held for 0.6 s
+
+
+def test_raise_hand_resets_when_hand_drops():
+    from vision.stages.s35_raise_hand import RaiseHandStage
+
+    stage = RaiseHandStage(tasks=CurrentTasks("raise_hand"), zones=SeatZones(), hold_seconds=0.5)
+    stage.process(raise_frame(0.0), raise_ctx(0.2))
+    low = raise_ctx(0.8)  # wrist at 384 px, below the face top
+    stage.process(raise_frame(0.3), low)
+    assert low["match"]["S1-L"].score == 0.0
+    again = raise_ctx(0.2)
+    stage.process(raise_frame(0.6), again)
+    assert again["match"]["S1-L"].score == 0.0  # hold timer restarted at 0.6 s
+
+
+def test_raise_hand_without_face_cannot_judge():
+    from vision.stages.s35_raise_hand import RaiseHandStage
+
+    stage = RaiseHandStage(tasks=CurrentTasks("raise_hand"), zones=SeatZones())
+    ctx = raise_ctx(0.2)
+    ctx["faces"] = {}
+    stage.process(raise_frame(0.0), ctx)
+    assert ctx["match"]["S1-L"].score is None
+    assert "no face" in ctx["match"]["S1-L"].reason
+
+
+def test_raise_hand_ignores_seats_with_other_tasks():
+    from vision.stages.s35_raise_hand import RaiseHandStage
+
+    tasks = CurrentTasks("raise_hand")
+    stage = RaiseHandStage(tasks=tasks, zones=SeatZones())
+    ctx = raise_ctx(0.2)
+    stage.process(raise_frame(0.0), ctx)
+    assert "S1-L" in ctx["match"]
+    tasks.set_class_task("thumbs_up")
+    stage.process(raise_frame(0.1), ctx)
+    assert "S1-L" not in ctx["match"]  # stale raise-hand result removed

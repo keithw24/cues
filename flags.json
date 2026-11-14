@@ -28,5 +28,11 @@
     "default": false,
     "owner": "keith",
     "ticket": "T10"
+  },
+  "vision.raise_hand": {
+    "description": "Raise-hand rule per seat: a wrist above that seat's face, held briefly.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T8"
   }
 }
