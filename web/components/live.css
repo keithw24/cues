@@ -1,0 +1,354 @@
+/* Live (design mock, web.live_view): one big number, one line, a card for
+   whoever needs you, and the class as a quiet list. Colors come from the
+   workspace tokens, so the theme switch applies. */
+.live {
+  --live-accent: #8fa3ff;
+  --live-up: #7fd6a6;
+  --live-warn: #f3a383;
+  --live-hair: rgb(255 255 255 / 0.08);
+  --live-raise: rgb(255 255 255 / 0.04);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 56px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 56px 40px 64px;
+  color: var(--ws-page-ink);
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="light"] .live {
+  --live-accent: #425cc8;
+  --live-up: #1d6b45;
+  --live-warn: #b4532a;
+  --live-hair: rgb(11 26 77 / 0.08);
+  --live-raise: #ffffff;
+}
+.live-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--ws-page-soft);
+  font-size: 15px;
+  font-weight: 500;
+}
+.live-sim {
+  padding: 2px 8px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--live-hair);
+  color: var(--ws-page-faint);
+  font-size: 12px;
+}
+.live-big {
+  margin: 10px 0 0;
+  font-size: 64px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+.live-big-of {
+  color: var(--ws-page-faint);
+}
+.live-big-noun {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ws-page-soft);
+}
+.live-sub {
+  min-height: 22px;
+  margin: 12px 0 0;
+  color: var(--ws-page-soft);
+  font-size: 15px;
+}
+.live-up {
+  color: var(--live-warn);
+  font-weight: 600;
+}
+
+/* The hero ends with a hairline, then the card. */
+.live-hero {
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--live-hair);
+}
+
+/* Who needs you: one card, two round buttons. */
+.live-card {
+  margin-top: 28px;
+  padding: 20px 22px;
+  border-radius: 20px;
+  background: var(--live-raise);
+  box-shadow: inset 0 0 0 1px var(--live-hair);
+}
+.live-card-who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.live-card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.live-card-note {
+  margin: 4px 0 0;
+  color: var(--ws-page-soft);
+  font-size: 14px;
+}
+.live-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.dashboard-shell .live .live-btn {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--live-hair);
+  color: var(--ws-page-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.dashboard-shell .live .live-btn.is-primary {
+  background: var(--live-accent);
+  box-shadow: none;
+  color: #0b1a4d;
+}
+:root[data-theme="light"] .dashboard-shell .live .live-btn.is-primary {
+  color: #ffffff;
+}
+.dashboard-shell .live .live-btn.is-wide {
+  width: 100%;
+  margin-top: 20px;
+  font-size: 14px;
+}
+.dashboard-shell .live .live-link {
+  min-height: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--live-warn);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* This lesson: a plain list of what happened, newest first. */
+.live-feed {
+  margin-top: 36px;
+}
+.dashboard-shell .live-feed h2,
+.dashboard-shell .live-side h2 {
+  margin: 0;
+  color: var(--ws-page-ink);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.live-feed ul {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.live-feed li {
+  display: flex;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--live-hair);
+  font-size: 15px;
+}
+.live-feed time {
+  color: var(--ws-page-faint);
+}
+
+/* The class, like a watchlist: name on the left, status pill on the right. */
+.live-side {
+  position: sticky;
+  top: 32px;
+  padding: 20px 20px 22px;
+  border-radius: 20px;
+  background: var(--live-raise);
+  box-shadow: inset 0 0 0 1px var(--live-hair);
+}
+.live-side-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.live-side-head span {
+  color: var(--ws-page-faint);
+  font-size: 12px;
+}
+.live-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.live-list > li + li {
+  border-top: 1px solid var(--live-hair);
+}
+.dashboard-shell .live .live-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 0;
+  padding: 12px 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ws-page-ink);
+  text-align: left;
+}
+.dashboard-shell .live .live-row:not(:disabled):active {
+  scale: 1;
+}
+.live-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--live-hair);
+  font-size: 14px;
+  font-weight: 600;
+}
+.live-avatar.is-needs {
+  background: color-mix(in srgb, var(--live-warn) 22%, transparent);
+  color: var(--live-warn);
+}
+.live-row-body {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+}
+.live-row-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+.live-tries {
+  display: flex;
+  gap: 3px;
+  min-height: 6px;
+}
+.live-tries i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ws-page-faint);
+}
+.live-pill {
+  min-width: 98px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  transition-property: background-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+.live-pill.is-finished {
+  background: color-mix(in srgb, var(--live-up) 18%, transparent);
+  color: var(--live-up);
+}
+.live-pill.is-needs {
+  background: color-mix(in srgb, var(--live-warn) 20%, transparent);
+  color: var(--live-warn);
+}
+.live-pill.is-working,
+.live-pill.is-checking {
+  background: color-mix(in srgb, var(--live-accent) 18%, transparent);
+  color: var(--live-accent);
+}
+.live-pill.is-ready,
+.live-pill.is-quiet {
+  box-shadow: inset 0 0 0 1px var(--live-hair);
+  color: var(--ws-page-soft);
+}
+.live-row-more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms ease-out;
+}
+.live-row-more[data-open] {
+  grid-template-rows: 1fr;
+}
+.live-row-more > div {
+  overflow: hidden;
+  padding-left: 52px;
+}
+.live-row-more p {
+  margin: 0 0 6px;
+  color: var(--ws-page-soft);
+  font-size: 13px;
+}
+.live-row-more[data-open] > div {
+  padding-bottom: 10px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .live .live-row:not(:disabled):hover {
+    background: transparent;
+  }
+  .dashboard-shell .live .live-row:not(:disabled):hover .live-row-name {
+    color: var(--live-accent);
+  }
+  .dashboard-shell .live .live-btn:not(:disabled):hover {
+    background: var(--live-hair);
+  }
+  .dashboard-shell .live .live-btn.is-primary:not(:disabled):hover {
+    background: var(--live-accent);
+    filter: brightness(1.08);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-row-more {
+    transition: none;
+  }
+}
+@media (max-width: 1000px) {
+  .live {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    padding: 32px 20px 48px;
+  }
+  .live-side {
+    position: static;
+  }
+  .live-big {
+    font-size: 52px;
+  }
+}
+
+/* Live data: empty states, the camera link and a failed action. */
+.live-feed-empty,
+.live-side-empty {
+  margin: 14px 0 0;
+  color: var(--ws-page-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dashboard-shell .live .live-btn-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.live-card-error {
+  margin: 12px 0 0;
+  color: var(--live-warn);
+  font-size: 14px;
+}
+
+/* What the model said about the lead review, in its own words. */
+.live-card-rationale {
+  margin: 14px 0 0;
+  color: var(--ws-page-ink);
+  font-size: 15px;
+  line-height: 1.5;
+}

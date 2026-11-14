@@ -18,5 +18,8 @@ export default async function ConfirmedPage() {
   const { default: SignupConfirmed } = await import(
     "@/components/signup-confirmed"
   );
-  return <SignupConfirmed profileEnabled={isEnabled("web.teacher_profile")} />;
+  return <SignupConfirmed
+      profileEnabled={isEnabled("web.teacher_profile")}
+      themeToggleEnabled={isEnabled("web.theme_toggle")}
+    />;
 }

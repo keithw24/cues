@@ -8,6 +8,7 @@ import TypedHeading from "@/components/typed-heading";
 import { createDashboardClient } from "@/lib/supabase";
 import { syncSignupProfile } from "@/lib/teacher-profile";
 import CuesMark from "@/components/cues-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "./auth.css";
 
 const Companion = dynamic(() => import("@/components/login-companion"), {
@@ -35,9 +36,11 @@ const copy: Record<State, { heading: string; hint: string }> = {
 /** Where the link in Supabase's confirmation email lands. */
 export default function SignupConfirmed({
   profileEnabled = false,
+  themeToggleEnabled = false,
 }: {
   /** Move the sign-up number into teacher_profiles once signed in. */
   profileEnabled?: boolean;
+  themeToggleEnabled?: boolean;
 }) {
   const [state, setState] = useState<State>("confirming");
 
@@ -80,6 +83,9 @@ export default function SignupConfirmed({
           <CuesMark size={24} />
           Cues
         </Link>
+        {themeToggleEnabled ? (
+          <ThemeToggle pageDefault="light" className="auth-theme-toggle" />
+        ) : null}
       </header>
       <section className="auth-content" aria-labelledby="auth-heading">
         <Companion size={92} busy={state === "confirming"} />

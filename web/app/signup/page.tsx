@@ -21,6 +21,7 @@ export default async function SignupPage() {
       mode="signup"
       phoneEnabled={isEnabled("web.alert_phone")}
       profileEnabled={isEnabled("web.teacher_profile")}
+      themeToggleEnabled={isEnabled("web.theme_toggle")}
     />
   );
 }

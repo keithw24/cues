@@ -1,0 +1,49 @@
+import Link from "next/link";
+import { WorkspaceSidebar } from "@/components/workspace-sidebar";
+import { isEnabled } from "@/lib/flags";
+import { garamond } from "@/components/workspace-fonts";
+import "@/components/workspace.css";
+
+export const metadata = { title: "Cues · Live" };
+
+// The Live screen (web.live_view). With web.live_data on it reads Supabase;
+// otherwise it shows the simulated mock.
+export default async function LivePage() {
+  if (!isEnabled("web.live_view"))
+    return (
+      <main id="main-content" className="paused-page">
+        <Link className="wordmark" href="/">
+          Cues
+        </Link>
+        <h1>The live view is not enabled.</h1>
+        <p>This feature is not enabled in this environment.</p>
+        <Link href="/dashboard">Open classroom</Link>
+      </main>
+    );
+  const liveData = isEnabled("web.live_data");
+  const screen = liveData
+    ? await import("@/components/live-connected").then(
+        ({ default: LiveConnected }) => (
+          <LiveConnected
+            personObservationsEnabled={isEnabled("web.person_observations")}
+            reviewsEnabled={isEnabled("web.teacher_reviews")}
+            reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
+            teacherLoginEnabled={isEnabled("web.teacher_login")}
+            simulatedNamesEnabled={isEnabled("web.simulated_names")}
+          />
+        ),
+      )
+    : await import("@/components/live-mock").then(({ default: LiveMock }) => (
+        <LiveMock />
+      ));
+  return (
+    <div className={`dashboard-shell ${garamond.variable}`}>
+      <WorkspaceSidebar
+        accountEnabled={isEnabled("web.teacher_login")}
+        themeToggle={isEnabled("web.theme_toggle")}
+        liveView
+      />
+      <main id="main-content">{screen}</main>
+    </div>
+  );
+}

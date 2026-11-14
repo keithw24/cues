@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { TeacherReview } from "@/lib/teacher-reviews";
+import {
+  resolutionLabels,
+  reviewPrompt,
+  type TeacherReview,
+} from "@/lib/teacher-reviews";
 import {
   resolveTeacherReview,
   type ReviewResolution,
@@ -48,6 +52,10 @@ export function TeacherReviewActions({
   if (review.status !== "pending") return null;
   return (
     <div className="review-actions">
+      <div className="review-prompt">
+        <p className="review-prompt-title">{reviewPrompt.title}</p>
+        <p>{reviewPrompt.detail}</p>
+      </div>
       <div className="review-action-buttons" aria-busy={saving !== null}>
         <button
           type="button"
@@ -55,7 +63,7 @@ export function TeacherReviewActions({
           disabled={!authenticated || saving !== null}
           onClick={() => void resolve("confirmed")}
         >
-          {saving === "confirmed" ? "Saving…" : "Needs attention"}
+          {saving === "confirmed" ? "Saving…" : resolutionLabels.confirmed}
         </button>
         <button
           type="button"
@@ -63,10 +71,12 @@ export function TeacherReviewActions({
           disabled={!authenticated || saving !== null}
           onClick={() => void resolve("dismissed")}
         >
-          {saving === "dismissed" ? "Saving…" : "Dismiss"}
+          {saving === "dismissed" ? "Saving…" : resolutionLabels.dismissed}
         </button>
       </div>
-      {!authenticated ? <p role="status">Sign in to resolve teacher reviews.</p> : null}
+      {!authenticated ? (
+        <p role="status">Sign in to record your decision.</p>
+      ) : null}
       {error ? <p role="alert">{error}</p> : null}
     </div>
   );

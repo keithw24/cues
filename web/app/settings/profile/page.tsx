@@ -12,7 +12,11 @@ export default async function ProfilePage() {
     : { default: null };
   return (
     <div className="dashboard-shell">
-      <WorkspaceSidebar accountEnabled={isEnabled("web.teacher_login")} />
+      <WorkspaceSidebar
+        accountEnabled={isEnabled("web.teacher_login")}
+        themeToggle={isEnabled("web.theme_toggle")}
+        liveView={isEnabled("web.live_view")}
+      />
       <main id="main-content" className="dashboard-main settings-main">
         <div className="page-breadcrumb">
           Workspace <span>/</span> Profile

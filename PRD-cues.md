@@ -22,7 +22,7 @@ Cues is designed to **assist the teacher, not replace them**. Computer vision ha
 4. The agent adaptively retrieves history and may call request_teacher_review().
 5. A pending review persists in Supabase teacher_reviews and triggers a minimal
    Photon/Spectrum iMessage notification.
-6. The teacher chooses Needs attention or Dismiss through the review workflow.
+6. The teacher chooses Support needed or No support needed through the review workflow.
 
 Video stays local; the LLM receives no camera frames or images.
 
@@ -102,7 +102,7 @@ flowchart TD
     K --> L[Supabase teacher_reviews: pending]
     L --> M[Dashboard review queue]
     L --> N[Photon / Spectrum iMessage]
-    M --> O[Teacher: Needs attention / Dismiss]
+    M --> O[Teacher: Support needed / No support needed]
     O --> P[resolve_teacher_review RPC]
     P --> Q[confirmed / dismissed]
 ```
@@ -533,7 +533,7 @@ No camera data, expression labels, diagnoses or detailed reasoning are sent.
 Spectrum message acknowledgement has been verified in direct and hosted
 pipeline smoke tests; acknowledgement does not establish device read receipt.
 
-The teacher chooses Needs attention (confirmed) or Dismiss (dismissed).
+The teacher chooses Support needed (confirmed) or No support needed (dismissed).
 resolve_teacher_review(review_id, action) permits pending → confirmed/dismissed
 only, records server resolution time and rejects repeated resolution.
 This records human attention decisions, not approval of an automatic intervention.
@@ -570,7 +570,7 @@ Each card displays:
 ### 15.2 Teacher review queue
 
 The dashboard consumes persisted teacher_reviews through Supabase reads/Realtime.
-Needs attention and Dismiss resolve pending reviews through the authenticated RPC.
+Support needed and No support needed resolve pending reviews through the authenticated RPC.
 Person-ID card/read-policy alignment remains a handoff gap. Teacher login/profile,
 dynamic phone lookup and teacher/session ownership authorization remain incomplete;
 current simulated-seat authorization is demo-only.
@@ -763,8 +763,8 @@ the full `AgentEvaluationRequest` is retained in `evaluation`, with matching
 session/seat/activity/priority columns for consumers. Decision/rationale/evidence
 come from the existing `AgentAssessment`. The exact constraints, immutable-field
 guard and Realtime publication are in migration
-`20261114000300_teacher_reviews.sql`. Only pending → confirmed (teacher's Needs
-attention) or pending → dismissed is allowed. This records an attention decision,
+`20261114000300_teacher_reviews.sql`. Only pending → confirmed (teacher's Support
+needed) or pending → dismissed (No support needed) is allowed. This records an attention decision,
 not intervention approval or an automatic instructional change. Server writes
 are required; the existing simulated-seat RLS pattern permits demo-only reads.
 The live runtime injects Supabase persistence; the in-memory store remains for offline use. Migration 004 provides authenticated resolution; demo scope permits authenticated users to resolve simulated-seat reviews, without teacher/session ownership authorization.

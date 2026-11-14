@@ -361,3 +361,114 @@
 .auth-phone input::placeholder {
   color: #a8abb2;
 }
+
+/* ---- Theme switch in the header ---- */
+.auth-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.auth-theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--auth-ink-soft);
+  transition-property: scale, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.auth-theme-toggle:active {
+  scale: 0.96;
+}
+.auth-theme-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+@media (hover: hover) {
+  .auth-theme-toggle:hover {
+    background: #f1f1f1;
+    color: var(--auth-ink);
+  }
+}
+
+/* ---- Dark theme (web.theme_toggle): Night, like the landing page and the
+   dashboard. Fields stay soft off-white so typing is easy to read. ---- */
+:root[data-theme="dark"] .auth-page {
+  --auth-ink: #eef1fb;
+  --auth-ink-soft: #aeb6cc;
+  --auth-ink-faint: #7c86a3;
+  --auth-chip: rgb(255 255 255 / 0.08);
+  --auth-blue: #8fa3ff;
+  background: linear-gradient(180deg, #111a3a 0%, #141f4a 60%, #1a2760 100%);
+}
+:root[data-theme="dark"] .auth-switch,
+:root[data-theme="dark"] .auth-back,
+:root[data-theme="dark"] .auth-theme-toggle {
+  border-color: rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.06);
+  color: var(--auth-ink-soft);
+}
+:root[data-theme="dark"] .auth-chip[aria-checked="true"] {
+  background: rgb(143 163 255 / 0.16);
+  color: #dfe5ff;
+}
+:root[data-theme="dark"] .auth-input,
+:root[data-theme="dark"] .auth-phone {
+  border-color: transparent;
+  background: #dde2ee;
+  color: #0b1a4d;
+}
+:root[data-theme="dark"] .auth-phone-code,
+:root[data-theme="dark"] .auth-phone input {
+  color: #0b1a4d;
+}
+:root[data-theme="dark"] .auth-phone-code {
+  border-right-color: #c9d0de;
+}
+:root[data-theme="dark"] .auth-input::placeholder,
+:root[data-theme="dark"] .auth-phone input::placeholder {
+  color: #737a8f;
+}
+:root[data-theme="dark"] .auth-email span {
+  background: rgb(255 255 255 / 0.12);
+}
+:root[data-theme="dark"] .auth-next {
+  border-color: rgb(255 255 255 / 0.18);
+  color: rgb(255 255 255 / 0.35);
+}
+:root[data-theme="dark"] .auth-next[data-ready] {
+  border-color: var(--auth-blue);
+  color: var(--auth-blue);
+}
+:root[data-theme="dark"] .auth-primary {
+  background: #eef1fb;
+  color: #0b1a4d;
+}
+:root[data-theme="dark"] .auth-error {
+  color: #f3b79c;
+}
+:root[data-theme="dark"] .auth-wordmark svg {
+  --cues-mark-accent: #8fa3ff;
+}
+:root[data-theme="dark"] .auth-content .login-companion {
+  filter: drop-shadow(0 12px 30px rgb(143 163 255 / 0.35));
+}
+@media (hover: hover) {
+  :root[data-theme="dark"] .auth-switch:hover,
+  :root[data-theme="dark"] .auth-back:not(:disabled):hover,
+  :root[data-theme="dark"] .auth-theme-toggle:hover {
+    background: rgb(255 255 255 / 0.12);
+    color: var(--auth-ink);
+  }
+  :root[data-theme="dark"] .auth-chip:not([aria-checked="true"]):hover {
+    background: rgb(255 255 255 / 0.14);
+  }
+  :root[data-theme="dark"] .auth-primary:hover {
+    background: #e3e8f8;
+  }
+}
