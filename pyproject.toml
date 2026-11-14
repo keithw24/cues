@@ -29,7 +29,7 @@ package = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["vision/tests", "shared/tests"]
+testpaths = ["vision/tests", "shared/tests", "agent/tests"]
 markers = [
     "hardware: needs a real camera or downloaded model weights; skipped in CI",
 ]

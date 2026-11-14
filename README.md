@@ -9,7 +9,7 @@ Built by a three-person team for HackPrinceton Fall 2026. [PRD-cues.md](PRD-cues
 - The teacher selects a task or speaks a push-to-talk command mapped to a known task.
 - A Logitech camera observes the student locally; MediaPipe checks hand/gesture activity and HSEmotion adds optional facial-expression context.
 - Structured task-progress events sync through Supabase to the teacher dashboard.
-- Rules invoke the Deep Agent only for meaningful events; it uses Groq to reason over structured context and choose support tools.
+- Rules invoke the Deep Agent only for meaningful events; it uses a configurable LLM to reason over structured context and choose support tools.
 - The teacher receives dashboard alerts and optional Photon notifications, then approves any meaningful instructional change.
 
 Facial-expression output is supporting evidence only. It never independently determines that a student is struggling.
@@ -26,10 +26,12 @@ Facial-expression output is supporting evidence only. It never independently det
 | Facial-expression context | `hsemotion-onnx` + `enet_b0_8_best_vgaf` |
 | Realtime state | Supabase Postgres + Realtime |
 | Agent orchestration | LangChain Deep Agents |
-| LLM inference | Groq + `openai/gpt-oss-20b` |
+| LLM inference | Configurable provider and model (TBD) |
 | Backend | FastAPI |
 | Teacher messaging | Photon |
 | Physical hardware | Logitech camera |
+
+LLM provider and model selection is undecided; Groq and SpaceXSI are under consideration. Keep agent logic independent of provider-specific SDKs. The installed `langchain-groq` dependency is provisional and does not select a provider.
 
 ## High-level architecture
 
@@ -40,7 +42,7 @@ flowchart LR
     C --> D[Supabase Realtime]
     D --> E[Teacher Dashboard]
     D --> F[FastAPI + Deep Agent]
-    F --> G[Groq / GPT-OSS 20B]
+    F --> G[Configurable LLM provider]
     F --> H[Photon Alert]
 ```
 
@@ -60,7 +62,7 @@ Perception runs on the station laptop. Only structured events are synced; rules 
 | `flags.json` | Feature-flag registry |
 | `.github/`, `.claude/agents/`, `CLAUDE.md`, `AGENTS.md` | CI, PR template, review guidance, and contributor/agent instructions |
 
-Michelle owns agent/routing (rules, Deep Agents, Groq, Photon, and the agent approval workflow). Evan owns the frontend and app backend. This checkout has no `agent/` or `backend/` directory yet; its existing FastAPI entry point is `vision.app:app`.
+Michelle owns agent/routing (rules, Deep Agents, LLM integration, Photon, and the agent approval workflow). Evan owns the frontend and app backend. This checkout has no `agent/` or `backend/` directory yet; its existing FastAPI entry point is `vision.app:app`.
 
 ## Development setup
 
@@ -112,12 +114,14 @@ The root `.env.example` contains:
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_ANON_KEY` | Supabase anonymous client key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Privileged server-side Supabase key |
-| `GROQ_API_KEY` | Agent inference credentials |
+| `LLM_PROVIDER` | LLM provider selection (undecided) |
+| `LLM_MODEL` | Model selection (undecided) |
+| `LLM_API_KEY` | Credentials for the selected LLM provider |
 | `PHOTON_API_KEY` | Teacher notification credentials |
 
 The vision client loads the root `.env` and reads `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. Optional settings in that file or the shell include `CUES_STATION_ID`, `CUES_SESSION_ID`, `CUES_CAMERA_INDEX`, and `CUES_CAMERA=fake`. Events go to Supabase only when `vision.supabase_events` is enabled and credentials are configured; otherwise they stay in local JSONL files under `vision/logs/`. Failed Supabase writes also fall back there.
 
-Never commit `.env` files or secrets, and never expose service-role, Groq, or Photon keys through browser-visible `NEXT_PUBLIC_*` variables. The root template does not yet wire up the planned agent integrations.
+Never commit `.env` files or secrets, and never expose service-role, LLM, or Photon keys through browser-visible `NEXT_PUBLIC_*` variables. The root template does not yet wire up the planned agent integrations.
 
 ## Contributor dependency rules
 
@@ -134,7 +138,7 @@ Follow [TEAM_WORKFLOW.md](TEAM_WORKFLOW.md):
 | `main` | Integration / stable shared branch |
 | `keith` | Computer vision / local perception |
 | `evan` | Frontend / app backend / Supabase |
-| `michelle` | Agent / routing / rules / Groq / Photon |
+| `michelle` | Agent / routing / rules / LLM integration / Photon |
 
 Work on your personal branch, keep commits small and scoped, and integrate through `main`. Follow `TEAM_WORKFLOW.md` for branch synchronization and use the PR template for review.
 

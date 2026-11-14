@@ -8,7 +8,7 @@ Cues helps a special-education teacher see which students need help. A local cam
 |---|---|---|
 | Vision service (camera, MediaPipe, HSEmotion, task events) | `vision/` | Keith |
 | Frontend, app backend, station page, Supabase schema | `web/` (current frontend scaffold; app backend placement not yet established) | Evan |
-| Agent / routing, rules engine, Deep Agent, Groq, Photon | planned; no `agent/` directory yet | Michelle |
+| Agent / routing, rules engine, Deep Agent, LLM integration, Photon | planned; no `agent/` directory yet | Michelle |
 | Shared: CI, this file, feature flags | `.github/`, `CLAUDE.md`, `flags.json`, `.claude/agents/` | everyone |
 
 Only edit another owner's folder when the task needs it, and say so in the PR.

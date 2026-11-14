@@ -14,7 +14,7 @@ MVP target:
 
 ```text
 Camera → local MediaPipe + HSEmotion → structured events → Supabase
-→ FastAPI / rules → LangChain Deep Agent → Groq GPT-OSS 20B
+→ FastAPI / rules → LangChain Deep Agent → Configurable LLM provider
 → teacher dashboard / Photon
 ```
 
@@ -22,6 +22,8 @@ Camera → local MediaPipe + HSEmotion → structured events → Supabase
 - HSEmotion is supporting context only, never independent evidence of task struggle.
 - Teacher approval is required before changing a task, instruction, or support intervention. Notifications do not require approval.
 - Current checkout: vision service foundation at `vision/app.py`, model loaders/benchmark, event emitter, and Next.js scaffold. No `agent/` or `backend/` directory exists yet; do not describe the full workflow as implemented.
+
+- LLM provider/model selection is undecided; Groq and SpaceXSI are under consideration. Do not hardcode a provider, model ID, or provider SDK into routing, contracts, or tools. Keep future integration configurable. The existing `langchain-groq` dependency is provisional, not a provider decision.
 
 ## 3. Explicitly out of scope
 
@@ -68,7 +70,7 @@ Inspect the actual tree before adding or assuming directories. Integration is sh
 |---|---|
 | Vision — Keith (`vision/`) | Webcam input, MediaPipe, normalized landmarks, local gesture templates, nearest-neighbor match score, HSEmotion, tracking state, structured perception events. Keep agent logic out. |
 | App backend — Evan | App-facing APIs, Supabase schema/integration, realtime product state, and app support for teacher decisions. Current local vision FastAPI service remains in Keith’s `vision/`; no separate app backend directory exists yet. |
-| Agent / routing — Michelle (planned) | Event routing, rules, alert cooldowns, Deep Agents, Groq, tools, intervention decisions, Photon, agent approval workflow. Operates on structured state, never camera frames. |
+| Agent / routing — Michelle (planned) | Event routing, rules, alert cooldowns, Deep Agents, LLM integration, tools, intervention decisions, Photon, agent approval workflow. Operates on structured state, never camera frames. |
 | Frontend — Evan (`web/`) | Teacher dashboard, station UI, realtime display, task selection, voice controls, alert approval/dismissal, gesture recording controls. Currently a scaffold. |
 
 Event/table changes affect shared contracts in PRD §17. Update affected components and the PRD together and record Keith, Evan, and Michelle's sign-off in the PR, per `CLAUDE.md`.
@@ -109,10 +111,10 @@ Photon messages contain minimal structured information: no images, raw camera da
 
 ## 11. Privacy and configuration
 
-- Never upload student camera frames, face crops, recordings, or raw camera data to Supabase, Groq, LangChain, Photon, or other cloud APIs.
+- Never upload student camera frames, face crops, recordings, or raw camera data to Supabase, any LLM provider, LangChain, Photon, or other cloud APIs.
 - Use only simulated student data during the hackathon. Identify seats by position, not biometric identity.
 - Preserve `.gitignore` protections for local templates, captures, weights, logs, and secrets. The documented developer-recorded built-in `thumbs_up.json` exception contains no student data; do not generalize it to student templates.
-- Root `.env.example` defines `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`, and `PHOTON_API_KEY`. Do not commit `.env` or expose privileged/API keys in `NEXT_PUBLIC_*`.
+- Root `.env.example` defines `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`, and `PHOTON_API_KEY`. Do not commit `.env` or expose privileged/API keys in `NEXT_PUBLIC_*`.
 - Current vision client loads the root `.env` and reads `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. Station/session/camera settings may also be set there or in the shell; do not introduce a second credentials convention.
 
 ## 12. Verification and feature flags

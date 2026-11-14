@@ -116,6 +116,7 @@ class SeatState(_Contract):
     status: SeatStatus
     updated_at: AwareDatetime
     activity_id: Identifier | None = None
+    tracking_valid: bool | None = None
     task_score: UnitScore | None = None
     expression_context: ExpressionContext | None = None
 
