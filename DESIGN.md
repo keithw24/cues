@@ -1,213 +1,141 @@
 ---
 name: Cues
-description: A warm classroom noticeboard for clear task observations.
+description: A compact operational classroom monitor with local video and an attention queue.
 colors:
-  background: "#f8f8f2"
-  foreground: "#213c34"
-  paper: "#fffef9"
-  muted: "#5b6d65"
-  line: "#d9dfd4"
-  green: "#286149"
-  soft-green: "#e6eddd"
-  amber: "#80551d"
-  active: "#427790"
-  done-surface: "#f0f5e8"
-  review-surface: "#fcf4e4"
-  neutral-status: "#78866e"
-  connection-pending: "#7b725b"
-  simulation-surface: "#edf0e7"
-  wordmark-period: "#5b7b43"
-  selection: "#d1e2bd"
+  background: "#fff"
+  foreground: "#0f172a"
+  paper: "#fff"
+  muted: "#f1f5f9"
+  muted-foreground: "#64748b"
+  line: "#e2e8f0"
+  accent: "#eef8f6"
+  accent-foreground: "#0f766e"
+  ring: "#0f766e"
+  review: "#b53c2f"
+  review-soft: "#fff2ee"
+  review-border: "#f1cbc3"
+  hover: "#f1f5f9"
+  review-hover: "#ffe9e1"
+  video-placeholder: "#f8fafc"
+  live: "#0f766e"
 typography:
-  display:
-    fontFamily: "Geist, sans-serif"
-    fontSize: "clamp(32px, 3.4vw, 47px)"
-    fontWeight: 500
-    lineHeight: 1.15
-    letterSpacing: "-.035em"
-  headline:
-    fontFamily: "Geist, sans-serif"
-    fontSize: "27px"
-    fontWeight: 500
-    lineHeight: 1.3
-    letterSpacing: "-.025em"
-  title:
-    fontFamily: "Geist, sans-serif"
-    fontSize: "23px"
-    fontWeight: 500
-    lineHeight: 1.3
-    letterSpacing: "-.02em"
+  wordmark:
+    fontFamily: "Courier Prime, monospace"
+    fontSize: "22px"
+    fontWeight: 600
+    letterSpacing: "-0.04em"
+  heading:
+    fontFamily: "Courier Prime, monospace"
+    fontSize: "14px"
+    fontWeight: 600
+    letterSpacing: "-0.015em"
   body:
-    fontFamily: "Geist, sans-serif"
-    fontSize: "15px"
-    lineHeight: 1.6
-  detail:
-    fontFamily: "Geist, sans-serif"
+    fontFamily: "Courier Prime, monospace"
+    fontSize: "14px"
+  control:
+    fontFamily: "Courier Prime, monospace"
     fontSize: "13px"
-    lineHeight: 1.7
+    fontWeight: 500
   label:
-    fontFamily: "Geist, sans-serif"
+    fontFamily: "Courier Prime, monospace"
     fontSize: "12px"
 rounded:
-  simulation: "4px"
-  button: "8px"
-  notice: "12px"
-  card: "14px"
+  surface: "8px"
+  control: "6px"
+  status: "4px"
 spacing:
-  compact: "8px"
-  small: "16px"
-  grid-mobile: "18px"
-  grid: "24px"
-  card: "28px"
-  section: "32px"
-  heading: "48px"
+  seat-gap: "8px"
+  compact: "12px"
+  panel: "16px"
+  item: "20px"
+  page: "24px"
 components:
   button:
-    backgroundColor: "transparent"
-    textColor: "{colors.foreground}"
-    rounded: "{rounded.button}"
-    padding: "10px 18px"
-  button-hover:
-    backgroundColor: "{colors.soft-green}"
-  simulation-chip:
-    backgroundColor: "{colors.simulation-surface}"
-    textColor: "{colors.muted}"
-    rounded: "{rounded.simulation}"
-    padding: "5px 7px"
-  seat-card:
     backgroundColor: "{colors.paper}"
-    rounded: "{rounded.card}"
-    padding: "28px"
-  seat-card-done:
-    backgroundColor: "{colors.done-surface}"
-  seat-card-review:
-    backgroundColor: "{colors.review-surface}"
-  notice:
-    backgroundColor: "{colors.review-surface}"
-    rounded: "{rounded.notice}"
-    padding: "22px"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.control}"
+    padding: "7px 11px"
+  seat-item:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.control}"
+    padding: "10px 12px"
+  seat-item-review:
+    backgroundColor: "{colors.review-soft}"
+    textColor: "{colors.review}"
+    rounded: "{rounded.control}"
+  attention-panel:
+    backgroundColor: "{colors.paper}"
+    rounded: "{rounded.surface}"
 ---
 
 # Design System: Cues
 
 ## Overview
 
-**Creative North Star: "The Classroom Noticeboard"**
+**Creative North Star: "The Classroom Monitor"**
 
-Warm paper, green ink and generous space give structured observations a familiar classroom setting. Status labels lead each seat card; small facts and timestamps support the teacher’s quick scan. The visual tone is calm, practical and attentive.
+The user's operational brief establishes the layout; the latest admin screenshot references refine its white, navy, cool-gray, teal and coral palette. Cues is calm, compact and aligned: a neutral page, white surfaces, thin dividers, Courier Prime typography and restrained status color. The live classroom feed dominates; the attention list directs the teacher to seats needing review.
 
-The system uses restrained borders and flat surfaces. Its identity comes from the cream canvas, compact three-stroke wordmark and carefully stepped typography. Connection health stays in the page heading, separate from each seat’s task status.
+A compact seat strip selects details in the right panel. Normal task states remain quiet. There is no hero, decorative imagery, large numeric summary, glass treatment or analytics chart.
 
 **Key Characteristics:**
-- Warm paper surfaces and green ink.
-- Status-led cards with text alongside every status dot.
-- Flat containers with restrained borders.
-- Quiet metadata and clear simulation labels.
+- Dominant local video beside a compact attention queue.
+- Neutral canvas, white surfaces and one-pixel boundaries.
+- Small Courier Prime labels and compact rectangular controls.
+- Strong emphasis reserved for Needs Review and selected-seat focus.
 
-Evidence: extracted from `web/app/globals.css`, `web/app/layout.tsx`, `web/components/dashboard.tsx` and `web/lib/dashboard.ts`. This records implemented code; screenshots and computed styles were not available during extraction. `PRODUCT.md` supplies product context; `PRD-cues.md` remains product authority.
+Source: `web/app/globals.css`, `web/app/layout.tsx`, `web/components/dashboard.tsx` and `web/components/local-classroom-feed.tsx`. `PRD-cues.md` remains product authority; implementation limits are recorded in `PRODUCT.md`.
 
 ## Colors
 
-The palette combines warm neutrals with green identity accents and a small set of task-state colors. Frontmatter values are normative.
+Frontmatter values are normative. White canvas and surfaces use cool-gray boundaries, navy primary text and muted slate secondary text. Teal identifies selection, keyboard focus and explicit live text. Coral marks review labels, review seat backgrounds and their borders; normal task states keep neutral text. There are no status dots or label icons. `muted` is a background token; secondary text uses `muted-foreground`. `accent` is a soft teal background; focus and selection use `ring`.
 
-### Primary
-- **Classroom Green** (`green`): wordmark strokes, live connection dot, completed-task dot, focus outlines and button borders.
-- **Soft Leaf** (`soft-green`): button hover fill.
-- **Wordmark Leaf** (`wordmark-period`): the wordmark’s final punctuation.
-
-### Secondary
-- **Observation Blue** (`active`): the in-progress dot.
-- **Review Amber** (`amber`): review/support status text and dot.
-- **Review Paper** (`review-surface`): review/support cards and connection/error notices.
-- **Completion Paper** (`done-surface`): completed-task cards.
-
-### Neutral
-- **Cream Canvas** (`background`): page background.
-- **Paper** (`paper`): default cards and skip link.
-- **Green Ink** (`foreground`): primary text and wordmark.
-- **Quiet Ink** (`muted`): explanatory copy, labels and timestamps.
-- **Pencil Line** (`line`): card boundaries and section dividers.
-- **Sage Marker** (`neutral-status`): idle, tracking-paused and missing-observation dots.
-- **Pending Marker** (`connection-pending`): connection dot before a live connection is established.
-- **Simulation Paper** (`simulation-surface`): SIM badge fill.
-- **Selection Leaf** (`selection`): selected text background.
-
-**The Separate Signals Rule.** Connection health belongs in its own labeled indicator. It must not recolor a seat as though the student’s task state changed.
+**The Review Emphasis Rule.** Needs Review receives the strongest task-state treatment; status text always accompanies color. Tracking loss remains a quiet observation state.
 
 ## Typography
 
-**Display and Body Font:** Geist, with sans-serif fallback, loaded through `next/font/google`. Geist Mono is loaded and exposed as a font variable but has no explicit component role in this dashboard.
-
-**Character:** A compact, plain-spoken sans-serif hierarchy. Medium weight carries task and seat emphasis; smaller quiet text carries supporting context. Tight negative tracking is reserved for prominent headings and the wordmark.
-
-### Hierarchy
-- **Display:** the responsive page title; balanced wrapping.
-- **Headline:** the seat’s task status; visually stronger than its seat name.
-- **Title:** seat names; the overview title uses a smaller size (21px).
-- **Body:** heading support copy. Activity facts also use this size, with medium weight.
-- **Detail:** task explanations, limited to 46ch; notices use larger copy (14px), limited to 65ch.
-- **Label:** connection state, fact labels and station metadata. Card/footer timestamps use smaller text (11px) and tabular numerals. SIM uses uppercase text (10px) with spaced letters (.06em).
+Courier Prime loads through `next/font/google` in regular and bold weights, per the user’s typewriter-font request. Body text is 14px. The wordmark is 22px semibold; functional panel headings are 14px semibold. Controls and attention text are 13px; seat labels/details are generally 12px. Secondary metadata is 10–11px, and SIM is 9px. Counts and observation timestamps use tabular numerals. There is no display-type or oversized heading role in this dashboard.
 
 ## Layout
 
-The dashboard is a full-height vertical shell. Header and footer use viewport-relative horizontal padding (5vw); the centered main area is capped (1180px) and otherwise occupies 90vw. Main top/bottom padding is 65px/80px. The heading pairs a left title with a right connection indicator and leaves a large gap before the overview.
+A white 58px header contains Cues, current activity, connection status and the disabled End session control. The centered main workspace has a 1680px maximum width and 16px top, 24px horizontal and 12px bottom padding. A compact toolbar precedes the monitor.
 
-Stations form vertical groups. Each station heading has a top divider and two equal-width seat columns with a 24px gap. Cards use 28px internal padding, a spacious heading-to-status gap (36px), a divided facts row and a divided timestamp footer. Explanatory observation copy is limited to 75ch. Long seat/activity text can wrap anywhere.
+The desktop grid is approximately 70/30: `minmax(0, 7fr)` video/seat area plus `minmax(280px, 3fr)` attention/details, with a 16px gap. Video height is `clamp(280px, calc(100svh - 360px), 600px)` and uses contain fitting. Seat items sit below it in an auto-fit grid with a 160px minimum width and 8px gaps. The right surface alternates between the queue and selected seat details.
 
-At viewport widths of 760px and below, the grid becomes one column with an 18px gap; card padding becomes 24px. The page heading stacks, with connection health below it; main top padding becomes 38px. The header description disappears, notices stack their content and action, and the footer becomes a column. The overview annotation narrows to 150px and remains right aligned.
+- **At 1050px and below:** main/header insets become 16px, grid gap 12px and the right column becomes 290px.
+- **At 759px and below:** the right panel moves below video and seats. Main padding is 12px. Video uses a 16:10 ratio and 260px minimum height. The header wraps, keeping its 58px minimum. Standard buttons become at least 40px tall; refresh and End session are 36px, seat items 48px. Notices/footer stack.
 
 ## Elevation & Depth
 
-The implemented system has no shadows, gradients or blur. Paper tones, one-pixel dividers and whitespace establish grouping. A completed or review card changes its surface tint without gaining elevation.
-
-**The Flat Paper Rule.** Preserve tonal surfaces and fine borders as the default grouping language.
+There are no gradients, shadows, blur, glass fills or glowing effects. One-pixel borders and dividers establish grouping. A selected seat uses a teal border and inset one-pixel outline. Keyboard focus uses a two-pixel teal outline with three-pixel offset; forced-colors mode preserves explicit selection and video boundaries.
 
 ## Shapes
 
-Cards have gently curved corners; notices are slightly tighter, buttons tighter again and SIM badges nearly square. Status marks and connection dots are circular. Borders use a single thin stroke. The wordmark’s three rounded vertical strokes have differing heights; the terminal dot adds a small leaf-colored accent.
+Functional surfaces use 8px corners. Buttons, seat items, notices and empty rows use 6px corners. Review labels use 4px corners. There are no status dots or label icons. Avoid nested decorative cards.
 
 ## Components
 
-### Buttons
+The feed has a 40px toolbar, video/placeholder area and compact footer for activity, disconnect and privacy text. Connection status for video is independent of structured seat updates. The reusable Card primitive wraps the feed and attention surface with an 8px radius, border and white background; its default shadow is omitted. CardTitle forwards an HTML heading reference. The `cn` helper uses clsx/tailwind-merge, with shadcn token mappings and components.json configuration. No hero or beam implementation is included. Camera connection is opt-in and direct to the local vision service; it is not WebRTC.
 
-Quiet outlined controls support reconnecting and refreshing.
-- Green border, transparent fill, green-ink text and button-radius corners; minimum height (44px).
-- Hover adds the soft leaf fill with a background-color transition (150ms ease-out).
-- Keyboard focus uses a green outline (3px) with offset (5px).
-- Disabled controls lower opacity (.55) and use the wait cursor.
-- No filled primary variant is implemented.
+Seat items are compact buttons with name, teacher-facing status and SIM provenance. Selecting a seat opens its current activity, match score and last observation in the existing right surface. Escape or Close details returns to the queue and restores focus to the opener when it remains mounted, or the corresponding stable seat-strip button. Dismiss and Restore focus the persistent Attention heading. Tracking loss suppresses the score. History and agent assessment use honest unavailable text.
 
-### Chips
+Attention items form a divided vertical list with seat, Needs Review label, status explanation, View details and Dismiss. Dismiss hides the current observation for this visit, leaves its seat status unchanged and can be restored. A new observation may appear again. End session remains disabled because session controls are not connected.
 
-The SIM badge is a small, quiet provenance label, not an action. It sits beside the seat name and has additional screen-reader text identifying a simulated seat.
-
-### Cards / Containers
-
-The seat card is the signature pattern: seat identity and SIM first, large task status second, explanatory copy third, then activity and match score, followed by seat ID and timestamp. A colored dot always accompanies a text status. Completed cards use completion paper; review and support share review paper and amber labels. Active state changes the dot only. Tracking-paused and idle states retain neutral styling. A missing observation has its own plain-language label.
-
-### Navigation
-
-The only implemented navigation is the home-linked Cues wordmark and the focus-revealed skip link. The header’s teacher-dashboard label is informational. No sidebar, tabs or navigation menu is implemented.
-
-### Connection and notices
-
-The compact labeled connection indicator occupies the heading’s trailing edge on wide screens. Its live state uses green; other connection states retain quiet ink and the pending marker. Connection/error notices use review paper, a short heading, explanatory copy and a reconnect action where available. Retained data is explicitly labeled as the last loaded state when disconnected.
-
-### Loading and empty states
-
-Both use spacious text regions above a thin divider. Loading adds a short green line whose width alternates (56px to 100px over 1.3s). Reduced-motion preference disables animation and transitions globally. The empty state offers a check-again action. No input fields are implemented in this slice.
+The connect-feed action uses navy fill and white text; its hover fill is #1e293b. Buttons have subtle background-only hover transitions (100ms ease); review items keep a soft coral hover fill. There are no scale presses, entrances, loading spinners or layout animation. Loading, empty, disconnected and unavailable observations remain explicit text states. Notices distinguish retained observations from live updates.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** pair every task-state color with a readable label.
-- **Do** keep connection health separate from task status.
-- **Do** preserve SIM provenance labels and quiet timestamps.
-- **Do** retain visible keyboard focus and the reduced-motion fallback.
-- **Do** use flat paper surfaces, fine borders and space to group content.
+- **Do** keep video dominant and attention easy to scan.
+- **Do** use neutral white surfaces, thin borders and compact aligned spacing.
+- **Do** pair status color with text and reserve emphasis for Needs Review.
+- **Do** preserve local video privacy, SIM labels and honest unavailable states.
+- **Do** retain keyboard focus and focus restoration from details.
 
 ### Don't:
-- **Don't** style tracking loss as student failure.
-- **Don't** use color alone to communicate status.
-- **Don't** turn the simulation badge into an action control.
-- **Don't** add shadows or filled action variants while claiming they are part of this extracted system.
+- **Don't** restore glass, gradients, giant rounded tiles, heroes or oversized counts.
+- **Don't** add decorative charts, imagery or an icon to every label.
+- **Don't** imply dismissal resolves an alert, changes task state or applies support.
+- **Don't** claim WebRTC, connected session controls, history or agent assessments exist.
+- **Don't** style tracking loss as student failure or match scores as probabilities.

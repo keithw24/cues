@@ -5,7 +5,7 @@ export default async function Home() {
     return (
       <main id="main-content" className="paused-page">
         <div className="wordmark">
-          Cues<span className="wordmark-period">.</span>
+          Cues<span className="brand-period">.</span>
         </div>
         <h1>Your classroom, in view.</h1>
         <p>The teacher dashboard is not enabled in this environment.</p>

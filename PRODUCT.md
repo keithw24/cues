@@ -33,8 +33,27 @@ Perception stays local. Current implementation scope is a read-only dashboard.
 
 ## Brand Commitments
 
-Cues is the product name. The user delegated visual judgment for this first
-dashboard and requested the Impeccable skill. No existing school style is supplied.
+The latest user-pinned brief supersedes all earlier screenshot directions. Cues
+should resemble restrained operational software: a neutral canvas, white surfaces,
+Courier Prime, thin borders, compact spacing, small corners and quiet normal statuses.
+Local video dominates beside an attention queue; only Needs Review receives strong
+status emphasis. The latest admin screenshots refine the palette to white/navy,
+cool gray, teal selection/live text and coral review, with no status dots or label
+icons. The user subsequently requested Courier Prime typewriter typography; the operational layout remains. The provided Card primitive is
+integrated without a shadow; no hero/beam implementation was supplied. No gradient,
+glass, hero, giant rounded cards or main-screen charts.
+
+## Current Implementation Limits
+
+The existing Supabase snapshot/realtime flow remains in place. No WebRTC component
+exists in this repository. Video is an opt-in browser connection directly to the
+station service at `http://127.0.0.1:8000/stream` (MJPEG), restricted by the adapter
+to a localhost dashboard. There is no cloud video proxy.
+
+Seat selection opens a detail panel. Dismiss hides one observation key for this
+visit, without changing seat state; new observations can reappear and dismissed
+items can be restored. End session is disabled. Progress history and agent
+assessment are explicitly unavailable. These controls do not apply interventions.
 
 ## Evidence on Hand
 
