@@ -124,7 +124,6 @@ export default function TeacherProfileForm() {
     }
   }
 
-
   if (!client)
     return (
       <div className="settings-panel profile-form">
