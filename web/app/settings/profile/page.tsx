@@ -31,8 +31,8 @@ export default async function ProfilePage() {
         <div className="settings-list">
           <Link className="settings-row" href="/settings/stations">
             <span className="settings-row-body">
-              <strong>Station access</strong>
-              <span>Connect this account to a classroom station.</span>
+              <strong>Classroom camera</strong>
+              <span>Link this account to the camera in your classroom.</span>
             </span>
             <WorkspaceIcon name="arrow" />
           </Link>

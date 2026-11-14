@@ -557,8 +557,7 @@ Built with Next.js + Tailwind.
 
 Each card displays:
 
-- pseudonym or station label;
-- `SIM` badge when simulated;
+- pseudonym or station label ("Person N", by position);
 - current task;
 - status;
 - latest task match score when applicable;

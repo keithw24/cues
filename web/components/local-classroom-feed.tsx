@@ -56,13 +56,13 @@ export default function LocalClassroomFeed({ activity }: { activity: string }) {
               {connection === "error"
                 ? "Local camera unavailable"
                 : connection === "connecting"
-                  ? "Connecting to the station"
+                  ? "Connecting to the camera"
                   : "Connect your classroom camera"}
             </p>
             <p>
               {connection === "error"
-                ? "Check that the vision service is running on this station laptop, then retry."
-                : "Connect the camera on this station to see your classroom here."}
+                ? "Check that the vision service is running on this laptop, then retry."
+                : "Connect this laptop's camera to see your classroom here."}
             </p>
             {connection !== "connecting" ? (
               <button className="connect-feed" type="button" onClick={connect}>

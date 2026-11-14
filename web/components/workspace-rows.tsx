@@ -6,7 +6,7 @@ import { priorityLabels } from "@/lib/teacher-reviews";
 // shows the same rows teachers see. The caller owns the button and its state.
 type IconName = ComponentProps<typeof WorkspaceIcon>["name"];
 
-// "Person 3" → "P3"; a made-up simulated name → its first letter.
+// "Person 3" → "P3"; any other name → its first letter.
 export const initials = (name: string) =>
   name
     .split(/\s+/)

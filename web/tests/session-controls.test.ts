@@ -149,7 +149,7 @@ test("station acknowledgement requires matching session/revision/activity and a 
   assert.equal(stationSyncLabel(snapshot, now), "Activity synced");
   assert.equal(
     stationSyncLabel(snapshot, now + 6000),
-    "Waiting for station to sync",
+    "Waiting for the camera to sync",
   );
   for (const patch of [
     { revision: 1 },
@@ -161,7 +161,7 @@ test("station acknowledgement requires matching session/revision/activity and a 
         { ...snapshot, station_runtime: { ...runtime, ...patch } },
         now,
       ),
-      "Waiting for station to sync",
+      "Waiting for the camera to sync",
     );
   const ended = { ...session, ended_at: "2026-11-14T12:00:05Z", revision: 3 };
   assert.equal(
@@ -169,7 +169,7 @@ test("station acknowledgement requires matching session/revision/activity and a 
       { ...snapshot, session: null, latest_session: ended },
       now,
     ),
-    "Waiting for station to stop",
+    "Waiting for the camera to stop",
   );
   assert.equal(
     stationSyncLabel(
@@ -186,7 +186,7 @@ test("station acknowledgement requires matching session/revision/activity and a 
       },
       now,
     ),
-    "Station idle",
+    "Camera idle",
   );
   assert.equal(
     stationSyncLabel(
@@ -200,7 +200,7 @@ test("station acknowledgement requires matching session/revision/activity and a 
       },
       now,
     ),
-    "Activity unavailable on station",
+    "Activity unavailable on the camera",
   );
   for (const patch of [
     { station_id: "S2" },

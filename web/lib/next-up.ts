@@ -66,6 +66,6 @@ export function nextUp({
       ? "Everyone’s working. Nothing needs you right now."
       : cameraReporting
         ? "No one is in view right now."
-        : "The camera is off. People appear here when the station camera sees them.",
+        : "The camera is off. People appear here when your classroom camera sees them.",
   };
 }
