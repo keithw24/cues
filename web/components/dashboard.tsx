@@ -9,7 +9,6 @@ import {
   type ReviewFeedState,
 } from "@/lib/teacher-review-feed";
 import { activityLabel, groupReviewsBySeat } from "@/lib/teacher-reviews";
-import { ProgressContext } from "@/components/progress-context";
 import { TeacherReviewDetails } from "@/components/teacher-review-details";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
 import { resolveDefaultStation } from "@/lib/default-station";
@@ -43,12 +42,6 @@ const INITIAL: FeedState = {
   loading: true,
   error: null,
 };
-const observationTime = (value: string) =>
-  new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(new Date(value));
 type Presentation = ReturnType<typeof observationPresentation>;
 const statusTone = (presentation: Presentation): RoomPerson["tone"] =>
   presentation.needsReview
@@ -83,6 +76,8 @@ function SeatDetails({
   close: () => void;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
+  // What a teacher needs about one person: their status and task. Scores,
+  // ids, tracking and expression internals stay out of the way.
   const presentation = observationPresentation(seat.state, observationOptions);
   return (
     <section
@@ -97,7 +92,7 @@ function SeatDetails({
           {seat.display_name}
         </h2>
         <button className="text-button" onClick={close} type="button">
-          Close details
+          Back
         </button>
       </header>
       <div className="detail-body">
@@ -106,69 +101,7 @@ function SeatDetails({
         >
           {presentation.label}
         </p>
-        <p className="detail-description">{presentation.detail}</p>
-        <dl className="detail-facts">
-          <div>
-            <dt>Current activity</dt>
-            <dd>{seat.activity}</dd>
-          </div>
-          <div>
-            <dt>Match score</dt>
-            <dd>
-              {presentation.score == null
-                ? "Unavailable"
-                : presentation.score.toFixed(2)}
-            </dd>
-          </div>
-          <div>
-            <dt>Last observation</dt>
-            <dd>
-              {seat.state ? (
-                <time dateTime={seat.state.updated_at}>
-                  {observationTime(seat.state.updated_at)}
-                </time>
-              ) : (
-                "No observation yet"
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt>Person / activity ID</dt>
-            <dd>
-              {seat.id} / {seat.state?.activity_id ?? "None"}
-            </dd>
-          </div>
-          <div>
-            <dt>Tracking valid</dt>
-            <dd>
-              {seat.state?.tracking_valid == null
-                ? "Unknown"
-                : seat.state.tracking_valid
-                  ? "Yes"
-                  : "Tracking unavailable"}
-            </dd>
-          </div>
-          <div>
-            <dt>Supporting expression context</dt>
-            <dd>
-              {seat.state?.expression_context
-                ? `${seat.state.expression_context.label}: ${seat.state.expression_context.probability.toFixed(2)} (model output only)`
-                : "Unavailable"}
-            </dd>
-          </div>
-        </dl>
-        <ProgressContext
-          observation={seat.state}
-          scope={seat.state ?? undefined}
-          observationOptions={observationOptions}
-        />
-        <section className="detail-section">
-          <h3>Agent assessment</h3>
-          <p>Pending assessments are listed in Teacher reviews.</p>
-        </section>
-        <p className="detail-footnote">
-          Match scores describe gesture similarity, not probabilities.
-        </p>
+        <p className="detail-description">{seat.activity}</p>
       </div>
     </section>
   );
@@ -289,14 +222,20 @@ export default function Dashboard({
     };
     void client.auth.getSession().then(({ data }) => {
       if (disposed) return;
-      if (data.session) setDefaultStation({ id: null, message: "Finding your classroom camera…" });
+      if (data.session)
+        setDefaultStation({
+          id: null,
+          message: "Finding your classroom camera…",
+        });
       void resolve(Boolean(data.session));
     });
     const { data } = client.auth.onAuthStateChange((event, session) => {
       if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
       // A different account: never keep the previous teacher's station on screen.
       setDefaultStation(
-        session ? { id: null, message: "Finding your classroom camera…" } : signedOut,
+        session
+          ? { id: null, message: "Finding your classroom camera…" }
+          : signedOut,
       );
       // Defer: Supabase calls inside this callback can deadlock the auth lock.
       setTimeout(() => void resolve(Boolean(session)), 0);
@@ -737,59 +676,6 @@ export default function Dashboard({
               <div className="monitor-workspace">
                 <div className="monitor-main">
                   <LocalClassroomFeed activity={activity} />
-                  <section
-                    className="seat-strip people-card"
-                    aria-labelledby="seats-heading"
-                  >
-                    <header className="strip-heading">
-                      <h2 id="seats-heading">People</h2>
-                    </header>
-                    {!feed.snapshot ? (
-                      <p className="strip-empty" role="status">
-                        {feed.loading && !configurationError
-                          ? "Loading observations…"
-                          : "Seat observations unavailable"}
-                      </p>
-                    ) : inView.length === 0 ? (
-                      <p className="strip-empty" role="status">
-                        {cameraReporting
-                          ? "No one is in view right now."
-                          : cameraOffMessage}
-                      </p>
-                    ) : (
-                      <div className="seat-items">
-                        {inView.map((seat) => {
-                          const presentation = observationPresentation(
-                            seat.state,
-                            observationOptions,
-                          );
-                          return (
-                            <button
-                              className={`seat-item is-${statusTone(presentation)} ${presentation.needsReview ? "needs-review" : ""} ${selected?.id === seat.id ? "is-selected" : ""}`}
-                              key={seat.id}
-                              ref={(node) => {
-                                if (node)
-                                  seatButtons.current.set(seat.id, node);
-                                else seatButtons.current.delete(seat.id);
-                              }}
-                              type="button"
-                              aria-pressed={selected?.id === seat.id}
-                              onClick={(event) =>
-                                selectSeat(seat, event.currentTarget)
-                              }
-                            >
-                              <PersonRowContent
-                                name={seat.display_name}
-                                status={presentation.label}
-                                icon={statusIcon(presentation)}
-                                activity={seat.activity}
-                              />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
                 </div>
                 <Card
                   role="complementary"
