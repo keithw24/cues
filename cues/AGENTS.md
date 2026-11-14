@@ -24,22 +24,14 @@ npx skills add photon-hq/skills --skill spectrum --agent <your-agent>
 
 (Use `--agent '*'` to install for all supported agents.)
 
-## Managing the Spectrum Cloud project (CLI)
+## Manual recipient activation
 
-If this app uses a platform provider, the `PROJECT_ID` / `PROJECT_SECRET` in `.env` belong to a **Spectrum Cloud** project. To manage that project from the terminal — authenticate, rotate the secret, list the line(s) you send from, manage platforms/users, or create more projects — use the `photon-cli` skill (the `photon` CLI) from [`photon-hq/skills`](https://github.com/photon-hq/skills):
-
-```sh
-npx skills add photon-hq/skills --skill photon-cli --agent <your-agent>
-```
-
-(Use `--agent '*'` to install for all supported agents.)
-
-Common tasks once it's installed:
-
-- `photon whoami` — confirm you're authenticated (run `photon login` if not).
-- `photon projects regenerate-secret` — rotate the Spectrum API secret (then update `PROJECT_SECRET` in `.env`).
-- `photon spectrum lines list` — see the line(s) your app sends from.
-- `photon projects show` — inspect the active project (set `PHOTON_PROJECT_ID`, or pass `--project <id>`).
+For the hackathon, use the [Photon dashboard](https://app.photon.codes) to add/invite
+only recipients who explicitly opted in through Cues. Cues does not automate
+project-user provisioning. Website activation permits sending; an accepted test or review send records the
+exact current consent attempt registered through the backend-only guarded RPC.
+Keep provider restrictions and consented-phone matching intact. Runtime sending
+uses SPECTRUM_PROJECT_ID/SPECTRUM_PROJECT_SECRET, not Dashboard OAuth credentials.
 
 ## See also
 

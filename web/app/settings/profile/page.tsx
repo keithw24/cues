@@ -21,6 +21,7 @@ export default async function ProfilePage() {
           <h1>Profile</h1>
           <p>How Cues names you, and where alerts can reach you.</p>
         </header>
+        <Link className="quiet-link" href="/settings/stations">Station access</Link>
         {TeacherProfileForm ? (
           <TeacherProfileForm />
         ) : (

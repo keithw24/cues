@@ -1,5 +1,96 @@
 # Cues database
 
+## Reconciled migration history
+
+On November 14, 2026 the local chain was made unique without changing SQL:
+session_controls moved from 20261114000300 to 20261114000310;
+person_observations moved from 20261114000400 to 20261114000510;
+station_session_sync moved from 20261114000500 to 20261114000520.
+This orders the unconditional tracking_valid addition before person observations'
+IF NOT EXISTS addition. All eleven migrations passed fresh local PostgreSQL replay
+with minimal Supabase Auth stubs; this is SQL replay, not full Auth/Realtime emulation.
+
+Hosted effects through 007 were audited before repair. Official Supabase CLI
+3.1.0 migration repair marked the ten predecessors applied without replaying SQL.
+The official list now matches through 007; 008 remains pending. Dry-run selected
+only 20261114000800_station_pairing.sql, with no seed or role execution.
+No application schema was deployed during reconciliation.
+
+No project dependency installation is needed for the pinned CLI. The repo-local
+config is supabase/config.toml. The helper below loads the saved database URL,
+validates it identifies the configured Supabase project and redacts credentials.
+It invokes only official CLI commands, never direct migration-ledger SQL:
+
+```bash
+uv run python scripts/supabase-migrations.py list
+uv run python scripts/supabase-migrations.py dry-run
+```
+
+The helper's repair-history action was used once for the verified predecessors;
+do not use it to mark future changes applied without executing them.
+For a separately authorized real deployment, load DATABASE_URL securely into the
+shell and use the same explicit target (CLI 3 uses --remote=<database URL>):
+
+```bash
+npx --yes supabase@3.1.0 db push --remote="$DATABASE_URL" --dry-run --skip-vault
+# Only after reviewing the pending list and authorizing deployment:
+npx --yes supabase@3.1.0 db push --remote="$DATABASE_URL" --skip-vault
+```
+
+Never print the connection URL, enable shell tracing, or run a remote db reset.
+The earlier duplicate-history warnings in historical notes are superseded by
+this reconciliation. Fresh projects should apply the current unique sorted chain.
+
+## Station pairing (migration 008, local only)
+
+`20261114000800_station_pairing.sql` adds private, single-use station invitations.
+Apply through the reviewed migration sequence; the duplicate history is now
+reconciled as described above. A verified push will apply pending migrations only.
+Nothing in this pairing implementation has been deployed by this change.
+
+Trusted operator SQL (database owner, or a backend service-role client):
+
+```sql
+select * from public.issue_station_pairing_code('S1', 600);
+```
+
+Returns a random UUID-format code and expires_at once. Only its normalized
+SHA-256 hash is stored. The default lifetime is ten minutes, capped at one hour.
+Display/share the code privately; do not put it in application logs. Reissuing
+creates another independently valid code; it does not revoke earlier codes.
+Service-role operators can invalidate an unused code by deleting its row.
+
+Authenticated frontend contract:
+
+```ts
+const { data, error } = await supabase.rpc('redeem_station_pairing_code', {
+  code: enteredCode,
+});
+// data: [{ station_id: 'S1' }]; refresh existing station/session controls afterward.
+```
+
+The browser supplies only the code. Case, hyphens and whitespace are normalized.
+The server locks the code, checks expiry/unused state, inserts membership for
+auth.uid(), and consumes the code atomically. Existing membership is retained
+without duplication; the valid code is still consumed. No session is created or
+claimed. Existing require_station_teacher and start_station_activity remain intact.
+
+No browser access to code rows or issuance is granted. Redemption is available
+only to authenticated callers. Service-role table access/issuance is preserved.
+High-entropy generated codes resist guessing; no low-entropy numeric-code flow or
+public issuance endpoint is provided. Photon registration and onboarding UI remain
+separate work.
+
+Local SQL/race checks (requires already-installed initdb, pg_ctl, psql):
+
+```bash
+uv run pytest supabase/tests/test_station_pairing.py -q
+```
+
+These tests start/remove a temporary local PostgreSQL cluster and never read
+DATABASE_URL or contact hosted Supabase. They validate migration 008 against a
+minimal station/Auth prerequisite schema, not a replay of all historical migrations.
+
 `migrations/20261114000100_initial_schema.sql` implements PRD §17.3 without changing
 the shared table/event fields. Apply it once in a new Supabase project's SQL
 Editor, apply subsequent migrations in filename order, then run `seed.sql`. The seed uses only simulated data and can be rerun
