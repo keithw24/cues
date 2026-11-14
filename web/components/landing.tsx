@@ -10,6 +10,8 @@ import {
 } from "@remixicon/react";
 import LandingHero from "@/components/landing-hero";
 import LandingPreview from "@/components/landing-preview";
+import LandingFaq from "@/components/landing-faq";
+import LandingFooter from "@/components/landing-footer";
 import "./landing.css";
 
 const garamond = EB_Garamond({
@@ -29,6 +31,7 @@ const tasks = [
 
 export default function Landing() {
   const start = isEnabled("web.teacher_signup") ? "/signup" : "/login";
+  const faq = isEnabled("web.landing_faq");
   return (
     <div className={`landing ${garamond.variable}`}>
       <header className="ln-nav">
@@ -43,7 +46,10 @@ export default function Landing() {
           <a href="#how">How it works</a>
           <a href="#control">Teacher control</a>
           <a href="#privacy">Privacy</a>
-          <Link className="ln-button ln-button-dark ln-button-small" href={start}>
+          <Link
+            className="ln-button ln-button-dark ln-button-small"
+            href={start}
+          >
             Get started
           </Link>
         </nav>
@@ -110,7 +116,11 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="privacy" className="ln-privacy" aria-labelledby="privacy-heading">
+        <section
+          id="privacy"
+          className="ln-privacy"
+          aria-labelledby="privacy-heading"
+        >
           <h2 id="privacy-heading">The camera stays in the classroom</h2>
           <p>
             Video is processed on the station laptop. Only short task events,
@@ -135,6 +145,8 @@ export default function Landing() {
           </ul>
         </section>
 
+        {faq ? <LandingFaq /> : null}
+
         <section className="ln-cta" aria-labelledby="cta-heading">
           <div className="ln-sky" aria-hidden="true">
             <span className="ln-glow ln-glow-blue" />
@@ -155,10 +167,14 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="ln-footer">
-        <span>Cues</span>
-        <span>Built for special-education classrooms.</span>
-      </footer>
+      {faq ? (
+        <LandingFooter start={start} />
+      ) : (
+        <footer className="ln-footer">
+          <span>Cues</span>
+          <span>Built for special-education classrooms.</span>
+        </footer>
+      )}
     </div>
   );
 }

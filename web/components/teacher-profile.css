@@ -1,0 +1,35 @@
+.profile-form {
+  display: grid;
+  gap: 18px;
+  max-width: 480px;
+}
+.profile-field {
+  display: grid;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.profile-field > span,
+.profile-field > legend {
+  font-weight: 600;
+  padding: 0;
+}
+.profile-field input,
+.profile-field select {
+  font: inherit;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+}
+.profile-phone {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 8px;
+}
+.profile-form .primary-button {
+  justify-self: start;
+}

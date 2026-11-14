@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   changeSession,
   readSession,
+  sessionOwnership,
   stationSyncLabel,
   type SessionSnapshot,
 } from "@/lib/session-controls";
@@ -172,6 +173,7 @@ export function SessionControls({
         station,
         snapshot.session,
         activityId,
+        user,
       );
       if (epoch !== generation.current) return;
       const next = {
@@ -319,6 +321,12 @@ export function SessionControls({
         <span className="session-sync-status" role="status">
           {stationSyncLabel(snapshot, now)}
         </span>
+      ) : null}
+      {sessionOwnership(snapshot?.session ?? null, user) === "unowned" ? (
+        <p className="session-sync-status" role="status">
+          This session has no teacher owner, so its reviews stay hidden. End it
+          and start an activity to own a new session.
+        </p>
       ) : null}
       {error ? <p role="alert">{error}</p> : null}
     </div>

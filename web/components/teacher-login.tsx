@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import {
+  RiArrowDownSLine,
   RiArrowLeftLine,
   RiArrowRightLine,
-  RiLock2Line,
-  RiMailLine,
 } from "@remixicon/react";
+import TypedHeading from "@/components/typed-heading";
+import { countryCodes, normalizeAlertPhone } from "@/lib/alert-phone";
 import { createDashboardClient } from "@/lib/supabase";
+import { syncSignupProfile } from "@/lib/teacher-profile";
 import "./auth.css";
 
 const Companion = dynamic(() => import("@/components/login-companion"), {
@@ -18,31 +20,49 @@ const Companion = dynamic(() => import("@/components/login-companion"), {
   loading: () => <div className="login-companion" />,
 });
 
-type Step = "email" | "password" | "check";
+type Step = "role" | "email" | "phone" | "password" | "check";
 
 const MIN_PASSWORD = 8;
+const roles = ["Teacher", "Teaching assistant", "Therapist", "Something else"];
 
-const headings = {
+const headings: Record<"signin" | "signup", Record<Step, string>> = {
   signin: {
-    email: "Welcome back. What’s your email?",
+    role: "",
+    email: "Welcome back",
+    phone: "",
     password: "Enter your password",
+    check: "",
   },
   signup: {
-    email: "Let’s set up your classroom. What’s your email?",
+    role: "Who’s setting up Cues?",
+    email: "What’s your school email?",
+    phone: "Where should Cues text you?",
     password: "Choose a password",
+    check: "Check your inbox",
   },
-} as const;
+};
 
 export default function TeacherLogin({
   mode = "signin",
   signupEnabled = false,
+  phoneEnabled = false,
+  profileEnabled = false,
 }: {
   mode?: "signin" | "signup";
   signupEnabled?: boolean;
+  /** Ask for a mobile number Photon can text alerts to. */
+  phoneEnabled?: boolean;
+  /** Move the sign-up number into teacher_profiles once signed in. */
+  profileEnabled?: boolean;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("email");
+  const signingUp = mode === "signup";
+  const [step, setStep] = useState<Step>(signingUp ? "role" : "email");
+  const [role, setRole] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [countryCode, setCountryCode] = useState("1");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const locked = useRef(false);
@@ -53,14 +73,43 @@ export default function TeacherLogin({
       return null;
     }
   });
-  const signingUp = mode === "signup";
 
-  async function submitPassword(event: React.SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (locked.current || !client) return;
-    const password = String(
-      new FormData(event.currentTarget).get("password") ?? "",
+  const firstStep: Step = signingUp ? "role" : "email";
+  const ready =
+    step === "role"
+      ? role !== null
+      : step === "email"
+        ? /^\S+@\S+\.\S+$/.test(email.trim())
+        : step === "phone"
+          ? normalizeAlertPhone(countryCode, phone) !== null
+          : step === "password"
+            ? password.length >= (signingUp ? MIN_PASSWORD : 1) && !!client
+            : false;
+  const askPhone = signingUp && phoneEnabled;
+
+  function back() {
+    setError(null);
+    setStep(
+      step === "password"
+        ? askPhone
+          ? "phone"
+          : "email"
+        : step === "phone"
+          ? "email"
+          : "role",
     );
+  }
+
+  async function enterClassroom() {
+    if (profileEnabled && client)
+      // Best effort: the classroom still opens, and the profile page can retry.
+      await syncSignupProfile(client).catch(() => null);
+    router.push("/dashboard");
+    router.refresh();
+  }
+
+  async function submitPassword() {
+    if (locked.current || !client) return;
     locked.current = true;
     setBusy(true);
     setError(null);
@@ -69,6 +118,17 @@ export default function TeacherLogin({
         const { data, error } = await client.auth.signUp({
           email: email.trim(),
           password,
+          options: {
+            // Photon reads alert_phone (E.164) to text this teacher.
+            data: {
+              role,
+              ...(askPhone
+                ? { alert_phone: normalizeAlertPhone(countryCode, phone) }
+                : {}),
+            },
+            // The link in the confirmation email opens Cues' own welcome page.
+            emailRedirectTo: `${window.location.origin}/auth/confirmed`,
+          },
         });
         if (error)
           setError(
@@ -78,10 +138,7 @@ export default function TeacherLogin({
           );
         // Projects that confirm email return no session until the link is opened.
         else if (!data.session) setStep("check");
-        else {
-          router.push("/dashboard");
-          router.refresh();
-        }
+        else await enterClassroom();
       } else {
         const { error } = await client.auth.signInWithPassword({
           email: email.trim(),
@@ -91,10 +148,7 @@ export default function TeacherLogin({
           setError(
             "We couldn’t sign you in. Check your email and password, then try again.",
           );
-        else {
-          router.push("/dashboard");
-          router.refresh();
-        }
+        else await enterClassroom();
       }
     } catch {
       setError("Couldn’t connect. Check your connection and try again.");
@@ -102,6 +156,16 @@ export default function TeacherLogin({
       locked.current = false;
       setBusy(false);
     }
+  }
+
+  function next(event: React.FormEvent) {
+    event.preventDefault();
+    if (!ready || busy) return;
+    setError(null);
+    if (step === "role") setStep("email");
+    else if (step === "email") setStep(askPhone ? "phone" : "password");
+    else if (step === "phone") setStep("password");
+    else if (step === "password") void submitPassword();
   }
 
   const switchLink = signingUp ? (
@@ -117,50 +181,60 @@ export default function TeacherLogin({
   return (
     <main id="main-content" className="auth-page">
       <header className="auth-header">
-        <Link className="auth-wordmark" href="/">
-          Cues
-        </Link>
+        {step !== firstStep && step !== "check" ? (
+          <button
+            className="auth-back"
+            aria-label="Go back"
+            disabled={busy}
+            onClick={back}
+          >
+            <RiArrowLeftLine />
+          </button>
+        ) : (
+          <Link className="auth-wordmark" href="/">
+            Cues
+          </Link>
+        )}
         {switchLink}
       </header>
-      {step === "password" ? (
-        <button
-          className="auth-back"
-          aria-label="Go back"
-          disabled={busy}
-          onClick={() => {
-            setError(null);
-            setStep("email");
-          }}
-        >
-          <RiArrowLeftLine />
-        </button>
-      ) : null}
       <section className="auth-content" aria-labelledby="auth-heading">
-        <Companion busy={busy} privacy={step === "password"} />
-        <div className="auth-step" key={step}>
-          <h1 id="auth-heading">
-            {step === "check" ? "Check your inbox" : headings[mode][step]}
-          </h1>
-          {step === "email" ? (
-            <form
-              className="auth-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                setStep("password");
-              }}
-            >
-              <p className="auth-hint">
-                {signingUp
-                  ? "You’ll use it to sign in to your teacher dashboard."
-                  : "Use the email your teacher account was created with."}
-              </p>
-              <label className="sr-only" htmlFor="teacher-email">
-                Teacher email
-              </label>
-              <div className="auth-field">
-                <RiMailLine aria-hidden="true" />
+        <Companion size={92} busy={busy} privacy={step === "password"} />
+        <form className="auth-step" key={step} onSubmit={next} aria-busy={busy}>
+          <TypedHeading text={headings[mode][step]} />
+          <div className="auth-body">
+            {step === "role" ? (
+              <>
+                <p className="auth-hint">
+                  So Cues can word its suggestions for you.
+                </p>
+                <div className="auth-chips" role="radiogroup" aria-label="Your role">
+                  {roles.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      role="radio"
+                      aria-checked={role === option}
+                      className="auth-chip"
+                      onClick={() => setRole(option)}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : step === "email" ? (
+              <>
+                <p className="auth-hint">
+                  {signingUp
+                    ? "You’ll use it to sign in to your classroom."
+                    : "Use the email your teacher account was created with."}
+                </p>
+                <label className="sr-only" htmlFor="teacher-email">
+                  Email
+                </label>
                 <input
                   id="teacher-email"
+                  className="auth-input"
                   type="email"
                   name="email"
                   value={email}
@@ -171,34 +245,72 @@ export default function TeacherLogin({
                   autoFocus
                   maxLength={254}
                 />
-                <button className="auth-next" type="submit" aria-label="Continue">
-                  <RiArrowRightLine />
+              </>
+            ) : step === "phone" ? (
+              <>
+                <p className="auth-hint">
+                  Photon texts you when a student may need a hand: just the
+                  seat and task, never images.
+                </p>
+                <div className="auth-phone">
+                  <label className="sr-only" htmlFor="teacher-country">
+                    Country code
+                  </label>
+                  <select
+                    id="teacher-country"
+                    value={countryCode}
+                    onChange={(event) => setCountryCode(event.target.value)}
+                    autoComplete="tel-country-code"
+                  >
+                    {countryCodes.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        +{country.code} {country.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="auth-phone-code" aria-hidden="true">
+                    +{countryCode}
+                    <RiArrowDownSLine />
+                  </span>
+                  <label className="sr-only" htmlFor="teacher-phone">
+                    Mobile number
+                  </label>
+                  <input
+                    id="teacher-phone"
+                    type="tel"
+                    name="phone"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder={countryCode === "1" ? "(555) 123-4567" : "Mobile number"}
+                    autoComplete="tel-national"
+                    inputMode="tel"
+                    required
+                    autoFocus
+                    maxLength={20}
+                  />
+                </div>
+              </>
+            ) : step === "password" ? (
+              <>
+                <button
+                  type="button"
+                  className="auth-email"
+                  onClick={() => setStep("email")}
+                  disabled={busy}
+                >
+                  {email}
+                  <span>Change</span>
                 </button>
-              </div>
-            </form>
-          ) : step === "password" ? (
-            <form className="auth-form" onSubmit={submitPassword} aria-busy={busy}>
-              <button
-                type="button"
-                className="auth-chip"
-                onClick={() => {
-                  setStep("email");
-                  setError(null);
-                }}
-                disabled={busy}
-              >
-                {email}
-                <span>Change</span>
-              </button>
-              <label className="sr-only" htmlFor="teacher-password">
-                Password
-              </label>
-              <div className="auth-field">
-                <RiLock2Line aria-hidden="true" />
+                <label className="sr-only" htmlFor="teacher-password">
+                  Password
+                </label>
                 <input
                   id="teacher-password"
+                  className="auth-input"
                   name="password"
                   type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder={
                     signingUp
                       ? `At least ${MIN_PASSWORD} characters`
@@ -210,54 +322,57 @@ export default function TeacherLogin({
                   autoFocus
                   disabled={busy}
                 />
-                <button
-                  className="auth-next"
-                  type="submit"
-                  aria-label={signingUp ? "Create account" : "Sign in"}
-                  disabled={busy || !client}
-                >
-                  <RiArrowRightLine />
-                </button>
-              </div>
-              <p className="auth-hint" aria-live="polite">
-                {busy
-                  ? signingUp
-                    ? "Creating your account…"
-                    : "Signing in…"
-                  : signingUp
-                    ? "Your camera never leaves the classroom laptop."
-                    : " "}
+                <p className="auth-hint" aria-live="polite">
+                  {busy
+                    ? signingUp
+                      ? "Creating your account…"
+                      : "Signing in…"
+                    : "Student video never leaves the classroom laptop."}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="auth-hint">
+                  We sent a link to <strong>{email}</strong>. Open it to
+                  confirm your account, then log in.
+                </p>
+                <Link className="auth-primary" href="/login">
+                  Go to log in
+                  <RiArrowRightLine aria-hidden="true" />
+                </Link>
+              </>
+            )}
+            {!client && step !== "check" && step !== "role" ? (
+              <p className="auth-error" role="status">
+                Teacher accounts aren’t configured in this environment. You
+                can still <Link href="/dashboard">open the classroom</Link>.
               </p>
-            </form>
-          ) : (
-            <div className="auth-form">
-              <p className="auth-hint">
-                We sent a link to <strong>{email}</strong>. Open it to confirm
-                your account, then log in.
+            ) : null}
+            {error ? (
+              <p className="auth-error" role="alert">
+                {error}
               </p>
-              <Link className="auth-primary" href="/login">
-                Go to log in
+            ) : null}
+            {step !== "check" ? (
+              <button
+                className="auth-next"
+                type="submit"
+                data-ready={ready || undefined}
+                disabled={!ready || busy}
+                aria-label={
+                  step === "password"
+                    ? signingUp
+                      ? "Create account"
+                      : "Sign in"
+                    : "Continue"
+                }
+              >
                 <RiArrowRightLine />
-              </Link>
-            </div>
-          )}
-          {!client && step !== "check" ? (
-            <p className="auth-error" role="status">
-              Teacher accounts aren’t configured in this environment. You can
-              still <Link href="/dashboard">open the classroom</Link>.
-            </p>
-          ) : null}
-          {error ? (
-            <p className="auth-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </div>
+              </button>
+            ) : null}
+          </div>
+        </form>
       </section>
-      <footer className="auth-footer">
-        <RiLock2Line aria-hidden="true" />
-        Camera stays local. You stay in control.
-      </footer>
     </main>
   );
 }

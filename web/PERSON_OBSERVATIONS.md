@@ -27,9 +27,12 @@ reused. Empty person metadata is not a card. No observation rows are seeded.
   future/unusable clock observation: Updates paused; suppress current task status
   and score. A one-second display tick and visibility-resume update apply this
   cutoff; it does not record attempts or measure stalled_seconds.
-- Keep lost/paused cards with Last observed metadata. An actual backend deletion
-  removes the card; a reused ID replaces its current observation without appending
-  another card. IDs denote positions, not persistent student identities.
+- The People list and "People in view" follow the camera: they show only people
+  with a fresh observation that is not tracking_lost. Paused and lost people are
+  hidden (an open details panel keeps showing them, with Last observation). With
+  no fresh observation from anyone, the list says the camera is off. A reused ID
+  replaces its current observation without appending another row. IDs denote
+  positions, not persistent student identities.
 - Reconnect read failures retain the last server snapshot and mark it paused;
   they do not fabricate a healthy empty classroom.
 - In-progress/completed counts use current valid observations. If none are current,

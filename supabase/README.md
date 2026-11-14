@@ -133,3 +133,14 @@ statuses, rejected re-resolution, and Realtime publication membership. Validated
 locally on PostgreSQL 14 and against the hosted project. A public-key subscription
 received real INSERT/pending and UPDATE/confirmed or dismissed events; the
 isolated synthetic API probe rows were removed afterward.
+
+## Session ownership on start (migration 007)
+
+Migration 006 adds `sessions.teacher_id` and makes `teacher_reviews` readable only for
+sessions the signed-in teacher owns, but `start_station_activity` still created sessions
+without an owner. Migration `20261114000700_session_owner_on_start.sql` sets
+`teacher_id = auth.uid()` when the RPC creates a session; activity changes keep the
+existing owner, and historical sessions stay unowned. The browser never sends a teacher
+ID; it only checks that a new session came back owned by the signed-in user. Apply it
+after 006. Not applied to the hosted project. SQL smoke (rolls back):
+`supabase/tests/session_owner_on_start.sql`, not yet run (no local Postgres).

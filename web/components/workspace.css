@@ -1,0 +1,890 @@
+/* Teacher workspace, styled like the landing page and sign-up:
+   white page, faint dots, Garamond display, soft shadows instead of borders. */
+.dashboard-shell {
+  --ws-ink: #0b1a4d;
+  --ws-ink-soft: #4a5268;
+  --ws-ink-faint: #8a90a2;
+  --ws-blue: #425cc8;
+  --ws-blue-deep: #2f48ad;
+  --ws-blue-soft: #edf1fc;
+  --ws-line: #e8eaf0;
+  --ws-surface: #f6f7fa;
+  --ws-chip: #eceef3;
+  --ws-review: #934d31;
+  --ws-review-soft: #fcf0e9;
+  --ws-done: #1d6b45;
+  --ws-done-soft: #e7f5ed;
+  --ws-ring: 0 0 0 1px rgb(11 26 77 / 0.06);
+  --ws-card:
+    0 0 0 1px rgb(11 26 77 / 0.06), 0 1px 2px rgb(11 26 77 / 0.04),
+    0 16px 40px -24px rgb(11 26 77 / 0.28);
+  --ws-control: 0 0 0 1px rgb(11 26 77 / 0.1), 0 1px 2px rgb(11 26 77 / 0.06);
+  /* Existing workspace tokens, remapped. */
+  --primary: var(--ws-ink);
+  --ring: var(--ws-blue);
+  --line: var(--ws-line);
+  --muted: var(--ws-surface);
+  --muted-foreground: var(--ws-ink-soft);
+  --foreground: var(--ws-ink);
+  --accent: var(--ws-blue-soft);
+  --review: var(--ws-review);
+  --review-soft: var(--ws-review-soft);
+  --surface-hover: var(--ws-surface);
+  background: #ffffff;
+  color: var(--ws-ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Controls: pills that press to 0.96. */
+.dashboard-shell button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: var(--ws-control);
+  color: var(--ws-ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition-property: scale, background-color, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell button:not(:disabled):active {
+  transform: none;
+  scale: 0.96;
+}
+.dashboard-shell button svg {
+  width: 16px;
+  height: 16px;
+}
+.dashboard-shell .refresh-button svg {
+  margin-left: -2px;
+}
+.dashboard-shell .text-button {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+.dashboard-shell .connect-feed,
+.dashboard-shell .primary-button,
+.dashboard-shell .session-controls button:first-of-type,
+.dashboard-shell .review-action-buttons button:first-child {
+  min-height: 40px;
+  padding: 0 20px;
+  border-color: transparent;
+  border-radius: 999px;
+  background: var(--ws-ink);
+  box-shadow: 0 8px 20px -10px rgb(11 26 77 / 0.6);
+  color: #ffffff;
+  font-size: 14px;
+}
+.dashboard-shell :focus-visible {
+  outline-color: var(--ws-blue);
+}
+
+/* Sidebar */
+.dashboard-shell .workspace-sidebar {
+  border-right: 0;
+  background: var(--ws-surface);
+  box-shadow: inset -1px 0 0 rgb(11 26 77 / 0.05);
+}
+.dashboard-shell .wordmark {
+  gap: 10px;
+  color: var(--ws-ink);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.brand-mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #5a74d6, #2f48ad);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
+}
+.brand-mark i {
+  width: 4px;
+  height: 9px;
+  margin-top: -2px;
+  border-radius: 4px;
+  background: #ffffff;
+}
+.dashboard-shell .sidebar-nav {
+  gap: 2px;
+  margin-top: 40px;
+}
+.dashboard-shell .sidebar-nav a {
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.dashboard-shell .sidebar-nav svg {
+  color: var(--ws-ink-faint);
+}
+.dashboard-shell .sidebar-nav .is-current {
+  background: #ffffff;
+  box-shadow: var(--ws-control);
+  color: var(--ws-ink);
+}
+.dashboard-shell .sidebar-nav .is-current svg {
+  color: var(--ws-blue);
+}
+.dashboard-shell .soon-label {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ws-chip);
+  color: var(--ws-ink-soft);
+  font-size: 11px;
+  font-weight: 500;
+}
+.dashboard-shell .is-current .soon-label {
+  color: var(--ws-ink-soft);
+}
+.dashboard-shell .sidebar-privacy {
+  color: var(--ws-ink-faint);
+  font-size: 12px;
+}
+.dashboard-shell .sidebar-account {
+  border-top: 0;
+  padding: 12px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--ws-ring);
+  font-size: 13px;
+}
+.dashboard-shell .account-monogram {
+  border: 0;
+  background: var(--ws-blue-soft);
+  color: var(--ws-blue-deep);
+}
+.dashboard-shell .mobile-account {
+  border: 0;
+  border-radius: 999px;
+  box-shadow: var(--ws-control);
+}
+
+/* Page header */
+.dashboard-shell .dashboard-main {
+  padding-top: 40px;
+}
+.ws-hero {
+  position: relative;
+  isolation: isolate;
+  margin-bottom: 28px;
+}
+.dashboard-shell .page-intro {
+  align-items: flex-end;
+  margin-bottom: 28px;
+}
+.dashboard-shell .page-breadcrumb {
+  margin: 0 0 14px;
+  color: var(--ws-ink-faint);
+  font-size: 13px;
+  font-weight: 500;
+}
+.dashboard-shell .page-breadcrumb span {
+  color: #c3c7d2;
+}
+.dashboard-shell .page-intro h1 {
+  margin: 0;
+  color: var(--ws-ink);
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: clamp(40px, 6vw, 56px);
+  font-weight: 500;
+  line-height: 0.96;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .page-intro p:not(.page-breadcrumb) {
+  margin: 14px 0 0;
+  color: var(--ws-ink-soft);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Summary numbers as small soft cards. */
+.dashboard-shell .classroom-summary {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.dashboard-shell .overview-metrics {
+  gap: 12px;
+  max-width: none;
+}
+.dashboard-shell .overview-metrics > div {
+  gap: 2px;
+  padding: 16px 20px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: var(--ws-card);
+}
+.dashboard-shell .overview-metrics dd {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.dashboard-shell .overview-metrics dt {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+
+/* Toolbar */
+.dashboard-shell .current-activity strong,
+.dashboard-shell .toolbar-label {
+  font-size: 13px;
+}
+.dashboard-shell .current-activity strong {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--ws-blue-soft);
+  color: var(--ws-blue-deep);
+  font-weight: 600;
+}
+.dashboard-shell .activity-popover > summary {
+  min-height: 36px;
+  padding: 0 14px 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: var(--ws-control);
+  font-size: 13px;
+  font-weight: 500;
+  transition-property: scale, background-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .activity-popover > summary:active {
+  scale: 0.96;
+}
+.dashboard-shell .activity-popover summary svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ws-ink-faint);
+}
+.dashboard-shell .activity-popover[open] summary {
+  background: var(--ws-surface);
+}
+.dashboard-shell .activity-popover-body {
+  border: 1px solid transparent;
+  border-radius: 24px;
+  box-shadow: var(--ws-card);
+  transform-origin: top right;
+  transition-property: opacity, scale;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+@starting-style {
+  .dashboard-shell .activity-popover[open] .activity-popover-body {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+.dashboard-shell .activity-popover-body h2 {
+  font-size: 15px;
+}
+.dashboard-shell .status-chip {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ws-chip);
+  color: var(--ws-ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-shell .session-controls select,
+.dashboard-shell .session-sign-in input {
+  border-radius: 12px;
+}
+
+/* Cards: outer radius = inner radius + padding (16 + 8). */
+.dashboard-shell .classroom-feed,
+.dashboard-shell .attention-panel {
+  border: 1px solid transparent;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: var(--ws-card);
+}
+.dashboard-shell .classroom-feed {
+  padding: 0 8px;
+}
+.dashboard-shell .feed-toolbar {
+  padding: 14px 10px 12px;
+}
+.dashboard-shell .feed-toolbar h2,
+.dashboard-shell .strip-heading h2,
+.dashboard-shell .panel-heading h2 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.dashboard-shell .feed-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--ws-chip);
+  color: var(--ws-ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+}
+.dashboard-shell .feed-indicator.is-live {
+  background: var(--ws-done-soft);
+  color: var(--ws-done);
+}
+.dashboard-shell .feed-indicator.is-live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2f9e64;
+}
+.dashboard-shell .video-stage {
+  border-radius: 16px;
+  background: var(--ws-surface);
+}
+.dashboard-shell .camera-placeholder-icon {
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: var(--ws-control);
+  color: var(--ws-blue);
+}
+.dashboard-shell .video-state-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+.dashboard-shell .video-placeholder > p:not(.video-state-title) {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .feed-footer {
+  padding: 12px 10px 14px;
+  color: var(--ws-ink-soft);
+  font-size: 12px;
+}
+.dashboard-shell .privacy-note {
+  font-size: 12px;
+  color: var(--ws-ink-faint);
+}
+
+/* People: a plain list, like the notes on jmo's own site. Avatars carry the
+   position label ("P1"), never a student's initials. */
+.dashboard-shell .seat-strip {
+  margin-top: 32px;
+}
+.dashboard-shell .strip-heading {
+  margin: 0;
+  padding: 0 4px 4px;
+}
+.dashboard-shell .seat-items {
+  gap: 0;
+  border-top: 0;
+}
+.dashboard-shell .seat-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 0;
+  padding: 14px 12px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+  transition: background-color 150ms ease-out;
+}
+.dashboard-shell .seat-item:not(:disabled):active {
+  scale: 1;
+}
+.dashboard-shell .seat-item + .seat-item::before {
+  content: "";
+  position: absolute;
+  inset: -1px 12px auto 62px;
+  height: 1px;
+  background: var(--ws-line);
+}
+.seat-avatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ws-chip);
+  color: var(--ws-ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.seat-item.is-working .seat-avatar {
+  background: var(--ws-blue-soft);
+  color: var(--ws-blue-deep);
+}
+.seat-item.is-done .seat-avatar {
+  background: var(--ws-done-soft);
+  color: var(--ws-done);
+}
+.seat-item.is-review .seat-avatar {
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+}
+.seat-item-body {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+.dashboard-shell .seat-item-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.seat-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 14px;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .seat-item-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ws-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.dashboard-shell .seat-item-status svg {
+  width: 15px;
+  height: 15px;
+  color: var(--ws-ink-faint);
+}
+.dashboard-shell .seat-item.needs-review .seat-item-status {
+  color: var(--ws-review);
+}
+.seat-item.is-review .seat-item-status svg {
+  color: var(--ws-review);
+}
+.seat-item.is-done .seat-item-status svg {
+  color: #2f9e64;
+}
+.seat-item.is-working .seat-item-status svg {
+  color: var(--ws-blue);
+}
+.dashboard-shell .seat-item-activity {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .seat-item-arrow {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: #c3c7d2;
+}
+.dashboard-shell .seat-item.is-selected {
+  outline: 0;
+  background: var(--ws-blue-soft);
+}
+.dashboard-shell .seat-item.is-selected .seat-item-arrow {
+  color: var(--ws-blue);
+}
+.dashboard-shell .seat-item.is-selected::before,
+.dashboard-shell .seat-item.is-selected + .seat-item::before {
+  display: none;
+}
+.dashboard-shell .strip-empty {
+  padding: 20px 4px;
+  border-top: 0;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+
+/* Teacher reviews: LionPlan's recommendation card. A grey tray with a header,
+   and each review a white card with a meta line, a title, and a reason. */
+.dashboard-shell .attention-panel {
+  padding: 0 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 28px;
+  background: var(--ws-surface);
+  box-shadow: var(--ws-ring);
+}
+.dashboard-shell .panel-heading {
+  min-height: 0;
+  padding: 16px 12px 14px;
+  border-bottom: 0;
+}
+.dashboard-shell .panel-heading h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.dashboard-shell .panel-heading h2 svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ws-blue);
+}
+.dashboard-shell .attention-count,
+.dashboard-shell .attention-count.has-items {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: var(--ws-ring);
+  color: var(--ws-ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.dashboard-shell .attention-list {
+  display: grid;
+  gap: 0;
+  padding: 4px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: var(--ws-ring);
+}
+.dashboard-shell .attention-list > li {
+  position: relative;
+  border: 0;
+}
+.dashboard-shell .attention-list > li + li::before {
+  content: "";
+  position: absolute;
+  inset: 0 12px auto 60px;
+  height: 1px;
+  background: var(--ws-line);
+}
+/* One calm row per review: who, which task, when. Reasoning lives in details. */
+.dashboard-shell .review-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 0;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  transition: background-color 150ms ease-out;
+}
+.dashboard-shell .review-entry:not(:disabled):active {
+  scale: 1;
+}
+.review-body {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.review-name {
+  color: var(--ws-ink);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.review-meta,
+.review-time {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.review-time {
+  flex-shrink: 0;
+  color: var(--ws-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.review-flag {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ws-review);
+}
+.review-flag svg {
+  width: 16px;
+  height: 16px;
+}
+.dashboard-shell .queue-empty {
+  min-height: 220px;
+  border: 0;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: var(--ws-ring);
+}
+.dashboard-shell .queue-empty p {
+  font-size: 15px;
+  font-weight: 600;
+}
+.dashboard-shell .queue-empty span {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .review-feed-notice {
+  margin-bottom: 8px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--ws-review-soft);
+  font-size: 13px;
+}
+/* Details open inside the same tray, on one white card. */
+.dashboard-shell .detail-body {
+  padding: 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: var(--ws-ring);
+}
+.dashboard-shell .detail-status {
+  display: inline-flex;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--ws-blue-soft);
+  color: var(--ws-blue-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+.dashboard-shell .detail-status.needs-review {
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+}
+.dashboard-shell .detail-facts > div {
+  border-color: var(--ws-line);
+}
+.dashboard-shell .detail-facts dt,
+.dashboard-shell .detail-description,
+.dashboard-shell .detail-footnote,
+.dashboard-shell .detail-section p {
+  color: var(--ws-ink-soft);
+}
+.dashboard-shell .detail-section {
+  border-color: var(--ws-line);
+}
+
+/* Notices and footer */
+.dashboard-shell .notice {
+  border: 0;
+  border-radius: 20px;
+  background: var(--ws-review-soft);
+  box-shadow: none;
+}
+.dashboard-shell .workspace-footer {
+  border-top: 0;
+  color: var(--ws-ink-faint);
+  font-size: 12px;
+}
+
+/* Notifications page */
+.dashboard-shell .integration-section {
+  border: 1px solid transparent;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: var(--ws-card);
+}
+.dashboard-shell .integration-icon {
+  border: 0;
+  border-radius: 50%;
+  background: var(--ws-blue-soft);
+  color: var(--ws-blue);
+}
+.dashboard-shell .integration-details h3 {
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.dashboard-shell .integration-details dl > div {
+  border-color: var(--ws-line);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell button:not(:disabled):hover,
+  .dashboard-shell .activity-popover summary:hover {
+    border-color: transparent;
+    background: var(--ws-surface);
+  }
+  .dashboard-shell .connect-feed:not(:disabled):hover,
+  .dashboard-shell .primary-button:not(:disabled):hover,
+  .dashboard-shell .session-controls button:first-of-type:not(:disabled):hover,
+  .dashboard-shell
+    .review-action-buttons
+    button:first-child:not(:disabled):hover {
+    border-color: transparent;
+    background: #1a2b66;
+  }
+  .dashboard-shell .sidebar-nav a:not(.is-current):hover {
+    background: rgb(11 26 77 / 0.04);
+    color: var(--ws-ink);
+  }
+  .dashboard-shell .seat-item:not(:disabled, .is-selected):hover {
+    background: var(--ws-surface);
+  }
+  .dashboard-shell .review-entry:not(:disabled):hover {
+    background: var(--ws-surface);
+  }
+}
+@media (max-width: 700px) {
+  .dashboard-shell .workspace-sidebar {
+    box-shadow: inset 0 -1px 0 rgb(11 26 77 / 0.05);
+  }
+  .dashboard-shell .sidebar-nav {
+    margin-top: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dashboard-shell .sidebar-nav a {
+    white-space: nowrap;
+  }
+  .dashboard-shell .overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell button:not(:disabled):active,
+  .dashboard-shell .activity-popover > summary:active {
+    scale: 1;
+  }
+  @starting-style {
+    .dashboard-shell .activity-popover[open] .activity-popover-body {
+      scale: 1;
+    }
+  }
+}
+
+/* Icon rail and a muted, grainy blue banner. */
+@media (min-width: 701px) {
+  body .dashboard-shell {
+    padding-left: 76px;
+  }
+  .dashboard-shell .workspace-sidebar {
+    align-items: center;
+    width: 76px;
+    padding: 24px 0 16px;
+  }
+  .dashboard-shell .workspace-sidebar > .wordmark {
+    padding-left: 0;
+  }
+  .dashboard-shell .workspace-sidebar .nav-label,
+  .dashboard-shell .soon-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .dashboard-shell .sidebar-nav {
+    gap: 6px;
+  }
+  .dashboard-shell .sidebar-nav a {
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 14px;
+  }
+  .dashboard-shell .sidebar-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+  .dashboard-shell .sidebar-nav .is-current {
+    background: var(--ws-ink);
+    box-shadow: 0 8px 20px -10px rgb(11 26 77 / 0.6);
+  }
+  .dashboard-shell .sidebar-nav .is-current svg {
+    color: #ffffff;
+  }
+  .dashboard-shell .sidebar-privacy {
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .dashboard-shell .sidebar-account {
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .dashboard-shell .sidebar-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+.dashboard-shell .ws-hero {
+  overflow: hidden;
+  padding: 32px 36px 36px;
+  border-radius: 28px;
+  background:
+    radial-gradient(70% 90% at 15% 10%, #33489f, transparent),
+    radial-gradient(45% 70% at 90% 0%, rgb(143 182 245 / 0.55), transparent),
+    radial-gradient(45% 80% at 70% 110%, rgb(140 116 230 / 0.45), transparent),
+    #4459b4;
+  color: #ffffff;
+}
+.ws-grain {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+  mix-blend-mode: overlay;
+  opacity: 0.45;
+  pointer-events: none;
+}
+.dashboard-shell .ws-hero .page-intro h1 {
+  color: #ffffff;
+}
+.dashboard-shell .ws-hero .page-breadcrumb {
+  color: rgb(255 255 255 / 0.6);
+}
+.dashboard-shell .ws-hero .page-breadcrumb span {
+  color: rgb(255 255 255 / 0.35);
+}
+.dashboard-shell .ws-hero .page-intro p:not(.page-breadcrumb) {
+  color: rgb(255 255 255 / 0.78);
+}
+.dashboard-shell .ws-hero .refresh-button {
+  background: rgb(255 255 255 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
+  color: #ffffff;
+}
+.dashboard-shell .ws-hero .overview-metrics > div {
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+}
+.dashboard-shell .ws-hero .overview-metrics dd {
+  color: #ffffff;
+}
+.dashboard-shell .ws-hero .overview-metrics dt {
+  color: rgb(255 255 255 / 0.72);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .ws-hero .refresh-button:not(:disabled):hover {
+    background: rgb(255 255 255 / 0.2);
+  }
+}
+@media (max-width: 700px) {
+  .dashboard-shell .ws-hero {
+    padding: 24px 20px;
+    border-radius: 24px;
+  }
+}

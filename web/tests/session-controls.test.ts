@@ -5,6 +5,7 @@ import {
   parseSession,
   readSession,
   changeSession,
+  sessionOwnership,
   type Session,
 } from "../lib/session-controls.ts";
 import { isEnabled } from "../lib/flags.ts";
@@ -202,4 +203,51 @@ test("station acknowledgement requires matching session/revision/activity and a 
     { updated_at: "bad" },
   ])
     assert.throws(() => parseStationRuntime({ ...runtime, ...patch }, "S1"));
+});
+
+const teacher = "22222222-2222-4222-8222-222222222222";
+test("a new session must come back owned by the signed-in teacher", async () => {
+  const created = { ...session, revision: 0, teacher_id: teacher };
+  const { client, calls } = mock(created);
+  const result = await changeSession(client, "S1", null, "raise_hand", teacher);
+  assert.equal(result.teacher_id, teacher);
+  // The owner comes from auth.uid() in the database, never from the browser.
+  assert.equal(JSON.stringify(calls[0].args).includes(teacher), false);
+  for (const owner of [null, "33333333-3333-4333-8333-333333333333"])
+    await assert.rejects(
+      changeSession(
+        mock({ ...created, teacher_id: owner }).client,
+        "S1",
+        null,
+        "raise_hand",
+        teacher,
+      ),
+    );
+  await assert.rejects(
+    changeSession(mock(created).client, "S1", null, "raise_hand", null),
+  );
+});
+test("sessions without the ownership column still work before migration 006", async () => {
+  const { client } = mock({ ...session, revision: 0 });
+  const result = await changeSession(client, "S1", null, "raise_hand", teacher);
+  assert.equal("teacher_id" in result, false);
+  assert.equal(sessionOwnership(result, teacher), "unknown");
+});
+test("session ownership labels", () => {
+  assert.equal(
+    sessionOwnership({ ...session, teacher_id: teacher }, teacher),
+    "owned",
+  );
+  assert.equal(
+    sessionOwnership({ ...session, teacher_id: null }, teacher),
+    "unowned",
+  );
+  assert.equal(
+    sessionOwnership(
+      { ...session, teacher_id: "33333333-3333-4333-8333-333333333333" },
+      teacher,
+    ),
+    "other",
+  );
+  assert.throws(() => parseSession({ ...session, teacher_id: "nobody" }, "S1"));
 });

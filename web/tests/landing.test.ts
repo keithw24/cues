@@ -6,19 +6,29 @@ import { isEnabled } from "../lib/flags.ts";
 const read = (path: string) =>
   readFileSync(new URL(path, import.meta.url), "utf8");
 
-test("landing defaults off and the server override turns it on", () => {
-  assert.equal(isEnabled("web.landing", {}), false);
-  assert.equal(isEnabled("web.landing", { CUES_FLAG_WEB_LANDING: "1" }), true);
+test("landing defaults on and the server override turns it off", () => {
+  assert.equal(isEnabled("web.landing", {}), true);
+  assert.equal(isEnabled("web.landing", { CUES_FLAG_WEB_LANDING: "0" }), false);
 });
 
 test("with landing off, / still renders the dashboard", () => {
   const home = read("../app/page.tsx");
-  assert.match(home, /if \(!isEnabled\("web\.landing"\)\) return DashboardPage\(\);/);
-  assert.match(read("../app/dashboard/page.tsx"), /isEnabled\("web\.dashboard"\)/);
+  assert.match(
+    home,
+    /if \(!isEnabled\("web\.landing"\)\) return DashboardPage\(\);/,
+  );
+  assert.match(
+    read("../app/dashboard/page.tsx"),
+    /isEnabled\("web\.dashboard"\)/,
+  );
 });
 
-test("sign-up defaults off and shows an unavailable page without the flag", () => {
-  assert.equal(isEnabled("web.teacher_signup", {}), false);
+test("sign-up defaults on and shows an unavailable page when turned off", () => {
+  assert.equal(isEnabled("web.teacher_signup", {}), true);
+  assert.equal(
+    isEnabled("web.teacher_signup", { CUES_FLAG_WEB_TEACHER_SIGNUP: "0" }),
+    false,
+  );
   const page = read("../app/signup/page.tsx");
   assert.match(page, /if \(!isEnabled\("web\.teacher_signup"\)\)/);
   assert.match(page, /Teacher sign-up is unavailable\./);
@@ -27,4 +37,22 @@ test("sign-up defaults off and shows an unavailable page without the flag", () =
     read("../components/landing.tsx"),
     /isEnabled\("web\.teacher_signup"\) \? "\/signup" : "\/login"/,
   );
+});
+
+test("the email-confirmed page is unavailable when sign-up is off", () => {
+  const page = read("../app/auth/confirmed/page.tsx");
+  assert.match(page, /if \(!isEnabled\("web\.teacher_signup"\)\)/);
+  assert.match(page, /Teacher sign-up is unavailable\./);
+});
+
+test("FAQ and site footer default off; the landing keeps its short footer", () => {
+  assert.equal(isEnabled("web.landing_faq", {}), false);
+  assert.equal(
+    isEnabled("web.landing_faq", { CUES_FLAG_WEB_LANDING_FAQ: "1" }),
+    true,
+  );
+  const landing = read("../components/landing.tsx");
+  assert.match(landing, /const faq = isEnabled\("web\.landing_faq"\);/);
+  assert.match(landing, /\{faq \? <LandingFaq \/> : null\}/);
+  assert.match(landing, /<footer className="ln-footer">/);
 });

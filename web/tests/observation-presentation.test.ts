@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  inCameraView,
+  isFresh,
   observationPresentation,
   OBSERVATION_STALE_MS,
 } from "../lib/observation-presentation.ts";
@@ -155,4 +157,31 @@ test("tracking projection accepts boolean/null only and never treats unknown as 
     assert.throws(() =>
       parseSnapshot({ ...input, states: [{ ...state, tracking_valid }] }, true),
     );
+});
+
+test("people are listed only while the camera sees them", () => {
+  assert.equal(inCameraView(state, live), true);
+  // Seen, even if its hand tracking is uncertain.
+  assert.equal(inCameraView({ ...state, tracking_valid: false }, live), true);
+  assert.equal(
+    inCameraView({ ...state, status: "tracking_lost" }, live),
+    false,
+  );
+  const stale = { ...live, now: now + OBSERVATION_STALE_MS };
+  assert.equal(inCameraView(state, stale), false);
+  assert.equal(inCameraView(state, { ...live, connected: false }), false);
+  assert.equal(inCameraView(null, live), false);
+});
+
+test("camera off: no fresh observation from any person", () => {
+  const stale = { ...live, now: now + OBSERVATION_STALE_MS };
+  assert.equal(isFresh(state, live), true);
+  assert.equal(isFresh(state, stale), false);
+  assert.equal(isFresh({ ...state, status: "tracking_lost" }, live), true);
+});
+
+test("with person observations off, any observed person who is not lost is listed", () => {
+  const off = { enabled: false, connected: false, now: null };
+  assert.equal(inCameraView(state, off), true);
+  assert.equal(inCameraView({ ...state, status: "tracking_lost" }, off), false);
 });
