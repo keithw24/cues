@@ -3,6 +3,7 @@
 import argparse
 import os
 import signal
+import socket
 import subprocess
 import threading
 import time
@@ -10,6 +11,58 @@ import time
 from dotenv import load_dotenv
 
 from shared.supabase_client import REPO_ROOT
+
+
+def clear_cues_port(port, grace_seconds=5):
+    """Reclaim a stale Cues listener, never an unidentified or unrelated server."""
+    result = subprocess.run(
+        ["lsof", "-nP", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"],
+        capture_output=True,
+        text=True,
+    )
+    for value in set(result.stdout.split()):
+        pid = int(value)
+        command = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "command="],
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        cwd = subprocess.run(
+            ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        directories = [line[1:] for line in cwd if line.startswith("n")]
+        expected = REPO_ROOT / "web" if port == 3000 else REPO_ROOT
+        known_command = (
+            ("next-server" in command or "next dev" in command)
+            if port == 3000
+            else "uvicorn" in command and "vision.app:app" in command
+        )
+        if str(expected) not in directories or not known_command:
+            raise SystemExit(
+                f"Port {port} belongs to another/unidentified process; leaving it running."
+            )
+        print(f"Stopping previous Cues server on port {port} (PID {pid}).", flush=True)
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            continue
+        deadline = time.monotonic() + grace_seconds
+        while time.monotonic() < deadline:
+            remaining = subprocess.run(
+                ["lsof", "-nP", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"],
+                capture_output=True,
+                text=True,
+            ).stdout.split()
+            if str(pid) not in remaining:
+                break
+            time.sleep(0.1)
+        else:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
 
 
 def cleanup(children, grace_seconds=5):
@@ -47,6 +100,16 @@ def main():
     required = ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GROQ_API_KEY", "CUES_SESSION_ID")
     if any(not os.environ.get(name) for name in required):
         raise SystemExit("Configure root .env: " + ", ".join(required))
+    for port in (3000, 8000):
+        clear_cues_port(port)
+        with socket.socket() as probe:
+            try:
+                probe.bind(("127.0.0.1", port))
+            except OSError:
+                raise SystemExit(
+                    f"Port {port} is already in use. Stop the existing Cues "
+                    "server before running ./scripts/dev.sh or ./scripts/demo.sh."
+                ) from None
     commands = [
         (
             "vision",

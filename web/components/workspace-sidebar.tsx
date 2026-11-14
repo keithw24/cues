@@ -32,6 +32,9 @@ export function WorkspaceSidebar({
         </Link>
       ) : null}
       <nav className="sidebar-nav" aria-label="Workspace">
+        {accountEnabled ? (
+          <Link href="/settings/profile">Teacher profile</Link>
+        ) : null}
         <Link
           href="/dashboard"
           className={!notifications ? "is-current" : ""}
