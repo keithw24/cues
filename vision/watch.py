@@ -114,6 +114,8 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
 
+    if args.debug:
+        os.environ["CUES_OVERLAY"] = "debug"
     if args.all_on:
         from vision import flags
 

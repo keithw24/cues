@@ -58,7 +58,7 @@ def test_ids_follow_people_who_move_a_little():
 def test_ids_are_released_after_the_timeout_and_reused():
     tr = PersonTracker(release_seconds=10)
     tr.update(0.0, [pose(0.2)])
-    tr.update(5.0, [])
+    assert tr.update(5.0, []) == {}  # not visible
     assert tr.live_ids == ["S1-P1"]  # still live: status can report tracking_lost
     tr.update(11.0, [])
     assert tr.live_ids == []
@@ -71,9 +71,31 @@ def test_at_most_four_people():
     assert len(people) == 4
 
 
-def test_box_covers_visible_points():
+def test_box_uses_upper_body_only():
     x0, y0, x1, y1 = box_from_landmarks(pose(0.5))
-    assert x0 < 0.4 and x1 > 0.6 and y0 < 0.4 and y1 > 0.8
+    assert x0 < 0.4 and x1 > 0.6 and y0 < 0.4
+    assert y1 < 0.75  # hips at 0.8 are ignored
+
+
+def test_unreliable_pose_is_skipped():
+    assert box_from_landmarks(pose(0.5, vis=0.2)) is None
+
+
+def test_box_is_smoothed_between_frames():
+    tr = PersonTracker()
+    first = tr.update(0.0, [pose(0.5)])["S1-P1"].box
+    second = tr.update(0.1, [pose(0.55)])["S1-P1"].box
+    raw = box_from_landmarks(pose(0.55))
+    assert first[0] < second[0] < raw[0]  # moved, but only part of the way
+
+
+def test_person_survives_a_short_miss_but_not_a_long_one():
+    tr = PersonTracker()
+    tr.update(0.0, [pose(0.5)])
+    assert "S1-P1" in tr.update(0.3, [])  # missed one frame: still shown
+    assert tr.update(1.0, []) == {}  # gone from view (still a live id)
+    assert tr.live_ids == ["S1-P1"]
+    assert set(tr.update(1.2, [pose(0.52)])) == {"S1-P1"}  # same id when back
 
 
 # ---- grouping --------------------------------------------------------------
@@ -155,3 +177,20 @@ def test_status_stage_drops_released_people():
     ctx = {"people": {}, "person_ids": tracker.live_ids}
     stage.process(Frame(img, 20.0, 2), ctx)
     assert ctx["status"] == {}
+
+
+def test_person_label_is_two_short_lines():
+    from vision.perception import Match
+    from vision.stages.s05_people import person_label
+
+    ctx = {
+        "match": {"S1-P1": Match("raise_hand", 0.82)},
+        "status": {"S1-P1": "done"},
+        "last_event": {"S1-P1": "attempt_success"},
+        "expression": {"S1-P1": {"neutral": 0.7, "happiness": 0.3}},
+    }
+    assert person_label("S1-P1", ctx) == [
+        "P1  raise_hand 0.82",
+        "done  attempt_success  neutral",
+    ]
+    assert person_label("S1-P2", {}) == ["P2"]

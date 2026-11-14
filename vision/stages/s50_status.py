@@ -141,6 +141,8 @@ class StatusStage:
         )
 
     def draw(self, image, ctx) -> None:
+        if self.zones.mode == "people":  # the person label shows status and events
+            return
         import cv2
 
         h, w = image.shape[:2]

@@ -62,7 +62,15 @@ class HandsStage:
         ctx["hands"] = hands_from_result(result, self.zones, ctx)
 
     def draw(self, image, ctx) -> None:
+        from vision import overlay
+
         h, w = image.shape[:2]
+        if self.zones.mode == "people" and not overlay.debug():
+            for seat, hands in ctx.get("hands", {}).items():  # small dots only
+                for hand in hands:
+                    for x, y, _ in hand.landmarks[[0, 4, 8, 12, 16, 20]]:
+                        cv2.circle(image, (int(x * w), int(y * h)), 3, seat_color(seat), -1)
+            return
         for seat, hands in ctx.get("hands", {}).items():
             color = seat_color(seat)
             for hand in hands:

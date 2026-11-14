@@ -77,6 +77,10 @@ class GesturesStage:
         ctx["match"] = result
 
     def draw(self, image, ctx) -> None:
+        from vision import overlay
+
+        if self.zones.mode == "people" and not overlay.debug():
+            return
         h, w = image.shape[:2]
         for seat, match in ctx.get("match", {}).items():
             anchor = self.zones.anchor(seat, ctx, w, h, row=2)

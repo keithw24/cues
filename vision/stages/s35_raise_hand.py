@@ -118,6 +118,8 @@ class RaiseHandStage:
             matches[seat] = Match(ACTIVITY_ID, score, detail=f"hand above face for {held:.1f}s")
 
     def draw(self, image, ctx) -> None:
+        if self.zones.mode == "people":  # the person label shows the score
+            return
         for seat, face in ctx.get("faces", {}).items():
             match = ctx.get("match", {}).get(seat)
             if match is None or match.activity_id != ACTIVITY_ID:

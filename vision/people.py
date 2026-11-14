@@ -6,7 +6,8 @@ frame into fixed seats. Instead:
 1. MediaPipe Pose Landmarker finds up to MAX_PEOPLE people. Each person comes
    with 33 body points (nose, shoulders, wrists, ...) and a visibility value
    per point.
-2. Each person gets a box around their visible body points, with padding.
+2. Each person gets a box around their visible upper-body points, with
+   padding, smoothed over frames.
 3. PersonTracker matches each box to a box from earlier frames, so a person
    keeps the same id (S1-P1, S1-P2, ...) while they stay roughly in place. This
    is position tracking only: nothing about who the person is is stored, and
@@ -29,10 +30,14 @@ import numpy as np
 
 MAX_PEOPLE = 4
 RELEASE_SECONDS = 10.0
-MIN_IOU = 0.3
-MAX_CENTRE_JUMP = 0.15  # normalised; a box that moved further is a different person
+MIN_IOU = 0.2
+MAX_RELATIVE_JUMP = 0.6  # centre may move up to 0.6 x the box size between matches
 BOX_PADDING = 0.15
 MIN_VISIBILITY = 0.5
+MIN_UPPER_POINTS = 4
+UPPER_BODY = list(range(0, 17))  # nose, eyes, ears, mouth, shoulders, elbows, wrists
+SMOOTHING = 0.4  # weight of the new box; the rest comes from the previous box
+MISS_GRACE_SECONDS = 0.5  # keep showing a person this long after a missed frame
 
 # MediaPipe Pose landmark indices.
 NOSE = 0
@@ -68,11 +73,19 @@ def person_color(person_id: str) -> tuple[int, int, int]:
 
 
 def box_from_landmarks(landmarks: np.ndarray, pad: float = BOX_PADDING):
-    """Box around the visible body points, padded and clipped to the frame."""
-    visible = landmarks[landmarks[:, 3] >= MIN_VISIBILITY]
-    pts = visible if len(visible) >= 3 else landmarks
-    x0, y0 = pts[:, 0].min(), pts[:, 1].min()
-    x1, y1 = pts[:, 0].max(), pts[:, 1].max()
+    """Box around the visible upper-body points, padded and clipped to the frame.
+
+    Only points 0-16 (face, shoulders, elbows, wrists) are used. Seated
+    children's hips and legs are usually hidden, and MediaPipe guesses those
+    points, which made the box change size from frame to frame. Returns None
+    when fewer than MIN_UPPER_POINTS upper-body points are visible.
+    """
+    upper = landmarks[UPPER_BODY]
+    visible = upper[upper[:, 3] >= MIN_VISIBILITY]
+    if len(visible) < MIN_UPPER_POINTS:
+        return None
+    x0, y0 = visible[:, 0].min(), visible[:, 1].min()
+    x1, y1 = visible[:, 0].max(), visible[:, 1].max()
     px, py = (x1 - x0) * pad, (y1 - y0) * pad
     return (
         float(max(0.0, x0 - px)),
@@ -96,48 +109,73 @@ def centre(box) -> tuple[float, float]:
 @dataclass
 class _Track:
     id: str
-    box: tuple[float, float, float, float]
+    box: tuple[float, float, float, float]  # smoothed
+    landmarks: np.ndarray
     last_seen: float
 
 
 @dataclass
 class PersonTracker:
+    """Keeps a stable id per person across frames.
+
+    On each frame:
+    1. Drop tracks not seen for release_seconds (their id can be reused).
+    2. Build an upper-body box for each detected pose; skip unreliable poses.
+    3. Match boxes to existing tracks: boxes that overlap (IoU >= MIN_IOU), or
+       whose centre moved less than MAX_RELATIVE_JUMP x the box size. The best
+       pairs are matched first; each track and box is used at most once.
+    4. Smooth each matched box with the previous one (SMOOTHING), so the box
+       does not jitter.
+    5. Unmatched boxes get the lowest free id.
+    6. Return the people seen now, plus people missed for less than
+       MISS_GRACE_SECONDS (shown at their last position), so one missed frame
+       does not make a person vanish.
+    """
+
     station_id: str = "S1"
     release_seconds: float = RELEASE_SECONDS
     tracks: dict[str, _Track] = field(default_factory=dict)
 
     def update(self, t: float, detections: list[np.ndarray]) -> dict[str, Person]:
-        """Match this frame's poses to known ids. Returns the people visible now."""
         limit = self.release_seconds
         expired = [tid for tid, tr in self.tracks.items() if t - tr.last_seen > limit]
         for tid in expired:
             del self.tracks[tid]
 
-        boxes = [box_from_landmarks(lm) for lm in detections]
+        found = [(lm, box) for lm in detections if (box := box_from_landmarks(lm)) is not None]
         pairs = []  # (cost, track id, detection index); lower cost = better match
         for tid, track in self.tracks.items():
-            for i, box in enumerate(boxes):
+            size = max(track.box[2] - track.box[0], track.box[3] - track.box[1], 1e-3)
+            for i, (_, box) in enumerate(found):
                 overlap = iou(track.box, box)
                 (cx0, cy0), (cx1, cy1) = centre(track.box), centre(box)
-                jump = float(np.hypot(cx1 - cx0, cy1 - cy0))
-                if overlap >= MIN_IOU or jump <= MAX_CENTRE_JUMP:
+                jump = float(np.hypot(cx1 - cx0, cy1 - cy0)) / size
+                if overlap >= MIN_IOU or jump <= MAX_RELATIVE_JUMP:
                     pairs.append((jump - overlap, tid, i))
         assigned: dict[int, str] = {}
-        used_tracks: set[str] = set()
+        used: set[str] = set()
         for _, tid, i in sorted(pairs):
-            if tid in used_tracks or i in assigned:
-                continue
-            assigned[i] = tid
-            used_tracks.add(tid)
+            if tid not in used and i not in assigned:
+                assigned[i] = tid
+                used.add(tid)
 
-        visible: dict[str, Person] = {}
-        for i, (landmarks, box) in enumerate(zip(detections, boxes, strict=True)):
-            tid = assigned.get(i) or self._new_id()
-            if tid is None:
-                continue  # already tracking MAX_PEOPLE ids
-            self.tracks[tid] = _Track(tid, box, t)
-            visible[tid] = Person(tid, box, landmarks)
-        return visible
+        for i, (landmarks, box) in enumerate(found):
+            tid = assigned.get(i)
+            if tid is not None:
+                old = self.tracks[tid].box
+                pairs_xy = zip(box, old, strict=True)
+                box = tuple(SMOOTHING * n + (1 - SMOOTHING) * o for n, o in pairs_xy)
+            else:
+                tid = self._new_id()
+                if tid is None:
+                    continue  # already tracking MAX_PEOPLE ids
+            self.tracks[tid] = _Track(tid, box, landmarks, t)
+
+        return {
+            tid: Person(tid, tr.box, tr.landmarks)
+            for tid, tr in self.tracks.items()
+            if t - tr.last_seen <= MISS_GRACE_SECONDS
+        }
 
     @property
     def live_ids(self) -> list[str]:

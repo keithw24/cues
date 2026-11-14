@@ -86,6 +86,10 @@ class ExpressionStage:
         ctx["expression"] = result
 
     def draw(self, image, ctx) -> None:
+        from vision import overlay
+
+        if self.zones.mode == "people" and not overlay.debug():
+            return
         for seat, dist in ctx.get("expression", {}).items():
             face = ctx.get("faces", {}).get(seat)
             if face is None:

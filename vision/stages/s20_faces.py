@@ -75,6 +75,10 @@ class FacesStage:
         ctx["faces"] = faces_from_result(result, rgb, self.zones, ctx)
 
     def draw(self, image, ctx) -> None:
+        from vision import overlay
+
+        if getattr(self.zones, "mode", "seats") == "people" and not overlay.debug():
+            return
         for seat, face in ctx.get("faces", {}).items():
             x0, y0, x1, y1 = face.box
             cv2.rectangle(image, (x0, y0), (x1, y1), seat_color(seat), 2)
