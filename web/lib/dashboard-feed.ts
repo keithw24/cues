@@ -12,6 +12,7 @@ export type FeedState = {
 export function watchDashboard(
   client: SupabaseClient,
   notify: (state: FeedState) => void,
+  personObservationsEnabled = false,
 ) {
   let disposed = false;
   let fetching = false;
@@ -49,19 +50,25 @@ export function watchDashboard(
           .abortSignal(signal),
         client
           .from("seat_state")
-          .select("seat_id,session_id,activity_id,status,task_score,updated_at")
+          .select(
+            "seat_id,session_id,activity_id,status,task_score,updated_at" +
+              (personObservationsEnabled ? ",tracking_valid" : ""),
+          )
           .abortSignal(signal),
         client.from("activities").select("id,name").abortSignal(signal),
         client.from("stations").select("id,name").abortSignal(signal),
       ]);
       if ([seats, states, activities, stations].some((r) => r.error))
         throw new Error("Read failed");
-      const snapshot = parseSnapshot({
-        seats: seats.data,
-        states: states.data,
-        activities: activities.data,
-        stations: stations.data,
-      });
+      const snapshot = parseSnapshot(
+        {
+          seats: seats.data,
+          states: states.data,
+          activities: activities.data,
+          stations: stations.data,
+        },
+        personObservationsEnabled,
+      );
       publish({ snapshot, error: null });
     } catch {
       publish({

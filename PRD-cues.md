@@ -985,7 +985,10 @@ seats (
 sessions (
   id uuid primary key,
   started_at timestamptz,
-  current_activity_id text
+  current_activity_id text,
+  station_id text,          -- lifecycle migration 003: one active session per station
+  ended_at timestamptz,     -- null while active
+  revision integer         -- compare-and-set for teacher actions
 );
 
 seat_state (
@@ -993,6 +996,7 @@ seat_state (
   session_id uuid,
   activity_id text,
   status text,
+  tracking_valid boolean,
   task_score real,
   expression_context jsonb,
   updated_at timestamptz
@@ -1542,3 +1546,98 @@ The implemented ProgressEvaluator compares earlier/later half-window means over 
 The separate pure evaluate_escalation function requires stalled progress before considering expression. Classroom thresholds are 5 seconds minimum observation, 6 expression-assisted, 10 normal stall, and 15 prolonged stall. Demo thresholds are 2/5/4/6 seconds, passed through a configuration object. These are engineering defaults, not clinical or universal learner thresholds. Demo timings are intentionally compressed and are not classroom recommendations. The progress window is configured separately; demo callers explicitly select the two-second progress window; expression persistence remains five seconds.
 
 Only qualifying sustained expression context can accelerate or elevate an already stalled situation. Improving, completed, and unknown never escalate. Eligibility does not create an alert or imply student failure. No LLM calls, notifications, or cooldown logic are implemented. See notes/michelle.md for API, source citations, qualifications, and verification results.
+
+
+### Teacher session lifecycle implementation (migration 003)
+
+`station_teachers(station_id, teacher_id)` authorizes authenticated Supabase users
+for station-scoped session actions. Membership is provisioned by administrators;
+browsers cannot grant themselves membership or directly mutate sessions.
+`read_station_session`, `start_station_activity` and `end_station_session` expose
+narrow RPCs. Start locks the station, preserves the existing active session UUID
+when selecting an activity, or creates one if none is active. A partial unique
+index permits only one session with ended_at=null per station. Start/End compare
+the expected session UUID and revision, rejecting stale tabs/retries. End sets
+ended_at; it does not delete history or invent an activity status.
+
+This additive session contract is implemented but not deployed/verified against
+the team's Supabase project. `web.session_controls` defaults off. Vision's current
+fixed CUES_SESSION_ID polling does not follow newly created sessions or stop on
+ended_at: Keith/Michelle must integrate lifecycle observation and reset/stop
+behavior before claiming end-to-end session control. Session mutations do not
+rewrite seat_state.updated_at as a fake task observation. Shared contract/schema
+review and Keith/Evan/Michelle sign-off are still required before merge.
+
+### Person observation dashboard integration (migration 004)
+
+`20261114000400_person_observations.sql` adds nullable tracking_valid to seat_state
+and simulated S1-P1..P4 metadata to seats for the initial demo read policies. No
+observations are seeded and no real student identities are stored. The dashboard
+hides person metadata without observations and retires fixed-seat tiles per
+station once person state is available. This migration is versioned but not
+claimed deployed; schema/team sign-off remains required before merge. Existing
+session lifecycle and progress-history deployment dependencies remain unchanged.
+
+
+### Tracking-aware person observation display (feature one)
+
+The dashboard can read tracking_valid under default-off web.person_observations.
+Fresh valid data displays the backend task status; invalid or unknown tracking
+suppresses scores and task-state emphasis. Explicit tracking_lost remains a
+missing-observation state. At five seconds without a fresh observation, the UI
+shows Updates paused and Last observed metadata. This display timer never changes
+ProgressEvaluator, stalled_seconds, attempt counts or review eligibility. Cards
+remain until the backend removes/replaces their position rows. Reconnect failures
+retain and clearly mark the last snapshot.
+
+Migration-004 operations were applied through the signed-in project's SQL Editor:
+tracking_valid already existed and S1-P1..P4 simulated metadata was added. Public
+read access and existing stale person observations were verified. Fresh updates
+from Keith's station remain a live integration check; no observations were seeded.
+Earlier 'missing person column/metadata' notes describe the pre-migration state.
+
+### Teacher-controlled station session transport (migration 005)
+
+Migration 003 and `20261114000500_station_session_sync.sql` were applied to the
+team's Supabase project on November 14, 2026. This supersedes the earlier
+not-deployed/fixed-session-only notes above. S1's original UUID, task and revision
+were retained; no teacher action was performed on S1 during deployment.
+
+The canonical `shared.contracts.Session` contains `id` (UUID), `station_id`,
+`current_activity_id` (nullable), `started_at`, `ended_at` (nullable), and
+nonnegative integer `revision`. `SeatState.session_revision` is nullable for
+legacy producers, required for managed writes. Perception events include
+`payload.session_revision`; existing event and review state vocabularies remain
+unchanged. Session/activity actions do not fabricate task observations or scores.
+
+New `station_runtime` fields: `station_id` (PK), `session_id` (nullable UUID),
+`activity_id` (nullable), `revision` (nullable), configuration status
+`ready | idle | error`, optional `unsupported_activity` error, locally supported
+activity IDs and server-assigned `updated_at`. This is station configuration
+acknowledgement, not task progress or a teacher-review state. Only the station's
+trusted service may call `report_station_session`; authorized station teachers
+have read access through the existing Supabase Realtime architecture. Both
+sessions and runtime are published. No separate browser/vision write transport.
+
+Default-off `vision.session_lifecycle` polls active station sessions each second,
+uses immutable per-frame identity, resets vision trackers on revision/UUID
+changes, and pauses task processing/writes on end, sync failure, unknown task or
+an expired three-second lease. Camera/person perception may continue locally.
+`stations.session_managed` starts false and activates on an authorized teacher
+Start/End. Managed writes must match active UUID/activity/revision; queued stale
+observations cannot resurrect a session or overwrite newer task state.
+
+The frontend keeps controls compact and changes its header only from committed
+session state. It displays waiting/synced/idle acknowledgement separately, expires
+old heartbeats and offers explicit refresh after failures. Station membership,
+locks, expected revisions and a partial unique index enforce authorization and
+one active session. Default-off flags remain unchanged until live verification.
+
+Verification includes local vision/shared/frontend/browser fixtures and deployed
+rollback-only authorization/lifecycle tests. No test identity/station persisted.
+Teacher account/membership provisioning, Keith-side rollout, real teacher
+Realtime and independent-client concurrency still need live verification. See
+`vision/SESSION_LIFECYCLE.md` for the handoff. Michelle's future live progress and
+routing consumer must stop on session end and reset via its existing hook on
+revision changes; ProgressEvaluator logic was not modified. Shared contract team
+sign-off remains required before a requested merge.

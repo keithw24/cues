@@ -29,6 +29,7 @@ from datetime import UTC, datetime, timedelta
 from vision import activities
 from vision.activities import TASKS
 from vision.grouping import GROUPING
+from vision.session_sync import frame_activity
 from vision.status import ExpressionTracker, SeatTracker, StatusEvent
 
 FLAG = "vision.task_status"
@@ -70,6 +71,7 @@ class StatusStage:
         self._expression: dict[str, ExpressionTracker] = {}
         # seat -> ((status, tracking_valid), time sent)
         self._last_state: dict[str, tuple[tuple[str, bool], float]] = {}
+        self._session_key = None
         self.recent: deque[str] = deque(maxlen=RECENT_EVENTS)
         self._last_event: dict[str, tuple[str, float]] = {}  # seat -> (event type, time)
 
@@ -82,13 +84,30 @@ class StatusStage:
         return self._emitter
 
     def process(self, frame, ctx) -> None:
+        session = ctx.get("session") if ctx.get("session_managed") else None
+        key = (session.id, session.revision) if session else None
+        if ctx.get("session_managed") and (key != self._session_key or session is None):
+            self._trackers.clear()
+            self._expression.clear()
+            self._last_state.clear()
+            self._last_event.clear()
+            self.recent.clear()
+            self._session_key = key
+        if ctx.get("session_managed") and session is None:
+            ctx.update(status={}, events=[], last_event={})
+            return
+        session_id = session.id if session else self.emitter.session_id
+        session_revision = session.revision if session else None
         t = frame.timestamp
         matches = ctx.get("match", {})
         hands = ctx.get("hands", {})
         faces = ctx.get("faces", {})
         expressions = ctx.get("expression", {})
         for seat in self.zones.ids(ctx):
-            activity = activities.get(self.tasks.for_seat(seat))
+            activity_id = frame_activity(self.tasks, seat, ctx)
+            if activity_id is None:
+                continue
+            activity = activities.get(activity_id)
             tracker = self._trackers.get(seat)
             if tracker is None or tracker.activity.id != activity.id:
                 tracker = self._trackers[seat] = SeatTracker(seat, activity)
@@ -101,12 +120,22 @@ class StatusStage:
             events += expr_tracker.update(t, expressions.get(seat))
             when = observed_at(t)
             for event in events:
-                self._send_event(seat, activity.id, event, when)
+                self._send_event(seat, activity.id, event, when, session_id, session_revision)
                 self._last_event[seat] = (event.type, t)
             # Tracked now = the person, their face or their hand is seen in this frame.
             tracking_valid = (visible or in_hand) and tracker.status != "tracking_lost"
             expression = expr_tracker.context(t, expressions.get(seat))
-            self._maybe_send_state(seat, tracker, score, expression, tracking_valid, t, when)
+            self._maybe_send_state(
+                seat,
+                tracker,
+                score,
+                expression,
+                tracking_valid,
+                t,
+                when,
+                session_id,
+                session_revision,
+            )
         live = set(self.zones.ids(ctx))
         for gone in [s for s in self._trackers if s not in live]:  # released person ids
             self._trackers.pop(gone, None)
@@ -117,7 +146,15 @@ class StatusStage:
         ctx["events"] = list(self.recent)
         ctx["last_event"] = {s: e for s, (e, when) in self._last_event.items() if t - when < 3.0}
 
-    def _send_event(self, seat: str, activity_id: str, event: StatusEvent, when: datetime) -> None:
+    def _send_event(
+        self,
+        seat: str,
+        activity_id: str,
+        event: StatusEvent,
+        when: datetime,
+        session_id=None,
+        session_revision=None,
+    ) -> None:
         from shared.contracts import Event
 
         line = format_event(seat, activity_id, event)
@@ -125,19 +162,35 @@ class StatusStage:
         log.info(line)
         self.emitter.emit(
             Event(
-                session_id=self.emitter.session_id,
+                session_id=session_id if session_id is not None else self.emitter.session_id,
                 station_id=self.emitter.station_id,
                 seat_id=seat,
                 type=event.type,
                 activity_id=activity_id,
                 score=event.score,
-                payload=event.payload or {"source": "auto"},
+                payload={
+                    **(event.payload or {"source": "auto"}),
+                    **(
+                        {"session_revision": session_revision}
+                        if session_revision is not None
+                        else {}
+                    ),
+                },
                 created_at=when,
             )
         )
 
     def _maybe_send_state(
-        self, seat, tracker: SeatTracker, score, expression, tracking_valid, t, when
+        self,
+        seat,
+        tracker: SeatTracker,
+        score,
+        expression,
+        tracking_valid,
+        t,
+        when,
+        session_id=None,
+        session_revision=None,
     ) -> None:
         """Send SeatState on a status or tracking change, else once per SEAT_STATE_INTERVAL."""
         from shared.contracts import ExpressionContext, SeatState
@@ -150,11 +203,12 @@ class StatusStage:
         self.emitter.update_seat_state(
             SeatState(
                 seat_id=seat,
-                session_id=self.emitter.session_id,
+                session_id=session_id if session_id is not None else self.emitter.session_id,
                 status=tracker.status,
                 updated_at=when,
                 activity_id=tracker.activity.id,
                 tracking_valid=tracking_valid,
+                session_revision=session_revision,
                 task_score=score if tracking_valid else None,
                 expression_context=ExpressionContext(**expression) if expression else None,
             )

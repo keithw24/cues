@@ -49,21 +49,20 @@ Supabase, the LLM, or another cloud service.
 
 - Existing initial reads and `seat_state` realtime subscription are preserved.
   Reconnect reloads the snapshot; failures retain it with a visible warning.
-- Attention lists only `review`/`needs_help` observations, support first. It does
-  not invent a stall duration or read private alert/agent tables.
-- **Dismiss** hides that observation for this browser visit only. The stored
-  status and seat strip remain unchanged. A new timestamp/status can appear
-  again. **Restore dismissed items** restores the local list.
+- Attention reads only pending `teacher_reviews`, behind `web.teacher_reviews`
+  (default off). No seat-status fallback and no approval/dismissal actions.
+  See [TeacherReview contract and rollout](TEACHER_REVIEWS.md) for the expected
+  projection and Michelle-side persistence/RLS/Realtime prerequisites.
 - Seats and **View details** open the same side panel. Escape/Close returns focus
   to the original seat button, or that seat's stable strip button when the queue
-  opener has been unmounted. Dismiss/restore return focus to the Attention heading.
+  opener has been unmounted.
 - Status labels are Ready, Working, Completed, Needs Review and Tracking Lost.
   Tracking loss is unavailable observation, not task failure. No Improving status
   is invented without a supporting contract.
 - Match score and observation time live in details. Lost tracking/missing scores
   show Unavailable. No fabricated observations fill loading or empty views.
 - End session is visibly disabled: no session-write endpoint exists. Activity
-  controls, persistent alert dismissal, approval actions, progress history, stall
+  controls, persistent review transitions, approval actions, progress history, stall
   duration, and agent assessments require their actual integrations. No backend
   code or shared event/table contracts were changed for this redesign.
 
@@ -77,13 +76,19 @@ npm test
 npm run build
 ```
 
-Ten automated tests cover contracts, missing/invalid data, flags, subscription
-refresh/recovery/disposal, and observation-scoped dismissal. Isolated Chrome
-verified actual Supabase reads/realtime, native keyboard selection and refresh,
-focus restoration, direct synthetic MJPEG playback/disconnect/error/retry, and
-attention/dismiss/restore using browser-only intercepted synthetic state. No
-Supabase rows were modified. The layout was checked from 320–1440px: video takes
-about 69% of the laptop workspace and attention moves below it on mobile.
+Seventeen automated tests cover contracts, missing/invalid data, flags, seat-feed
+recovery/disposal, and the review projection, pending status exits/deletes,
+reconnect, errors/stale data and flag-off no-network behavior. Three shared
+flag-registry tests also pass.
+
+The existing local MJPEG source was previously verified with synthetic frames.
+For the new teacher_reviews integration, isolated Chrome uses intercepted REST
+fixtures rather than writing Supabase: it checks fields/order, no actions,
+confirmed/dismissed exits after resync, independence from seat status, error/retry,
+and 4:3 landscape video with no overflow at 320, 390, 768 and 1440px. Realtime event
+callbacks are exercised in unit tests. Deployed teacher_reviews persistence,
+authorization and Realtime delivery remain pending Michelle-side integration;
+fixture checks are not evidence of that deployment.
 
 Physical camera/model behavior, actual WebRTC, authenticated session/alert writes,
 and physical touch-device testing remain unverified or unimplemented as above.
@@ -108,3 +113,64 @@ installed; the requested interface uses normal Courier Prime and no decorative i
 The palette draws from the supplied admin screenshots: white surfaces, navy text,
 cool gray dividers, teal selection/live text, and muted coral for Needs Review.
 Live state remains explicit text; status dots are removed.
+
+Persistent review action UI is available behind default-off
+`web.teacher_review_actions`. Its proposed Supabase RPC and deployment prerequisites
+are documented in [TEACHER_REVIEWS.md](TEACHER_REVIEWS.md#persistent-action-adapter-supersedes-read-only-action-notes-above).
+It remains disabled until authorized backend persistence and teacher authentication
+are implemented. Frontend tests now total 21.
+
+## Supplied-reference dashboard adaptation
+
+The Cues dashboard uses the supplied Nexus HTML/CSS visual language: DM Sans,
+italic headings, pill navigation, lavender canvas, cyan local video and colored
+person tiles. Metrics come from loaded observations/reviews, never the reference's
+sample project analytics. Reference HTML is adapted into React, not embedded as an
+unconnected second dashboard.
+
+The camera panel loads Keith's native MJPEG endpoint directly from the browser:
+http://127.0.0.1:8000/stream. Run his configured local service from the repository
+root with `uv run uvicorn vision.app:app --host 127.0.0.1 --port 8000`, open the
+local dashboard, and choose **Connect local feed**. Connect/retry/disconnect states
+are available. Remote-host dashboards intentionally cannot load the station feed.
+Video remains 4:3, contains rather than stretches frames, and never goes through
+Next.js, Supabase, or an LLM.
+
+Migration `20261114000400_person_observations.sql` adds the `tracking_valid` field
+Keith now emits and provisions simulated S1-P1..P4 metadata for existing demo read
+policies. It creates no fabricated observations. Apply it to Supabase before
+expecting person state writes to succeed. Person metadata with no state row is
+hidden; once person observations exist at a station, fixed legacy seat cards for
+that station are retired in the view. Person IDs remain temporary position IDs,
+not student identities. Reuse/release behavior remains owned by vision.
+
+Migration 003/session Auth setup and Michelle's teacher_reviews persistence are
+still independent prerequisites. Their flags remain default off. Real progress
+history remains explicitly unavailable until exposed by the backend. No missing
+backend behavior is replaced with local-only demo state.
+
+Verification: real local /stream through Keith's create_app with FakeCamera and an
+empty model-stage list; isolated synthetic REST person/review fixtures; responsive
+checks at 1440/768/390/320px; 33 frontend tests and a webpack production build.
+This verifies video transport, not actual webcam/model inference or deployed
+Supabase. Migration 004 also passed an isolated PostgreSQL application/read-policy
+check alongside migration 003. No real camera or remote rows were used.
+
+## Teacher login and workspace redesign
+
+See [UI_REDESIGN.md](UI_REDESIGN.md) for the Columbia-inspired workspace, animated
+login companion, preview flags and remaining integration checks. The companion is
+a product mascot on `/login`; it does not represent a teacher or student.
+
+Person-observation feature one reads `tracking_valid` and applies the agreed
+five-second display freshness rule. Lost/paused cards remain visible with their
+last observation time; no frontend progress/stall decisions are made. See
+[PERSON_OBSERVATIONS.md](PERSON_OBSERVATIONS.md) for the feature flag, hosted setup
+verification and Keith-side fresh-emitter check.
+
+Session controls now have deployed station-scoped Supabase actions and a prepared
+vision lifecycle consumer. See [SESSION_CONTROLS.md](SESSION_CONTROLS.md) for the
+verified contract/security boundary and [Keith's handoff](../vision/SESSION_LIFECYCLE.md)
+for restart and live checks. Teacher provisioning and Keith-side rollout remain;
+keep `web.session_controls` off until those checks. Earlier missing-contract notes
+are historical. Session acknowledgement is separate from camera/model readiness.

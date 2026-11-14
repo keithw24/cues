@@ -17,6 +17,7 @@ from vision.gestures.normalize import normalize
 from vision.grouping import GROUPING
 from vision.people import person_color as seat_color
 from vision.perception import Match
+from vision.session_sync import frame_activity
 
 FLAG = "vision.gestures"
 
@@ -56,7 +57,9 @@ class GesturesStage:
         hands = ctx.get("hands", {})
         result: dict[str, Match] = {}
         for seat in self.zones.ids(ctx):
-            activity_id = self.tasks.for_seat(seat)
+            activity_id = frame_activity(self.tasks, seat, ctx)
+            if activity_id is None:
+                continue
             if activities.get(activity_id).check_type != "gesture":
                 continue
             if seat not in hands:

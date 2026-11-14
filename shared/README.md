@@ -52,3 +52,20 @@ uv run pytest shared/tests
 uv run ruff check shared
 uv run ruff format --check shared
 ```
+
+## Teacher-managed session context
+
+`Session` is the immutable station lifecycle projection: UUID `id`, string
+`station_id`, nullable `current_activity_id`, aware `started_at`/nullable
+`ended_at`, and nonnegative integer `revision`. Vision selects only those fields
+from Supabase. `SeatState.session_revision` is optional for legacy producers;
+managed observations require the exact saved revision. Perception events carry it
+in `payload.session_revision`. No new task/review/event states were introduced.
+
+Session changes increment revision; a new session has a new UUID. The vision
+consumer pins the context per frame, resets its trackers on UUID/revision change,
+and pauses after end or sync loss. The database rejects stale/ended managed
+observations. Future live progress/routing consumers must use the same lifecycle
+to call their existing reset hooks on restarts; ProgressEvaluator itself is
+unchanged. See `web/SESSION_CONTROLS.md` and `vision/SESSION_LIFECYCLE.md` for
+transport, flags, rollout status and outstanding hardware verification.

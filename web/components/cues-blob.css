@@ -1,0 +1,29 @@
+.cues-blob {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--blob-size) * 1.2);
+  height: var(--blob-size);
+  pointer-events: none;
+}
+/* Room to walk spills past a fixed-size slot without moving its centre. */
+.login-companion > .cues-blob {
+  margin-inline: calc(var(--blob-size) * -0.1);
+}
+.cues-blob-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.cues-blob-walker {
+  translate: calc(var(--blob-side) * var(--blob-size) * 0.1) 0;
+}
+.cues-blob [data-part="head"] {
+  filter: var(--blob-filter);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cues-blob-walker {
+    transition: translate var(--blob-stride) cubic-bezier(0.45, 0, 0.55, 1);
+  }
+}

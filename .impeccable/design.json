@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-14T05:22:45.698501+00:00",
+  "generatedAt": "2026-11-14T16:20:31.400677+00:00",
   "title": "Design System: Cues",
   "extensions": {
     "colorMeta": {
@@ -8,283 +8,428 @@
         "role": "neutral",
         "displayName": "Background",
         "tonalRamp": [
-          "oklch(15.0% 0.0000 0.00)",
-          "oklch(26.4% 0.0000 0.00)",
-          "oklch(37.9% 0.0000 0.00)",
-          "oklch(49.3% 0.0000 0.00)",
-          "oklch(60.7% 0.0000 0.00)",
-          "oklch(72.1% 0.0000 0.00)",
-          "oklch(83.6% 0.0000 0.00)",
-          "oklch(95.0% 0.0000 0.00)"
+          "oklch(15.0% 0.0000 89.88)",
+          "oklch(26.4% 0.0000 89.88)",
+          "oklch(37.9% 0.0000 89.88)",
+          "oklch(49.3% 0.0000 89.88)",
+          "oklch(60.7% 0.0000 89.88)",
+          "oklch(72.1% 0.0000 89.88)",
+          "oklch(83.6% 0.0000 89.88)",
+          "oklch(95.0% 0.0000 89.88)"
         ]
       },
       "foreground": {
         "role": "neutral",
         "displayName": "Foreground",
         "tonalRamp": [
-          "oklch(15.0% 0.0398 265.75)",
-          "oklch(26.4% 0.0398 265.75)",
-          "oklch(37.9% 0.0398 265.75)",
-          "oklch(49.3% 0.0398 265.75)",
-          "oklch(60.7% 0.0398 265.75)",
-          "oklch(72.1% 0.0398 265.75)",
-          "oklch(83.6% 0.0398 265.75)",
-          "oklch(95.0% 0.0398 265.75)"
+          "oklch(15.0% 0.0167 259.78)",
+          "oklch(26.4% 0.0167 259.78)",
+          "oklch(37.9% 0.0167 259.78)",
+          "oklch(49.3% 0.0167 259.78)",
+          "oklch(60.7% 0.0167 259.78)",
+          "oklch(72.1% 0.0167 259.78)",
+          "oklch(83.6% 0.0167 259.78)",
+          "oklch(95.0% 0.0167 259.78)"
         ]
       },
       "paper": {
         "role": "neutral",
         "displayName": "Paper",
         "tonalRamp": [
-          "oklch(15.0% 0.0000 0.00)",
-          "oklch(26.4% 0.0000 0.00)",
-          "oklch(37.9% 0.0000 0.00)",
-          "oklch(49.3% 0.0000 0.00)",
-          "oklch(60.7% 0.0000 0.00)",
-          "oklch(72.1% 0.0000 0.00)",
-          "oklch(83.6% 0.0000 0.00)",
-          "oklch(95.0% 0.0000 0.00)"
+          "oklch(15.0% 0.0000 89.88)",
+          "oklch(26.4% 0.0000 89.88)",
+          "oklch(37.9% 0.0000 89.88)",
+          "oklch(49.3% 0.0000 89.88)",
+          "oklch(60.7% 0.0000 89.88)",
+          "oklch(72.1% 0.0000 89.88)",
+          "oklch(83.6% 0.0000 89.88)",
+          "oklch(95.0% 0.0000 89.88)"
         ]
       },
       "muted": {
         "role": "neutral",
         "displayName": "Muted",
         "tonalRamp": [
-          "oklch(15.0% 0.0069 247.90)",
-          "oklch(26.4% 0.0069 247.90)",
-          "oklch(37.9% 0.0069 247.90)",
-          "oklch(49.3% 0.0069 247.90)",
-          "oklch(60.7% 0.0069 247.90)",
-          "oklch(72.1% 0.0069 247.90)",
-          "oklch(83.6% 0.0069 247.90)",
-          "oklch(95.0% 0.0069 247.90)"
+          "oklch(15.0% 0.0045 258.32)",
+          "oklch(26.4% 0.0045 258.32)",
+          "oklch(37.9% 0.0045 258.32)",
+          "oklch(49.3% 0.0045 258.32)",
+          "oklch(60.7% 0.0045 258.32)",
+          "oklch(72.1% 0.0045 258.32)",
+          "oklch(83.6% 0.0045 258.32)",
+          "oklch(95.0% 0.0045 258.32)"
         ]
       },
       "muted-foreground": {
         "role": "neutral",
         "displayName": "Muted Foreground",
         "tonalRamp": [
-          "oklch(15.0% 0.0407 257.42)",
-          "oklch(26.4% 0.0407 257.42)",
-          "oklch(37.9% 0.0407 257.42)",
-          "oklch(49.3% 0.0407 257.42)",
-          "oklch(60.7% 0.0407 257.42)",
-          "oklch(72.1% 0.0407 257.42)",
-          "oklch(83.6% 0.0407 257.42)",
-          "oklch(95.0% 0.0407 257.42)"
+          "oklch(15.0% 0.0233 257.51)",
+          "oklch(26.4% 0.0233 257.51)",
+          "oklch(37.9% 0.0233 257.51)",
+          "oklch(49.3% 0.0233 257.51)",
+          "oklch(60.7% 0.0233 257.51)",
+          "oklch(72.1% 0.0233 257.51)",
+          "oklch(83.6% 0.0233 257.51)",
+          "oklch(95.0% 0.0233 257.51)"
         ]
       },
       "line": {
         "role": "neutral",
         "displayName": "Line",
         "tonalRamp": [
-          "oklch(15.0% 0.0126 255.51)",
-          "oklch(26.4% 0.0126 255.51)",
-          "oklch(37.9% 0.0126 255.51)",
-          "oklch(49.3% 0.0126 255.51)",
-          "oklch(60.7% 0.0126 255.51)",
-          "oklch(72.1% 0.0126 255.51)",
-          "oklch(83.6% 0.0126 255.51)",
-          "oklch(95.0% 0.0126 255.51)"
+          "oklch(15.0% 0.0075 260.73)",
+          "oklch(26.4% 0.0075 260.73)",
+          "oklch(37.9% 0.0075 260.73)",
+          "oklch(49.3% 0.0075 260.73)",
+          "oklch(60.7% 0.0075 260.73)",
+          "oklch(72.1% 0.0075 260.73)",
+          "oklch(83.6% 0.0075 260.73)",
+          "oklch(95.0% 0.0075 260.73)"
+        ]
+      },
+      "surface-hover": {
+        "role": "neutral",
+        "displayName": "Surface Hover",
+        "tonalRamp": [
+          "oklch(15.0% 0.0045 258.32)",
+          "oklch(26.4% 0.0045 258.32)",
+          "oklch(37.9% 0.0045 258.32)",
+          "oklch(49.3% 0.0045 258.32)",
+          "oklch(60.7% 0.0045 258.32)",
+          "oklch(72.1% 0.0045 258.32)",
+          "oklch(83.6% 0.0045 258.32)",
+          "oklch(95.0% 0.0045 258.32)"
         ]
       },
       "accent": {
-        "role": "primary",
+        "role": "neutral",
         "displayName": "Accent",
         "tonalRamp": [
-          "oklch(15.0% 0.0109 182.88)",
-          "oklch(26.4% 0.0109 182.88)",
-          "oklch(37.9% 0.0109 182.88)",
-          "oklch(49.3% 0.0109 182.88)",
-          "oklch(60.7% 0.0109 182.88)",
-          "oklch(72.1% 0.0109 182.88)",
-          "oklch(83.6% 0.0109 182.88)",
-          "oklch(95.0% 0.0109 182.88)"
+          "oklch(15.0% 0.0125 255.51)",
+          "oklch(26.4% 0.0125 255.51)",
+          "oklch(37.9% 0.0125 255.51)",
+          "oklch(49.3% 0.0125 255.51)",
+          "oklch(60.7% 0.0125 255.51)",
+          "oklch(72.1% 0.0125 255.51)",
+          "oklch(83.6% 0.0125 255.51)",
+          "oklch(95.0% 0.0125 255.51)"
         ]
       },
       "accent-foreground": {
         "role": "primary",
         "displayName": "Accent Foreground",
         "tonalRamp": [
-          "oklch(15.0% 0.0861 186.39)",
-          "oklch(26.4% 0.0861 186.39)",
-          "oklch(37.9% 0.0861 186.39)",
-          "oklch(49.3% 0.0861 186.39)",
-          "oklch(60.7% 0.0861 186.39)",
-          "oklch(72.1% 0.0861 186.39)",
-          "oklch(83.6% 0.0861 186.39)",
-          "oklch(95.0% 0.0861 186.39)"
+          "oklch(15.0% 0.0985 256.05)",
+          "oklch(26.4% 0.0985 256.05)",
+          "oklch(37.9% 0.0985 256.05)",
+          "oklch(49.3% 0.0985 256.05)",
+          "oklch(60.7% 0.0985 256.05)",
+          "oklch(72.1% 0.0985 256.05)",
+          "oklch(83.6% 0.0985 256.05)",
+          "oklch(95.0% 0.0985 256.05)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Primary",
+        "tonalRamp": [
+          "oklch(15.0% 0.0985 256.05)",
+          "oklch(26.4% 0.0985 256.05)",
+          "oklch(37.9% 0.0985 256.05)",
+          "oklch(49.3% 0.0985 256.05)",
+          "oklch(60.7% 0.0985 256.05)",
+          "oklch(72.1% 0.0985 256.05)",
+          "oklch(83.6% 0.0985 256.05)",
+          "oklch(95.0% 0.0985 256.05)"
+        ]
+      },
+      "primary-foreground": {
+        "role": "neutral",
+        "displayName": "Primary Foreground",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 89.88)",
+          "oklch(26.4% 0.0000 89.88)",
+          "oklch(37.9% 0.0000 89.88)",
+          "oklch(49.3% 0.0000 89.88)",
+          "oklch(60.7% 0.0000 89.88)",
+          "oklch(72.1% 0.0000 89.88)",
+          "oklch(83.6% 0.0000 89.88)",
+          "oklch(95.0% 0.0000 89.88)"
         ]
       },
       "ring": {
         "role": "primary",
         "displayName": "Ring",
         "tonalRamp": [
-          "oklch(15.0% 0.0861 186.39)",
-          "oklch(26.4% 0.0861 186.39)",
-          "oklch(37.9% 0.0861 186.39)",
-          "oklch(49.3% 0.0861 186.39)",
-          "oklch(60.7% 0.0861 186.39)",
-          "oklch(72.1% 0.0861 186.39)",
-          "oklch(83.6% 0.0861 186.39)",
-          "oklch(95.0% 0.0861 186.39)"
+          "oklch(15.0% 0.1195 255.63)",
+          "oklch(26.4% 0.1195 255.63)",
+          "oklch(37.9% 0.1195 255.63)",
+          "oklch(49.3% 0.1195 255.63)",
+          "oklch(60.7% 0.1195 255.63)",
+          "oklch(72.1% 0.1195 255.63)",
+          "oklch(83.6% 0.1195 255.63)",
+          "oklch(95.0% 0.1195 255.63)"
         ]
       },
       "review": {
         "role": "secondary",
         "displayName": "Review",
         "tonalRamp": [
-          "oklch(15.0% 0.1590 29.50)",
-          "oklch(26.4% 0.1590 29.50)",
-          "oklch(37.9% 0.1590 29.50)",
-          "oklch(49.3% 0.1590 29.50)",
-          "oklch(60.7% 0.1590 29.50)",
-          "oklch(72.1% 0.1590 29.50)",
-          "oklch(83.6% 0.1590 29.50)",
-          "oklch(95.0% 0.1590 29.50)"
+          "oklch(15.0% 0.1027 41.93)",
+          "oklch(26.4% 0.1027 41.93)",
+          "oklch(37.9% 0.1027 41.93)",
+          "oklch(49.3% 0.1027 41.93)",
+          "oklch(60.7% 0.1027 41.93)",
+          "oklch(72.1% 0.1027 41.93)",
+          "oklch(83.6% 0.1027 41.93)",
+          "oklch(95.0% 0.1027 41.93)"
         ]
       },
       "review-soft": {
         "role": "secondary",
         "displayName": "Review Soft",
         "tonalRamp": [
-          "oklch(15.0% 0.0151 37.88)",
-          "oklch(26.4% 0.0151 37.88)",
-          "oklch(37.9% 0.0151 37.88)",
-          "oklch(49.3% 0.0151 37.88)",
-          "oklch(60.7% 0.0151 37.88)",
-          "oklch(72.1% 0.0151 37.88)",
-          "oklch(83.6% 0.0151 37.88)",
-          "oklch(95.0% 0.0151 37.88)"
+          "oklch(15.0% 0.0160 52.56)",
+          "oklch(26.4% 0.0160 52.56)",
+          "oklch(37.9% 0.0160 52.56)",
+          "oklch(49.3% 0.0160 52.56)",
+          "oklch(60.7% 0.0160 52.56)",
+          "oklch(72.1% 0.0160 52.56)",
+          "oklch(83.6% 0.0160 52.56)",
+          "oklch(95.0% 0.0160 52.56)"
         ]
       },
-      "review-border": {
-        "role": "secondary",
-        "displayName": "Review Border",
-        "tonalRamp": [
-          "oklch(15.0% 0.0446 31.89)",
-          "oklch(26.4% 0.0446 31.89)",
-          "oklch(37.9% 0.0446 31.89)",
-          "oklch(49.3% 0.0446 31.89)",
-          "oklch(60.7% 0.0446 31.89)",
-          "oklch(72.1% 0.0446 31.89)",
-          "oklch(83.6% 0.0446 31.89)",
-          "oklch(95.0% 0.0446 31.89)"
-        ]
-      },
-      "hover": {
+      "workspace": {
         "role": "neutral",
-        "displayName": "Hover",
+        "displayName": "Workspace",
         "tonalRamp": [
-          "oklch(15.0% 0.0069 247.90)",
-          "oklch(26.4% 0.0069 247.90)",
-          "oklch(37.9% 0.0069 247.90)",
-          "oklch(49.3% 0.0069 247.90)",
-          "oklch(60.7% 0.0069 247.90)",
-          "oklch(72.1% 0.0069 247.90)",
-          "oklch(83.6% 0.0069 247.90)",
-          "oklch(95.0% 0.0069 247.90)"
+          "oklch(15.0% 0.0029 264.54)",
+          "oklch(26.4% 0.0029 264.54)",
+          "oklch(37.9% 0.0029 264.54)",
+          "oklch(49.3% 0.0029 264.54)",
+          "oklch(60.7% 0.0029 264.54)",
+          "oklch(72.1% 0.0029 264.54)",
+          "oklch(83.6% 0.0029 264.54)",
+          "oklch(95.0% 0.0029 264.54)"
         ]
       },
-      "review-hover": {
-        "role": "secondary",
-        "displayName": "Review Hover",
-        "tonalRamp": [
-          "oklch(15.0% 0.0264 41.11)",
-          "oklch(26.4% 0.0264 41.11)",
-          "oklch(37.9% 0.0264 41.11)",
-          "oklch(49.3% 0.0264 41.11)",
-          "oklch(60.7% 0.0264 41.11)",
-          "oklch(72.1% 0.0264 41.11)",
-          "oklch(83.6% 0.0264 41.11)",
-          "oklch(95.0% 0.0264 41.11)"
-        ]
-      },
-      "video-placeholder": {
+      "video-stage": {
         "role": "neutral",
-        "displayName": "Video Placeholder"
-      },
-      "live": {
-        "role": "neutral",
-        "displayName": "Live",
+        "displayName": "Video Stage",
         "tonalRamp": [
-          "oklch(15.0% 0.0861 186.39)",
-          "oklch(26.4% 0.0861 186.39)",
-          "oklch(37.9% 0.0861 186.39)",
-          "oklch(49.3% 0.0861 186.39)",
-          "oklch(60.7% 0.0861 186.39)",
-          "oklch(72.1% 0.0861 186.39)",
-          "oklch(83.6% 0.0861 186.39)",
-          "oklch(95.0% 0.0861 186.39)"
+          "oklch(15.0% 0.0062 255.48)",
+          "oklch(26.4% 0.0062 255.48)",
+          "oklch(37.9% 0.0062 255.48)",
+          "oklch(49.3% 0.0062 255.48)",
+          "oklch(60.7% 0.0062 255.48)",
+          "oklch(72.1% 0.0062 255.48)",
+          "oklch(83.6% 0.0062 255.48)",
+          "oklch(95.0% 0.0062 255.48)"
         ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Login questions."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Workspace page titles."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "Cues brand link."
+      },
+      "metric": {
+        "displayName": "Metric",
+        "purpose": "Observed-state summary values."
+      },
+      "heading": {
+        "displayName": "Heading",
+        "purpose": "Section titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default operational copy."
+      },
+      "navigation": {
+        "displayName": "Navigation",
+        "purpose": "Desktop rail links."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Compact action labels."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Supporting metadata and privacy copy."
       }
     },
     "shadows": [],
     "motion": [
       {
-        "name": "hover-feedback",
-        "value": "100ms ease",
-        "purpose": "Button background only; no transform or layout animation."
+        "name": "control-transition",
+        "value": "background-color 160ms ease, border-color 160ms ease, transform 160ms ease",
+        "purpose": "Button state feedback; disabled by reduced-motion preference."
+      },
+      {
+        "name": "login-arrive",
+        "value": "240ms cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Step entry: opacity 0.7 to 1, translateY 8px to 0, blur 1px to 0; removed for reduced motion."
+      },
+      {
+        "name": "button-press",
+        "value": "translateY(1px)",
+        "purpose": "Enabled button press response."
+      },
+      {
+        "name": "companion-gaze",
+        "value": "50ms update throttle; x \u00b10.25, y \u00b10.2",
+        "purpose": "Restrained idle pointer following; password privacy sleeps, busy requests thinking, reduced motion pauses and centers gaze."
       }
     ],
     "breakpoints": [
       {
         "name": "compact-desktop",
-        "value": "1050px"
+        "value": "1200px"
       },
       {
-        "name": "stacked",
-        "value": "759px"
+        "name": "stacked-monitor",
+        "value": "1000px"
+      },
+      {
+        "name": "mobile-navigation",
+        "value": "700px"
       }
+    ],
+    "focus": [
+      {
+        "name": "keyboard-ring",
+        "value": "2px solid var(--ring); outline-offset: 4px",
+        "purpose": "Visible keyboard target; review entries use -3px offset."
+      }
+    ],
+    "evidence": [
+      "web/app/globals.css",
+      "web/app/layout.tsx",
+      "web/components/workspace-sidebar.tsx",
+      "web/components/dashboard.tsx",
+      "web/components/teacher-login.tsx",
+      "web/components/login-companion.tsx",
+      "web/app/login/page.tsx",
+      ".impeccable/teacher-workspace.md",
+      "web/UI_REDESIGN.md"
     ]
   },
   "components": [
     {
-      "name": "Compact seat item",
+      "name": "Primary button",
       "kind": "button",
-      "refersTo": "seat-item-review",
-      "description": "Review seat in the compact strip; preview selection does not imply a state change.",
-      "html": "<button class=\"ds-button ds-seat-item ds-needs-review ds-is-selected\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-seat-item-name\">Left seat</span><span class=\"ds-seat-item-status\">Needs Review</span><span class=\"ds-sim-badge\">SIM</span></button>",
-      "css": ".ds-button {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 6px;\n  min-height: 34px;\n  padding: 7px 11px;\n  border: 1px solid #dce4ee;\n  border-radius: 6px;\n  background: var(--paper);\n  color: var(--foreground);\n  font: inherit;\n  font-size: 13px;\n  font-weight: 500;\n  cursor: pointer;\n  transition: background-color 100ms ease;\n}.ds-heading {\n  font-size: 14px;\n  font-weight: 600;\n  letter-spacing: -0.015em;\n  margin: 0;\n}.ds-seat-item {\n  display: flex;\n  align-items: center;\n  justify-content: start;\n  flex-wrap: wrap;\n  gap: 5px 9px;\n  min-height: 50px;\n  padding: 10px 12px;\n  text-align: left;\n  border-color: var(--line);\n  font-weight: 400;\n}.ds-seat-item-name {\n  font-size: 12px;\n  font-weight: 500;\n}.ds-seat-item-status {\n  font-size: 12px;\n  color: var(--muted-foreground);\n}.ds-sim-badge {\n  margin-left: auto;\n  color: #64748b;\n  font-size: 9px;\n  letter-spacing: 0.03em;\n}.ds-seat-item.ds-needs-review {\n  background: var(--review-soft);\n  border-color: #f1cbc3;\n}.ds-seat-item.ds-needs-review .ds-seat-item-status {\n  color: var(--review);\n  font-weight: 600;\n}.ds-seat-item.ds-is-selected {\n  border-color: var(--ring);\n  outline: 1px solid var(--ring);\n  outline-offset: -1px;\n}.ds-seat-item{font-family:var(--font-courier-prime,monospace);font-size:14px;\n  --background: #fff;\n  --foreground: #0f172a;\n  --paper: #fff;\n  --muted: #f1f5f9;\n  --muted-foreground: #64748b;\n  --line: #e2e8f0;\n  --accent: #eef8f6;\n  --accent-foreground: #0f766e;\n  --ring: #0f766e;\n  --card: #fff;\n  --card-foreground: #0f172a;\n  --primary: #0f172a;\n  --primary-foreground: #fff;\n  --secondary: #f1f5f9;\n  --secondary-foreground: #0f172a;\n  --border: var(--line);\n  --input: #cbd5e1;\n  --destructive: #b53c2f;\n  --destructive-foreground: #fff;\n  --review: #b53c2f;\n  --review-soft: #fff2ee;\n  --radius: 8px;\n}.ds-button:focus-visible{outline:2px solid var(--ring,#0f766e);outline-offset:3px;}@media(hover:hover) and (pointer:fine){.ds-seat-item:hover{background:#f1f5f9;}.ds-seat-item.ds-needs-review:hover{background:#ffe9e1;}}@media(max-width:759px){.ds-seat-item{min-height:48px;}}"
+      "refersTo": "button-primary",
+      "description": "Navy action used for camera connection and sign-in.",
+      "html": "<button class=\"ds-primary\">Connect local camera</button>",
+      "css": ".ds-primary{font-family:var(--font-inter,Inter,Arial,sans-serif);cursor:pointer;transition:background-color 160ms ease,border-color 160ms ease,transform 160ms ease;display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:10px 16px;border:1px solid var(--primary,#173f72);border-radius:8px;background:var(--primary,#173f72);color:white;font-size:12px;font-weight:500}.ds-primary:hover{background:#102f58;border-color:#102f58}.ds-primary:focus-visible{outline:2px solid var(--ring,#245899);outline-offset:4px;}.ds-primary:active{transform:translateY(1px)}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}}"
     },
     {
-      "name": "Attention queue",
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet workspace action.",
+      "html": "<button class=\"ds-secondary\">Refresh</button>",
+      "css": ".ds-secondary{font-family:var(--font-inter,Inter,Arial,sans-serif);cursor:pointer;transition:background-color 160ms ease,border-color 160ms ease,transform 160ms ease;min-height:38px;padding:8px 12px;border:1px solid var(--line,#e6e9ee);border-radius:8px;background:var(--paper,#fff);color:var(--foreground,#20252d);font-size:12px}.ds-secondary:hover{background:var(--surface-hover,#f5f7fa);border-color:#cbd3df}.ds-secondary:focus-visible{outline:2px solid var(--ring,#245899);outline-offset:4px;}.ds-secondary:active{transform:translateY(1px)}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none}}"
+    },
+    {
+      "name": "Login email field",
+      "kind": "input",
+      "refersTo": "login-input",
+      "description": "Centered accessible email field for the staged sign-in flow.",
+      "html": "<label class=\"ds-field\">Teacher email<input type=\"email\" placeholder=\"you@school.edu\" autocomplete=\"username\" /></label>",
+      "css": ".ds-field{display:grid;gap:8px;width:100%;max-width:340px;font:12px Inter,Arial,sans-serif;color:var(--foreground,#20252d)}.ds-field input{font:14px Inter,Arial,sans-serif;min-height:48px;padding:12px 15px;border:1px solid #d9dfe7;border-radius:10px;background:white;color:var(--foreground,#20252d);caret-color:var(--primary,#173f72)}.ds-field input::placeholder{color:#737d8c}.ds-field input:focus-visible{outline:2px solid var(--ring,#245899);outline-offset:4px;}"
+    },
+    {
+      "name": "Workspace navigation",
+      "kind": "nav",
+      "refersTo": "nav-active",
+      "description": "Compact rail links with a solid current destination.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Workspace\"><a href=\"#classroom\" aria-current=\"page\">Classroom</a><a href=\"#people\">People</a><a href=\"#reviews\">Teacher reviews</a></nav>",
+      "css": ".ds-nav{display:grid;gap:6px;width:200px;padding:16px;background:var(--workspace,#f8f9fb);font:500 13px Inter,Arial,sans-serif}.ds-nav a{display:flex;padding:10px 12px;border-radius:8px;color:#536071;text-decoration:none}.ds-nav a[aria-current]{background:var(--primary,#173f72);color:white}.ds-nav a:not([aria-current]):hover{background:#eef1f5;color:var(--foreground,#20252d)}.ds-nav a:focus-visible{outline:2px solid var(--ring,#245899);outline-offset:4px;}"
+    },
+    {
+      "name": "Neutral review label",
+      "kind": "chip",
+      "refersTo": "review-label",
+      "description": "Normal priority stays subdued.",
+      "html": "<span class=\"ds-label\">Normal priority</span>",
+      "css": ".ds-label{display:inline-flex;padding:2px 6px;border-radius:5px;font:10px Inter,Arial,sans-serif;background:var(--muted,#f2f4f7);color:var(--muted-foreground,#626b78)}"
+    },
+    {
+      "name": "Elevated review label",
+      "kind": "chip",
+      "refersTo": "review-label-elevated",
+      "description": "Warm priority treatment paired with explicit text.",
+      "html": "<span class=\"ds-elevated\">High priority</span>",
+      "css": ".ds-elevated{display:inline-flex;padding:2px 6px;border-radius:5px;font:10px Inter,Arial,sans-serif;background:var(--review-soft,#fcf0e9);color:var(--review,#934d31)}"
+    },
+    {
+      "name": "Review panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Flat bordered queue container with an honest empty state.",
+      "html": "<section class=\"ds-panel\"><header>Teacher reviews <span>0</span></header><div><p>No pending reviews</p><small>New reviews will appear here when available.</small></div></section>",
+      "css": ".ds-panel{max-width:360px;overflow:hidden;border:1px solid var(--line,#e6e9ee);border-radius:12px;background:white;color:var(--foreground,#20252d);font-family:Inter,Arial,sans-serif}.ds-panel header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line,#e6e9ee);font-size:14px;font-weight:600}.ds-panel header span{display:grid;place-items:center;min-width:23px;height:23px;border-radius:6px;background:var(--muted,#f2f4f7);color:var(--muted-foreground,#626b78);font-size:12px;font-weight:400}.ds-panel>div{padding:44px 24px;text-align:center}.ds-panel p{margin:0 0 10px;font-size:14px;font-weight:500}.ds-panel small{display:block;max-width:30ch;margin:auto;color:var(--muted-foreground,#626b78);font-size:12px;line-height:1.75}"
+    },
+    {
+      "name": "Person observation row",
       "kind": "custom",
-      "refersTo": "attention-panel",
-      "description": "Divided review list with concrete actions; simulated preview content.",
-      "html": "<section class=\"ds-attention-panel\"><header class=\"ds-panel-heading\"><h2 class=\"ds-heading\">Attention</h2><span class=\"ds-attention-count ds-has-items\">1</span></header><ul class=\"ds-attention-list\"><li><div class=\"ds-attention-item-heading\"><h3>Left seat</h3><span class=\"ds-review-label\">Needs Review</span></div><p>Review this seat\u2019s observation.</p><div class=\"ds-attention-actions\"><button class=\"ds-button\" type=\"button\">View details</button><button class=\"ds-button ds-text-button\" type=\"button\">Dismiss</button></div></li></ul></section>",
-      "css": ".ds-button {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 6px;\n  min-height: 34px;\n  padding: 7px 11px;\n  border: 1px solid #dce4ee;\n  border-radius: 6px;\n  background: var(--paper);\n  color: var(--foreground);\n  font: inherit;\n  font-size: 13px;\n  font-weight: 500;\n  cursor: pointer;\n  transition: background-color 100ms ease;\n}.ds-heading {\n  font-size: 14px;\n  font-weight: 600;\n  letter-spacing: -0.015em;\n  margin: 0;\n}.ds-attention-panel {\n  min-width: 0;\n  border: 1px solid var(--line);\n  border-radius: var(--radius);\n  background: var(--paper);\n}.ds-panel-heading {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  gap: 12px;\n  min-height: 46px;\n  padding: 12px 16px;\n  border-bottom: 1px solid var(--line);\n}.ds-attention-count {\n  color: var(--muted-foreground);\n  font-size: 12px;\n  font-variant-numeric: tabular-nums;\n}.ds-attention-count.ds-has-items {\n  color: var(--review);\n  font-weight: 600;\n}.ds-attention-list {\n  padding: 0;\n  margin: 0;\n  list-style: none;\n}.ds-attention-list li {\n  padding: 20px 16px;\n  border-bottom: 1px solid var(--line);\n}.ds-attention-item-heading {\n  display: flex;\n  align-items: start;\n  flex-wrap: wrap;\n  gap: 8px;\n}.ds-attention-item-heading h3 {\n  margin: 0;\n  font-size: 13px;\n  font-weight: 600;\n}.ds-review-label {\n  color: var(--review);\n  background: var(--review-soft);\n  border-radius: 4px;\n  padding: 2px 5px;\n  font-size: 10px;\n  font-weight: 500;\n}.ds-attention-list li > p {\n  color: var(--muted-foreground);\n  font-size: 13px;\n  line-height: 1.6;\n  margin: 10px 0 16px;\n  max-width: 42ch;\n}.ds-attention-actions {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}.ds-attention-actions > button {\n  min-height: 32px;\n  font-size: 12px;\n}.ds-text-button {\n  border-color: transparent;\n  background: transparent;\n  font-size: 12px;\n  font-weight: 400;\n  color: var(--muted-foreground);\n  padding: 5px 7px;\n  min-height: 30px;\n}.ds-attention-panel{font-family:var(--font-courier-prime,monospace);font-size:14px;\n  --background: #fff;\n  --foreground: #0f172a;\n  --paper: #fff;\n  --muted: #f1f5f9;\n  --muted-foreground: #64748b;\n  --line: #e2e8f0;\n  --accent: #eef8f6;\n  --accent-foreground: #0f766e;\n  --ring: #0f766e;\n  --card: #fff;\n  --card-foreground: #0f172a;\n  --primary: #0f172a;\n  --primary-foreground: #fff;\n  --secondary: #f1f5f9;\n  --secondary-foreground: #0f172a;\n  --border: var(--line);\n  --input: #cbd5e1;\n  --destructive: #b53c2f;\n  --destructive-foreground: #fff;\n  --review: #b53c2f;\n  --review-soft: #fff2ee;\n  --radius: 8px;\n}.ds-button:focus-visible{outline:2px solid var(--ring,#0f766e);outline-offset:3px;}@media(hover:hover) and (pointer:fine){.ds-button:hover{background:#f1f5f9;}.ds-text-button:hover{color:var(--foreground);}}@media(max-width:759px){.ds-attention-actions>.ds-button{min-height:40px;}}"
+      "refersTo": "person-row",
+      "description": "Position-based observation with explicit status and simulated provenance.",
+      "html": "<button class=\"ds-person\"><strong>Position 1</strong><span>In progress</span><small>Thumbs up</small><b>SIM</b></button>",
+      "css": ".ds-person{font-family:var(--font-inter,Inter,Arial,sans-serif);cursor:pointer;transition:background-color 160ms ease,border-color 160ms ease,transform 160ms ease;display:grid;grid-template-columns:1fr 1fr 1fr auto;align-items:center;gap:14px;width:100%;min-height:68px;padding:14px 12px;border:0;border-top:1px solid var(--line,#e6e9ee);border-bottom:1px solid var(--line,#e6e9ee);border-radius:0;background:white;text-align:left;color:var(--foreground,#20252d)}.ds-person strong{font-size:13px;font-weight:500}.ds-person span{font-size:12px;color:#576375}.ds-person small{font-size:11px;color:var(--muted-foreground,#626b78)}.ds-person b{font-size:9px;font-weight:400;border:1px solid var(--line,#e6e9ee);border-radius:4px;padding:1px 4px;color:#6a7483}.ds-person:hover{background:var(--surface-hover,#f5f7fa)}.ds-person:focus-visible{outline:2px solid var(--ring,#245899);outline-offset:4px;}.ds-person:active{transform:translateY(1px)}@media(max-width:700px){.ds-person{grid-template-columns:1fr 1fr auto;gap:6px 12px;padding:14px 8px}.ds-person small{grid-column:1/3;grid-row:2}.ds-person b{grid-column:3;grid-row:1/3}}@media(prefers-reduced-motion:reduce){.ds-person{transition:none}}"
     }
   ],
   "narrative": {
-    "northStar": "The Classroom Monitor",
-    "overview": "The user's operational brief establishes the layout; the latest admin screenshot references refine its white, navy, cool-gray, teal and coral palette. Cues is calm, compact and aligned: a neutral page, white surfaces, thin dividers, Courier Prime typography and restrained status color. The live classroom feed dominates; the attention list directs the teacher to seats needing review.\n\nA compact seat strip selects details in the right panel. Normal task states remain quiet. There is no hero, decorative imagery, large numeric summary, glass treatment or analytics chart.",
+    "northStar": "The Classroom in View",
+    "overview": "Cues uses the Columbia Catalog / LionPlan reference as the authority for quiet operational software: white content, cool neutral framing, upright Inter, navy selection and compact rounded controls. A persistent workspace rail gives classroom monitoring, people, teacher reviews and notifications a clear home. The camera and review queue carry the work; activity controls open only when requested. This code-led reference adaptation supersedes the earlier Nexus mesh tiles and italic type, and makes no pixel-exact reproduction claim.\n\nThe sign-in surface is focused and friendly: one question at a time beneath an illustrated Cues companion. The character belongs to the product, never to a teacher profile or learner identity. Its animation supports the interaction without changing what the system knows. Structured state, honest unavailable states, position-based identification and teacher authorization remain product boundaries rather than decorative implications.",
     "keyCharacteristics": [
-      "Dominant local video beside a compact attention queue.",
-      "Neutral canvas, white surfaces and one-pixel boundaries.",
-      "Small Courier Prime labels and compact rectangular controls.",
-      "Strong emphasis reserved for Needs Review and selected-seat focus."
+      "White and cool-neutral surfaces with navy actions and selection.",
+      "Upright Inter, fine borders and compact rectangular controls.",
+      "A persistent desktop rail that becomes a compact mobile header/navigation.",
+      "Scan-friendly people rows and progressive activity disclosure.",
+      "A browser-rendered login companion with restrained gaze and a sleeping password state."
     ],
     "rules": [
       {
-        "name": "The Review Emphasis Rule",
-        "body": "Needs Review receives the strongest task-state treatment; status text always accompanies color. Tracking loss remains a quiet observation state.",
+        "name": "The State Comes From Text Rule",
+        "body": "Color supports explicit labels; it never establishes task difficulty, learner identity or an emotional diagnosis.",
         "section": "colors"
+      },
+      {
+        "name": "The One Typeface Rule",
+        "body": "Use upright Inter throughout the workspace and login; hierarchy comes from size, weight and spacing.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Use borders and tonal separation for containment; the current interface has no cast-shadow vocabulary.",
+        "section": "elevation"
       }
     ],
     "dos": [
-      "**Do** keep video dominant and attention easy to scan.",
-      "**Do** use neutral white surfaces, thin borders and compact aligned spacing.",
-      "**Do** pair status color with text and reserve emphasis for Needs Review.",
-      "**Do** preserve local video privacy, SIM labels and honest unavailable states.",
-      "**Do** retain keyboard focus and focus restoration from details."
+      "Do use navy for selected navigation and consequential actions, with explicit text labels.",
+      "Do preserve the 4:3 local video viewport, SIM provenance and separate connection feedback.",
+      "Do keep activity controls inside their disclosure and people in compact rows.",
+      "Do retain keyboard focus, mobile account access, wrapping and reduced-motion behavior.",
+      "Do treat the login companion as a product character, with password privacy and flag-off fallback.",
+      "Do show only observed counts and backend-supplied reviews, with honest loading, empty, error and unavailable states."
     ],
     "donts": [
-      "**Don't** restore glass, gradients, giant rounded tiles, heroes or oversized counts.",
-      "**Don't** add decorative charts, imagery or an icon to every label.",
-      "**Don't** imply dismissal resolves an alert, changes task state or applies support.",
-      "**Don't** claim WebRTC, connected session controls, history or agent assessments exist.",
-      "**Don't** style tracking loss as student failure or match scores as probabilities."
+      "Don't restore superseded Courier Prime, DM Sans italics, lavender mesh tiles or pill navigation as the current visual system.",
+      "Don't use teacher or student portraits, avatar builders or biometric identity to represent the login companion.",
+      "Don't infer task failure from tracking loss, expression output or a color treatment.",
+      "Don't send camera frames through cloud services or describe the local MJPEG connection as WebRTC.",
+      "Don't imply deployed write permissions, available progress history or Photon delivery from a polished surface."
     ]
   }
 }

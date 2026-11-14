@@ -129,6 +129,11 @@ def main(argv: list[str] | None = None) -> None:
     from vision.pipeline import Pipeline, discover_stages
 
     if args.task:
+        if flags.enabled("vision.session_lifecycle"):
+            parser.error(
+                "--task cannot override a teacher-managed session; "
+                "disable vision.session_lifecycle for local testing"
+            )
         TASKS.set_class_task(args.task)
     off = [n for n in PERCEPTION_FLAGS if not flags.enabled(n)]
     if off:

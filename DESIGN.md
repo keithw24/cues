@@ -1,141 +1,229 @@
 ---
 name: Cues
-description: A compact operational classroom monitor with local video and an attention queue.
+description: A quiet teacher workspace with a local camera, structured observations and teacher-led review.
 colors:
-  background: "#fff"
-  foreground: "#0f172a"
-  paper: "#fff"
-  muted: "#f1f5f9"
-  muted-foreground: "#64748b"
-  line: "#e2e8f0"
-  accent: "#eef8f6"
-  accent-foreground: "#0f766e"
-  ring: "#0f766e"
-  review: "#b53c2f"
-  review-soft: "#fff2ee"
-  review-border: "#f1cbc3"
-  hover: "#f1f5f9"
-  review-hover: "#ffe9e1"
-  video-placeholder: "#f8fafc"
-  live: "#0f766e"
+  background: "#ffffff"
+  foreground: "#20252d"
+  paper: "#ffffff"
+  muted: "#f2f4f7"
+  muted-foreground: "#626b78"
+  line: "#e6e9ee"
+  surface-hover: "#f5f7fa"
+  accent: "#edf3fb"
+  accent-foreground: "#173f72"
+  primary: "#173f72"
+  primary-foreground: "#ffffff"
+  ring: "#245899"
+  review: "#934d31"
+  review-soft: "#fcf0e9"
+  workspace: "#f8f9fb"
+  video-stage: "#f0f3f7"
 typography:
+  display:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "clamp(28px, 4vw, 38px)"
+    fontWeight: 400
+    lineHeight: 1.25
+    letterSpacing: "-0.03em"
+  headline:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "clamp(28px, 3vw, 36px)"
+    fontWeight: 500
+    lineHeight: 1.2
+    letterSpacing: "-0.035em"
   wordmark:
-    fontFamily: "Courier Prime, monospace"
-    fontSize: "22px"
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "25px"
     fontWeight: 600
     letterSpacing: "-0.04em"
+  metric:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "26px"
+    fontWeight: 500
+    lineHeight: 1.3
+    letterSpacing: "-0.03em"
   heading:
-    fontFamily: "Courier Prime, monospace"
-    fontSize: "14px"
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "15px"
     fontWeight: 600
     letterSpacing: "-0.015em"
   body:
-    fontFamily: "Courier Prime, monospace"
+    fontFamily: "Inter, Arial, sans-serif"
     fontSize: "14px"
-  control:
-    fontFamily: "Courier Prime, monospace"
+    fontWeight: 400
+    lineHeight: 1.5
+  navigation:
+    fontFamily: "Inter, Arial, sans-serif"
     fontSize: "13px"
     fontWeight: 500
-  label:
-    fontFamily: "Courier Prime, monospace"
+  control:
+    fontFamily: "Inter, Arial, sans-serif"
     fontSize: "12px"
+    fontWeight: 500
+  caption:
+    fontFamily: "Inter, Arial, sans-serif"
+    fontSize: "11px"
+    fontWeight: 400
 rounded:
-  surface: "8px"
-  control: "6px"
-  status: "4px"
+  surface: "12px"
+  control: "8px"
+  login-input: "10px"
+  badge: "5px"
+  count: "6px"
 spacing:
-  seat-gap: "8px"
-  compact: "12px"
-  panel: "16px"
-  item: "20px"
-  page: "24px"
+  compact: "8px"
+  control: "12px"
+  row: "14px"
+  section: "16px"
+  panel: "20px"
+  workspace: "24px"
+  page: "40px"
 components:
-  button:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.primary-foreground}"
+    rounded: "{rounded.control}"
+    padding: "10px 16px"
+    height: "40px"
+  button-secondary:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.control}"
-    padding: "7px 11px"
-  seat-item:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.foreground}"
+    padding: "8px 12px"
+    height: "38px"
+  nav-active:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.primary-foreground}"
     rounded: "{rounded.control}"
     padding: "10px 12px"
-  seat-item-review:
-    backgroundColor: "{colors.review-soft}"
-    textColor: "{colors.review}"
-    rounded: "{rounded.control}"
-  attention-panel:
+  login-input:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.login-input}"
+    padding: "12px 15px"
+    height: "48px"
+  panel:
     backgroundColor: "{colors.paper}"
     rounded: "{rounded.surface}"
+  person-row:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.foreground}"
+    padding: "14px 12px"
+  review-label:
+    backgroundColor: "{colors.muted}"
+    textColor: "{colors.muted-foreground}"
+    rounded: "{rounded.badge}"
+    padding: "2px 6px"
+  review-label-elevated:
+    backgroundColor: "{colors.review-soft}"
+    textColor: "{colors.review}"
+    rounded: "{rounded.badge}"
+    padding: "2px 6px"
 ---
-
 # Design System: Cues
 
 ## Overview
 
-**Creative North Star: "The Classroom Monitor"**
+**Creative North Star: "The Classroom in View"**
 
-The user's operational brief establishes the layout; the latest admin screenshot references refine its white, navy, cool-gray, teal and coral palette. Cues is calm, compact and aligned: a neutral page, white surfaces, thin dividers, Courier Prime typography and restrained status color. The live classroom feed dominates; the attention list directs the teacher to seats needing review.
+Cues uses the Columbia Catalog / LionPlan reference as the authority for quiet operational software: white content, cool neutral framing, upright Inter, navy selection and compact rounded controls. A persistent workspace rail gives classroom monitoring, people, teacher reviews and notifications a clear home. The camera and review queue carry the work; activity controls open only when requested. This code-led reference adaptation supersedes the earlier Nexus mesh tiles and italic type, and makes no pixel-exact reproduction claim.
 
-A compact seat strip selects details in the right panel. Normal task states remain quiet. There is no hero, decorative imagery, large numeric summary, glass treatment or analytics chart.
+The sign-in surface is focused and friendly: one question at a time beneath an illustrated Cues companion. The character belongs to the product, never to a teacher profile or learner identity. Its animation supports the interaction without changing what the system knows. Structured state, honest unavailable states, position-based identification and teacher authorization remain product boundaries rather than decorative implications.
 
 **Key Characteristics:**
-- Dominant local video beside a compact attention queue.
-- Neutral canvas, white surfaces and one-pixel boundaries.
-- Small Courier Prime labels and compact rectangular controls.
-- Strong emphasis reserved for Needs Review and selected-seat focus.
+- White and cool-neutral surfaces with navy actions and selection.
+- Upright Inter, fine borders and compact rectangular controls.
+- A persistent desktop rail that becomes a compact mobile header/navigation.
+- Scan-friendly people rows and progressive activity disclosure.
+- A browser-rendered login companion with restrained gaze and a sleeping password state.
 
-Source: `web/app/globals.css`, `web/app/layout.tsx`, `web/components/dashboard.tsx` and `web/components/local-classroom-feed.tsx`. `PRD-cues.md` remains product authority; implementation limits are recorded in `PRODUCT.md`.
+Sources: `web/app/globals.css`, `web/app/layout.tsx`, `web/components/dashboard.tsx`, `workspace-sidebar.tsx`, `local-classroom-feed.tsx`, `teacher-login.tsx`, `login-companion.tsx` and `web/app/login/page.tsx`. The approved direction is `.impeccable/teacher-workspace.md`; functional boundaries are in `web/UI_REDESIGN.md`. `PRD-cues.md` remains product authority. This document records the implemented visual system.
 
 ## Colors
 
-Frontmatter values are normative. White canvas and surfaces use cool-gray boundaries, navy primary text and muted slate secondary text. Teal identifies selection, keyboard focus and explicit live text. Coral marks review labels, review seat backgrounds and their borders; normal task states keep neutral text. There are no status dots or label icons. `muted` is a background token; secondary text uses `muted-foreground`. `accent` is a soft teal background; focus and selection use `ring`.
+The frontmatter owns reusable color values. Navy is the primary action, wordmark and selected-navigation color; the pale blue accent marks selected people rows. White content sits beside a cool near-white workspace rail and login canvas. Neutral ink carries primary text, muted foreground supports context and privacy copy, and fine cool-gray lines separate rows and panels. The video placeholder uses its own quiet neutral field; connected frames use a dark contained viewport.
 
-**The Review Emphasis Rule.** Needs Review receives the strongest task-state treatment; status text always accompanies color. Tracking loss remains a quiet observation state.
+Warm brown review text on a pale warm fill distinguishes elevated review priority. Normal badges remain neutral. Live-connection green is specific to connection status and is not a learner-status scale. There are no colored person tiles or mesh gradients in the current interface.
+
+**The State Comes From Text Rule.** Color supports explicit labels; it never establishes task difficulty, learner identity or an emotional diagnosis.
 
 ## Typography
 
-Courier Prime loads through `next/font/google` in regular and bold weights, per the user’s typewriter-font request. Body text is 14px. The wordmark is 22px semibold; functional panel headings are 14px semibold. Controls and attention text are 13px; seat labels/details are generally 12px. Secondary metadata is 10–11px, and SIM is 9px. Counts and observation timestamps use tabular numerals. There is no display-type or oversized heading role in this dashboard.
+Inter is loaded through `next/font/google` at weights 400, 500, 600 and 700, with Arial and sans-serif fallbacks. All visible operational and login type is upright. The frontmatter records the implemented roles: a regular login display, a medium workspace headline, semibold section headings, medium tabular summary counts, compact navigation and small supporting captions. No separate display or monospace face is used.
+
+Workspace titles use tight tracking; body copy stays plain. Main panel headings are compact (14px overrides within panels), while the camera toolbar inherits the heading role. Login questions use the display scale; at the mobile breakpoint they settle at 29px. Person labels use medium 13px text, state uses 12px, and activity uses 11px. Match scores and timestamps belong in selected details rather than competing with the principal status.
+
+**The One Typeface Rule.** Use upright Inter throughout the workspace and login; hierarchy comes from size, weight and spacing.
 
 ## Layout
 
-A white 58px header contains Cues, current activity, connection status and the disabled End session control. The centered main workspace has a 1680px maximum width and 16px top, 24px horizontal and 12px bottom padding. A compact toolbar precedes the monitor.
+The desktop workspace has a fixed left rail (232px), with a matching shell inset. Main content has a maximum width of 1420px and page padding of 30px 40px 28px. A breadcrumb and title precede four observed-state summary counts, separated from the working area by a rule. Current activity stays visible; Manage activity opens a right-aligned disclosure containing existing session controls and unavailable feedback.
 
-The desktop grid is approximately 70/30: `minmax(0, 7fr)` video/seat area plus `minmax(280px, 3fr)` attention/details, with a 16px gap. Video height is `clamp(280px, calc(100svh - 360px), 600px)` and uses contain fitting. Seat items sit below it in an auto-fit grid with a 160px minimum width and 8px gaps. The right surface alternates between the queue and selected seat details.
+The camera/people column and review/detail panel use a 1.8:1 grid with a minimum 290px right column and 24px gap. The camera retains a 4:3 viewport and contains frames without cropping. People appear as full-width divided rows: position label, task state, activity and SIM provenance. The right panel alternates between queue, person details and review evidence. Long facts wrap rather than expand the page.
 
-- **At 1050px and below:** main/header insets become 16px, grid gap 12px and the right column becomes 290px.
-- **At 759px and below:** the right panel moves below video and seats. Main padding is 12px. Video uses a 16:10 ratio and 260px minimum height. The header wraps, keeping its 58px minimum. Standard buttons become at least 40px tall; refresh and End session are 36px, seat items 48px. Notices/footer stack.
+At 1200px the rail narrows to 210px, main padding becomes 28px, and the grid tightens to 1.45:1 with an 18px gap. At 1000px the monitor becomes one column and the review panel follows the camera/people content. At 700px the rail becomes a non-fixed, wrapping header with wordmark, account shortcut when enabled, Notifications and horizontal classroom/people/review links. Desktop workspace identity, account detail and privacy block are hidden; the camera footer and page copy retain privacy context. Mobile main padding is 24px 20px. Metrics remain four compact columns; people rows move activity below label and state, with SIM alongside.
+
+Login is a full-height column with top navigation, a centered content region (maximum 680px), a companion, one question and a form (maximum 340px). The companion reserves 132px square. Mobile header padding is 22px 24px; content remains a single centered column. Notifications has its own workspace destination and an honest coming-soon integration description.
 
 ## Elevation & Depth
 
-There are no gradients, shadows, blur, glass fills or glowing effects. One-pixel borders and dividers establish grouping. A selected seat uses a teal border and inset one-pixel outline. Keyboard focus uses a two-pixel teal outline with three-pixel offset; forced-colors mode preserves explicit selection and video boundaries.
+The system is flat: white panels, cool framing, thin borders and subtle selected/hover fills establish containment. The activity disclosure sits above the workspace through positioning and stacking, with a border rather than a cast shadow. Keyboard focus is a two-pixel ring with a four-pixel offset; review-row focus is inset, and selected people rows have a thin inset outline.
+
+Buttons transition background, border and press transform over 160ms with `ease`. Pressing moves a button down one pixel. Login steps arrive over 240ms using `cubic-bezier(0.23, 1, 0.32, 1)`, fading from 0.7 opacity, moving up from 8px and clearing a 1px blur. Reduced motion removes smooth scrolling, button transitions and the login entrance; the companion animation pauses and gaze centers.
+
+**The Flat Surface Rule.** Use borders and tonal separation for containment; the current interface has no cast-shadow vocabulary.
 
 ## Shapes
 
-Functional surfaces use 8px corners. Buttons, seat items, notices and empty rows use 6px corners. Review labels use 4px corners. There are no status dots or label icons. Avoid nested decorative cards.
+Controls and navigation use compact rounded rectangles, not full pills. Panels and the local feed use the surface radius; fields have the slightly softer login-input radius. Small badges use tighter corners. People and review rows are square-edged, divided surfaces. The workspace account icon is circular; the product companion is an illustrated sphere. These exceptions express identity or character rather than a card system.
 
 ## Components
 
-The feed has a 40px toolbar, video/placeholder area and compact footer for activity, disconnect and privacy text. Connection status for video is independent of structured seat updates. The reusable Card primitive wraps the feed and attention surface with an 8px radius, border and white background; its default shadow is omitted. CardTitle forwards an HTML heading reference. The `cn` helper uses clsx/tailwind-merge, with shadcn token mappings and components.json configuration. No hero or beam implementation is included. Camera connection is opt-in and direct to the local vision service; it is not WebRTC.
+### Buttons
 
-Seat items are compact buttons with name, teacher-facing status and SIM provenance. Selecting a seat opens its current activity, match score and last observation in the existing right surface. Escape or Close details returns to the queue and restores focus to the opener when it remains mounted, or the corresponding stable seat-strip button. Dismiss and Restore focus the persistent Attention heading. Tracking loss suppresses the score. History and agent assessment use honest unavailable text.
+Primary controls use navy with white text; base secondary controls are white with neutral ink and a thin line. Primary camera actions have a 40px minimum height, login welcome 44px, login submit 46px and base controls 38px. Hover deepens navy for primary actions and uses the surface-hover fill for secondary actions. Focus remains visible; disabled controls use half opacity and a blocked cursor. Selected mobile operational actions retain a 40px minimum target.
 
-Attention items form a divided vertical list with seat, Needs Review label, status explanation, View details and Dismiss. Dismiss hides the current observation for this visit, leaves its seat status unchanged and can be restored. A new observation may appear again. End session remains disabled because session controls are not connected.
+### Inputs / Fields
 
-The connect-feed action uses navy fill and white text; its hover fill is #1e293b. Buttons have subtle background-only hover transitions (100ms ease); review items keep a soft coral hover fill. There are no scale presses, entrances, loading spinners or layout animation. Loading, empty, disconnected and unavailable observations remain explicit text states. Notices distinguish retained observations from live updates.
+Login fields are white with a cool border, 48px minimum height, 12px 15px padding and soft rectangular corners. Email and password have explicit accessible labels and autocomplete. Forms advance welcome → email → password, with reversible back/change navigation. Requests disable conflicting controls; authentication errors are sanitized. Sign-in uses existing Supabase teacher accounts, without account creation or permission assignment.
+
+### Navigation
+
+The rail uses compact icon/text links and a solid navy current destination. Classroom opens the dashboard, People and Teacher reviews lead to actual in-page sections, and Notifications opens `/settings/notifications`. Account access leads to `/login` only when enabled; on mobile it has a distinct accessible icon button. Inline SVG icons accompany text or accessible labels. The brand symbol is a small pair of tilted rounded bars, not a teacher avatar.
+
+### Chips
+
+Neutral outlined status chips communicate provenance or integration state. Review labels use a compact neutral fill by default and the warm review pair for elevated priority. SIM remains explicit text, including on mobile. Badge color never substitutes for a state name.
+
+### Cards / Containers
+
+Camera and review panels are white bordered containers without shadows. The camera toolbar and footer have restrained padding around a fixed-ratio video stage. The review panel uses a divided heading and clickable whole-row entries; selected evidence and structured facts replace the queue in place. Close/back actions, Escape and focus restoration support keyboard use.
+
+### People Rows and Activity Disclosure
+
+People are compact divided buttons (68px minimum on desktop) rather than large colored tiles. Selection uses the pale accent fill and an inset outline. Task status and tracking availability remain explicit; match scores mean gesture similarity, not probability. Manage activity uses a native details/summary disclosure and reveals only the existing gated controls. Failed writes retain confirmed state; this presentation does not deploy permissions or migrations.
+
+### Login Companion
+
+The Cues companion is a navy illustrated sphere with white eyes, rendered in the browser by the MIT-licensed `@bible-strong/avatar-react` and `avatar-core` packages. It is decorative and hidden from the accessibility tree. Idle gaze follows pointer position with restrained bounds and throttled updates, returning to center when the pointer leaves. Password entry puts it to sleep; busy handling requests a thinking state. Password privacy takes precedence while submitting from that step. Reduced motion pauses the character and centers its gaze. It is neither a teacher profile image nor a learner model, and no avatar builder is part of this flow.
+
+`web.teacher_login` defaults off. With the flag off, `/login` renders an unavailable page and a classroom link without loading the companion or sign-in implementation. `web.dashboard` and existing session/review integration flags retain their separate gates. Login does not imply that persistent controls or delivery integrations are available.
+
+The local feed loads MJPEG directly from `http://127.0.0.1:8000/stream` on the station browser. Camera frames do not traverse Supabase or the Next.js server. Only structured state feeds the workspace. Use simulated data and position labels, keep expression context from independently establishing difficulty, and require teacher approval before task or support changes. Photon is a future notification destination: no connection, delivery or credentials are implemented by this redesign.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep video dominant and attention easy to scan.
-- **Do** use neutral white surfaces, thin borders and compact aligned spacing.
-- **Do** pair status color with text and reserve emphasis for Needs Review.
-- **Do** preserve local video privacy, SIM labels and honest unavailable states.
-- **Do** retain keyboard focus and focus restoration from details.
+- **Do** use navy for selected navigation and consequential actions, with explicit text labels.
+- **Do** preserve the 4:3 local video viewport, SIM provenance and separate connection feedback.
+- **Do** keep activity controls inside their disclosure and people in compact rows.
+- **Do** retain keyboard focus, mobile account access, wrapping and reduced-motion behavior.
+- **Do** treat the login companion as a product character, with password privacy and flag-off fallback.
+- **Do** show only observed counts and backend-supplied reviews, with honest loading, empty, error and unavailable states.
 
 ### Don't:
-- **Don't** restore glass, gradients, giant rounded tiles, heroes or oversized counts.
-- **Don't** add decorative charts, imagery or an icon to every label.
-- **Don't** imply dismissal resolves an alert, changes task state or applies support.
-- **Don't** claim WebRTC, connected session controls, history or agent assessments exist.
-- **Don't** style tracking loss as student failure or match scores as probabilities.
+- **Don't** restore superseded Courier Prime, DM Sans italics, lavender mesh tiles or pill navigation as the current visual system.
+- **Don't** use teacher or student portraits, avatar builders or biometric identity to represent the login companion.
+- **Don't** infer task failure from tracking loss, expression output or a color treatment.
+- **Don't** send camera frames through cloud services or describe the local MJPEG connection as WebRTC.
+- **Don't** imply deployed write permissions, available progress history or Photon delivery from a polished surface.

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { WorkspaceIcon } from "@/components/workspace-icon";
 
 /** The browser connects directly to the station's loopback stream; frames never cross the app server. */
 export default function LocalClassroomFeed({ activity }: { activity: string }) {
@@ -50,6 +51,7 @@ export default function LocalClassroomFeed({ activity }: { activity: string }) {
         ) : null}
         {connection !== "live" ? (
           <div className="video-placeholder">
+            <span className="camera-placeholder-icon"><WorkspaceIcon name="camera" /></span>
             <p className="video-state-title">
               {connection === "error"
                 ? "Local camera unavailable"
@@ -60,7 +62,7 @@ export default function LocalClassroomFeed({ activity }: { activity: string }) {
             <p>
               {connection === "error"
                 ? "Check that the vision service is running on this station laptop, then retry."
-                : "View the station’s local camera alongside live seat observations."}
+                : "Connect the camera on this station to see your classroom here."}
             </p>
             {connection !== "connecting" ? (
               <button className="connect-feed" type="button" onClick={connect}>
@@ -89,7 +91,7 @@ export default function LocalClassroomFeed({ activity }: { activity: string }) {
           </button>
         ) : null}
         <span className="privacy-note">
-          Video processed locally · Frames never sent to the LLM
+          Video stays on this laptop
         </span>
       </footer>
     </Card>
