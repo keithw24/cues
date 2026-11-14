@@ -14,6 +14,7 @@ import { countryCodes, normalizeAlertPhone } from "@/lib/alert-phone";
 import { createDashboardClient } from "@/lib/supabase";
 import { syncSignupProfile } from "@/lib/teacher-profile";
 import CuesMark from "@/components/cues-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "./auth.css";
 
 const Companion = dynamic(() => import("@/components/login-companion"), {
@@ -48,6 +49,7 @@ export default function TeacherLogin({
   signupEnabled = false,
   phoneEnabled = false,
   profileEnabled = false,
+  themeToggleEnabled = false,
 }: {
   mode?: "signin" | "signup";
   signupEnabled?: boolean;
@@ -55,6 +57,7 @@ export default function TeacherLogin({
   phoneEnabled?: boolean;
   /** Move the sign-up number into teacher_profiles once signed in. */
   profileEnabled?: boolean;
+  themeToggleEnabled?: boolean;
 }) {
   const router = useRouter();
   const signingUp = mode === "signup";
@@ -197,7 +200,12 @@ export default function TeacherLogin({
             Cues
           </Link>
         )}
-        {switchLink}
+        <div className="auth-header-actions">
+          {themeToggleEnabled ? (
+            <ThemeToggle pageDefault="light" className="auth-theme-toggle" />
+          ) : null}
+          {switchLink}
+        </div>
       </header>
       <section className="auth-content" aria-labelledby="auth-heading">
         <Companion size={92} busy={busy} privacy={step === "password"} />

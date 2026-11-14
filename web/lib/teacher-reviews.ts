@@ -152,6 +152,19 @@ export const decisionLabels: Record<AssessmentDecision, string> = {
   continue_monitoring: "Continue monitoring",
   teacher_review_warranted: "Teacher check-in recommended",
 };
+/** The teacher's decision on a pending review, as the UI words it. The stored
+ * values stay "confirmed" and "dismissed"; these labels only make their
+ * meaning explicit (Cues flags a possible support need, the teacher agrees or
+ * disagrees). No diagnosis, and no claim about why a student is stuck. */
+export const resolutionLabels: Record<"confirmed" | "dismissed", string> = {
+  confirmed: "Support needed",
+  dismissed: "No support needed",
+};
+export const reviewPrompt = {
+  title: "Student may need support",
+  detail:
+    "Cues detected sustained lack of progress. Teacher review requested.",
+} as const;
 export const priorityLabels: Record<ReviewPriority, string> = {
   normal: "Normal priority",
   elevated: "Elevated priority",

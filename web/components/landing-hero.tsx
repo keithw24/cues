@@ -20,7 +20,7 @@ export default function LandingHero({
       <div className="ln-hero-dots" aria-hidden="true" />
       <div className="ln-hero-copy">
         <h1 id="hero-heading" className="ln-enter">
-          know who needs you next
+          Know who needs you next
         </h1>
         <p className="ln-lede ln-enter">
           Cues watches for{" "}

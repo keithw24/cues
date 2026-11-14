@@ -14,6 +14,7 @@ import LandingPreview from "@/components/landing-preview";
 import LandingDemo from "@/components/landing-demo";
 import LandingReveal from "@/components/landing-reveal";
 import LandingSteps from "@/components/landing-steps";
+import { ThemeToggle } from "@/components/theme-toggle";
 import CuesMark from "@/components/cues-mark";
 import LandingFaq from "@/components/landing-faq";
 import LandingFooter from "@/components/landing-footer";
@@ -38,6 +39,7 @@ export default function Landing() {
   const start = isEnabled("web.teacher_signup") ? "/signup" : "/login";
   const faq = isEnabled("web.landing_faq");
   const demo = isEnabled("web.landing_demo");
+  const themeToggle = isEnabled("web.theme_toggle");
   const motion = isEnabled("web.landing_motion");
   return (
     <div className={`landing ${garamond.variable}`}>
@@ -51,6 +53,9 @@ export default function Landing() {
           <a href="#how">How it works</a>
           <a href="#control">Teacher control</a>
           <a href="#privacy">Privacy</a>
+          {themeToggle ? (
+            <ThemeToggle pageDefault="dark" className="ln-theme-toggle" />
+          ) : null}
           <Link
             className="ln-button ln-button-dark ln-button-small"
             href={start}

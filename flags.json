@@ -148,5 +148,29 @@
     "default": false,
     "owner": "evan",
     "ticket": "landing-demo"
+  },
+  "web.room_view": {
+    "description": "Dashboard main page as the room: people placed as the camera sees them, a 'who needs you next' card and a one-hour timeline, with the camera, People list and reviews in a side drawer. When off, the card layout stays.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "room-view"
+  },
+  "web.theme_toggle": {
+    "description": "Light/dark switch on the landing page, log-in, sign-up and the dashboard. The choice is saved in the browser. When off, each page keeps its default: Night for the landing page and dashboard, white for log-in and sign-up.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "theme-toggle"
+  },
+  "web.live_view": {
+    "description": "Design mock of the Live screen at /live: a big count, a who-needs-you card, a short feed and the class as a list. Uses a simulated class only; no Supabase reads. When off, /live shows an unavailable page.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "live-view"
+  },
+  "web.live_data": {
+    "description": "Connects /live to Supabase: people the camera sees, their statuses, the review queue and a since-you-opened feed. Support needed / No support needed on a model review save it as confirmed / dismissed only when web.teacher_review_actions is on. When off, /live keeps the simulated mock.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "live-data"
   }
 }

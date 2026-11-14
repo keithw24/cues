@@ -1,18 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 import CuesMark from "@/components/cues-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function WorkspaceSidebar({
   accountEnabled = false,
-  notifications = false,
+  themeToggle = false,
+  liveView = false,
   onReviews,
 }: {
   accountEnabled?: boolean;
-  notifications?: boolean;
+  themeToggle?: boolean;
+  /** Show the Live screen (web.live_view) in the rail. */
+  liveView?: boolean;
   onReviews?: () => void;
 }) {
+  // The current entry follows the URL, so /live, /dashboard and settings
+  // each highlight their own link.
+  const pathname = usePathname();
+  const current = (href: string) =>
+    pathname === href
+      ? { className: "is-current", "aria-current": "page" as const }
+      : {};
   return (
     <aside className="workspace-sidebar">
       <Link href="/" className="wordmark" aria-label="Cues home">
@@ -30,19 +42,21 @@ export function WorkspaceSidebar({
       ) : null}
       <nav className="sidebar-nav" aria-label="Workspace">
         {accountEnabled ? (
-          <Link href="/settings/profile">
+          <Link href="/settings/profile" {...current("/settings/profile")}>
             <WorkspaceIcon name="account" />
             <span className="nav-label">Teacher profile</span>
           </Link>
         ) : null}
-        <Link
-          href="/dashboard"
-          className={!notifications ? "is-current" : ""}
-          aria-current={!notifications ? "page" : undefined}
-        >
+        <Link href="/dashboard" {...current("/dashboard")}>
           <WorkspaceIcon name="classroom" />
           <span className="nav-label">Classroom</span>
         </Link>
+        {liveView ? (
+          <Link href="/live" {...current("/live")}>
+            <WorkspaceIcon name="live" />
+            <span className="nav-label">Live</span>
+          </Link>
+        ) : null}
         <Link href="/dashboard#seats-heading">
           <WorkspaceIcon name="people" />
           <span className="nav-label">People</span>
@@ -52,9 +66,8 @@ export function WorkspaceSidebar({
           <span className="nav-label">Teacher reviews</span>
         </Link>
         <Link
-          className={notifications ? "is-current" : ""}
           href="/settings/notifications"
-          aria-current={notifications ? "page" : undefined}
+          {...current("/settings/notifications")}
         >
           <WorkspaceIcon name="photon" />
           <span className="nav-label">Notifications</span>
@@ -62,6 +75,9 @@ export function WorkspaceSidebar({
         </Link>
       </nav>
       <div className="sidebar-bottom">
+        {themeToggle ? (
+          <ThemeToggle pageDefault="dark" className="rail-theme-toggle" />
+        ) : null}
         <div className="sidebar-privacy">
           <WorkspaceIcon name="lock" />
           <span className="nav-label">

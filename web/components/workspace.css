@@ -99,6 +99,21 @@
 .dashboard-shell .connect-feed,
 .dashboard-shell .primary-button,
 .dashboard-shell .session-controls button:first-of-type,
+/* The decision the teacher is making, stated before the two buttons. */
+.dashboard-shell .review-prompt {
+  margin-bottom: 12px;
+}
+.dashboard-shell .review-prompt p {
+  margin: 0;
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dashboard-shell .review-prompt .review-prompt-title {
+  color: var(--ws-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
 .dashboard-shell .review-action-buttons button:first-child {
   min-height: 40px;
   padding: 0 20px;
@@ -1195,4 +1210,660 @@ body .dashboard-shell.ws-demo {
 .dashboard-shell.ws-demo .panel-heading h2,
 .dashboard-shell.ws-demo .strip-heading h2 {
   white-space: nowrap;
+}
+
+/* ---- Room view (web.room_view): the room, who needs you next, the last
+   hour, and a drawer for the camera, People and reviews. ---- */
+.room-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 24px;
+}
+.dashboard-shell .room-header h1 {
+  margin: 0;
+  color: var(--ws-page-ink);
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: clamp(40px, 6vw, 56px);
+  font-weight: 500;
+  line-height: 0.96;
+  letter-spacing: -0.015em;
+}
+.room-subtitle {
+  margin: 12px 0 0;
+  color: var(--ws-page-soft);
+  font-size: 15px;
+}
+.room-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.dashboard-shell .room-details-toggle {
+  min-height: 36px;
+  background: var(--ws-pill);
+  color: var(--ws-ink);
+}
+
+.room-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  align-items: start;
+  gap: 20px;
+}
+
+/* The room: a soft panel on the navy page with a dashed camera frame. */
+.room-stage {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 22px 22px;
+  border-radius: 28px;
+  background: rgb(255 255 255 / 0.03);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+.dashboard-shell .room-stage h2 {
+  margin: 0 0 14px;
+  color: var(--ws-page-ink);
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+}
+.room-people,
+.room-empty {
+  flex: 1;
+  min-height: 300px;
+  margin: 0;
+  border: 1.5px dashed rgb(255 255 255 / 0.12);
+  border-radius: 20px;
+}
+.room-people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 12px;
+  padding: 32px 12px;
+  list-style: none;
+}
+.room-empty {
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  color: var(--ws-page-soft);
+  font-size: 15px;
+  text-align: center;
+}
+.dashboard-shell .room-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ws-page-ink);
+  text-align: center;
+  --tone: rgb(255 255 255 / 0.28);
+}
+.room-person.is-working {
+  --tone: #8fa3ff;
+}
+.room-person.is-done {
+  --tone: #7fd6a6;
+}
+.room-person.is-review {
+  --tone: #f3a383;
+}
+.room-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--ws-card-bg);
+  box-shadow: 0 0 0 3px var(--tone);
+  color: var(--ws-ink);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: box-shadow 300ms ease-out;
+}
+.room-person[aria-pressed="true"] .room-avatar {
+  outline: 2px solid var(--ws-page-ink);
+  outline-offset: 6px;
+}
+.room-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.room-status {
+  color: var(--tone);
+  font-size: 13px;
+  font-weight: 600;
+}
+.room-person.is-quiet .room-status {
+  color: var(--ws-page-soft);
+}
+.room-activity {
+  color: var(--ws-page-faint);
+  font-size: 12px;
+}
+/* Someone who needs you: a slow ring breathes out from the circle. */
+@media (prefers-reduced-motion: no-preference) {
+  .room-person.is-review .room-avatar::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--tone);
+    animation: room-breathe 2400ms ease-out infinite;
+  }
+}
+@keyframes room-breathe {
+  from {
+    opacity: 0.5;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 1.25;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .room-person:not(:disabled):hover {
+    background: rgb(255 255 255 / 0.05);
+  }
+}
+
+/* Who needs you next: the one light card on the page. */
+.next-up {
+  --ring: var(--ws-blue);
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border-radius: 28px;
+  background: var(--ws-card-bg);
+  box-shadow: var(--ws-card);
+  color: var(--ws-ink);
+}
+.dashboard-shell .next-up h2 {
+  margin: 0 0 20px;
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+}
+.next-up-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: 44px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+.next-up-flag {
+  display: inline-flex;
+  color: var(--ws-review);
+}
+.next-up-flag svg {
+  width: 22px;
+  height: 22px;
+}
+.next-up-detail {
+  margin: 10px 0 20px;
+  color: var(--ws-ink-soft);
+  font-size: 15px;
+}
+.dashboard-shell .next-up-open {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0 18px;
+  background: var(--ws-ink);
+  box-shadow: none;
+  color: #ffffff;
+  font-size: 14px;
+}
+.next-up-then {
+  margin: 18px 0 0;
+  color: var(--ws-ink-faint);
+  font-size: 13px;
+}
+.next-up-calm {
+  margin: 0;
+  color: var(--ws-ink-soft);
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: 26px;
+  line-height: 1.2;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .next-up-open:not(:disabled):hover {
+    background: #1a2b66;
+  }
+}
+
+/* The last hour: a thin track with a dot per flagged review. */
+.timeline {
+  margin-top: 20px;
+  padding: 16px 22px 14px;
+  border-radius: 22px;
+  background: rgb(255 255 255 / 0.03);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+.timeline:empty {
+  min-height: 92px;
+}
+.timeline-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.dashboard-shell .timeline-head h2 {
+  margin: 0;
+  color: var(--ws-page-soft);
+  font-size: 14px;
+  font-weight: 600;
+}
+.timeline-head span,
+.timeline-scale,
+.timeline-empty {
+  color: var(--ws-page-faint);
+  font-size: 12px;
+}
+.timeline-track {
+  position: relative;
+  height: 24px;
+}
+.timeline-track::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.04),
+    rgb(255 255 255 / 0.18)
+  );
+}
+.timeline-mark {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f3a383;
+  box-shadow: 0 0 0 3px rgb(243 163 131 / 0.25);
+  translate: -50% -50%;
+}
+.timeline-tip {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--ws-card-bg);
+  color: var(--ws-ink);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  translate: -50% 4px;
+  pointer-events: none;
+  transition-property: opacity, translate;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+@media (hover: hover) and (pointer: fine) {
+  .timeline-mark:hover .timeline-tip {
+    opacity: 1;
+    translate: -50% 0;
+  }
+}
+.timeline-now {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1b2650;
+  box-shadow: inset 0 0 0 1px rgb(143 163 255 / 0.4);
+  color: #8fa3ff;
+  font-size: 11px;
+  font-weight: 600;
+  translate: 0 -50%;
+}
+.timeline-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.timeline-empty {
+  margin: 6px 0 0;
+}
+
+/* The drawer: camera, People and reviews, out of the way until asked for. */
+.room-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 40;
+  width: min(640px, 100vw);
+  padding: 20px 20px 32px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--ws-night);
+  box-shadow: -30px 0 60px -20px rgb(0 0 0 / 0.6);
+  translate: 100% 0;
+  visibility: hidden;
+  transition:
+    translate 300ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 0ms linear 300ms;
+}
+.room-drawer[data-open] {
+  translate: 0 0;
+  visibility: visible;
+  transition:
+    translate 300ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 0ms;
+}
+.room-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.dashboard-shell .room-drawer-head h2 {
+  margin: 0;
+  color: var(--ws-page-ink);
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: 26px;
+  font-weight: 500;
+}
+.dashboard-shell .room-drawer .monitor-workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+.dashboard-shell .room-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgb(5 8 20 / 0.5);
+  box-shadow: none;
+  cursor: default;
+  transition: opacity 300ms ease-out;
+}
+.dashboard-shell .room-scrim:not(:disabled):active {
+  scale: 1;
+}
+@starting-style {
+  .dashboard-shell .room-scrim {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-drawer,
+  .room-drawer[data-open] {
+    translate: 0 0;
+    opacity: 0;
+    transition:
+      opacity 200ms ease-out,
+      visibility 0ms linear 200ms;
+  }
+  .room-drawer[data-open] {
+    opacity: 1;
+    transition:
+      opacity 200ms ease-out,
+      visibility 0ms;
+  }
+}
+@media (max-width: 1000px) {
+  .room-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .room-people {
+    justify-content: center;
+  }
+  .room-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 19px;
+  }
+}
+
+/* In the drawer, a selected person or review leads, above the camera. */
+.dashboard-shell .room-drawer .attention-panel {
+  order: -1;
+}
+/* People ease into the room as the camera picks them up. */
+.dashboard-shell .room-person {
+  transition-property: opacity, scale, background-color;
+  transition-duration: 300ms;
+  transition-timing-function: ease-out;
+}
+@starting-style {
+  .dashboard-shell .room-person {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @starting-style {
+    .dashboard-shell .room-person {
+      scale: 1;
+    }
+  }
+}
+.next-up-summary {
+  margin: 14px 0 0;
+  color: var(--ws-ink-faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Theme switch in the rail ---- */
+.dashboard-shell .rail-theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-height: 40px;
+  height: 40px;
+  margin: 0 auto 12px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ws-page-faint);
+  transition-property: scale, background-color, color;
+}
+.dashboard-shell .rail-theme-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .rail-theme-toggle:not(:disabled):hover {
+    background: rgb(255 255 255 / 0.08);
+    color: var(--ws-page-ink);
+  }
+}
+
+/* ---- Light theme (web.theme_toggle): the same layout on a pale page, with
+   white cards and the blue banner kept as the one strong color. ---- */
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) {
+  --ws-night: #f5f6fa;
+  --ws-night-rail: #eceff5;
+  --ws-page-ink: #0b1a4d;
+  --ws-page-soft: #4a5268;
+  --ws-page-faint: #737a8f;
+  --ws-night-accent: #425cc8;
+  --ws-pill: #ffffff;
+  --ws-pill-hover: #f1f3f9;
+  --ws-card-bg: #ffffff;
+  --ws-surface: #eef1f7;
+  --ws-item: #f6f7fb;
+  --ws-line: #e3e7ef;
+  --ws-chip: #eef1f7;
+  --ws-blue-soft: #e3e9fb;
+  --ws-card:
+    0 0 0 1px rgb(11 26 77 / 0.06), 0 14px 34px -22px rgb(11 26 77 / 0.3);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo)::before {
+  opacity: 0.45;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo)::after {
+  display: none;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .workspace-sidebar {
+  box-shadow: inset -1px 0 0 rgb(11 26 77 / 0.08);
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .sidebar-nav
+  .is-current {
+  background: var(--ws-ink);
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .sidebar-nav
+  .is-current
+  svg {
+  color: #ffffff;
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .sidebar-nav
+  .is-current {
+  color: #ffffff;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .brand-mark {
+  color: var(--ws-ink);
+  --cues-mark-accent: #425cc8;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .soon-label,
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .account-monogram {
+  background: rgb(11 26 77 / 0.06);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .sidebar-account,
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .mobile-account {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgb(11 26 77 / 0.08);
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .current-activity
+  strong,
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .status-chip {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgb(11 26 77 / 0.1);
+  color: var(--ws-ink);
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .activity-popover
+  > summary,
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-details-toggle {
+  box-shadow: var(--ws-control);
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .integration-details
+  dl
+  > div {
+  border-color: rgb(11 26 77 / 0.1);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-stage,
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .timeline {
+  background: #ffffff;
+  box-shadow: var(--ws-card);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-people,
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-empty {
+  border-color: rgb(11 26 77 / 0.14);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-person {
+  --tone: rgb(11 26 77 / 0.22);
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .room-person.is-working {
+  --tone: #425cc8;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-person.is-done {
+  --tone: #1d6b45;
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .room-person.is-review {
+  --tone: #b4532a;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-avatar {
+  background: var(--ws-surface);
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .timeline-track::before {
+  background: linear-gradient(
+    90deg,
+    rgb(11 26 77 / 0.04),
+    rgb(11 26 77 / 0.18)
+  );
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .timeline-mark {
+  background: #b4532a;
+  box-shadow: 0 0 0 3px rgb(180 83 42 / 0.2);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .timeline-now {
+  background: #e3e9fb;
+  box-shadow: inset 0 0 0 1px rgb(66 92 200 / 0.35);
+  color: #2f48ad;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-drawer {
+  box-shadow: -30px 0 60px -20px rgb(11 26 77 / 0.3);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-scrim {
+  background: rgb(11 26 77 / 0.22);
+}
+@media (hover: hover) and (pointer: fine) {
+  :root[data-theme="light"]
+    .dashboard-shell:not(.ws-demo)
+    .sidebar-nav
+    a:not(.is-current):hover,
+  :root[data-theme="light"]
+    .dashboard-shell:not(.ws-demo)
+    .room-person:not(:disabled):hover,
+  :root[data-theme="light"]
+    .dashboard-shell:not(.ws-demo)
+    .rail-theme-toggle:not(:disabled):hover {
+    background: rgb(11 26 77 / 0.05);
+  }
+}
+@media (max-width: 700px) {
+  :root[data-theme="light"] .dashboard-shell:not(.ws-demo) .workspace-sidebar {
+    box-shadow: inset 0 -1px 0 rgb(11 26 77 / 0.08);
+  }
+}
+
+/* The drawer's backdrop is a button; it must not take the button hover fill. */
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .room-scrim:not(:disabled):hover {
+    border-color: transparent;
+    background: rgb(5 8 20 / 0.5);
+  }
+  :root[data-theme="light"]
+    .dashboard-shell:not(.ws-demo)
+    .room-scrim:not(:disabled):hover {
+    background: rgb(11 26 77 / 0.22);
+  }
 }

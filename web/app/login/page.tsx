@@ -20,6 +20,7 @@ export default async function LoginPage() {
     <TeacherLogin
       signupEnabled={isEnabled("web.teacher_signup")}
       profileEnabled={isEnabled("web.teacher_profile")}
+      themeToggleEnabled={isEnabled("web.theme_toggle")}
     />
   );
 }

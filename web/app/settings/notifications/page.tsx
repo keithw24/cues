@@ -12,7 +12,8 @@ export default function NotificationsPage() {
     <div className={`workspace dashboard-shell ${garamond.variable}`}>
       <WorkspaceSidebar
         accountEnabled={isEnabled("web.teacher_login")}
-        notifications
+        themeToggle={isEnabled("web.theme_toggle")}
+        liveView={isEnabled("web.live_view")}
       />
       <main id="main-content" className="dashboard-main settings-main">
         <div className="page-breadcrumb">

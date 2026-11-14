@@ -16,6 +16,7 @@ import {
   RiNotification3Line,
   RiPauseCircleLine,
   RiPlayCircleLine,
+  RiPulseLine,
   RiRefreshLine,
   RiTimeLine,
   RiUser3Line,
@@ -25,6 +26,7 @@ import {
 // Remix Icon only, so the workspace matches the landing page and sign-up.
 const icons = {
   classroom: RiLayoutGridLine,
+  live: RiPulseLine,
   people: RiGroupLine,
   review: RiInbox2Line,
   photon: RiNotification3Line,

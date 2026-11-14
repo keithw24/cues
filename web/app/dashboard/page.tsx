@@ -25,6 +25,9 @@ export default async function DashboardPage() {
         reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
         teacherLoginEnabled={isEnabled("web.teacher_login")}
         simulatedNamesEnabled={isEnabled("web.simulated_names")}
+        roomViewEnabled={isEnabled("web.room_view")}
+        themeToggleEnabled={isEnabled("web.theme_toggle")}
+        liveViewEnabled={isEnabled("web.live_view")}
       />
     </div>
   );
