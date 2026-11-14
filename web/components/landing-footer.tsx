@@ -1,8 +1,8 @@
 import Link from "next/link";
 import CuesMark from "@/components/cues-mark";
 
-// Site footer, laid out like LionPlan's: brand and a line about Cues, three
-// link columns, then a plain disclaimer under a divider.
+// Site footer, laid out like LionPlan's: brand and a line about Cues, then
+// three link columns.
 export default function LandingFooter({ start }: { start: string }) {
   const columns = [
     {
@@ -57,11 +57,6 @@ export default function LandingFooter({ start }: { start: string }) {
           </nav>
         ))}
       </div>
-      <p className="ln-footer-note">
-        Cues is a student hackathon project that runs on simulated student data.
-        It is not a diagnostic tool, and it does not replace a teacher’s or
-        specialist’s judgement.
-      </p>
     </footer>
   );
 }

@@ -719,15 +719,6 @@ a.ln-button:active {
   text-decoration: none;
   transition: color 150ms ease-out;
 }
-/* The divider lines up with the columns above, not the page edge. */
-.ln-footer-note {
-  margin: 0 max(24px, calc((100% - 992px) / 2));
-  padding: 28px 0 48px;
-  border-top: 1px solid rgb(11 26 77 / 0.08);
-  color: var(--ln-ink-soft);
-  font-size: 14px;
-  line-height: 1.6;
-}
 @media (hover: hover) {
   .ln-faq-list summary:hover svg {
     color: var(--ln-ink);
@@ -746,9 +737,6 @@ a.ln-button:active {
   }
   .ln-footer-brand {
     grid-column: 1 / -1;
-  }
-  .ln-footer-note {
-    margin-inline: 16px;
   }
 }
 
@@ -793,9 +781,6 @@ a.ln-button:active {
 }
 .ln-site-footer {
   background: linear-gradient(180deg, transparent, #0c1430 45%);
-}
-.ln-footer-note {
-  border-color: rgb(255 255 255 / 0.1);
 }
 @media (hover: hover) {
   .ln-button-dark:hover {
@@ -1200,9 +1185,6 @@ a.ln-button:active {
 }
 :root[data-theme="light"] .ln-site-footer {
   background: linear-gradient(180deg, transparent, #f1f3f9 45%);
-}
-:root[data-theme="light"] .ln-footer-note {
-  border-color: rgb(11 26 77 / 0.1);
 }
 /* The older preview card, when web.landing_demo is off. */
 :root[data-theme="light"] .ln-preview {
