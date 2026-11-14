@@ -6,6 +6,7 @@ import {
   changeSession,
   readSession,
   sessionOwnership,
+  sessionControlState,
   stationSyncLabel,
   type SessionSnapshot,
 } from "@/lib/session-controls";
@@ -89,7 +90,7 @@ export function SessionControls({
               )?.name ?? "Activity unavailable")
             : "No active session",
         );
-      } catch {
+      } catch (cause) {
         if (
           !disposed &&
           epoch === generation.current &&
@@ -97,7 +98,7 @@ export function SessionControls({
         ) {
           if (!loaded) onActivity("Session unavailable");
           setError(
-            "Session could not be refreshed. Check your station access and retry.",
+            cause instanceof Error ? cause.message : "Session could not be refreshed. Check your station access and retry.",
           );
           needsRefresh.current = true;
           setRefreshRequired(true);
@@ -136,7 +137,7 @@ export function SessionControls({
         () => void refresh(),
       )
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") void refresh();
+      if (status === "SUBSCRIBED") void refresh();
         else if (
           ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status) &&
           !disposed
@@ -144,8 +145,8 @@ export function SessionControls({
           setError(
             "Live session updates are disconnected. Refresh the session before acting.",
           );
-          needsRefresh.current = true;
-          setRefreshRequired(true);
+          // A disconnected live channel does not invalidate a successful RPC
+          // snapshot. Revision checks still protect actions; polling can recover.
         }
       });
     const online = () => void refresh();
@@ -261,6 +262,7 @@ export function SessionControls({
         </form>
       </details>
     );
+  const controlState = sessionControlState(snapshot, refreshRequired);
   return (
     <div className="session-controls" aria-busy={busy}>
       <label className="sr-only" htmlFor="session-activity">
@@ -270,7 +272,7 @@ export function SessionControls({
         id="session-activity"
         value={selection}
         onChange={(e) => setSelection(e.target.value)}
-        disabled={busy || !snapshot || refreshRequired}
+        disabled={busy || controlState === 'loading' || controlState === 'refresh'}
       >
         <option value="">Select activity</option>
         {snapshot?.activities.map((a) => (
@@ -290,7 +292,7 @@ export function SessionControls({
         }
         onClick={() => void act(selection)}
       >
-        {busy ? "Updating…" : snapshot?.session ? "Change activity" : "Start Session"}
+        {busy ? "Updating…" : controlState === 'active' ? "Change activity" : "Start Session"}
       </button>
       <button
         type="button"
@@ -336,6 +338,9 @@ export function SessionControls({
           and start an activity to own a new session.
         </p>
       ) : null}
+      {controlState === 'ready' ? <p role="status">No active session. Select an activity and start a new session.</p> : null}
+      {sessionOwnership(snapshot?.session ?? null, user) === 'other' ? <p role="status">This active session belongs to another teacher. Station authorization is required to change or end it; starting an activity will not claim ownership.</p> : null}
+      {snapshot?.session && sessionOwnership(snapshot.session, user) === 'unknown' ? <p role="status">Active session ownership is unavailable. End the existing session before starting a new owned session; migrations 006 and 007 are required.</p> : null}
       {error ? <p role="alert">{error}</p> : null}
     </div>
   );

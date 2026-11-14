@@ -6,6 +6,7 @@ import {
   readSession,
   changeSession,
   sessionOwnership,
+  sessionControlState,
   type Session,
 } from "../lib/session-controls.ts";
 import { isEnabled } from "../lib/flags.ts";
@@ -206,6 +207,29 @@ test("station acknowledgement requires matching session/revision/activity and a 
 });
 
 const teacher = "22222222-2222-4222-8222-222222222222";
+test('empty S1 lookup permits Start Session and returns an owned Raise Hand session', async () => {
+  const snapshot = await readSession(mock({session: null, activities: [
+    {id: 'raise_hand', name: 'Raise your hand'}
+  ]}).client, 'S1');
+  assert.equal(sessionControlState(snapshot, false), 'ready');
+  const created = {...session, revision: 0, teacher_id: teacher};
+  const transport = mock(created);
+  const result = await changeSession(transport.client, 'S1', snapshot.session, 'raise_hand', teacher);
+  assert.equal(result.station_id, 'S1');
+  assert.equal(result.current_activity_id, 'raise_hand');
+  assert.equal(result.teacher_id, teacher);
+  assert.equal(result.ended_at, null);
+  assert.equal(JSON.stringify(transport.calls).includes('teacher_id'), false);
+  assert.equal(sessionControlState({...snapshot, session: result}, false), 'active');
+  assert.equal(sessionControlState(snapshot, true), 'refresh');
+});
+test('missing session field is empty and historical sessions remain active, never claimed', async () => {
+  const empty = await readSession(mock({activities: []}).client, 'S1');
+  assert.equal(sessionControlState(empty, false), 'ready');
+  const historical = {...session, teacher_id: null};
+  assert.equal(sessionControlState({session: historical, activities: []}, false), 'active');
+  assert.equal(sessionOwnership(historical, teacher), 'unowned');
+});
 test("a new session must come back owned by the signed-in teacher", async () => {
   const created = { ...session, revision: 0, teacher_id: teacher };
   const { client, calls } = mock(created);

@@ -218,15 +218,32 @@ def test_flag_off_keeps_events_local_even_with_keys(monkeypatch):
         emitter.close()
 
 
+SESSION = "00000000-0000-4000-8000-000000000001"
+
+
 def test_flag_on_with_keys_uses_supabase(monkeypatch):
     from vision import events, flags, supabase_client
 
     monkeypatch.setattr(supabase_client, "get_client", lambda: object())
     monkeypatch.setenv("CUES_FLAG_VISION_SUPABASE_EVENTS", "1")
+    monkeypatch.setenv("CUES_SESSION_ID", SESSION)
     flags.load_registry.cache_clear()
     emitter = events.emitter_from_env()
     try:
         assert isinstance(emitter.sink, events.SupabaseSink)
         assert isinstance(emitter.fallback, JsonlSink)
+        assert str(emitter.session_id) == SESSION
     finally:
         emitter.close()
+
+
+def test_flag_on_without_session_id_refuses_to_start(monkeypatch):
+    # A random session id would file rows under a session the dashboard is not showing.
+    from vision import events, flags, supabase_client
+
+    monkeypatch.setattr(supabase_client, "get_client", lambda: object())
+    monkeypatch.setenv("CUES_FLAG_VISION_SUPABASE_EVENTS", "1")
+    monkeypatch.delenv("CUES_SESSION_ID", raising=False)
+    flags.load_registry.cache_clear()
+    with pytest.raises(RuntimeError, match="CUES_SESSION_ID"):
+        events.emitter_from_env()
