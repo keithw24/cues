@@ -16,10 +16,8 @@ web/.next/
 .DS_Store
 
 # Vision: local-only data (never synced or committed)
-# Gesture templates stay on the laptop; thumbs_up.json is the built-in,
-# developer-recorded template and contains no student data.
-vision/templates/*
-!vision/templates/thumbs_up.json
+# Gesture templates stay on the laptop and are never committed.
+vision/templates/
 vision/logs/
 vision/models/
 vision/captures/

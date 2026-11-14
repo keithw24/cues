@@ -65,12 +65,19 @@ def include_routes(app: FastAPI, package: str = "vision.routes") -> None:
 def create_app(pipeline: Pipeline | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        from vision.activity_sync import sync_from_env
+
         p = pipeline or Pipeline(camera_from_env(), discover_stages())
         app.state.pipeline = p
+        sync = sync_from_env() if pipeline is None else None
         p.start()
+        if sync is not None:
+            sync.start()
         try:
             yield
         finally:
+            if sync is not None:
+                sync.stop()
             p.stop()
 
     app = FastAPI(title="Cues vision", lifespan=lifespan)
