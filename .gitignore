@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets
+.env
+.env.local
+
+# Vision: local-only data (never synced)
+vision/templates/*.json
+!vision/templates/thumbs_up.json
+vision/logs/
+vision/models/
+
+# OS
+.DS_Store

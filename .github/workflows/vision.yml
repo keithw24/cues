@@ -1,0 +1,48 @@
+name: vision
+
+on:
+  pull_request:
+    paths:
+      - "vision/**"
+      - ".github/workflows/vision.yml"
+  push:
+    branches: [main]
+    paths:
+      - "vision/**"
+      - ".github/workflows/vision.yml"
+
+concurrency:
+  group: vision-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vision
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: vision/uv.lock
+
+      - name: Install Python and dependencies
+        run: |
+          uv python install 3.12
+          uv sync --locked
+
+      # OpenCV and MediaPipe need these system libraries on Ubuntu.
+      - name: Install system libraries
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Tests (hardware tests skipped)
+        run: uv run pytest
