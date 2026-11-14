@@ -638,6 +638,151 @@ a.ln-button:active {
   font-size: 13px;
 }
 
+/* FAQ */
+.ln-faq {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(72px, 12vw, 140px) 24px 0;
+}
+.ln-faq h2 {
+  margin: 0 0 32px;
+  font-size: clamp(30px, 4.4vw, 45px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+.ln-faq-list {
+  padding: 4px 20px;
+  border: 1px solid transparent;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgb(11 26 77 / 0.07),
+    0 18px 40px -20px rgb(11 26 77 / 0.25);
+}
+.ln-faq-list details + details {
+  border-top: 1px solid var(--ln-line);
+}
+.ln-faq-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  list-style: none;
+  cursor: pointer;
+}
+.ln-faq-list summary::-webkit-details-marker {
+  display: none;
+}
+.ln-faq-list summary svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--ln-ink-faint);
+  transition: rotate 200ms ease-out;
+}
+.ln-faq-list details[open] summary svg {
+  rotate: 45deg;
+  color: var(--ln-blue);
+}
+.ln-faq-list details p {
+  max-width: 600px;
+  margin: -6px 0 0;
+  padding-bottom: 20px;
+  color: var(--ln-ink-soft);
+  font-size: 15px;
+  line-height: 1.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ln-faq-list summary svg {
+    transition: none;
+  }
+}
+
+/* Site footer, after LionPlan's */
+.ln-site-footer {
+  margin-top: clamp(72px, 12vw, 120px);
+  background: var(--ln-surface);
+}
+.ln-footer-top {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 56px 24px 48px;
+}
+.ln-footer-brand .ln-brand {
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
+}
+.ln-footer-brand p {
+  max-width: 260px;
+  margin: 16px 0 0;
+  color: var(--ln-ink-soft);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.ln-site-footer h2 {
+  margin: 0 0 18px;
+  color: var(--ln-ink-faint);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ln-site-footer ul {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ln-site-footer ul a {
+  color: var(--ln-ink-soft);
+  font-size: 15px;
+  text-decoration: none;
+  transition: color 150ms ease-out;
+}
+/* The divider lines up with the columns above, not the page edge. */
+.ln-footer-note {
+  margin: 0 max(24px, calc((100% - 992px) / 2));
+  padding: 28px 0 48px;
+  border-top: 1px solid rgb(11 26 77 / 0.08);
+  color: var(--ln-ink-soft);
+  font-size: 14px;
+  line-height: 1.6;
+}
+@media (hover: hover) {
+  .ln-faq-list summary:hover svg {
+    color: var(--ln-ink);
+  }
+  .ln-site-footer ul a:hover {
+    color: var(--ln-ink);
+  }
+}
+@media (max-width: 760px) {
+  .ln-faq {
+    padding-inline: 16px;
+  }
+  .ln-footer-top {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-inline: 16px;
+  }
+  .ln-footer-brand {
+    grid-column: 1 / -1;
+  }
+  .ln-footer-note {
+    margin-inline: 16px;
+  }
+}
+
 /* First-load entrance: staggered by 100ms, once. */
 @media (prefers-reduced-motion: no-preference) {
   .ln-enter {
