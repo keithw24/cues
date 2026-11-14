@@ -6,6 +6,8 @@ export type Session = {
   started_at: string;
   ended_at: string | null;
   revision: number;
+  /** Present once migration 006 is deployed; null for unowned historical sessions. */
+  teacher_id?: string | null;
 };
 export type StationRuntime = {
   station_id: string;
@@ -39,7 +41,9 @@ export function parseSession(input: unknown, station: string): Session {
     !Number.isFinite(Date.parse(s.started_at)) ||
     (s.ended_at !== null &&
       (typeof s.ended_at !== "string" ||
-        !Number.isFinite(Date.parse(s.ended_at))))
+        !Number.isFinite(Date.parse(s.ended_at)))) ||
+    (s.teacher_id != null &&
+      (typeof s.teacher_id !== "string" || !uuid.test(s.teacher_id)))
   )
     throw new Error("Invalid session response");
   return {
@@ -49,7 +53,17 @@ export function parseSession(input: unknown, station: string): Session {
     started_at: s.started_at,
     ended_at: s.ended_at,
     revision: s.revision,
+    ...("teacher_id" in s ? { teacher_id: s.teacher_id ?? null } : {}),
   };
+}
+/** Reviews are readable only for sessions the signed-in teacher owns (migration 006). */
+export function sessionOwnership(
+  session: Session | null,
+  teacherId: string | null,
+): "owned" | "unowned" | "other" | "unknown" {
+  if (!session || !teacherId || !("teacher_id" in session)) return "unknown";
+  if (session.teacher_id == null) return "unowned";
+  return session.teacher_id === teacherId ? "owned" : "other";
 }
 export function parseStationRuntime(
   input: unknown,
@@ -151,6 +165,7 @@ export async function changeSession(
   station: string,
   session: Session | null,
   activityId: string | null,
+  teacherId: string | null = null,
 ): Promise<Session> {
   if (session?.ended_at || (activityId === null && !session))
     throw new Error("Refresh the session before acting.");
@@ -174,6 +189,10 @@ export async function changeSession(
     (session &&
       (result.id !== session.id || result.revision !== session.revision + 1)) ||
     (!session && result.revision !== 0) ||
+    // The database sets the owner from auth.uid(); the browser only checks it.
+    (!session &&
+      "teacher_id" in result &&
+      (!teacherId || result.teacher_id !== teacherId)) ||
     (activityId === null
       ? !result.ended_at
       : result.ended_at || result.current_activity_id !== activityId)

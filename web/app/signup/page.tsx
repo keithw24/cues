@@ -20,6 +20,7 @@ export default async function SignupPage() {
     <TeacherLogin
       mode="signup"
       phoneEnabled={isEnabled("web.alert_phone")}
+      profileEnabled={isEnabled("web.teacher_profile")}
     />
   );
 }

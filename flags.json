@@ -130,5 +130,10 @@
     "default": false,
     "owner": "evan",
     "ticket": "landing-faq"
+  "web.teacher_profile": {
+    "description": "Save the signed-in teacher's display name and E.164 phone number to teacher_profiles (migration 006), and move the sign-up number there after first sign-in.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "teacher-profile"
   }
 }

@@ -12,6 +12,7 @@ import {
 import TypedHeading from "@/components/typed-heading";
 import { countryCodes, normalizeAlertPhone } from "@/lib/alert-phone";
 import { createDashboardClient } from "@/lib/supabase";
+import { syncSignupProfile } from "@/lib/teacher-profile";
 import "./auth.css";
 
 const Companion = dynamic(() => import("@/components/login-companion"), {
@@ -45,11 +46,14 @@ export default function TeacherLogin({
   mode = "signin",
   signupEnabled = false,
   phoneEnabled = false,
+  profileEnabled = false,
 }: {
   mode?: "signin" | "signup";
   signupEnabled?: boolean;
   /** Ask for a mobile number Photon can text alerts to. */
   phoneEnabled?: boolean;
+  /** Move the sign-up number into teacher_profiles once signed in. */
+  profileEnabled?: boolean;
 }) {
   const router = useRouter();
   const signingUp = mode === "signup";
@@ -96,6 +100,14 @@ export default function TeacherLogin({
     );
   }
 
+  async function enterClassroom() {
+    if (profileEnabled && client)
+      // Best effort: the classroom still opens, and the profile page can retry.
+      await syncSignupProfile(client).catch(() => null);
+    router.push("/dashboard");
+    router.refresh();
+  }
+
   async function submitPassword() {
     if (locked.current || !client) return;
     locked.current = true;
@@ -126,10 +138,7 @@ export default function TeacherLogin({
           );
         // Projects that confirm email return no session until the link is opened.
         else if (!data.session) setStep("check");
-        else {
-          router.push("/dashboard");
-          router.refresh();
-        }
+        else await enterClassroom();
       } else {
         const { error } = await client.auth.signInWithPassword({
           email: email.trim(),
@@ -139,10 +148,7 @@ export default function TeacherLogin({
           setError(
             "We couldn’t sign you in. Check your email and password, then try again.",
           );
-        else {
-          router.push("/dashboard");
-          router.refresh();
-        }
+        else await enterClassroom();
       }
     } catch {
       setError("Couldn’t connect. Check your connection and try again.");

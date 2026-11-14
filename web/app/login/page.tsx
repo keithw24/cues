@@ -16,5 +16,10 @@ export default async function LoginPage() {
       </main>
     );
   const { default: TeacherLogin } = await import("@/components/teacher-login");
-  return <TeacherLogin signupEnabled={isEnabled("web.teacher_signup")} />;
+  return (
+    <TeacherLogin
+      signupEnabled={isEnabled("web.teacher_signup")}
+      profileEnabled={isEnabled("web.teacher_profile")}
+    />
+  );
 }
