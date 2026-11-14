@@ -23,7 +23,8 @@ def test_spectrum_sender_uses_backend_env_and_bounded_subprocess(monkeypatch, tm
         {
             "SPECTRUM_PROJECT_ID": "project",
             "SPECTRUM_PROJECT_SECRET": "secret",
-            "SPECTRUM_TEACHER_PHONE": "test-destination",
+            "SPECTRUM_TEACHER_PHONE": "+12025550101",
+            "CUES_USE_STATIC_TEACHER_PHONE": "1",
         },
         tmp_path,
     )
