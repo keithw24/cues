@@ -37,3 +37,4 @@ vision/**/*.avi
 # Logs anywhere
 *.log
 logs/
+cues/.env

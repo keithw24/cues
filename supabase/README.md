@@ -16,6 +16,13 @@ must be implemented before connecting the teacher decision workflow.
 fetch initial state and subscribe to Postgres Changes; configuring environment
 variables alone does not connect the existing Next.js scaffold.
 
+Migration `20261114000500_add_seat_state_tracking_valid.sql` adds nullable
+`seat_state.tracking_valid` without a default. Apply it after migration 004.
+Leaving the column nullable preserves unknown historical observations instead of
+marking them valid. Applied to and verified against the hosted project on
+November 14, 2026. A live upsert/read through the vision Supabase sink confirmed
+both valid tracking and tracking loss, including a null `task_score` during loss.
+
 Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in
 `web/.env.local`. Privileged clients use the root `.env` with `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY` (as consumed by the current vision client). Never put

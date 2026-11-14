@@ -8,6 +8,7 @@ from dotenv import dotenv_values
 from langchain_core.language_models import BaseChatModel
 
 from agent.deep_agent import AgentBudgets, CuesDeepAgent, create_cues_deep_agent
+from agent.notifications import ReviewNotifier, spectrum_notifier
 from agent.progress_history import ProgressHistoryStore
 from agent.prompt_history import PromptHistoryStore
 from agent.supabase_teacher_review import SupabaseTeacherReviewStore
@@ -22,7 +23,7 @@ class RuntimePersistenceError(RuntimeError):
 
 
 def review_store_from_env(
-    *, offline: bool = False, env_file: Path | None = None
+    *, offline: bool = False, env_file: Path | None = None, notifier: ReviewNotifier | None = None
 ) -> TeacherReviewStorage:
     """Resolve backend credentials locally; never put config into model context.
 
@@ -74,7 +75,13 @@ def review_store_from_env(
             "credentials, connectivity, and migration 003. No in-memory fallback was used."
         ) from None
     log.info("Teacher review storage: Supabase")
-    return SupabaseTeacherReviewStore(client)
+    if notifier is None:
+        notifier = spectrum_notifier(config, REPO_ROOT)
+    if notifier is None and config.get("PHOTON_API_KEY"):
+        log.warning(
+            "Photon key is configured but no Photon sender is injected; notifications disabled"
+        )
+    return SupabaseTeacherReviewStore(client, notifier=notifier)
 
 
 def create_runtime_agent(
@@ -85,9 +92,10 @@ def create_runtime_agent(
     budgets: AgentBudgets | None = None,
     offline: bool = False,
     env_file: Path | None = None,
+    notifier: ReviewNotifier | None = None,
 ) -> CuesDeepAgent:
     """Provider-independent runtime construction; core tools receive a store only."""
-    reviews = review_store_from_env(offline=offline, env_file=env_file)
+    reviews = review_store_from_env(offline=offline, env_file=env_file, notifier=notifier)
     return create_cues_deep_agent(
         model,
         history,
