@@ -20,6 +20,12 @@ Demo selects the existing DEMO_PROGRESS_WINDOW_SECONDS and DEMO_ESCALATION_CONFI
 2-second window/minimum, 4-second normal, 5-second expression-assisted and
 6-second prolonged stall. Expression persistence remains five seconds. Demo
 timing is for presentation speed, not a classroom recommendation.
+Demo polls SeatState every 0.5 seconds (plus request time) against vision's roughly
+one-second heartbeat; dev retains one-second polling. This reduces skipped rows
+that could exceed the evaluator's unchanged two-second observation-gap limit.
+Agent logs show the selected profile and only changes to progress/escalation,
+including tracking, score, observation age/gap and routing outcome. "Working" is
+vision's status; the agent's internal stalled state does not rewrite seat_state.
 Component logs are prefixed. Ctrl-C/SIGTERM stops all isolated process groups,
 with SIGKILL for surviving groups after a shared five-second grace period,
 even if their direct child has exited. Direct children are reaped. A component exit stops

@@ -37,7 +37,7 @@ class SupabaseSeatStateSource:
 
     FIELDS = (
         "seat_id,session_id,activity_id,status,updated_at,tracking_valid,"
-        "task_score,expression_context"
+        "task_score,expression_context,session_revision"
     )
 
     def __init__(self, client) -> None:
@@ -84,6 +84,7 @@ class SeatStatePipeline:
         self.clock = clock if clock is not None else lambda: datetime.now(UTC)
         self._evaluators: dict[tuple[UUID, str, str], ProgressEvaluator] = {}
         self._last_rows: dict[str, str] = {}
+        self._diagnostics: dict[str, tuple] = {}
 
     def process_row(
         self, row: Mapping[str, Any] | SeatState, *, now: datetime | None = None
@@ -109,7 +110,9 @@ class SeatStatePipeline:
                 activity, window_seconds=self.progress_window_seconds
             )
         previous_timestamp = evaluator.last
-        progress = evaluator.update(snapshot, now=now if now is not None else self.clock())
+        observed_now = now if now is not None else self.clock()
+        previous_progress = evaluator.state
+        progress = evaluator.update(snapshot, now=observed_now)
         # Record only observations the evaluator accepted as fresh. Its public
         # timestamp is the source of truth, so ignored late/future rows do not
         # become misleading history entries.
@@ -119,10 +122,69 @@ class SeatStatePipeline:
             progress, snapshot.expression_context, config=self.escalation_config
         )
         request = self.router.route(snapshot, progress, escalation)
+        age = (observed_now - snapshot.updated_at).total_seconds()
+        gap = (
+            (snapshot.updated_at - previous_timestamp).total_seconds() if previous_timestamp else 0
+        )
+        reason = (
+            "stale_observation"
+            if age > evaluator.max_gap
+            else "future_observation"
+            if age < 0
+            else "tracking_unavailable"
+            if snapshot.tracking_valid is not True
+            else "completion_latched"
+            if progress.trend == "completed"
+            else "observation_gap"
+            if gap > evaluator.max_gap
+            else "insufficient_window"
+            if progress.trend == "unknown"
+            else "valid_window"
+        )
+        diagnostic = (
+            key,
+            snapshot.session_revision,
+            snapshot.status,
+            snapshot.tracking_valid,
+            progress.trend,
+            escalation.reason,
+            reason,
+        )
+        if self._diagnostics.get(snapshot.seat_id) != diagnostic:
+            self._diagnostics[snapshot.seat_id] = diagnostic
+            log.info(
+                "seat=%s session=%s activity=%s revision=%s tracking=%s score=%s "
+                "vision_status=%s progress=%s->%s stalled=%.2fs age=%.2fs gap=%.2fs "
+                "escalation=%s route=%s reason=%s",
+                snapshot.seat_id,
+                snapshot.session_id,
+                snapshot.activity_id,
+                snapshot.session_revision,
+                snapshot.tracking_valid,
+                snapshot.task_score,
+                snapshot.status,
+                previous_progress.trend,
+                progress.trend,
+                progress.stalled_seconds,
+                age,
+                gap,
+                escalation.reason or "none",
+                "evaluate" if request else "none",
+                reason,
+            )
         if request is None:
             return SeatStateProcessingResult(snapshot, progress, escalation)
         context = self.enricher.enrich(request)
+        log.info(
+            "Agent evaluation started seat=%s priority=%s", snapshot.seat_id, escalation.priority
+        )
         agent_result = self.agent.run(context)
+        log.info(
+            "Agent evaluation finished seat=%s decision=%s pending_review=%s",
+            snapshot.seat_id,
+            getattr(agent_result.assessment, "decision", "unavailable"),
+            agent_result.pending_review.id if agent_result.pending_review else "none",
+        )
         return SeatStateProcessingResult(snapshot, progress, escalation, request, agent_result)
 
 

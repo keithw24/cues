@@ -19,6 +19,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", choices=("dev", "demo"), default="dev")
     profile = parser.parse_args().profile
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+    # Keep transition diagnostics readable; request URLs/tool payloads are not needed.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     load_dotenv(REPO_ROOT / ".env")
     required = ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GROQ_API_KEY", "CUES_SESSION_ID")
     if any(not os.environ.get(name) for name in required):
@@ -40,7 +44,23 @@ def main():
         options = dict(
             progress_window_seconds=DEMO_PROGRESS_WINDOW_SECONDS,
             escalation_config=DEMO_ESCALATION_CONFIG,
+            # Vision publishes at ~1 Hz. Poll faster than that heartbeat so
+            # request latency does not turn skipped rows into >2s tracking gaps.
+            poll_seconds=0.5,
         )
+    from agent.escalation import DEFAULT_ESCALATION_CONFIG
+
+    timing = options.get("escalation_config", DEFAULT_ESCALATION_CONFIG)
+    logging.info(
+        "Agent profile=%s window=%ss minimum=%ss normal=%ss expression=%ss prolonged=%ss poll=%ss",
+        profile,
+        options.get("progress_window_seconds", 4),
+        timing.min_observation_seconds,
+        timing.normal_stall_seconds,
+        timing.expression_assisted_seconds,
+        timing.prolonged_stall_seconds,
+        options.get("poll_seconds", 1.0),
+    )
     from dotenv import dotenv_values
 
     if not all(
