@@ -38,7 +38,14 @@ PERCEPTION_FLAGS = (
 
 
 def format_seat(
-    seat, task, match, expression, top: int = 3, debug: bool = False, all_scores=None
+    seat,
+    task,
+    match,
+    expression,
+    top: int = 3,
+    debug: bool = False,
+    all_scores=None,
+    recognized=None,
 ) -> str:
     lines = [f"Seat: {seat}", f"Task: {task}"]
     if match is None:
@@ -49,6 +56,11 @@ def format_seat(
         lines.append(f"Match score: {match.score:.2f}")
         if debug and match.detail:
             lines.append(f"  ({match.detail})")
+    if recognized is not None:
+        if recognized.activity_id is None:
+            lines.append("Recognised: no gesture")
+        else:
+            lines.append(f"Recognised: {recognized.activity_id} {recognized.score:.2f}")
     if all_scores:
         from vision.stages.s45_all_scores import format_scores
 
@@ -72,7 +84,10 @@ def format_snapshot(ctx, seat_ids, tasks, top: int = 3, debug: bool = False) -> 
         match = ctx.get("match", {}).get(seat)
         expression = ctx.get("expression", {}).get(seat)
         all_scores = ctx.get("all_scores", {}).get(seat)
-        blocks.append(format_seat(seat, task, match, expression, top, debug, all_scores))
+        recognized = ctx.get("recognized", {}).get(seat)
+        blocks.append(
+            format_seat(seat, task, match, expression, top, debug, all_scores, recognized)
+        )
     events = ctx.get("events", [])
     if events:
         blocks.append("Recent events:\n" + "\n".join(f"  {e}" for e in events[-8:]))
@@ -118,12 +133,19 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--top", type=int, default=3, help="expression labels to show (max 8)")
     parser.add_argument("--debug", action="store_true", help="show raw gesture distances")
     parser.add_argument(
+        "--mode",
+        choices=("task", "recognize"),
+        help="task (default) or recognize: show which gesture each person is doing",
+    )
+    parser.add_argument(
         "--no-window", action="store_true", help="don't open the camera window with overlays"
     )
     args = parser.parse_args(argv)
 
     if args.debug:
         os.environ["CUES_OVERLAY"] = "debug"
+    if args.mode:
+        os.environ["CUES_MODE"] = args.mode
     if args.all_on:
         from vision import flags
 

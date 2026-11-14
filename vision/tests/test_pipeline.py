@@ -83,7 +83,7 @@ STAGE_FLAGS = (
 def test_discover_stages_with_perception_flags_off(monkeypatch):
     for name in STAGE_FLAGS:
         monkeypatch.delenv(f"CUES_FLAG_VISION_{name}", raising=False)
-    assert [s.name for s in discover_stages()] == ["people", "overlay"]
+    assert [s.name for s in discover_stages()] == ["people", "recognize", "overlay"]
 
 
 def test_discover_stages_with_perception_flags_on(monkeypatch):
@@ -98,6 +98,7 @@ def test_discover_stages_with_perception_flags_on(monkeypatch):
         "raise_hand",
         "expression",
         "all_scores",
+        "recognize",
         "status",
         "overlay",
     ]
