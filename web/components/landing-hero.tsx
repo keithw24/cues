@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   RiArrowRightLine,
-  RiCheckboxCircleLine,
   RiHand,
+  RiRecordCircleLine,
   RiThumbUpLine,
 } from "@remixicon/react";
 
@@ -27,18 +27,18 @@ export default function LandingHero({
           <span className="ln-inline-chip">
             <RiHand aria-hidden="true" />
             raised hands
-          </span>{" "}
-          and{" "}
+          </span>
+          ,{" "}
           <span className="ln-inline-chip">
             <RiThumbUpLine aria-hidden="true" />
             thumbs up
-          </span>
-          , spots who keeps trying, and suggests support{" "}
+          </span>{" "}
+          and{" "}
           <span className="ln-inline-chip">
-            <RiCheckboxCircleLine aria-hidden="true" />
-            you approve
+            <RiRecordCircleLine aria-hidden="true" />
+            your own gestures
           </span>
-          .
+          , then suggests support you approve.
         </p>
         <div className="ln-actions ln-enter">
           <Link className="ln-button ln-button-dark" href={start}>

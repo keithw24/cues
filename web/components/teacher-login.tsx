@@ -9,6 +9,7 @@ import {
   RiArrowLeftLine,
   RiArrowRightLine,
 } from "@remixicon/react";
+import CuesMark from "@/components/cues-mark";
 import TypedHeading from "@/components/typed-heading";
 import { countryCodes, normalizeAlertPhone } from "@/lib/alert-phone";
 import { createDashboardClient } from "@/lib/supabase";
@@ -191,8 +192,8 @@ export default function TeacherLogin({
             <RiArrowLeftLine />
           </button>
         ) : (
-          <Link className="auth-wordmark" href="/">
-            Cues
+          <Link className="auth-wordmark" href="/" aria-label="Cues home">
+            <CuesMark size={24} />
           </Link>
         )}
         {switchLink}

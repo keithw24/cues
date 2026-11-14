@@ -1,27 +1,40 @@
-/* Teacher workspace, styled like the landing page and sign-up:
-   white page, faint dots, Garamond display, soft shadows instead of borders. */
+/* Teacher workspace, styled like the landing page's Night design:
+   a navy page with a faint grainy aurora, Garamond headings, and soft
+   off-white cards. Page-level text is light; text inside cards is ink. */
 .dashboard-shell {
+  /* Card colors (also used by the landing demo window). */
   --ws-ink: #0b1a4d;
   --ws-ink-soft: #4a5268;
-  --ws-ink-faint: #8a90a2;
+  --ws-ink-faint: #737a8f;
   --ws-blue: #425cc8;
   --ws-blue-deep: #2f48ad;
-  --ws-blue-soft: #edf1fc;
-  --ws-line: #e8eaf0;
-  --ws-surface: #f6f7fa;
-  --ws-chip: #eceef3;
+  --ws-blue-soft: #d8e0fa;
+  --ws-card-bg: #dde2ee;
+  --ws-surface: #d2d8e6;
+  --ws-item: #e9ecf4;
+  --ws-line: #c9d0de;
+  --ws-chip: #d2d8e6;
   --ws-review: #934d31;
-  --ws-review-soft: #fcf0e9;
+  --ws-review-soft: #f6dfd2;
   --ws-done: #1d6b45;
-  --ws-done-soft: #e7f5ed;
-  --ws-ring: 0 0 0 1px rgb(11 26 77 / 0.06);
+  --ws-done-soft: #d3ecdd;
+  /* Night page colors. */
+  --ws-night: #111a3a;
+  --ws-night-rail: #0c1430;
+  --ws-page-ink: #eef1fb;
+  --ws-page-soft: #aeb6cc;
+  --ws-page-faint: #7c86a3;
+  --ws-night-accent: #8fa3ff;
+  --ws-pill: #eef1fb;
+  --ws-pill-hover: #e3e8f8;
+  --ws-ring: 0 0 0 1px rgb(11 26 77 / 0.08);
   --ws-card:
-    0 0 0 1px rgb(11 26 77 / 0.06), 0 1px 2px rgb(11 26 77 / 0.04),
-    0 16px 40px -24px rgb(11 26 77 / 0.28);
+    0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 50px -28px rgb(0 0 0 / 0.55),
+    0 0 60px -24px rgb(66 92 200 / 0.25);
   --ws-control: 0 0 0 1px rgb(11 26 77 / 0.1), 0 1px 2px rgb(11 26 77 / 0.06);
   /* Existing workspace tokens, remapped. */
   --primary: var(--ws-ink);
-  --ring: var(--ws-blue);
+  --ring: var(--ws-night-accent);
   --line: var(--ws-line);
   --muted: var(--ws-surface);
   --muted-foreground: var(--ws-ink-soft);
@@ -30,9 +43,25 @@
   --review: var(--ws-review);
   --review-soft: var(--ws-review-soft);
   --surface-hover: var(--ws-surface);
-  background: #ffffff;
-  color: var(--ws-ink);
+  background: var(--ws-night);
+  color: var(--ws-page-ink);
   font-family: var(--font-inter), system-ui, sans-serif;
+  overflow-x: clip;
+}
+
+/* Every card shares one surface: soft off-white on navy, ink text, and the
+   blue focus ring that reads on light backgrounds. */
+.dashboard-shell .classroom-feed,
+.dashboard-shell .people-card,
+.dashboard-shell .attention-panel,
+.dashboard-shell .notice,
+.dashboard-shell .activity-popover-body,
+.dashboard-shell .integration-section {
+  --ring: var(--ws-blue);
+  border: 1px solid transparent;
+  background: var(--ws-card-bg);
+  box-shadow: var(--ws-card);
+  color: var(--ws-ink);
 }
 
 /* Controls: pills that press to 0.96. */
@@ -41,7 +70,7 @@
   padding: 0 16px;
   border: 1px solid transparent;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--ws-pill);
   box-shadow: var(--ws-control);
   color: var(--ws-ink);
   font-size: 13px;
@@ -81,40 +110,37 @@
   font-size: 14px;
 }
 .dashboard-shell :focus-visible {
-  outline-color: var(--ws-blue);
+  outline-color: var(--ring);
+}
+.dashboard-shell .session-controls select,
+.dashboard-shell .session-sign-in input {
+  border-color: var(--ws-line);
+  border-radius: 12px;
+  background: var(--ws-item);
 }
 
-/* Sidebar */
+/* Sidebar: a dark rail a shade deeper than the page. */
 .dashboard-shell .workspace-sidebar {
   border-right: 0;
-  background: var(--ws-surface);
-  box-shadow: inset -1px 0 0 rgb(11 26 77 / 0.05);
+  background: var(--ws-night-rail);
+  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.06);
+  color: var(--ws-page-ink);
 }
 .dashboard-shell .wordmark {
   gap: 10px;
-  color: var(--ws-ink);
+  color: var(--ws-page-ink);
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 .brand-mark {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 45%, #5a74d6, #2f48ad);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
+  flex: none;
+  color: var(--ws-ink);
+  --cues-mark-accent: var(--ws-blue);
 }
-.brand-mark i {
-  width: 4px;
-  height: 9px;
-  margin-top: -2px;
-  border-radius: 4px;
-  background: #ffffff;
+.dashboard-shell .workspace-sidebar .brand-mark {
+  color: var(--ws-page-ink);
+  --cues-mark-accent: var(--ws-night-accent);
 }
 .dashboard-shell .sidebar-nav {
   gap: 2px;
@@ -124,7 +150,7 @@
   gap: 10px;
   padding: 9px 14px;
   border-radius: 999px;
-  color: var(--ws-ink-soft);
+  color: var(--ws-page-soft);
   font-size: 14px;
   letter-spacing: -0.01em;
   transition:
@@ -132,54 +158,90 @@
     color 150ms ease-out;
 }
 .dashboard-shell .sidebar-nav svg {
-  color: var(--ws-ink-faint);
+  color: var(--ws-page-faint);
+  transition: color 150ms ease-out;
 }
 .dashboard-shell .sidebar-nav .is-current {
-  background: #ffffff;
-  box-shadow: var(--ws-control);
+  background: var(--ws-page-ink);
+  box-shadow: none;
   color: var(--ws-ink);
 }
 .dashboard-shell .sidebar-nav .is-current svg {
-  color: var(--ws-blue);
+  color: var(--ws-ink);
 }
 .dashboard-shell .soon-label {
   margin-left: auto;
   padding: 1px 8px;
   border-radius: 999px;
-  background: var(--ws-chip);
-  color: var(--ws-ink-soft);
+  background: rgb(255 255 255 / 0.08);
+  color: var(--ws-page-soft);
   font-size: 11px;
   font-weight: 500;
 }
 .dashboard-shell .is-current .soon-label {
+  background: var(--ws-chip);
   color: var(--ws-ink-soft);
 }
 .dashboard-shell .sidebar-privacy {
-  color: var(--ws-ink-faint);
+  color: var(--ws-page-faint);
   font-size: 12px;
 }
 .dashboard-shell .sidebar-account {
   border-top: 0;
   padding: 12px;
   border-radius: 16px;
-  background: #ffffff;
-  box-shadow: var(--ws-ring);
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  color: var(--ws-page-ink);
   font-size: 13px;
+}
+.dashboard-shell .sidebar-account small {
+  color: var(--ws-page-soft);
 }
 .dashboard-shell .account-monogram {
   border: 0;
-  background: var(--ws-blue-soft);
-  color: var(--ws-blue-deep);
+  background: rgb(255 255 255 / 0.08);
+  color: var(--ws-page-soft);
 }
 .dashboard-shell .mobile-account {
   border: 0;
   border-radius: 999px;
-  box-shadow: var(--ws-control);
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  color: var(--ws-page-ink);
 }
 
 /* Page header */
 .dashboard-shell .dashboard-main {
   padding-top: 40px;
+}
+/* A faint grainy aurora across the top of the page, behind the banner,
+   like the landing hero. The demo window is not part of the Night page. */
+.dashboard-shell:not(.ws-demo) {
+  position: relative;
+  isolation: isolate;
+}
+.dashboard-shell:not(.ws-demo)::before,
+.dashboard-shell:not(.ws-demo)::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: 560px;
+  pointer-events: none;
+}
+.dashboard-shell:not(.ws-demo)::before {
+  background:
+    radial-gradient(40% 50% at 28% 22%, rgb(66 92 200 / 0.3), transparent 70%),
+    radial-gradient(34% 44% at 76% 16%, rgb(140 116 230 / 0.2), transparent 70%);
+  filter: blur(40px);
+}
+.dashboard-shell:not(.ws-demo)::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+  mix-blend-mode: overlay;
+  opacity: 0.2;
+  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
 }
 .ws-hero {
   position: relative;
@@ -192,16 +254,16 @@
 }
 .dashboard-shell .page-breadcrumb {
   margin: 0 0 14px;
-  color: var(--ws-ink-faint);
+  color: var(--ws-page-faint);
   font-size: 13px;
   font-weight: 500;
 }
 .dashboard-shell .page-breadcrumb span {
-  color: #c3c7d2;
+  color: rgb(255 255 255 / 0.3);
 }
 .dashboard-shell .page-intro h1 {
   margin: 0;
-  color: var(--ws-ink);
+  color: var(--ws-page-ink);
   font-family: var(--font-garamond), Georgia, serif;
   font-size: clamp(40px, 6vw, 56px);
   font-weight: 500;
@@ -210,7 +272,7 @@
 }
 .dashboard-shell .page-intro p:not(.page-breadcrumb) {
   margin: 14px 0 0;
-  color: var(--ws-ink-soft);
+  color: var(--ws-page-soft);
   font-size: 16px;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -231,8 +293,8 @@
   padding: 16px 20px;
   border: 1px solid transparent;
   border-radius: 20px;
-  background: #ffffff;
-  box-shadow: var(--ws-card);
+  background: var(--ws-card-bg);
+  box-shadow: var(--ws-ring);
 }
 .dashboard-shell .overview-metrics dd {
   font-size: 28px;
@@ -244,25 +306,37 @@
   font-size: 13px;
 }
 
-/* Toolbar */
+/* Toolbar: sits on the navy page, so its text is light. */
 .dashboard-shell .current-activity strong,
 .dashboard-shell .toolbar-label {
   font-size: 13px;
 }
-.dashboard-shell .current-activity strong {
+.dashboard-shell .toolbar-label {
+  color: var(--ws-page-soft);
+}
+.dashboard-shell .current-activity strong,
+.dashboard-shell .workspace-toolbar > .status-chip {
   padding: 4px 12px;
+  border: 0;
   border-radius: 999px;
-  background: var(--ws-blue-soft);
-  color: var(--ws-blue-deep);
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  color: var(--ws-page-ink);
   font-weight: 600;
+}
+.dashboard-shell .workspace-toolbar > .status-chip {
+  padding: 3px 10px;
+  color: var(--ws-page-soft);
+  font-weight: 500;
 }
 .dashboard-shell .activity-popover > summary {
   min-height: 36px;
   padding: 0 14px 0 16px;
   border: 1px solid transparent;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--ws-pill);
   box-shadow: var(--ws-control);
+  color: var(--ws-ink);
   font-size: 13px;
   font-weight: 500;
   transition-property: scale, background-color;
@@ -275,15 +349,13 @@
 .dashboard-shell .activity-popover summary svg {
   width: 16px;
   height: 16px;
-  color: var(--ws-ink-faint);
+  color: var(--ws-ink-soft);
 }
 .dashboard-shell .activity-popover[open] summary {
-  background: var(--ws-surface);
+  background: var(--ws-pill-hover);
 }
 .dashboard-shell .activity-popover-body {
-  border: 1px solid transparent;
   border-radius: 24px;
-  box-shadow: var(--ws-card);
   transform-origin: top right;
   transition-property: opacity, scale;
   transition-duration: 150ms;
@@ -307,18 +379,11 @@
   font-size: 12px;
   font-weight: 500;
 }
-.dashboard-shell .session-controls select,
-.dashboard-shell .session-sign-in input {
-  border-radius: 12px;
-}
 
 /* Cards: outer radius = inner radius + padding (16 + 8). */
 .dashboard-shell .classroom-feed,
-.dashboard-shell .attention-panel {
-  border: 1px solid transparent;
+.dashboard-shell .people-card {
   border-radius: 24px;
-  background: #ffffff;
-  box-shadow: var(--ws-card);
 }
 .dashboard-shell .classroom-feed {
   padding: 0 8px;
@@ -326,11 +391,13 @@
 .dashboard-shell .feed-toolbar {
   padding: 14px 10px 12px;
 }
+/* Section headings echo the landing's display face. */
 .dashboard-shell .feed-toolbar h2,
 .dashboard-shell .strip-heading h2,
 .dashboard-shell .panel-heading h2 {
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 .dashboard-shell .feed-indicator {
@@ -362,7 +429,7 @@
 .dashboard-shell .camera-placeholder-icon {
   border: 0;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--ws-item);
   box-shadow: var(--ws-control);
   color: var(--ws-blue);
 }
@@ -381,21 +448,28 @@
 }
 .dashboard-shell .privacy-note {
   font-size: 12px;
-  color: var(--ws-ink-faint);
+  color: var(--ws-ink-soft);
 }
 
-/* People: a plain list, like the notes on jmo's own site. Avatars carry the
-   position label ("P1"), never a student's initials. */
+/* People: a card with a header and one light list, like Teacher reviews.
+   Avatars carry the position label ("P1"), never a student's initials. */
 .dashboard-shell .seat-strip {
-  margin-top: 32px;
+  margin-top: 24px;
+}
+.dashboard-shell .people-card {
+  padding: 0 8px 8px;
 }
 .dashboard-shell .strip-heading {
   margin: 0;
-  padding: 0 4px 4px;
+  padding: 16px 12px 14px;
 }
 .dashboard-shell .seat-items {
   gap: 0;
+  padding: 4px;
   border-top: 0;
+  border-radius: 20px;
+  background: var(--ws-item);
+  box-shadow: var(--ws-ring);
 }
 .dashboard-shell .seat-item {
   display: flex;
@@ -454,6 +528,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  color: var(--ws-ink);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -486,7 +561,7 @@
   color: var(--ws-review);
 }
 .seat-item.is-done .seat-item-status svg {
-  color: #2f9e64;
+  color: var(--ws-done);
 }
 .seat-item.is-working .seat-item-status svg {
   color: var(--ws-blue);
@@ -499,7 +574,7 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  color: #c3c7d2;
+  color: var(--ws-ink-faint);
 }
 .dashboard-shell .seat-item.is-selected {
   outline: 0;
@@ -513,20 +588,21 @@
   display: none;
 }
 .dashboard-shell .strip-empty {
-  padding: 20px 4px;
+  margin: 0;
+  padding: 20px 16px;
   border-top: 0;
+  border-radius: 20px;
+  background: var(--ws-item);
+  box-shadow: var(--ws-ring);
   color: var(--ws-ink-soft);
   font-size: 13px;
 }
 
-/* Teacher reviews: LionPlan's recommendation card. A grey tray with a header,
-   and each review a white card with a meta line, a title, and a reason. */
+/* Teacher reviews: a card with a header, and the reviews on one light list.
+   Each review is a row with a meta line, a title, and a time. */
 .dashboard-shell .attention-panel {
   padding: 0 8px 8px;
-  border: 1px solid transparent;
   border-radius: 28px;
-  background: var(--ws-surface);
-  box-shadow: var(--ws-ring);
 }
 .dashboard-shell .panel-heading {
   min-height: 0;
@@ -550,7 +626,7 @@
   height: auto;
   padding: 3px 10px;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--ws-item);
   box-shadow: var(--ws-ring);
   color: var(--ws-ink-soft);
   font-size: 12px;
@@ -562,7 +638,7 @@
   gap: 0;
   padding: 4px;
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--ws-item);
   box-shadow: var(--ws-ring);
 }
 .dashboard-shell .attention-list > li {
@@ -613,7 +689,6 @@
 }
 .review-time {
   flex-shrink: 0;
-  color: var(--ws-ink-faint);
   font-variant-numeric: tabular-nums;
 }
 .review-flag {
@@ -629,7 +704,7 @@
   min-height: 220px;
   border: 0;
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--ws-item);
   box-shadow: var(--ws-ring);
 }
 .dashboard-shell .queue-empty p {
@@ -645,13 +720,14 @@
   border: 0;
   border-radius: 20px;
   background: var(--ws-review-soft);
+  color: var(--ws-ink);
   font-size: 13px;
 }
-/* Details open inside the same tray, on one white card. */
+/* Details open inside the same card, on one light panel. */
 .dashboard-shell .detail-body {
   padding: 18px;
   border-radius: 20px;
-  background: #ffffff;
+  background: var(--ws-item);
   box-shadow: var(--ws-ring);
 }
 .dashboard-shell .detail-status {
@@ -680,47 +756,63 @@
   border-color: var(--ws-line);
 }
 
-/* Notices and footer */
+/* Notices are cards; the heading carries the warning color. */
 .dashboard-shell .notice {
-  border: 0;
   border-radius: 20px;
-  background: var(--ws-review-soft);
-  box-shadow: none;
+}
+.dashboard-shell .notice h2 {
+  color: var(--ws-review);
+}
+.dashboard-shell .notice p {
+  color: var(--ws-ink-soft);
 }
 .dashboard-shell .workspace-footer {
   border-top: 0;
-  color: var(--ws-ink-faint);
+  color: var(--ws-page-faint);
   font-size: 12px;
 }
 
-/* Notifications page */
+/* Notifications page: the Photon card, then notes on the navy page. */
 .dashboard-shell .integration-section {
-  border: 1px solid transparent;
+  padding: 20px 24px;
   border-radius: 24px;
-  background: #ffffff;
-  box-shadow: var(--ws-card);
+}
+.dashboard-shell .integration-section p {
+  color: var(--ws-ink-soft);
 }
 .dashboard-shell .integration-icon {
   border: 0;
   border-radius: 50%;
   background: var(--ws-blue-soft);
-  color: var(--ws-blue);
+  color: var(--ws-blue-deep);
 }
 .dashboard-shell .integration-details h3 {
+  color: var(--ws-page-ink);
   font-family: var(--font-garamond), Georgia, serif;
   font-size: 28px;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
+.dashboard-shell .integration-details p,
+.dashboard-shell .integration-details dt {
+  color: var(--ws-page-soft);
+}
+.dashboard-shell .integration-details dd {
+  color: var(--ws-page-ink);
+}
 .dashboard-shell .integration-details dl > div {
-  border-color: var(--ws-line);
+  border-color: rgb(255 255 255 / 0.1);
+}
+.dashboard-shell .quiet-link {
+  color: var(--ws-page-soft);
+  transition: color 150ms ease-out;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .dashboard-shell button:not(:disabled):hover,
   .dashboard-shell .activity-popover summary:hover {
     border-color: transparent;
-    background: var(--ws-surface);
+    background: var(--ws-pill-hover);
   }
   .dashboard-shell .connect-feed:not(:disabled):hover,
   .dashboard-shell .primary-button:not(:disabled):hover,
@@ -732,8 +824,14 @@
     background: #1a2b66;
   }
   .dashboard-shell .sidebar-nav a:not(.is-current):hover {
-    background: rgb(11 26 77 / 0.04);
-    color: var(--ws-ink);
+    background: rgb(255 255 255 / 0.06);
+    color: var(--ws-page-ink);
+  }
+  .dashboard-shell .sidebar-nav a:not(.is-current):hover svg {
+    color: var(--ws-page-ink);
+  }
+  .dashboard-shell .sidebar-account:hover {
+    color: var(--ws-page-ink);
   }
   .dashboard-shell .seat-item:not(:disabled, .is-selected):hover {
     background: var(--ws-surface);
@@ -741,10 +839,14 @@
   .dashboard-shell .review-entry:not(:disabled):hover {
     background: var(--ws-surface);
   }
+  .dashboard-shell .quiet-link:hover {
+    color: var(--ws-page-ink);
+  }
 }
 @media (max-width: 700px) {
   .dashboard-shell .workspace-sidebar {
-    box-shadow: inset 0 -1px 0 rgb(11 26 77 / 0.05);
+    border-bottom: 0;
+    box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.06);
   }
   .dashboard-shell .sidebar-nav {
     margin-top: 0;
@@ -758,6 +860,45 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* First load only: the banner, then the feed, People and reviews arrive
+   100ms apart. Nothing animates again while the teacher works. */
+@keyframes ws-arrive {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    translate: 0 12px;
+  }
+}
+@keyframes ws-fade {
+  from {
+    opacity: 0;
+  }
+}
+.dashboard-shell .dashboard-main > .ws-hero,
+.dashboard-shell .dashboard-main .classroom-feed,
+.dashboard-shell .dashboard-main .people-card,
+.dashboard-shell .dashboard-main .attention-panel {
+  animation: ws-fade 300ms ease-out both;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-shell .dashboard-main > .ws-hero,
+  .dashboard-shell .dashboard-main .classroom-feed,
+  .dashboard-shell .dashboard-main .people-card,
+  .dashboard-shell .dashboard-main .attention-panel {
+    animation-name: ws-arrive;
+  }
+}
+.dashboard-shell .dashboard-main .classroom-feed {
+  animation-delay: 100ms;
+}
+.dashboard-shell .dashboard-main .people-card {
+  animation-delay: 200ms;
+}
+.dashboard-shell .dashboard-main .attention-panel {
+  animation-delay: 300ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dashboard-shell button:not(:disabled):active,
   .dashboard-shell .activity-popover > summary:active {
@@ -807,11 +948,11 @@
     height: 20px;
   }
   .dashboard-shell .sidebar-nav .is-current {
-    background: var(--ws-ink);
-    box-shadow: 0 8px 20px -10px rgb(11 26 77 / 0.6);
+    background: var(--ws-page-ink);
+    box-shadow: 0 8px 20px -10px rgb(0 0 0 / 0.6);
   }
   .dashboard-shell .sidebar-nav .is-current svg {
-    color: #ffffff;
+    color: var(--ws-ink);
   }
   .dashboard-shell .sidebar-privacy {
     justify-content: center;
@@ -887,4 +1028,202 @@
     padding: 24px 20px;
     border-radius: 24px;
   }
+}
+
+/* Session lifecycle stays visible beside the saved activity. */
+.dashboard-shell .session-toolbar {
+  flex-basis: 100%;
+  min-width: 0;
+}
+.dashboard-shell .session-toolbar .session-controls {
+  gap: 8px;
+}
+.dashboard-shell .session-toolbar .session-controls > label {
+  font-size: 12px;
+}
+.dashboard-shell .session-toolbar .session-controls select {
+  width: auto;
+  flex: 1 1 170px;
+  min-width: 0;
+  max-width: 260px;
+}
+.dashboard-shell .session-toolbar .session-controls button {
+  white-space: nowrap;
+}
+.dashboard-shell .session-ownership {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--ws-ink-soft);
+}
+@media (max-width: 600px) {
+  .dashboard-shell .session-toolbar .session-controls select {
+    max-width: none;
+  }
+}
+/* Landing page demo: the same banner and rows in a small framed app. It is
+   a light window (the card colors), not the navy page. */
+body .dashboard-shell.ws-demo {
+  --ring: var(--ws-blue);
+  background: var(--ws-card-bg);
+  color: var(--ws-ink);
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 28px;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 40px 80px -40px rgb(0 0 0 / 0.6),
+    0 0 60px -24px rgb(66 92 200 / 0.25);
+  text-align: left;
+}
+.ws-demo-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 0;
+  background: var(--ws-surface);
+  box-shadow: inset -1px 0 0 rgb(11 26 77 / 0.05);
+}
+.ws-demo-rail .brand-mark {
+  margin-bottom: 14px;
+}
+.ws-demo-rail-item {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: var(--ws-ink-faint);
+}
+.ws-demo-rail-item svg {
+  width: 18px;
+  height: 18px;
+}
+.ws-demo-rail-item.is-current {
+  background: var(--ws-ink);
+  color: #ffffff;
+}
+.ws-demo-main {
+  min-width: 0;
+  padding: 16px;
+}
+.dashboard-shell.ws-demo .ws-hero {
+  margin-bottom: 16px;
+  padding: 22px 24px 24px;
+  border-radius: 20px;
+}
+.dashboard-shell.ws-demo .page-intro {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.dashboard-shell.ws-demo .page-breadcrumb {
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.dashboard-shell.ws-demo .page-intro h1 {
+  font-size: 40px;
+}
+.ws-demo-sim {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.dashboard-shell.ws-demo .overview-metrics {
+  gap: 10px;
+  margin: 0;
+}
+.dashboard-shell.ws-demo .overview-metrics > div {
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+.dashboard-shell.ws-demo .overview-metrics dd {
+  font-size: 24px;
+  transition: color 300ms ease-out;
+}
+.ws-demo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.dashboard-shell.ws-demo .seat-strip {
+  margin: 0;
+}
+.dashboard-shell.ws-demo .strip-heading {
+  padding: 4px 4px 10px;
+}
+.dashboard-shell.ws-demo .seat-item {
+  padding: 10px 12px;
+}
+.dashboard-shell.ws-demo .seat-avatar {
+  transition:
+    background-color 300ms ease-out,
+    color 300ms ease-out;
+}
+/* Inside the light window the reviews card is a darker tray. */
+.dashboard-shell.ws-demo .attention-panel {
+  background: var(--ws-surface);
+  box-shadow: var(--ws-ring);
+}
+.dashboard-shell.ws-demo .queue-empty {
+  min-height: 0;
+  padding: 28px 16px;
+}
+/* A review arrives and leaves: opacity and a 6px rise, once per change. */
+.dashboard-shell.ws-demo .attention-list,
+.dashboard-shell.ws-demo .queue-empty {
+  transition:
+    opacity 300ms ease-out,
+    translate 300ms ease-out;
+}
+@starting-style {
+  .dashboard-shell.ws-demo .attention-list,
+  .dashboard-shell.ws-demo .queue-empty {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @starting-style {
+    .dashboard-shell.ws-demo .attention-list,
+    .dashboard-shell.ws-demo .queue-empty {
+      translate: 0 0;
+    }
+  }
+}
+@media (max-width: 700px) {
+  body .dashboard-shell.ws-demo {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: 24px;
+  }
+  .ws-demo-rail {
+    display: none;
+  }
+  .ws-demo-main {
+    padding: 10px;
+  }
+  .ws-demo-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dashboard-shell.ws-demo .ws-hero {
+    padding: 18px;
+  }
+  .dashboard-shell.ws-demo .overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* Keep the demo's panel headings on one line in the narrower frame. */
+.dashboard-shell.ws-demo .panel-heading h2,
+.dashboard-shell.ws-demo .strip-heading h2 {
+  white-space: nowrap;
 }

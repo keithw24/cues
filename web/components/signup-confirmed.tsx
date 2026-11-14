@@ -7,6 +7,7 @@ import { RiArrowRightLine } from "@remixicon/react";
 import TypedHeading from "@/components/typed-heading";
 import { createDashboardClient } from "@/lib/supabase";
 import { syncSignupProfile } from "@/lib/teacher-profile";
+import CuesMark from "@/components/cues-mark";
 import "./auth.css";
 
 const Companion = dynamic(() => import("@/components/login-companion"), {
@@ -76,6 +77,7 @@ export default function SignupConfirmed({
     <main id="main-content" className="auth-page">
       <header className="auth-header">
         <Link className="auth-wordmark" href="/">
+          <CuesMark size={24} />
           Cues
         </Link>
       </header>
