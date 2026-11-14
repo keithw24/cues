@@ -7,9 +7,9 @@ unchanged. Keith's station is the S1 emitter; this laptop is the dashboard clien
 
 ## Flag and read projection
 
-`web.person_observations` defaults true: only people the camera reported in the
-last five seconds are listed. Set `CUES_FLAG_WEB_PERSON_OBSERVATIONS=0` to use the
-previous projection, then restart/rebuild. With the flag on, the existing seat-state SELECT adds only `tracking_valid`. Boolean and null
+`web.person_observations` defaults false until its camera Verify step is
+recorded on hardware. Set `CUES_FLAG_WEB_PERSON_OBSERVATIONS=1` to list only the
+people the camera reported in the last five seconds, then restart/rebuild. With the flag on, the existing seat-state SELECT adds only `tracking_valid`. Boolean and null
 are accepted; unknown/missing validity is never treated as true. Flag off uses the
 previous SELECT and display behavior, with no new freshness clock.
 

@@ -140,14 +140,15 @@ test("departed positions remain one card; reused IDs replace current state witho
   );
   assert.deepEqual(input, before);
 });
-test("feature off preserves the old projection/presentation; flag defaults on", () => {
-  // On by default: people are who the camera sees now. =0 turns it off.
-  assert.equal(isEnabled("web.person_observations", {}), true);
+test("feature off preserves the old projection/presentation; flag defaults off", () => {
+  // Off by default until the camera Verify step is recorded on hardware;
+  // =1 lists only the people the camera sees now.
+  assert.equal(isEnabled("web.person_observations", {}), false);
   assert.equal(
     isEnabled("web.person_observations", {
-      CUES_FLAG_WEB_PERSON_OBSERVATIONS: "0",
+      CUES_FLAG_WEB_PERSON_OBSERVATIONS: "1",
     }),
-    false,
+    true,
   );
   assert.equal(
     observationPresentation(

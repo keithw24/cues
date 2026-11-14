@@ -97,7 +97,7 @@
   },
   "web.person_observations": {
     "description": "Read tracking_valid and show fresh, invalid, lost and paused person observations",
-    "default": true,
+    "default": false,
     "owner": "evan",
     "ticket": "person-observations"
   },
