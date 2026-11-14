@@ -7,6 +7,7 @@ import {
   changeSession,
   readSession,
   sessionOwnership,
+  sessionActions,
   sessionControlState,
   stationSyncLabel,
   type SessionSnapshot,
@@ -31,6 +32,10 @@ export function SessionControls({
     "start" | "change" | "end" | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  // Why the session never loaded (e.g. not authorized for this station),
+  // kept apart from later action, sign-out or live-update errors.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshRequired, setRefreshRequired] = useState(false);
   const [now, setNow] = useState(0);
@@ -62,6 +67,7 @@ export function SessionControls({
       setSelection("");
       setRefreshRequired(false);
       setError(null);
+      setLoadError(null);
       onActivity(user ? "Loading session…" : "Sign in to manage activities");
     });
     if (!user || !station) return;
@@ -86,6 +92,7 @@ export function SessionControls({
             : (next.session?.current_activity_id ?? ""),
         );
         setError(null);
+        setLoadError(null);
         setRefreshRequired(false);
         onActivity(
           next.session
@@ -100,12 +107,15 @@ export function SessionControls({
           epoch === generation.current &&
           id === request.current
         ) {
-          if (!loaded) onActivity("Session unavailable");
-          setError(
+          const message =
             cause instanceof Error
               ? cause.message
-              : "Session could not be refreshed. Check your station access and retry.",
-          );
+              : "Session could not be refreshed. Check your station access and retry.";
+          if (!loaded) {
+            onActivity("Session unavailable");
+            setLoadError(message);
+          }
+          setError(message);
           needsRefresh.current = true;
           setRefreshRequired(true);
         }
@@ -192,6 +202,9 @@ export function SessionControls({
         latest_session: result,
       };
       setSnapshot(next);
+      // A successful change removes the Change button; keep focus nearby.
+      if (activityId !== null && snapshot.session)
+        requestAnimationFrame(() => selectRef.current?.focus());
       onActivity(
         result.ended_at
           ? "No active session"
@@ -274,8 +287,7 @@ export function SessionControls({
     );
   const controlState = sessionControlState(snapshot, refreshRequired);
   const session = snapshot?.session ?? null;
-  const changed =
-    !!session && !!selection && session.current_activity_id !== selection;
+  const actions = sessionActions(snapshot, selection);
   const ownership = !snapshot
     ? null
     : !session
@@ -316,12 +328,12 @@ export function SessionControls({
   );
   // The session could not load (for example, this account is not assigned to
   // the station): say so plainly instead of showing controls that can't act.
-  if (!snapshot && error && controlState === "refresh")
+  if (!snapshot && loadError && controlState === "refresh")
     return (
       <div className="session-controls is-blocked" aria-busy={busy}>
         <p className="session-blocked" role="alert">
           <WorkspaceIcon name="lock" />
-          <span>{error}</span>
+          <span>{loadError}</span>
         </p>
         <div className="session-row">
           <Link className="session-quiet" href="/settings/stations">
@@ -340,6 +352,7 @@ export function SessionControls({
         </label>
         <select
           id="session-activity"
+          ref={selectRef}
           value={selection}
           onChange={(e) => setSelection(e.target.value)}
           disabled={
@@ -357,37 +370,36 @@ export function SessionControls({
             </option>
           ))}
         </select>
-        {!session ? (
+        {actions.primary ? (
           <button
             type="button"
             className="session-primary"
-            disabled={busy || !snapshot || !selection || refreshRequired}
+            disabled={
+              busy ||
+              refreshRequired ||
+              (actions.primary === "start" && !selection)
+            }
             onClick={() => void act(selection)}
           >
-            {pendingAction === "start" ? "Starting…" : "Start session"}
+            {actions.primary === "start"
+              ? pendingAction === "start"
+                ? "Starting…"
+                : "Start session"
+              : pendingAction === "change"
+                ? "Changing…"
+                : "Change activity"}
           </button>
-        ) : (
-          <>
-            {changed ? (
-              <button
-                type="button"
-                className="session-primary"
-                disabled={busy || refreshRequired}
-                onClick={() => void act(selection)}
-              >
-                {pendingAction === "change" ? "Changing…" : "Change activity"}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="session-secondary"
-              disabled={busy || refreshRequired}
-              onClick={() => void act(null)}
-            >
-              {pendingAction === "end" ? "Ending…" : "End session"}
-            </button>
-          </>
-        )}
+        ) : null}
+        {actions.end ? (
+          <button
+            type="button"
+            className="session-secondary"
+            disabled={busy || refreshRequired}
+            onClick={() => void act(null)}
+          >
+            {pendingAction === "end" ? "Ending…" : "End session"}
+          </button>
+        ) : null}
         {refreshButton}
         {signOutButton}
       </div>
@@ -395,7 +407,7 @@ export function SessionControls({
         <div className="session-meta">
           <span role="status">
             {ownership}
-            {session ? ` · ${stationSyncLabel(snapshot, now)}` : ""}
+            {` · ${stationSyncLabel(snapshot, now)}`}
           </span>
           <details className="session-details">
             <summary>Details</summary>

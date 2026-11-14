@@ -7,6 +7,7 @@ import {
   changeSession,
   sessionOwnership,
   sessionControlState,
+  sessionActions,
   type Session,
 } from "../lib/session-controls.ts";
 import { isEnabled } from "../lib/flags.ts";
@@ -373,4 +374,44 @@ test("seeded end -> fresh owned start -> read/refresh -> end -> new UUID uses on
   const second = await changeSession(client, "S1", null, "raise_hand", teacher);
   assert.notEqual(first.id, second.id);
   assert.equal(second.teacher_id, teacher);
+});
+
+test("the session bar offers one primary action per state", () => {
+  const running = {
+    id: "00000000-0000-4000-8000-000000000001",
+    current_activity_id: "raise_hand",
+  } as unknown as Session;
+  const base = { activities: [], station_runtime: null, latest_session: null };
+  // Loading: nothing to act on yet, so no Start flashes.
+  assert.deepEqual(sessionActions(null, ""), { primary: null, end: false });
+  // Ready: Start only.
+  assert.deepEqual(sessionActions({ ...base, session: null } as never, ""), {
+    primary: "start",
+    end: false,
+  });
+  // Running, same or no activity picked: End only.
+  for (const pick of ["", "raise_hand"])
+    assert.deepEqual(
+      sessionActions({ ...base, session: running } as never, pick),
+      { primary: null, end: true },
+    );
+  // Running, a different activity picked: Change plus End.
+  assert.deepEqual(
+    sessionActions({ ...base, session: running } as never, "thumbs_up"),
+    { primary: "change", end: true },
+  );
+});
+
+test("the primary button style list stays one complete rule", async () => {
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync(
+    new URL("../components/workspace.css", import.meta.url),
+    "utf8",
+  );
+  // The pill style must reach the primary buttons; a rule pasted into the
+  // middle of this selector list once stripped it.
+  assert.match(
+    css,
+    /\.dashboard-shell \.primary-button,\n\.dashboard-shell \.session-controls \.session-primary,\n\.dashboard-shell \.review-action-buttons button:first-child \{\n  min-height: 40px;[\s\S]*?border-radius: 999px;/,
+  );
 });

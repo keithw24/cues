@@ -381,8 +381,11 @@ export default function Dashboard({
 
   // Session controls sit in the toolbar (main, PR #48); the popover is only
   // the fallback when they are not connected.
+  // Live session controls get their own row in the room view; the
+  // not-connected fallback stays a small pill in the header.
+  const sessionLive = Boolean(sessionControlsEnabled && client);
   const activityPopover =
-    sessionControlsEnabled && client ? (
+    sessionLive && client ? (
       <section className="session-toolbar" aria-label="Session controls">
         <SessionControls
           client={client}
@@ -500,6 +503,7 @@ export default function Dashboard({
                 </p>
               </div>
               <div className="room-actions">
+                {sessionLive ? null : activityPopover}
                 <button
                   type="button"
                   className="room-details-toggle"
@@ -517,7 +521,9 @@ export default function Dashboard({
                 </button>
               </div>
             </header>
-            <div className="room-session">{activityPopover}</div>
+            {sessionLive ? (
+              <div className="room-session">{activityPopover}</div>
+            ) : null}
           </>
         ) : (
           <>
