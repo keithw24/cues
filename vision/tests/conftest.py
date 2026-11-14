@@ -46,6 +46,7 @@ def _configured_station(monkeypatch):
     Tests of the unconfigured start or of switching build their own
     ActiveStation and pass it in, or replace this one.
     """
+    monkeypatch.setenv("CUES_FLAG_VISION_SESSION_LIFECYCLE", "0")
     from vision import station
 
     current = station.ActiveStation("S1")

@@ -185,10 +185,13 @@ export default function Dashboard({
     message: string;
   }>({ id: null, message: "Sign in to manage activities" });
   const station = stationOverride || defaultStation.id || "";
+  const [visionMessage, setVisionMessage] = useState("");
   // Tell this laptop's vision service the signed-in teacher's resolved station.
   useEffect(() => {
     if (!visionStationConfigEnabled || !client || !station) return;
-    return startLocalVisionSync(client, station);
+    return startLocalVisionSync(client, station, {onResult: result => setVisionMessage(
+      result === "pinned" ? "This laptop's camera is set to another classroom. Remove CUES_STATION_ID from the root .env." :
+      result === "unavailable" ? "Couldn't link this laptop's camera. Check that the vision service is running and allows this dashboard." : "")});
   }, [client, station, visionStationConfigEnabled]);
   useEffect(() => {
     if (!client || !resolvesStation) return;
@@ -220,8 +223,9 @@ export default function Dashboard({
         );
       }
     };
+    const initial = latest;
     void client.auth.getSession().then(({ data }) => {
-      if (disposed) return;
+      if (disposed || latest !== initial) return;
       if (data.session)
         setDefaultStation({
           id: null,
@@ -231,6 +235,7 @@ export default function Dashboard({
     });
     const { data } = client.auth.onAuthStateChange((event, session) => {
       if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+      ++latest; // Immediately invalidate in-flight work for the previous identity.
       // A different account: never keep the previous teacher's station on screen.
       setDefaultStation(
         session
@@ -238,7 +243,7 @@ export default function Dashboard({
           : signedOut,
       );
       // Defer: Supabase calls inside this callback can deadlock the auth lock.
-      setTimeout(() => void resolve(Boolean(session)), 0);
+      setTimeout(() => { if (!disposed) void resolve(Boolean(session)); }, 0);
     });
     return () => {
       disposed = true;
@@ -263,7 +268,7 @@ export default function Dashboard({
         if (personObservationsEnabled)
           setFeed((previous) => ({
             ...state,
-            snapshot: state.snapshot ?? previous.snapshot,
+            snapshot: station ? state.snapshot ?? previous.snapshot : null,
           }));
         else setFeed(state);
       },
@@ -407,7 +412,7 @@ export default function Dashboard({
         <SessionControls
           client={client}
           station={station}
-          stationMessage={resolvesStation ? defaultStation.message : undefined}
+          stationMessage={visionMessage || (resolvesStation ? defaultStation.message : undefined)}
           onActivity={setSessionActivity}
           teacherLoginEnabled={teacherLoginEnabled}
         />

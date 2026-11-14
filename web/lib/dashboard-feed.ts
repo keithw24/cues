@@ -17,9 +17,14 @@ export function watchDashboard(
   client: SupabaseClient,
   notify: (state: FeedState) => void,
   personObservationsEnabled = false,
-  station = "",
+  station?: string,
 ) {
-  const scoped = station.trim();
+  const scoped = station?.trim() ?? "";
+  if (station !== undefined && !scoped) {
+    notify({snapshot: null, loading: false, connection: "connecting",
+      error: "Sign in and resolve your station before loading classroom observations."});
+    return {refresh: async () => {}, disconnect() {}, dispose() {}};
+  }
   let disposed = false;
   let fetching = false;
   let queued = false;

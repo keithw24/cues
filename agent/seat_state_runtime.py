@@ -40,12 +40,49 @@ class SupabaseSeatStateSource:
         "task_score,expression_context,session_revision"
     )
 
-    def __init__(self, client) -> None:
+    def __init__(self, client, station_provider=None) -> None:
         self.client = client
+        self.station_provider = station_provider
 
     def fetch(self) -> Sequence[Mapping[str, Any]]:
-        response = self.client.table("seat_state").select(self.FIELDS).execute()
-        return response.data or []
+        if self.station_provider is None:
+            raise RuntimeError("A local station provider is required for live SeatState polling")
+        station = self.station_provider()
+        if not station:
+            return []
+        sessions = (
+            self.client.table("sessions")
+            .select("id,current_activity_id,revision")
+            .eq("station_id", station)
+            .is_("ended_at", "null")
+            .execute()
+            .data
+            or []
+        )
+        if len(sessions) != 1:
+            return []
+        session = sessions[0]
+        seats = (
+            self.client.table("seats").select("id").eq("station_id", station).execute().data or []
+        )
+        ids = {row["id"] for row in seats}
+        rows = (
+            self.client.table("seat_state")
+            .select(self.FIELDS)
+            .eq("session_id", session["id"])
+            .execute()
+            .data
+            or []
+        )
+        if self.station_provider() != station:
+            return []
+        return [
+            row
+            for row in rows
+            if row["seat_id"] in ids
+            and row.get("session_revision") == session["revision"]
+            and row.get("activity_id") == session["current_activity_id"]
+        ]
 
 
 @dataclass(frozen=True)
@@ -108,6 +145,15 @@ class SeatStatePipeline:
         if evaluator is None:
             evaluator = self._evaluators[key] = ProgressEvaluator(
                 activity, window_seconds=self.progress_window_seconds
+            )
+        if evaluator.key is not None and evaluator.key[-1] != snapshot.session_revision:
+            if evaluator.last is not None and snapshot.updated_at <= evaluator.last:
+                return None
+            evaluator.reset()
+            self.router.reset(
+                session_id=snapshot.session_id,
+                seat_id=snapshot.seat_id,
+                activity_id=snapshot.activity_id,
             )
         previous_timestamp = evaluator.last
         observed_now = now if now is not None else self.clock()
@@ -225,3 +271,18 @@ class SeatStateRuntime:
             except Exception as error:
                 log.error("SeatState source read failed: %s", type(error).__name__)
             stop.wait(self.poll_seconds)
+
+
+def local_station():
+    """Read this laptop's authoritative vision assignment; unavailable means pause."""
+    import json
+    from urllib.request import urlopen
+
+    try:
+        with urlopen("http://127.0.0.1:8000/config", timeout=2) as response:
+            station = json.load(response).get("station_id")
+        if isinstance(station, str) and station:
+            return station
+    except Exception:
+        pass
+    return None

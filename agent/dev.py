@@ -97,7 +97,7 @@ def main():
     parser.add_argument("--profile", choices=("dev", "demo"), default="dev")
     profile = parser.parse_args().profile
     load_dotenv(REPO_ROOT / ".env")
-    required = ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GROQ_API_KEY", "CUES_SESSION_ID")
+    required = ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GROQ_API_KEY")
     if any(not os.environ.get(name) for name in required):
         raise SystemExit("Configure root .env: " + ", ".join(required))
     for port in (3000, 8000):
@@ -138,6 +138,7 @@ def main():
         "TASK_STATUS",
         "SUPABASE_EVENTS",
         "ACTIVITY_SYNC",
+        "SESSION_LIFECYCLE",
     ):
         key = f"CUES_FLAG_VISION_{stage}"
         if not vision_env.get(key):

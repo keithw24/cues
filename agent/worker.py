@@ -24,7 +24,7 @@ def main():
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     load_dotenv(REPO_ROOT / ".env")
-    required = ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GROQ_API_KEY", "CUES_SESSION_ID")
+    required = ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GROQ_API_KEY")
     if any(not os.environ.get(name) for name in required):
         raise SystemExit("Configure root .env: " + ", ".join(required))
     activities = [

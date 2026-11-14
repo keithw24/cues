@@ -144,3 +144,13 @@ test("the dashboard resolves the station and passes it to every part", () => {
   assert.ok(page.includes("CUES_STATION_OVERRIDE"));
   assert.ok(!page.includes("CUES_STATION_ID"));
 });
+
+test("explicit unresolved station fails closed without reading any tables", async () => {
+  const {client, filters} = feedClient();
+  const seen: FeedState[] = [];
+  const feed = watchDashboard(client, state => seen.push(state), true, "");
+  await settle();
+  assert.deepEqual(filters, {});
+  assert.equal(seen.at(-1)?.snapshot, null);
+  feed.dispose();
+});
