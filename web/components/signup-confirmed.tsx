@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { RiArrowRightLine } from "@remixicon/react";
 import TypedHeading from "@/components/typed-heading";
 import { createDashboardClient } from "@/lib/supabase";
+import { syncSignupProfile } from "@/lib/teacher-profile";
 import "./auth.css";
 
 const Companion = dynamic(() => import("@/components/login-companion"), {
@@ -31,7 +32,12 @@ const copy: Record<State, { heading: string; hint: string }> = {
 };
 
 /** Where the link in Supabase's confirmation email lands. */
-export default function SignupConfirmed() {
+export default function SignupConfirmed({
+  profileEnabled = false,
+}: {
+  /** Move the sign-up number into teacher_profiles once signed in. */
+  profileEnabled?: boolean;
+}) {
   const [state, setState] = useState<State>("confirming");
 
   useEffect(() => {
@@ -53,6 +59,8 @@ export default function SignupConfirmed() {
           access_token: accessToken,
           refresh_token: refreshToken,
         });
+        if (!error && profileEnabled)
+          await syncSignupProfile(client).catch(() => null);
         if (!cancelled) setState(error ? "failed" : "done");
       } catch {
         if (!cancelled) setState("failed");
@@ -62,7 +70,7 @@ export default function SignupConfirmed() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profileEnabled]);
 
   return (
     <main id="main-content" className="auth-page">
