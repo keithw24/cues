@@ -14,7 +14,8 @@ Cues is designed to **assist the teacher, not replace them**. Computer vision ha
 
 ### Core product loop
 
-1. Teacher dashboard activity selection updates sessions.current_activity_id.
+1. Teacher activity selection uses sessions.current_activity_id; dashboard write
+   controls remain a frontend integration gap in the current checkout.
 2. Local MediaPipe and HSEmotion publish structured seat_state observations.
 3. ProgressEvaluator → EscalationEvaluator → EvaluationRouter → ContextEnricher
    selects meaningful stalled-progress episodes for the Deep Agent.
@@ -597,7 +598,7 @@ The station interface should not show technical model scores to the student.
 
 Session and alert IDs are UUIDs. Station, seat, and activity IDs are strings. An activity defines `id`; references to it use `activity_id`. Expression context uses `label` and `probability`. Preserve all 12 event types below and the session/timestamp fields in §17.3.
 
-The shared Pydantic models in `shared/contracts.py` are authoritative for exchanged data; JSON examples are illustrative. Synthetic fixtures live in `shared/fixtures/`. The vision emitter validates and serializes these shared models. See `TEAM_WORKFLOW.md` for the agreed team boundaries.
+The shared Pydantic models in `shared/contracts.py` are authoritative for exchanged data; JSON examples are illustrative. Synthetic fixtures live in `shared/fixtures/`. The vision emitter validates and serializes these shared models. See `notes/archive/TEAM_WORKFLOW.md` for the agreed team boundaries.
 
 ### 17.1 Event
 

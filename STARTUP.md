@@ -30,15 +30,19 @@ Root `.env` (backend only; never commit credentials):
 | `CUES_CAMERA_INDEX` | Optional camera index, default 0; USB often 1 |
 | `CUES_CAMERA` | Optional `fake` for camera-free startup |
 
-For live publication enable `CUES_FLAG_VISION_SUPABASE_EVENTS`,
-`CUES_FLAG_VISION_TASK_STATUS`, `CUES_FLAG_VISION_ACTIVITY_SYNC`,
-`CUES_FLAG_VISION_HANDS`, `CUES_FLAG_VISION_FACES`, `CUES_FLAG_VISION_GESTURES`,
-`CUES_FLAG_VISION_RAISE_HAND`, and `CUES_FLAG_VISION_EXPRESSION` with value `1`.
+For live publication set `CUES_FLAG_VISION_SUPABASE_EVENTS=1` and
+`CUES_FLAG_VISION_ACTIVITY_SYNC=1` in root .env. The launcher enables hands,
+faces, gestures, raise-hand, expression and task-status stages for vision.
+For the current Logitech setup use `CUES_CAMERA_INDEX=1`; other machines may need
+0 or 2. Optional `CUES_MODE=recognize` is preserved but never forced.
 Weights may download on first use. Fake frames do not simulate student progress.
 
 `web/.env.local`: browser-safe `NEXT_PUBLIC_SUPABASE_URL` and
 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; enable `CUES_FLAG_WEB_DASHBOARD=1`.
 Consult `web/README.md` for available teacher review UI flags/authentication.
+The current web checkout exposes only the dashboard flag; activity writes and
+persistent review/RPC controls remain frontend integration gaps. There are no
+implemented teacher-review UI flags to enable here.
 Never expose service-role, Groq, or Spectrum credentials as `NEXT_PUBLIC_*`.
 
 `cues/.env`: backend-only `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`,
@@ -54,9 +58,9 @@ The current hosted project already has `seat_state.tracking_valid`,
 `teacher_reviews`, authenticated `resolve_teacher_review` RPC, and Realtime
 publication membership. Do not reapply initial schema to that project.
 
-Provision the session and activity manually. Worker startup reads the Supabase
-`activities` catalog using canonical Activity fields; restart after catalog edits.
-Align it with `vision/activities.json`. Unknown activity IDs are skipped/logged.
+Provision the session and activity manually. Worker startup converts the existing
+`vision/activities.json` catalog into canonical shared Activity models, matching
+the manual demo pipeline. Restart after catalog edits. Unknown IDs are skipped/logged.
 Person-ID dashboard provisioning/read-policy gaps remain in `notes/vision-data.md`.
 Teacher review resolution requires authentication; current demo authorization
 does not implement classroom ownership.
@@ -67,8 +71,12 @@ does not implement classroom ownership.
 - Vision health: http://127.0.0.1:8000/health
 - Local video: http://127.0.0.1:8000/stream (keep local)
 
+A healthy vision demo reports an open camera and zero startup errors at /health.
+The launcher surfaces component errors and stops when a required process exits;
+it does not wait indefinitely for camera health.
+
 Before demo: connect camera, check Supabase connectivity/current session/activity,
-enable dashboard/review controls with teacher authentication, verify Groq key and
+verify dashboard availability and test backend review resolution with teacher authentication, verify Groq key and
 Spectrum target activation, and check person-ID visibility.
 Camera-free development: `CUES_CAMERA=fake ./scripts/dev.sh`.
 

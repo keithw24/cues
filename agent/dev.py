@@ -33,6 +33,10 @@ def main():
         for line in stream:
             print(f"[{name}] {line}", end="", flush=True)
 
+    vision_env = os.environ.copy()
+    for stage in ("HANDS", "FACES", "GESTURES", "RAISE_HAND", "EXPRESSION", "TASK_STATUS"):
+        vision_env[f"CUES_FLAG_VISION_{stage}"] = "1"
+
     try:
         for name, command, cwd in commands:
             child = subprocess.Popen(
@@ -42,6 +46,7 @@ def main():
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                env=vision_env if name == "vision" else os.environ.copy(),
             )
             children.append(child)
             threading.Thread(target=output, args=(name, child.stdout), daemon=True).start()

@@ -9,12 +9,10 @@ The initial nine tables have Row Level Security enabled. The publishable key can
 simulated seats and their associated station, session, activity and seat state.
 These demo rows are publicly readable: use no real student data or private notes
 in them. Browser writes are denied. Events, alerts, interventions and support
-preferences are server-only. Teacher authentication and authorized alert reads
-must be implemented before connecting the teacher decision workflow.
+preferences are server-only. The authenticated resolution RPC exists; teacher login/profile UI and session ownership authorization remain gaps.
 
 `seat_state` is included in the `supabase_realtime` publication. The frontend must
-fetch initial state and subscribe to Postgres Changes; configuring environment
-variables alone does not connect the existing Next.js scaffold.
+fetch initial state and subscribe to Postgres Changes; the current dashboard implements initial state reads and subscriptions.
 
 Migration `20261114000500_add_seat_state_tracking_valid.sql` adds nullable
 `seat_state.tracking_valid` without a default. Apply it after migration 004.
@@ -27,7 +25,7 @@ Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in
 `web/.env.local`. Privileged clients use the root `.env` with `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY` (as consumed by the current vision client). Never put
 a service-role or secret key in browser variables. Vision cloud event writes also
-require the `vision.supabase_events` flag; leave it off until integration is verified.
+require the `vision.supabase_events` flag; enable it for the live demo after configuring the backend credentials.
 
 In the SQL Editor, verify tables, RLS, demo rows and publication membership:
 
@@ -49,7 +47,7 @@ teacher approval and Photon verification are separate integration work.
 Verified against the hosted `cues` project on November 13, 2026:
 
 - All nine tables have RLS enabled.
-- The configured publishable key reads two seats, two seat-state rows and the
+- The configured publishable key read simulated seat/state fixtures and the
   associated station, activity and session. Seeded status is `idle`, matching
   the existing vision status vocabulary.
 - Anonymous INSERT/UPDATE privileges on `seat_state` are absent; reading alerts
@@ -98,8 +96,8 @@ credentials are needed. Startup checks table access and fails on partial/broken
 persistence configuration. Write failures never silently fall back to memory.
 The core agent factory remains in-memory by default for direct unit/offline use;
 the runtime exposes offline=True, and the live Groq runner has --offline-reviews.
-Only the vision server and agent live runner currently exist; this composition
-does not add an event listener or an agent API server.
+The continuous agent.worker polls seat_state through create_seat_state_runtime.
+FastAPI serves vision/video; there is no agent API server. See ../STARTUP.md.
 
 Optional runtime/action smoke (scripted model, real Supabase, isolated probe cleanup):
 
@@ -118,10 +116,9 @@ publicly readable: use synthetic data only. There is no frontend subscription in
 this change. See [Supabase Postgres Changes](https://supabase.com/docs/guides/realtime/postgres-changes)
 for publication and subscriber read-permission requirements.
 
-Anon/authenticated clients receive no INSERT/UPDATE/DELETE privileges and no
-resolution RPC. Future authenticated/authorized teacher actions must go through
-the backend's confirm_needs_attention/dismiss_review operations; never send a
-service-role key to the frontend. Teacher identity/authorization and real classroom
+Anon/authenticated clients receive no direct INSERT/UPDATE/DELETE privileges.
+Authenticated users may call resolve_teacher_review for simulated-seat reviews;
+anonymous callers cannot. Never send a service-role key to the frontend. Teacher identity/authorization and real classroom
 read policies remain future work; do not broaden the demo policy for deployment.
 
 Optional SQL smoke, after applying migrations, with a database-owner connection:

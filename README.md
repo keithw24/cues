@@ -50,7 +50,12 @@ agent worker, and dashboard together. Photon runs on demand. Voice is not requir
 by this startup flow. Current person-ID dashboard/read-policy and activity catalog
 alignment gaps are documented in [vision handoff](notes/vision-data.md).
 
+The backend review/RPC path is implemented. In this checkout, dashboard activity
+writes and persistent review controls still need frontend wiring; the diagram
+describes the product handoff rather than claiming those controls are connected.
+MJPEG `/stream` is the intentional local demo transport; WebRTC is not required.
+
 Python dependencies use root uv; Node packages use their npm lockfiles. Follow
-[TEAM_WORKFLOW.md](TEAM_WORKFLOW.md) for branches and ownership, and
+[notes/archive/TEAM_WORKFLOW.md](notes/archive/TEAM_WORKFLOW.md) for branches and ownership, and
 [PRD-cues.md](PRD-cues.md) for product requirements. Shared Python contracts in
 `shared/contracts.py` are authoritative.
