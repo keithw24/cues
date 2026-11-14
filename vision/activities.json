@@ -34,5 +34,61 @@
     "success_threshold": 0.78,
     "review_threshold": 0.58,
     "no_progress_seconds": 30
+  },
+  {
+    "id": "open_palm",
+    "name": "Open palm",
+    "check_type": "gesture",
+    "keywords": [
+      "open palm",
+      "stop",
+      "palm"
+    ],
+    "success_threshold": 0.7,
+    "review_threshold": 0.5,
+    "no_progress_seconds": 30,
+    "builtin": "Open_Palm"
+  },
+  {
+    "id": "pointing",
+    "name": "Pointing",
+    "check_type": "gesture",
+    "keywords": [
+      "pointing",
+      "point",
+      "select"
+    ],
+    "success_threshold": 0.7,
+    "review_threshold": 0.5,
+    "no_progress_seconds": 30,
+    "builtin": "Pointing_Up"
+  },
+  {
+    "id": "peace",
+    "name": "Peace sign",
+    "check_type": "gesture",
+    "keywords": [
+      "peace",
+      "two fingers",
+      "peace sign"
+    ],
+    "success_threshold": 0.7,
+    "review_threshold": 0.5,
+    "no_progress_seconds": 30,
+    "builtin": "Victory"
+  },
+  {
+    "id": "fist",
+    "name": "Fist",
+    "check_type": "gesture",
+    "keywords": [
+      "fist",
+      "done",
+      "ready"
+    ],
+    "success_threshold": 0.7,
+    "review_threshold": 0.5,
+    "no_progress_seconds": 30,
+    "builtin": "Closed_Fist"
   }
 ]

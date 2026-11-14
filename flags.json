@@ -58,5 +58,11 @@
     "default": false,
     "owner": "keith",
     "ticket": "all-gestures-readout"
+  },
+  "vision.custom_gestures": {
+    "description": "Dashboard API to create teacher-recorded gestures (/gestures). Definitions and examples stay in vision/templates/ on this laptop.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "custom-gestures"
   }
 }

@@ -135,19 +135,19 @@ class OverlayStage:
                 cv2.rectangle(image, (hx0, hy0), (hx1, hy1), color, 2)
                 text = "" if face is not None else short_id(pid) + "  "
                 fill = GREY
-                if recognized is not None:  # recognise mode: the gesture being done
-                    from vision.gestures.hand_pose import palm_side
+                from vision.gestures.hand_pose import palm_side
 
-                    side = palm_side(hand.landmarks, hand.handedness)
-                    if recognized.activity_id is None:
-                        text += f"no gesture ({side})"
-                    else:
-                        text += f"{recognized.activity_id} {recognized.score:.2f} ({side})"
-                        fill = GREEN
-                elif match is not None:
+                side = palm_side(hand.landmarks, hand.handedness)
+                if recognized is not None and recognized.activity_id is not None:
+                    # A completed gesture (any known gesture), always green.
+                    text += f"{recognized.activity_id} {recognized.score:.2f} ({side})"
+                    fill = GREEN
+                elif match is not None:  # otherwise: progress on the assigned task
                     score = "--" if match.score is None else f"{match.score:.2f}"
-                    text += f"{match.activity_id} {score}"
+                    text += f"{match.activity_id} {score} ({side})"
                     fill = score_color(match.activity_id, match.score)
+                else:
+                    text += f"no gesture ({side})"
                 labels.append((text.strip() or short_id(pid), hx0, hy0, fill))
                 extra = ctx.get("all_scores", {}).get(pid)
                 if extra:  # all-gestures readout (vision.all_scores), under the hand box

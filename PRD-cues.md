@@ -284,12 +284,12 @@ Some tasks do not need a learned gesture matcher.
 The raise-hand check gives a **confidence from 0 to 1** per person, from their pose points:
 
 ```text
-height     = (shoulder line y − higher wrist y) / shoulder width
-geometry   = clamp(height / 1.5, 0, 1)      # shoulder level = 0, top of head ≈ 1
-confidence = geometry × min(visibility of wrist and shoulders)
+height     = (shoulder line y − higher wrist y) / shoulder width   # true proportions (16:9 corrected)
+confidence = clamp(height / 1.0, 0, 1)      # shoulder level = 0, top of head ≈ 1
+confidence = 0 if visibility of wrist or shoulders < 0.5          # visibility is a gate
 ```
 
-Measuring in shoulder widths makes the score the same near and far from the camera. Low MediaPipe visibility lowers the score. The `raise_hand` activity uses success threshold 0.7 and review threshold 0.4; holding the score above the threshold for 1 s is the hold time.
+Measuring in shoulder widths makes the score the same near and far from the camera. Visibility is a pass/fail gate rather than a multiplier: raised wrists often read 0.6–0.9 visibility, and multiplying pulled clearly raised hands below the threshold. The raised hand must also be an open palm facing the camera (otherwise the score is 0), so a raised fist or thumbs-up never completes raise-hand. Every known gesture is also detected continuously and shown in green on the station video when completed (display only; status and events follow the assigned task). The `raise_hand` activity uses success threshold 0.7 and review threshold 0.4; holding the score above the threshold for 1 s is the hold time.
 
 ---
 

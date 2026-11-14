@@ -34,7 +34,8 @@ For live publication set `CUES_FLAG_VISION_SUPABASE_EVENTS=1` and
 `CUES_FLAG_VISION_ACTIVITY_SYNC=1` in root .env. The launcher enables hands,
 faces, gestures, raise-hand, expression and task-status stages for vision.
 For the current Logitech setup use `CUES_CAMERA_INDEX=1`; other machines may need
-0 or 2. Optional `CUES_MODE=recognize` is preserved but never forced.
+0 or 2. Gesture detection (every known gesture, shown green on the video when
+completed) is always on; there is no separate mode.
 Weights may download on first use. Fake frames do not simulate student progress.
 
 `web/.env.local`: browser-safe `NEXT_PUBLIC_SUPABASE_URL` and
