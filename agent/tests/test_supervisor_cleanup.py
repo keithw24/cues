@@ -3,8 +3,37 @@ import signal
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
+import pytest
+
+from agent import dev
 from agent.dev import cleanup
+
+
+@pytest.mark.parametrize("owned", [True, False])
+def test_port_recovery_only_stops_verified_cues_server(monkeypatch, owned):
+    outputs = iter(
+        [
+            "123\n",
+            "next-server (v16)\n",
+            "p123\nn" + str(dev.REPO_ROOT / "web" if owned else "/tmp/another-project") + "\n",
+            "",
+        ]
+    )
+    monkeypatch.setattr(
+        dev.subprocess, "run", lambda *a, **k: SimpleNamespace(stdout=next(outputs))
+    )
+    kill = MagicMock()
+    monkeypatch.setattr(dev.os, "kill", kill)
+    if owned:
+        dev.clear_cues_port(3000)
+        kill.assert_called_once_with(123, signal.SIGTERM)
+    else:
+        with pytest.raises(SystemExit, match="leaving it running"):
+            dev.clear_cues_port(3000)
+        kill.assert_not_called()
 
 
 def test_surviving_descendant_is_killed_after_parent_exits(tmp_path):

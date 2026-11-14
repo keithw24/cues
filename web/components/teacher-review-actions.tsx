@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TeacherReview } from "@/lib/teacher-reviews";
 import {
@@ -20,8 +20,15 @@ export function TeacherReviewActions({
   const locked = useRef(false);
   const [saving, setSaving] = useState<ReviewResolution | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  useEffect(() => {
+    const { data } = client.auth.onAuthStateChange((_event, session) => {
+      setAuthenticated(Boolean(session?.user));
+    });
+    return () => data.subscription.unsubscribe();
+  }, [client]);
   async function resolve(status: ReviewResolution) {
-    if (locked.current || review.status !== "pending") return;
+    if (!authenticated || locked.current || review.status !== "pending") return;
     locked.current = true;
     setSaving(status);
     setError(null);
@@ -45,7 +52,7 @@ export function TeacherReviewActions({
         <button
           type="button"
           className="text-button"
-          disabled={saving !== null}
+          disabled={!authenticated || saving !== null}
           onClick={() => void resolve("confirmed")}
         >
           {saving === "confirmed" ? "Saving…" : "Needs attention"}
@@ -53,12 +60,13 @@ export function TeacherReviewActions({
         <button
           type="button"
           className="text-button"
-          disabled={saving !== null}
+          disabled={!authenticated || saving !== null}
           onClick={() => void resolve("dismissed")}
         >
           {saving === "dismissed" ? "Saving…" : "Dismiss"}
         </button>
       </div>
+      {!authenticated ? <p role="status">Sign in to resolve teacher reviews.</p> : null}
       {error ? <p role="alert">{error}</p> : null}
     </div>
   );
