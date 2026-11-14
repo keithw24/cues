@@ -8,7 +8,11 @@ import {
   watchTeacherReviews,
   type ReviewFeedState,
 } from "@/lib/teacher-review-feed";
-import { activityLabel, priorityLabels } from "@/lib/teacher-reviews";
+import {
+  activityLabel,
+  groupReviewsBySeat,
+  priorityLabels,
+} from "@/lib/teacher-reviews";
 import { ProgressContext } from "@/components/progress-context";
 import { TeacherReviewDetails } from "@/components/teacher-review-details";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
@@ -18,11 +22,14 @@ import { TeacherReviewActions } from "@/components/teacher-review-actions";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import {
+  inCameraView,
+  isFresh,
   observationPresentation,
   type ObservationOptions,
 } from "@/lib/observation-presentation";
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { WorkspaceIcon } from "@/components/workspace-icon";
+import { displayName } from "@/lib/simulated-names";
 
 const INITIAL: FeedState = {
   snapshot: null,
@@ -36,6 +43,36 @@ const observationTime = (value: string) =>
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date(value));
+// "Person 3" → "P3"; a made-up simulated name → its first letter.
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((word) => (/^\d+$/.test(word) ? word : word[0]))
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+type Presentation = ReturnType<typeof observationPresentation>;
+const statusTone = (presentation: Presentation) =>
+  presentation.needsReview
+    ? "review"
+    : presentation.currentStatus === "done"
+      ? "done"
+      : presentation.currentStatus === "in_progress"
+        ? "working"
+        : "quiet";
+const statusIcon = (presentation: Presentation) =>
+  presentation.needsReview
+    ? "flag"
+    : presentation.currentStatus === "done"
+      ? "check"
+      : presentation.currentStatus === "in_progress"
+        ? "working"
+        : presentation.currentStatus === "tracking_lost" ||
+            presentation.label.startsWith("Tracking")
+          ? "hidden"
+          : presentation.unavailable
+            ? "paused"
+            : "time";
 
 function SeatDetails({
   seat,
@@ -125,6 +162,7 @@ export default function Dashboard({
   reviewsEnabled = false,
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
+  simulatedNamesEnabled = false,
 }: {
   personObservationsEnabled?: boolean;
   sessionControlsEnabled?: boolean;
@@ -132,6 +170,7 @@ export default function Dashboard({
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
   teacherLoginEnabled?: boolean;
+  simulatedNamesEnabled?: boolean;
 }) {
   const [observationNow, setObservationNow] = useState<number | null>(null);
   useEffect(() => {
@@ -225,7 +264,19 @@ export default function Dashboard({
     if (selectedId || selectedReviewId) detailsHeading.current?.focus();
   }, [selectedId, selectedReviewId]);
 
-  const seats = feed.snapshot ? seatViews(feed.snapshot) : [];
+  const seats = feed.snapshot
+    ? seatViews(feed.snapshot).map((seat) => ({
+        ...seat,
+        display_name: displayName(seat, simulatedNamesEnabled),
+      }))
+    : [];
+  const reviewActivity = (id: string) =>
+    activityLabel(
+      id,
+      feed.snapshot?.activities.find((item) => item.id === id)?.name,
+    );
+  const reviewName = (seatId: string) =>
+    seats.find((seat) => seat.id === seatId)?.display_name ?? seatId;
   const observationOptions: ObservationOptions = {
     enabled: personObservationsEnabled,
     now: observationNow,
@@ -240,6 +291,29 @@ export default function Dashboard({
           .currentStatus !== null,
     );
   const queue = reviews.reviews ?? [];
+  const reviewGroups = groupReviewsBySeat(queue);
+  const countStatus = (status: string) =>
+    feed.snapshot && hasCurrentTaskObservations
+      ? seats.filter(
+          (seat) =>
+            observationPresentation(seat.state, observationOptions)
+              .currentStatus === status,
+        ).length
+      : "—";
+  // People come from the camera: only those it sees right now are listed.
+  const inView = seats.filter((seat) =>
+    inCameraView(seat.state, observationOptions),
+  );
+  const cameraReporting = seats.some((seat) =>
+    isFresh(seat.state, observationOptions),
+  );
+  const peopleCount = feed.snapshot ? inView.length : "—";
+  const workingCount = countStatus("in_progress");
+  const completedCount = countStatus("done");
+  const reviewCount =
+    reviews.reviews && !reviews.error && reviews.connection === "connected"
+      ? queue.length
+      : "—";
   const selectedReview = queue.find((item) => item.id === selectedReviewId);
   const activityNames = [
     ...new Set(
@@ -286,73 +360,50 @@ export default function Dashboard({
         }}
       />
       <main id="main-content" className="dashboard-main">
-        <div className="page-breadcrumb">
-          Workspace <span>/</span> Classroom
+        <div className="ws-hero">
+          <span className="ws-grain" aria-hidden="true" />
+          <header className="page-intro">
+            <div>
+              <p className="page-breadcrumb">
+                Workspace <span>/</span> Classroom
+              </p>
+              <h1>your classroom</h1>
+              <p>A clear view of who’s ready and who needs a hand.</p>
+            </div>
+            <button
+              className="refresh-button"
+              type="button"
+              onClick={() => {
+                setAttempt((n) => n + 1);
+                setReviewAttempt((n) => n + 1);
+              }}
+              disabled={!client || feed.loading}
+            >
+              <WorkspaceIcon name="refresh" />
+              {feed.loading && client ? "Refreshing…" : "Refresh"}
+            </button>
+          </header>
+          <section className="classroom-summary" aria-label="Classroom summary">
+            <dl className="overview-metrics">
+              <div>
+                <dd>{peopleCount}</dd>
+                <dt>People in view</dt>
+              </div>
+              <div>
+                <dd>{workingCount}</dd>
+                <dt>In progress</dt>
+              </div>
+              <div>
+                <dd>{completedCount}</dd>
+                <dt>Completed</dt>
+              </div>
+              <div>
+                <dd>{reviewCount}</dd>
+                <dt>Pending reviews</dt>
+              </div>
+            </dl>
+          </section>
         </div>
-        <header className="page-intro">
-          <div>
-            <h1>Your classroom.</h1>
-            <p>A clear view of who’s ready and who needs a hand.</p>
-          </div>
-          <button
-            className="refresh-button"
-            type="button"
-            onClick={() => {
-              setAttempt((n) => n + 1);
-              setReviewAttempt((n) => n + 1);
-            }}
-            disabled={!client || feed.loading}
-          >
-            <WorkspaceIcon name="refresh" />
-            {feed.loading && client ? "Refreshing…" : "Refresh"}
-          </button>
-        </header>
-        <section className="classroom-summary" aria-label="Classroom summary">
-          <dl className="overview-metrics">
-            <div>
-              <dd>
-                {feed.snapshot
-                  ? seats.filter((seat) => seat.state).length
-                  : "—"}
-              </dd>
-              <dt>People observed</dt>
-            </div>
-            <div>
-              <dd>
-                {feed.snapshot && hasCurrentTaskObservations
-                  ? seats.filter(
-                      (seat) =>
-                        observationPresentation(seat.state, observationOptions)
-                          .currentStatus === "in_progress",
-                    ).length
-                  : "—"}
-              </dd>
-              <dt>In progress</dt>
-            </div>
-            <div>
-              <dd>
-                {feed.snapshot && hasCurrentTaskObservations
-                  ? seats.filter(
-                      (seat) =>
-                        observationPresentation(seat.state, observationOptions)
-                          .currentStatus === "done",
-                    ).length
-                  : "—"}
-              </dd>
-              <dt>Completed</dt>
-            </div>
-            <div>
-              <dd>
-                {reviews.reviews &&
-                !reviews.error &&
-                reviews.connection === "connected"
-                  ? queue.length
-                  : "—"}
-              </dd>
-              <dt>Pending reviews</dt>
-            </div>
-          </dl>
-        </section>
         <div className="workspace-toolbar">
           <div className="current-activity">
             <span className="toolbar-label">Current activity</span>
@@ -360,16 +411,8 @@ export default function Dashboard({
           </div>
           <details className="activity-popover">
             <summary>
-              Manage activity{" "}
-              <svg
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden="true"
-              >
-                <path d="m4 6 4 4 4-4" />
-              </svg>
+              Manage activity
+              <WorkspaceIcon name="chevronDown" />
             </summary>
             <div className="activity-popover-body">
               <h2>Session controls</h2>
@@ -433,18 +476,22 @@ export default function Dashboard({
                     ? "Loading observations…"
                     : "Seat observations unavailable"}
                 </p>
-              ) : seats.length === 0 ? (
-                <p className="strip-empty">No people observed yet.</p>
+              ) : inView.length === 0 ? (
+                <p className="strip-empty" role="status">
+                  {cameraReporting
+                    ? "No one is in view right now."
+                    : "The camera is off. People appear here when the station camera sees them."}
+                </p>
               ) : (
                 <div className="seat-items">
-                  {seats.map((seat) => {
+                  {inView.map((seat) => {
                     const presentation = observationPresentation(
                       seat.state,
                       observationOptions,
                     );
                     return (
                       <button
-                        className={`seat-item ${presentation.needsReview ? "needs-review" : ""} ${selected?.id === seat.id ? "is-selected" : ""}`}
+                        className={`seat-item is-${statusTone(presentation)} ${presentation.needsReview ? "needs-review" : ""} ${selected?.id === seat.id ? "is-selected" : ""}`}
                         key={seat.id}
                         ref={(node) => {
                           if (node) seatButtons.current.set(seat.id, node);
@@ -456,29 +503,27 @@ export default function Dashboard({
                           selectSeat(seat, event.currentTarget)
                         }
                       >
-                        <span className="seat-item-name">
-                          {seat.display_name}
+                        <span className="seat-avatar" aria-hidden="true">
+                          {initials(seat.display_name)}
                         </span>
-                        <span className="seat-item-status">
-                          {presentation.label}
+                        <span className="seat-item-body">
+                          <span className="seat-item-name">
+                            {seat.display_name}
+                          </span>
+                          <span className="seat-item-meta">
+                            <span className="seat-item-status">
+                              <WorkspaceIcon name={statusIcon(presentation)} />
+                              {presentation.label}
+                            </span>
+                            <span className="seat-item-activity">
+                              {seat.activity}
+                            </span>
+                          </span>
                         </span>
-                        <span className="seat-item-activity">
-                          {seat.activity}
-                        </span>
-                        {personObservationsEnabled &&
-                        presentation.unavailable &&
-                        seat.state ? (
-                          <time
-                            className="seat-item-time"
-                            dateTime={seat.state.updated_at}
-                          >
-                            Last observed{" "}
-                            {observationTime(seat.state.updated_at)}
-                          </time>
-                        ) : null}
-                        {seat.is_simulated ? (
-                          <span className="sim-badge">SIM</span>
-                        ) : null}
+                        <WorkspaceIcon
+                          className="seat-item-arrow"
+                          name="chevronRight"
+                        />
                       </button>
                     );
                   })}
@@ -541,6 +586,7 @@ export default function Dashboard({
                     ref={attentionHeading}
                     tabIndex={-1}
                   >
+                    <WorkspaceIcon name="review" />
                     Teacher reviews
                   </h2>
                   <span
@@ -550,11 +596,9 @@ export default function Dashboard({
                         : "attention-count"
                     }
                   >
-                    {reviews.reviews &&
-                    !reviews.error &&
-                    reviews.connection === "connected"
-                      ? queue.length
-                      : "—"}
+                    {typeof reviewCount === "number"
+                      ? `${reviewCount} pending`
+                      : "Not connected"}
                   </span>
                 </header>
                 {!reviewsEnabled || configurationError ? (
@@ -590,61 +634,63 @@ export default function Dashboard({
                     ) : null}
                     {queue.length ? (
                       <ul className="attention-list">
-                        {queue.map((review) => (
-                          <li key={review.id}>
-                            <button
-                              type="button"
-                              className="review-entry"
-                              id={`review-${review.id}`}
-                              onClick={() => {
-                                setSelectedId(null);
-                                setSelectedReviewId(review.id);
-                              }}
-                            >
-                              <span className="attention-item-heading">
-                                <span className="review-person">
-                                  {seats.find(
-                                    (seat) => seat.id === review.seat_id,
-                                  )?.display_name ?? review.seat_id}
-                                </span>
+                        {reviewGroups.map((group) => {
+                          const lead = group.reviews[0];
+                          const tasks = new Set(
+                            group.reviews.map((review) => review.activity_id),
+                          );
+                          return (
+                            <li key={group.seat_id}>
+                              <button
+                                type="button"
+                                className="review-entry"
+                                id={`review-${lead.id}`}
+                                onClick={() => {
+                                  setSelectedId(null);
+                                  setSelectedReviewId(lead.id);
+                                }}
+                              >
                                 <span
-                                  className={`review-label ${review.priority === "elevated" ? "is-elevated" : ""}`}
-                                >
-                                  {priorityLabels[review.priority]}
-                                </span>
-                                <svg
-                                  className="review-chevron"
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.5"
+                                  className="seat-avatar"
                                   aria-hidden="true"
                                 >
-                                  <path d="m6 4 4 4-4 4" />
-                                </svg>
-                              </span>
-                              <span className="review-metadata">
-                                <span>
-                                  {activityLabel(
-                                    review.activity_id,
-                                    feed.snapshot?.activities.find(
-                                      (item) => item.id === review.activity_id,
-                                    )?.name,
-                                  )}
+                                  {initials(reviewName(group.seat_id))}
                                 </span>
-                                <time dateTime={review.created_at}>
+                                <span className="review-body">
+                                  <span className="review-name">
+                                    {reviewName(group.seat_id)}
+                                  </span>
+                                  <span className="review-meta">
+                                    {tasks.size > 1
+                                      ? `${tasks.size} tasks`
+                                      : reviewActivity(lead.activity_id)}
+                                    {group.reviews.length > 1
+                                      ? ` · ${group.reviews.length} reviews`
+                                      : null}
+                                  </span>
+                                </span>
+                                <time
+                                  className="review-time"
+                                  dateTime={group.latest}
+                                >
                                   {new Intl.DateTimeFormat(undefined, {
-                                    month: "short",
-                                    day: "numeric",
                                     hour: "numeric",
                                     minute: "2-digit",
-                                  }).format(new Date(review.created_at))}
+                                  }).format(new Date(group.latest))}
                                 </time>
-                              </span>
-                              <span className="sr-only">View review</span>
-                            </button>
-                          </li>
-                        ))}
+                                {group.elevated ? (
+                                  <span className="review-flag">
+                                    <WorkspaceIcon name="flag" />
+                                    <span className="sr-only">
+                                      {priorityLabels.elevated}
+                                    </span>
+                                  </span>
+                                ) : null}
+                                <span className="sr-only">View review</span>
+                              </button>
+                            </li>
+                          );
+                        })}
                       </ul>
                     ) : !reviews.error &&
                       reviews.connection !== "disconnected" ? (

@@ -6,6 +6,29 @@ export type ObservationOptions = {
   now: number | null;
   connected: boolean;
 };
+/** Whether the station camera reported this person within the last five seconds. */
+export function isFresh(
+  state: SeatState | null,
+  options?: ObservationOptions,
+): boolean {
+  if (!state) return false;
+  if (!options?.enabled) return true;
+  const observedAt = Date.parse(state.updated_at);
+  return (
+    options.connected &&
+    options.now !== null &&
+    Number.isFinite(observedAt) &&
+    observedAt <= options.now &&
+    options.now - observedAt < OBSERVATION_STALE_MS
+  );
+}
+/** People shown on the dashboard are the people the camera sees right now. */
+export function inCameraView(
+  state: SeatState | null,
+  options?: ObservationOptions,
+): boolean {
+  return isFresh(state, options) && state?.status !== "tracking_lost";
+}
 /** Display freshness only. Never changes task/review state or calculates stalled_seconds. */
 export function observationPresentation(
   state: SeatState | null,
@@ -26,14 +49,7 @@ export function observationPresentation(
     detail,
   });
   if (options?.enabled) {
-    const observedAt = Date.parse(state.updated_at);
-    if (
-      !options.connected ||
-      options.now === null ||
-      !Number.isFinite(observedAt) ||
-      observedAt > options.now ||
-      options.now - observedAt >= OBSERVATION_STALE_MS
-    )
+    if (!isFresh(state, options))
       return hidden(
         "Updates paused",
         "No fresh observation is available. The last observation is shown below.",

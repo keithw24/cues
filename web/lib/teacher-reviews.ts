@@ -105,6 +105,37 @@ export function pendingReviews(
     );
 }
 
+export type ReviewGroup = {
+  seat_id: string;
+  reviews: TeacherReview[];
+  elevated: boolean;
+  latest: string;
+};
+/** One row per person. Keeps the queue order, so each group leads with its
+ * most urgent review; priorities are read, never recalculated. */
+export function groupReviewsBySeat(
+  reviews: readonly TeacherReview[],
+): ReviewGroup[] {
+  const groups = new Map<string, ReviewGroup>();
+  for (const review of reviews) {
+    const group = groups.get(review.seat_id);
+    if (!group) {
+      groups.set(review.seat_id, {
+        seat_id: review.seat_id,
+        reviews: [review],
+        elevated: review.priority === "elevated",
+        latest: review.created_at,
+      });
+      continue;
+    }
+    group.reviews.push(review);
+    group.elevated ||= review.priority === "elevated";
+    if (Date.parse(review.created_at) > Date.parse(group.latest))
+      group.latest = review.created_at;
+  }
+  return [...groups.values()];
+}
+
 /** Labels only: never recompute an assessment from seat state or expression. */
 export const decisionLabels: Record<AssessmentDecision, string> = {
   continue_monitoring: "Continue monitoring",
