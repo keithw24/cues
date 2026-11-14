@@ -1,61 +1,110 @@
 # Cues teacher dashboard
 
-Read-only seat overview built with Next.js. It loads seats, activities, stations
-and seat state using the Supabase publishable key, then refreshes on `seat_state`
-Postgres Changes. The frontend's status vocabulary follows `shared/contracts.py`;
-tests consume the canonical fixtures. No camera data, expression labels, private
-events or alerts are requested. Task selection and teacher decisions are future work.
+A compact operational classroom view: local video, an observation-based attention
+list, selectable seats, and details for the selected seat. This app reads
+structured state from Supabase; it does not upload camera frames or change
+activities, sessions, alerts, or interventions.
 
-## Run
+## Run locally
 
-```bash
-cd web
-npm ci
-cp -n .env.example .env.local
+From `web/`, run `npm ci`. Copy `.env.example` to the ignored `.env.local`, then set:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=<project URL>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<sb_publishable_... key>
+CUES_FLAG_WEB_DASHBOARD=1
 ```
 
-Fill in `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in
-`.env.local`, then set `CUES_FLAG_WEB_DASHBOARD=1` and run `npm run dev`. Open
-http://localhost:3000. Never use a service-role or secret key in the web environment.
+Use only a publishable key, never a service-role key in browser configuration.
+Apply the migrations in `../supabase/README.md` before seeding. Then run
+`npm run dev` and open http://localhost:3000.
 
-`web.dashboard` defaults off. The server resolves flags before importing the
-dashboard; off shows a static Cues page without connecting to Supabase. Overrides
-accept only `1`, `true`, `0`, `false`; `CUES_FLAG_WEB_DASHBOARD` wins over
-`NEXT_PUBLIC_CUES_FLAG_WEB_DASHBOARD`. Restart after editing `.env.local`. In a
-production build, flags and public configuration are evaluated at build time;
-rebuild when changing them.
+`web.dashboard` defaults off. The server evaluates flags before importing the
+client dashboard, so the off route makes no dashboard subscriptions or video
+requests. Overrides accept `1`, `true`, `0`, `false`; `CUES_FLAG_WEB_DASHBOARD`
+wins over `NEXT_PUBLIC_CUES_FLAG_WEB_DASHBOARD`. Restart after configuration
+changes. Production builds evaluate flags/public configuration at build time.
 
-Apply database migrations in order before seeding (see `../supabase/README.md`).
-Existing projects should apply `20261114000200_align_demo_activity.sql` to align
-the original demo activity with the newly merged shared contract.
+## Local classroom feed
 
-## Behavior and verification
+No WebRTC component or signaling service exists in this checkout. The frontend
+uses the existing vision service's MJPEG endpoint directly from the browser:
+`http://127.0.0.1:8000/stream`. It is not proxied through Next.js or a cloud API.
+The dashboard must be opened on localhost/127.0.0.1 on the station laptop.
+The feed starts only after **Connect local feed**, and supports disconnect,
+connection errors and retry. Seat updates remain independent of video health.
 
-- Loading and empty states never substitute fabricated seat data.
-- Read failures or disconnected realtime retain the last snapshot with a warning.
-- Reconnect reloads the full snapshot so changes missed while disconnected appear.
-- Missing state is “Awaiting observation”; tracking loss is “Tracking paused”.
-- Match score is displayed as a value from 0 to 1, never a probability. A missing
-  score or lost tracking displays a dash. Observation timestamps are local browser time.
-- Only `seat_state` is published initially; activity/seat metadata is refetched on
-  state events or reconnect, rather than independently streamed.
+From the repository root, start the existing camera-free service for a demo:
+
+```bash
+uv sync
+CUES_CAMERA=fake CUES_FLAG_VISION_SUPABASE_EVENTS=0 uv run uvicorn vision.app:app --host 127.0.0.1 --port 8000
+```
+
+This displays a synthetic moving bar, not classroom footage. Real-camera/model
+verification remains a separate station check. Never send student frames to
+Supabase, the LLM, or another cloud service.
+
+## Current behavior and integration limits
+
+- Existing initial reads and `seat_state` realtime subscription are preserved.
+  Reconnect reloads the snapshot; failures retain it with a visible warning.
+- Attention lists only `review`/`needs_help` observations, support first. It does
+  not invent a stall duration or read private alert/agent tables.
+- **Dismiss** hides that observation for this browser visit only. The stored
+  status and seat strip remain unchanged. A new timestamp/status can appear
+  again. **Restore dismissed items** restores the local list.
+- Seats and **View details** open the same side panel. Escape/Close returns focus
+  to the original seat button, or that seat's stable strip button when the queue
+  opener has been unmounted. Dismiss/restore return focus to the Attention heading.
+- Status labels are Ready, Working, Completed, Needs Review and Tracking Lost.
+  Tracking loss is unavailable observation, not task failure. No Improving status
+  is invented without a supporting contract.
+- Match score and observation time live in details. Lost tracking/missing scores
+  show Unavailable. No fabricated observations fill loading or empty views.
+- End session is visibly disabled: no session-write endpoint exists. Activity
+  controls, persistent alert dismissal, approval actions, progress history, stall
+  duration, and agent assessments require their actual integrations. No backend
+  code or shared event/table contracts were changed for this redesign.
+
+## Verification
+
+From `web/`:
 
 ```bash
 npm run lint
-npm test          # Node 22.18+; built-in TypeScript stripping
+npm test
 npm run build
 ```
 
-Manual acceptance: update simulated `S1-L` from `idle` to `done` in Supabase's
-Table Editor. Its card must show “Complete” without refreshing; restore `idle`
-afterward. Disconnect networking to check the warning and reconnect to resync.
-Set the feature flag to `0`, restart, and verify no dashboard data requests occur.
+Ten automated tests cover contracts, missing/invalid data, flags, subscription
+refresh/recovery/disposal, and observation-scoped dismissal. Isolated Chrome
+verified actual Supabase reads/realtime, native keyboard selection and refresh,
+focus restoration, direct synthetic MJPEG playback/disconnect/error/retry, and
+attention/dismiss/restore using browser-only intercepted synthetic state. No
+Supabase rows were modified. The layout was checked from 320–1440px: video takes
+about 69% of the laptop workspace and attention moves below it on mobile.
 
-Verified November 13, 2026: lint and nine automated tests passed; production
-builds passed with the dashboard both off and on. The flag-off production route
-returned HTTP 200 with only the static fallback. In Safari, both simulated seats
-loaded and the left seat changed from “Ready to begin” to “Complete” after a
-Supabase update without refreshing. The seat was restored to `idle` afterward.
-Desktop layout and single-column high-zoom reflow were inspected in the native
-browser; a separate 390px mobile viewport and browser offline simulation remain
-manual checks. Recovery and retained-snapshot behavior are covered by unit tests.
+Physical camera/model behavior, actual WebRTC, authenticated session/alert writes,
+and physical touch-device testing remain unverified or unimplemented as above.
+
+## UI components and reference palette
+
+TypeScript and Tailwind4 were already configured. Reusable presentation primitives
+now live in `web/components/ui/`, separate from the data-aware dashboard and local
+feed components in `web/components/`. `@/components/ui` points there through the
+existing TypeScript alias; `web/components.json` configures the shadcn-compatible
+paths and `app/globals.css`. See [shadcn configuration](https://ui.shadcn.com/docs/components-json).
+No framework reinitialization is needed.
+
+The supplied Card primitives are integrated into the classroom feed and attention
+surfaces in `components/ui/card.tsx`. Their heading ref type is corrected, shadows
+are removed, and `lib/utils.ts` provides `cn` using clsx/tailwind-merge. Both package
+manifests are updated. The attachment references `Hero195` but supplies no such
+implementation, so no broken demo/hero route was added. Its unused Radix widgets,
+border beam, animation pack, stock images, and additional font families were not
+installed; the requested interface uses normal Courier Prime and no decorative icons.
+
+The palette draws from the supplied admin screenshots: white surfaces, navy text,
+cool gray dividers, teal selection/live text, and muted coral for Needs Review.
+Live state remains explicit text; status dots are removed.

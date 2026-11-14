@@ -1,32 +1,32 @@
 /** Read projections of PRD §17; status names mirror shared/contracts.py. */
 export const statuses = {
   idle: {
-    label: "Ready to begin",
+    label: "Ready",
     detail: "Waiting for the activity to start.",
     tone: "neutral",
   },
   in_progress: {
-    label: "In progress",
+    label: "Working",
     detail: "The activity is underway.",
     tone: "active",
   },
   review: {
-    label: "Needs review",
+    label: "Needs Review",
     detail: "An uncertain result needs a teacher’s review.",
     tone: "review",
   },
   done: {
-    label: "Complete",
+    label: "Completed",
     detail: "The activity is complete.",
     tone: "done",
   },
   needs_help: {
-    label: "Needs support",
+    label: "Needs Review",
     detail: "Task state indicates support is needed.",
     tone: "review",
   },
   tracking_lost: {
-    label: "Tracking paused",
+    label: "Tracking Lost",
     detail: "Observation is unavailable. This is not a failed attempt.",
     tone: "neutral",
   },
@@ -156,3 +156,10 @@ export function seatViews(snapshot: Snapshot): SeatView[] {
         a.id.localeCompare(b.id),
     );
 }
+
+/** Observation-scoped UI dismissal never changes the stored seat state. */
+export const needsReview = (seat: SeatView) =>
+  seat.state?.status === "review" || seat.state?.status === "needs_help";
+
+export const attentionKey = (seat: SeatView) =>
+  JSON.stringify([seat.id, seat.state?.updated_at, seat.state?.status]);

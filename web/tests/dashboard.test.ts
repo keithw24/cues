@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { parseSnapshot, seatViews, statuses } from "../lib/dashboard.ts";
+import {
+  attentionKey,
+  needsReview,
+  parseSnapshot,
+  seatViews,
+  statuses,
+} from "../lib/dashboard.ts";
 import { isEnabled } from "../lib/flags.ts";
 
 const states = JSON.parse(
@@ -85,4 +91,26 @@ test("dashboard defaults off, server override wins, invalid and unknown flags fa
     isEnabled("web.dashboard", { CUES_FLAG_WEB_DASHBOARD: "yes" }),
   );
   assert.throws(() => isEnabled("web.unknown", {}));
+});
+
+test("dismissal applies only to a specific observation and never clears the seat status", () => {
+  const seat = seatViews(
+    parseSnapshot({
+      ...input,
+      states: [{ ...states[0], seat_id: "S1-L", status: "review" }],
+    }),
+  )[0];
+  const dismissed = new Set([attentionKey(seat)]);
+  assert.equal(needsReview(seat), true);
+  assert.equal(dismissed.has(attentionKey(seat)), true);
+  const next = {
+    ...seat,
+    state: { ...seat.state!, updated_at: "2026-11-14T23:59:59Z" },
+  };
+  assert.equal(dismissed.has(attentionKey(next)), false);
+  assert.equal(needsReview(next), true);
+  assert.equal(
+    needsReview({ ...next, state: { ...next.state, status: "tracking_lost" } }),
+    false,
+  );
 });

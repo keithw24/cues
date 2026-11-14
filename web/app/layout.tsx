@@ -1,31 +1,31 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Courier_Prime } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const courierPrime = Courier_Prime({
+  variable: "--font-courier-prime",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Cues · Teacher dashboard",
   description: "A clear view of classroom task activity and seat observations.",
+  icons: { icon: "/icon.svg" },
+  other: { "page-type": "software", "site-kind": "software" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-type="software"
+      className={`${courierPrime.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <a className="skip-link" href="#main-content">
-          Skip to seat overview
+          Skip to classroom monitoring
         </a>
         {children}
       </body>
