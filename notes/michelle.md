@@ -10,13 +10,15 @@ flowchart LR
     D --> F[EscalationDecision]
     F --> G[EvaluationRouter]
     G --> H[AgentEvaluationRequest]
-    H --> I[Deep Agent]
+    H --> J[ContextEnricher]
+    J --> I[Future Deep Agent]
 ```
 
 - **ProgressEvaluator:** Is the student making progress?
 - **EscalationEvaluator:** Is this situation worth asking the agent about?
 - **Evaluation Router:** Should we invoke the agent now, or have we already evaluated this situation?
-- **Deep Agent:** What, if anything, should Cues do?
+- **ContextEnricher:** What task context is missing from the request?
+- **Future Deep Agent:** What, if anything, should Cues do?
 
 Add a concise entry here whenever a meaningful routing/agent step is completed.
 
@@ -136,6 +138,572 @@ checks and added a timestamped end-to-end progress/escalation test proving each
 demo branch is reachable, plus a short-expression regression test. Verification:
 139 tests passed, 3 skipped; lint and formatting passed. No architecture,
 shared contract, routing side effect, deduplication, or cooldown was added.
+
+## Evaluation Router — episode-aware request deduplication
+
+The pure EscalationEvaluator answers eligibility on every call; a continued stall
+can remain eligible indefinitely. `agent/router.py` separates this from invocation
+by returning one internal `AgentEvaluationRequest` or None. It never calls an
+agent. No generic time-based cooldown, external service, or shared schema change
+was added.
+
+API: `router = EvaluationRouter()` followed by
+`router.route(snapshot, progress, decision)`. Supply matched, fresh, ordered inputs
+for the same observation. The router does not calculate progress, expression
+qualification, or elapsed time. Unknown, invalid tracking, inactive tasks, and
+ineligible decisions emit nothing.
+
+State is an in-memory dictionary keyed by `(session_id, seat_id, activity_id)`;
+its value is the strongest emitted level in the current logical episode. No
+additional episode UUID is necessary. Seats/activities/sessions are independent;
+returning to an old identity retains its state unless reset. Improving or completed
+clears that identity. Same-task restart or abandoned-task cleanup uses
+`reset(session_id=..., seat_id=..., activity_id=...)` explicitly. A new identity
+has no inherited evaluated state.
+
+Unknown pauses suppression, even though ProgressEvaluator clears its score history
+and timing on tracking loss. This intentionally avoids treating tracking recovery
+as a new failure episode. Resumed stalled input can only emit if its decision is
+stronger than the previous maximum. An ineligible interval alone does not reset
+or consume an episode.
+
+Strength ordering is normal/stalled_progress < elevated/expression context <
+elevated/prolonged stall. Each stronger level can emit once; identical decisions,
+downgrades, and reappearing previous levels are suppressed. Prolonged can upgrade
+expression-assisted elevation despite sharing its priority, because sustained
+stall duration is materially stronger evidence. Invalid eligible priority/reason
+pairs are rejected without consuming state. At most three requests per episode
+are possible with the current model; the first may begin at any level.
+
+The frozen internal dataclass request contains exactly:
+
+- `session_id: UUID`: identifies the session.
+- `seat_id: str`: identifies the observed seat without biometric identity.
+- `activity_id: str`: identifies the active task; missing activity cannot route.
+- `observed_at: datetime`: reuses snapshot.updated_at to tie the request to its observation.
+- `progress: ProgressState`: carries current trend and stalled_seconds without duplicating fields.
+- `escalation: EscalationDecision`: carries eligibility, priority, and reason using the existing type.
+
+No station ID is added because SeatState has none; no recommendations, teacher
+actions, raw camera data, or LLM output are carried. Frozen existing progress and
+escalation dataclasses are reused. A returned request means emitted locally,
+not successfully delivered or evaluated. Persistence, concurrent access, retries,
+and delivery acknowledgments are outside this step; process restart loses state.
+
+ProgressEvaluator = Is the student making progress?
+
+EscalationEvaluator = Is this situation worth asking the agent about?
+
+EvaluationRouter = Should we invoke the agent now, or have we already evaluated this episode?
+
+Future Deep Agent = What, if anything, should Cues do?
+
+Verification: 12 router tests cover first emission, repeated suppression,
+improvement/completion reset, unknown/tracking pause, seat/activity/session
+isolation, both upgrade paths, downgrades, ineligibility, explicit restart,
+missing activity, and invalid decisions. Full suite: 151 passed, 3 skipped
+(camera/model and credential-dependent integration checks). Ruff lint passed.
+No commit, merge, or push was performed.
+
+## ContextEnricher — deterministic activity context
+
+`agent/context_enricher.py` resolves the task definition missing from the router's
+request. The request already includes session/seat/activity identifiers, observation
+time, progress, and escalation. No new shared contract is needed.
+
+API: `enricher = ContextEnricher(activities)` accepts an iterable of shared Activity
+models; `enricher.enrich(request)` returns the internal frozen dataclass
+`EnrichedEvaluationContext(request: AgentEvaluationRequest, activity: Activity)`.
+The original request is preserved; the matching activity provides its human-readable
+name, check type, and existing activity-specific configuration without inventing
+an additional task schema. Activity IDs must match exactly. Missing/unknown IDs
+raise KeyError; duplicate catalog IDs raise ValueError rather than silently
+selecting one definition.
+
+The catalog is an in-memory validated snapshot. Callers may load the existing
+`shared/fixtures/activities.json` with Activity.model_validate; the enricher has
+no file/service access or hidden fixture defaults. Construct a new enricher when
+the catalog changes. Input activities and returned activities are detached so
+mutation cannot affect later requests. The outer result is frozen; its Activity
+remains a normal mutable shared model. This does not add historical activity
+versioning; callers must supply the appropriate catalog for the request.
+
+No student profile, support preferences, additional expression data, score history,
+recommendations, interventions, alerts, LLM output, or external lookup is added.
+Activity name is the available task description; no richer instruction text is
+inferred for a custom gesture. Enrichment does not change eligibility, router
+state, or call an agent. Unknown activity failure is surfaced to the caller;
+delivery/retry handling remains separate future work.
+
+Seven focused tests use existing activity fixtures to verify enrichment,
+empty/unknown catalogs, isolation across activities and session/seat requests,
+deterministic typed output, mutation isolation, and duplicate-ID rejection.
+Full suite: 158 passed, 3 skipped (camera/model and credential-dependent checks).
+Ruff lint passed. Existing architecture diagram updated in place to include
+AgentEvaluationRequest → ContextEnricher → Future Deep Agent; previous notes and
+citations preserved. No commit, merge, or push performed.
+
+## First future Deep Agent tool — get_recent_progress_history
+
+Implemented in `agent/progress_history.py` as the documented plain bound callable
+`store.get_recent_progress_history(session_id: UUID, seat_id: str,
+activity_id: str, limit: int = 10) -> list[ProgressHistoryEntry]`.
+A future runtime can pass `store.get_recent_progress_history` in its tools list;
+no LangChain decorator, runtime, or model is required here. This is an optional
+agent-invoked retrieval tool, not another deterministic routing node. Existing
+context enrichment and router behavior are unchanged.
+
+Previously only current evaluator summaries and synthetic observation fixtures
+existed; no longitudinal evaluated history was persisted. The new small
+`ProgressHistoryStore(capacity=50)` is populated explicitly with
+`store.record(snapshot, progress_state)` using matched shared SeatState and
+existing ProgressState objects. No automatic pipeline recording is wired up.
+Later this in-memory source will be replaced/backed by Supabase; no database or
+repository/service abstraction was added now.
+
+The typed internal Pydantic entry has only `observed_at` (the existing snapshot
+observation timestamp) and `progress` (reuses ProgressState: trend and
+stalled_seconds). Completion is the existing completed trend, not a fabricated
+history field. Query IDs select the session/seat/activity and are not repeated
+on each returned entry. No raw frame, raw score sequence, expression context,
+student profile, prompting history, diagnosis, intervention, or alert is stored.
+
+Retrieval returns the latest N retained summaries in chronological order; default
+10 and maximum 50. Capacity is configurable from 1 to 50 per identity. Late
+records are sorted by observation time, and older records cannot displace newer
+retained ones. Equal timestamps replace their prior summary. Empty history is
+an empty typed list, not evidence of success or absence of difficulty. Missing
+activity on record is rejected. UUID strings from future tool calls normalize to
+UUIDs for lookup. Results are detached from internal storage.
+
+Limitations: recency means latest count, not a wall-clock interval; no counts of
+independent stall episodes or interpretation of patterns are inferred. Recording
+cadence belongs to the caller: these are evaluator summaries, not frame uploads.
+History disappears on process restart; identity keys live for the store lifetime,
+so total identity count is not globally bounded. The store is not thread-safe or
+cross-process and has no retention-age or task-version semantics. Callers supply
+correctly matched observations and evaluator outputs. No support/prompt-history
+or teacher-review tool is implemented. Research rationale remains in PRD §12.6
+rather than duplicated here.
+
+Verification: 13 focused tests cover recent history, chronological sorting,
+per-key capacity and query limits, late records, empty history, isolation across
+seats/activities/sessions, deterministic typed JSON round trips, timestamp
+replacement, invalid limits, missing activity, and a default query with small
+capacity. Full suite: 171 passed, 3 skipped (camera/model and credential-dependent
+integration checks). Ruff lint/formatting passed. No commits, merges, or pushes.
+
+## First actual Cues Deep Agent
+
+`agent/deep_agent.py` uses the installed deepagents 0.7.38 create_deep_agent API.
+The public factory is `create_cues_deep_agent(model, history_store)`; model is a
+required tool-capable LangChain BaseChatModel, supplied by the caller. No provider,
+model name, credentials, or environment defaults are selected by Cues. Calling
+`agent.assess(enriched_context)` starts a fresh bounded graph run and returns an
+internal validated AgentAssessment. `agent.build(context)` exposes the compiled
+graph for inspection. Each assessment has fresh message state and no checkpointer.
+
+EnrichedEvaluationContext is serialized using Pydantic TypeAdapter to JSON in the
+user message: UUIDs, aware timestamps, enum values, request/progress/escalation,
+and the shared Activity definition remain structured. Activity/request ID mismatch
+is rejected. No camera data or additional learner profile is supplied.
+
+The assessment has exactly `decision` (continue_monitoring or
+teacher_review_warranted) and `rationale` (nonblank, at most 500 characters).
+Extra fields and unsupported decisions are rejected. ToolStrategy supplies the
+framework's structured-output mechanism; it is not a second domain tool. Invalid
+structured output and model/run errors propagate; deterministic alert fallback
+and notification handling are not implemented in this step. A 12-step graph
+recursion limit bounds a misbehaving run; no timed cooldown is introduced.
+
+### Why this is a Deep Agent
+
+The agent now exposes two information tools and can choose no tool, progress
+history, prompt history, or both. Later steps can depend on earlier tool results;
+there is no fixed sequence. Offline graph tests exercise both tools sequentially
+in one run. Live Groq runs have demonstrated no-tool, progress-only, and
+prompt-only paths; a live both-tools path has not yet been observed. This is a
+capability distinction, not a claim that every run should retrieve both.
+
+Live evidence after the context/prompt fix: Groq openai/gpt-oss-20b skipped
+history for improving current context, selected history for stalled contexts,
+and then used returned summaries in the same run. Repeated stalls led to a
+teacher-review recommendation; prior completion led to monitoring. Empty history
+was explicitly acknowledged as insufficient to establish a pattern. This observed
+adaptive tool use supplements the scripted mechanics tests; it does not guarantee
+consistent model behavior across runs. Details and transient failures are recorded
+in the live context-fix entry below.
+
+This is not a single prompt → response call. The real create_deep_agent graph lets
+the injected model choose whether current context suffices or whether historical
+context would materially improve its assessment. It can choose to call the one
+custom domain tool, get_recent_progress_history, or finish directly. A tool result
+returns into the message context for the next model step in the same run. The
+sequence is adaptive rather than a hard-coded history-then-assessment pipeline.
+Future tools can make later steps conditional on earlier results. A future
+request_teacher_review workflow will introduce human-in-the-loop approval;
+it is not implemented here. Subagents are intentionally not added without a
+real delegation need, and no planning middleware was added for this narrow task.
+
+The history wrapper binds session/seat/activity IDs to the current request;
+only a bounded limit is exposed as a tool argument. It calls the existing store
+and returns JSON progress summaries, excluding entries after observed_at. The
+model cannot select another seat/session/task through tool arguments. Because
+retention is bounded, old as-of data may already be unavailable. History recording
+remains explicit. Prompt history and teacher-review tools are not exposed.
+
+System instructions require structured evidence only, prohibit camera access,
+diagnosis and internal emotional-state inference, keep expression supporting-only,
+and warn that a stall does not imply intervention. History is optional, must be
+used when retrieved, and must never be invented. Empty history is missing evidence.
+Task text is data, not instructions. Teacher review is a recommendation, never
+notification or permission to autonomously change instruction. These semantic
+requirements are instructions to the model, not guarantees established by schema
+validation; a real model still needs evaluation before product use.
+
+Installed API detail: create_deep_agent adds filesystem/subagent scaffolding by
+default. Cues uses its public beta HarnessProfile API on a small BaseChatModel
+wrapper identified as cues:assessment, disabling the default general-purpose
+subagent without changing global profiles for provider models. Tool binding
+forwards to the original injected model unchanged, preserving its actual provider
+settings. FilesystemMiddleware is restricted to its mandatory read_file slot;
+the scoped profile excludes that tool from model requests and blocks its calls.
+No local filesystem backend is supplied. The remaining offered tools are exactly
+get_recent_progress_history and the AgentAssessment structured-output mechanism.
+These beta configuration APIs should be rechecked on dependency upgrades.
+
+Four offline tests construct the actual graph with a tool-capable subclass of
+LangChain FakeMessagesListChatModel. Tests cover direct structured assessment,
+serialized enriched context, the exact offered-tool set, real history execution,
+its ToolMessage entering the second model step, seat scoping, schema rejection,
+and activity mismatch. Scripted fake messages prove graph plumbing, not the
+quality of autonomous tool choice or evidence-based rationale by a live model.
+No live-provider test was run because no provider/model is selected. The unit
+suite uses no paid key or network. Full suite: 175 passed, 3 skipped; lint and
+formatting passed. Shared contracts and dependencies were not changed. No other
+tools, integrations, subagents, alerts, or instructional actions were implemented.
+No commit, merge, or push performed.
+
+## Optional live Groq evaluation — observed run
+
+Added `agent/live_groq_smoke.py`, separate from pytest discovery. Run explicitly:
+
+```bash
+uv run python -m agent.live_groq_smoke
+```
+
+It loads the ignored root .env without overriding the process environment and
+requires GROQ_API_KEY. `.env.example` contains only an empty optional key slot.
+No secret values are logged or written. Existing langchain-groq 1.1.3 was already
+installed; no dependency change was needed. ChatGroq is instantiated only in the
+live script and injected into the existing factory. Default live model is
+`openai/gpt-oss-20b`; `--model` permits another evaluation model. Temperature is
+zero, retries disabled, request timeout 45 seconds. Core factory, progress,
+escalation, routing, enrichment, and history semantics are unchanged.
+
+Two live passes were actually run with synthetic data. Final pass observations:
+
+| Scenario | History called | Structured decision | Rationale observed |
+|---|---|---|---|
+| Current context sufficient | No | continue_monitoring | Improving trend and zero stalled seconds; model considered current evidence sufficient. |
+| Ambiguous stall | No | continue_monitoring | Model cited 10 seconds being below Activity.no_progress_seconds=30. |
+| Repeated historical stalls | No | continue_monitoring | Same timeout reasoning; it did not retrieve the prior stalled/improving/stalled summaries. |
+| Empty history | No | continue_monitoring | Same timeout reasoning; it never retrieved the empty result. |
+
+The sufficient-context case directly assesses a synthetic recovered/improving
+context, deliberately bypassing router eligibility for evaluation only. The other
+three share an identical stalled current context and differ in stored history:
+prior improvement/completion, repeated stalled/improving summaries, and no entries.
+This tests whether the model elects to retrieve missing context without being told
+what is in storage. No history call is forced and no scenario-specific instruction
+requires a tool sequence. The script prints scenario, structured input, call flag,
+actual ToolMessage results when present, same-run followup flag, decision, rationale,
+and unexercised history paths. Provider exception bodies/environment values are
+not printed; only exception types are logged on failure.
+
+Unexpected behavior: the model consistently treated the activity's 30-second
+no-progress setting as sufficient to dismiss further inquiry despite an already
+eligible 10-second escalation. It did not inspect repeated historical stalls.
+No rationale fabricated specific prior observations; however, “successful
+engagement” in the improving case goes beyond the supplied observable trend.
+Statements about absence of failure/disengagement should not be interpreted as
+verified learner state. These are quality findings, not reasons to silently
+change deterministic routing or force tool use.
+
+All four final assessments validated, but this live evaluation did NOT demonstrate
+adaptive model-selected history use. When such use occurs, a history ToolMessage
+followed by another model step in the same run is the live evidence of adaptive
+behavior described in “Why this is a Deep Agent.” Here the repeated-history
+rationale path and empty-history handling remain unexercised, not passed. The
+script exits 1 for missing history-path coverage (or execution errors), 2 for a
+missing key, and 0 only when all requested paths are exercised with valid outputs.
+Rationale faithfulness still requires human review; there is no automatic
+hallucination judge. A different prompt/model or task configuration can be
+evaluated separately, without claiming these baseline results established quality.
+
+Offline tests prove mechanics, including real tool execution and same-run message
+feedback with scripted model responses; live tests evaluate actual model judgment
+and tool choice. Default offline regression suite: 175 passed, 3 skipped. Ruff lint
+and formatting passed for the live script and agent package. No notes were added
+until the live run occurred. Existing Deep Agent rationale and citations preserved.
+No other tool, provider-specific core change, integration, commit, merge, or push.
+
+## Live Deep Agent context/prompt correction
+
+The initial live failure exposed an agent-facing context bug: Activity's legacy
+`no_progress_seconds=30` was serialized even though current progress/escalation
+routing does not use it. The model treated this as a second eligibility gate and
+never retrieved history. `serialize_agent_context()` in agent/deep_agent.py now
+excludes only this activity field and is shared by assess() and the live script.
+Shared Activity and ContextEnricher are unchanged. Kept activity id/name/check_type,
+success_threshold, and review_threshold, plus all existing request identifiers,
+observation time, progress, and escalation. No instruction text was invented.
+
+System instructions now explicitly establish that an eligible routed request
+already warrants evaluation: do not re-run thresholds or await another timeout.
+If the choice depends on whether the stall is isolated or repeated, retrieve
+history; do not infer a pattern or its absence from one snapshot. History remains
+optional when current evidence suffices. Never invent observations. Explicitly
+prohibit unsupported claims about isolated stalls, learner-specific brevity, or
+low stakes. Empty history means uncertainty, not an isolated event. These are
+semantic instructions, not deterministic guarantees or new routing rules.
+
+Live reruns used the unchanged four synthetic scenarios and Groq
+`openai/gpt-oss-20b`. Initial corrected pass retrieved ambiguous history but still
+skipped repeated history and failed on an empty tool message. The domain-tool
+wrapper now returns JSON text (including the nonempty string "[]") rather than
+a Python list that LangChain can interpret as empty message-content blocks. Store
+semantics and records are unchanged. A subsequent pass exercised both ambiguous
+and repeated history, but encountered a BadRequestError on the sufficient case
+and a RateLimitError before empty-history reasoning finished. After a 45-second
+wait, only those two failed scenarios were rerun successfully. `--scenario` now
+permits targeted repeats; default still runs all four and preserves all coverage
+checks. No failed coverage assertion was weakened and no history call was forced.
+
+Observed successful outcomes across those passes (not one uninterrupted clean run):
+
+| Scenario | History called | Decision | Evidence used |
+|---|---|---|---|
+| Current context sufficient | No | continue_monitoring | Improving trend, zero stalled seconds, no eligibility flag. |
+| Ambiguous stall | Yes | continue_monitoring | Retrieved improving/completed summaries at 02:09:20 and 02:09:40; cited completion before current stall. |
+| Repeated prior stalls | Yes | teacher_review_warranted | Retrieved stalled durations 12, 14, 16 seconds interspersed with improving summaries; rationale cited the recurring pattern. |
+| Empty history | Yes | teacher_review_warranted | Tool returned JSON "[]"; rationale explicitly said it could not establish whether the stall was isolated or part of a pattern. |
+
+In each successful history case, a real ToolMessage entered the same run before
+another model response and validated structured output. The differing rationales
+and decisions reflect the retrieved records; no 30-second timeout was used as a
+veto. No specific historical event was fabricated in these successful outputs.
+Limitations remain: the ambiguous case overstates certainty by calling the stall
+isolated, since a small retained history cannot establish all prior behavior.
+The repeated case calls improvements brief although only point summaries exist.
+The empty case recommends review despite uncertainty; this is a review
+recommendation, not proof of need or an automatic teacher notification. Provider
+BadRequest/rate-limit failures and nondeterministic tool choices remain possible;
+no production retry/fallback policy was added. Live evidence supports adaptive
+model-selected tool use when observed, not guaranteed reliability.
+
+Offline regressions assert the timeout is absent from the exact model payload,
+criteria/IDs remain, shared Activity is unmodified, and empty history is JSON text
+available to the second model step. Full offline suite: 177 passed, 3 skipped;
+lint and formatting passed. No new tool/provider, deterministic threshold change,
+external integration, commit, merge, or push.
+
+## Lightweight Deep Agent engineering guardrails
+
+Added bounded usage and evidence transparency without changing deterministic
+routing, tools, providers, or task contracts. These limits govern latency and
+reliability; they are not educational or clinical thresholds. Existing “Why this
+is a Deep Agent” and previous live findings remain intact. No new live run was
+performed for this step; the new schema and guardrails were verified offline.
+
+Factory API remains model-injected, with optional
+`budgets=AgentBudgets(max_model_steps=4, max_domain_tool_calls=3)`. Installed
+LangChain ModelCallLimitMiddleware enforces model-call count; named
+ToolCallLimitMiddleware counts history-tool attempts, including duplicates.
+Structured-output generation counts as a model step, not a domain-tool attempt.
+Budget exhaustion raises the library's explicit limit error; it does not invent
+an assessment or notification. No thread/checkpoint limits are needed for these
+fresh independent runs. Graph recursion allowance is derived separately (40
+steps by default) so middleware nodes do not prematurely consume the four-model
+budget. Live script and assess() both use the same run_config and validators.
+The model budget counts logical model calls; provider transport retries can make
+additional HTTP attempts within those calls.
+
+The history tool defaults to ten entries and rejects limits outside 1–10. Store
+retention is unchanged at up to 50 per identity. Up to 50 records can be inspected
+locally to filter by request timestamp; only the requested last ten or fewer go
+to the model. Identical sequential calls (same limit, including default ten) reuse
+a prior successful ToolMessage from the current run instead of rereading storage.
+No cache crosses runs. Simultaneous duplicate calls in one model turn may both
+read the source; the attempt budget still bounds them. There is no global cache,
+retry loop, or generic cooldown.
+
+Prompt explicitly states absence of history is not evidence for escalation,
+missing data is not negative evidence, and tool failures/empty results must not
+be replaced with invented facts. Neither outcome is hardcoded for empty history:
+the observed current episode may independently justify review. Existing privacy,
+non-diagnosis, emotional-state, expression-supporting-only, and teacher-control
+constraints are preserved.
+
+AgentAssessment adds required constrained `evidence_used` labels:
+`current_progress`, `activity`, `recent_progress_history`. At least one unique
+label is required, up to three. The assessment validator rejects claimed history
+use without a successful nonempty history ToolMessage. Empty, failed, or unqueried
+history cannot be listed as evidence. Labels remain model-reported usage; checking
+availability cannot prove a rationale faithfully used those records or that the
+model did not imply unsupported facts. This is an inspection aid, not a clinical
+or factual correctness guarantee. No new data is sent as evidence.
+
+Rationale stays capped at 500 nonblank characters; prompt asks for 1–3 short
+sentences, approximately under 200 tokens. Character limits are not an exact
+provider-token budget. The optional Groq path now uses a 20-second per-request
+timeout and the existing SDK retry mechanism with max_retries=2 for transient
+failures (up to three transport attempts per request). Not every provider error
+is retryable. There is no indefinite retry or whole-agent replay; exceptions are
+still surfaced and logged by type only. Overall duration may exceed 20 seconds
+across retries, backoff, and multiple model steps. No provider logic was added to
+the core factory; no API calls are made by default unit tests.
+
+Twelve added offline cases verify missing-history evidence rejection for either
+decision, constrained/unique evidence labels, rationale bounds, ten-entry tool
+output, identical sequential query reuse, exact model/tool limit errors, the
+four-model default in isolation, oversized history limit rejection, and history
+availability validation. Existing direct and multi-step tool paths still pass.
+Full suite: 189 passed, 3 skipped (camera/model and credential-dependent checks).
+Ruff lint and formatting passed. Files changed in this step: agent/deep_agent.py,
+agent/live_groq_smoke.py, agent/tests/test_deep_agent.py, and this log. No new tools,
+integrations, subagents, commits, merges, or pushes.
+
+## Second future Deep Agent information tool — get_prompt_history
+
+Implemented standalone in `agent/prompt_history.py`, not registered with the
+Deep Agent. The guardrail section above already documents all requested budgets,
+context/output limits, evidence semantics, and timeout/retries; no duplicate
+section or change to those guardrails was needed.
+
+No structured prompting observations, prompt levels, or production observation
+producer existed. This adds only a small internal typed record and explicitly
+populated in-memory store. API:
+
+```python
+store = PromptHistoryStore()  # capacity=50 per identity, max_keys=100
+store.record(session_id, seat_id, activity_id, entry)
+history = store.get_prompt_history(session_id, seat_id, activity_id, limit=10)
+```
+
+The retrieval bound method is a documented plain callable suitable for future
+tool registration. Each returned frozen Pydantic PromptHistoryEntry contains
+exactly `observed_at` (aware timestamp) and `outcome` (independent_correct,
+prompted_correct, incorrect, or no_response). Query identifiers scope the records
+and are not repeated in each result. These categories may be supplied only when
+explicitly observed/recorded by a future producer, or as synthetic development
+inputs. Independence must not be derived from a completion/match score. No response
+must reflect an observed opportunity/response interval, never missing tracking.
+Unknown prompting information is not manufactured into any outcome; leave the
+observation unrecorded. No prompt-level/type field is added because no existing
+producer records it. Error/no-response categories do not assert whether a prompt
+was given; no such inference is made.
+
+Results are chronological, default ten and maximum ten per retrieval. Storage
+retains the latest 50 records per session/seat/activity, with configurable capacity
+1–50 and configurable identity count 1–1000 (default 100). Default total bound is
+5,000 records. Once the identity bound is reached, a new identity is rejected
+rather than silently evicting someone else's history. Existing keys remain writable.
+Late records are sorted by observation time; equal timestamps preserve insertion
+order and do not overwrite distinct observations. There is no automatic deduplication.
+Empty history is [], not evidence of failure, independence, or a need for support.
+UUIDs and nonblank task identifiers are validated; unsupported fields/outcomes and
+naive timestamps are rejected. Returned records are detached from storage.
+
+This records observable response outcomes, not frustration, motivation, diagnosis,
+behavioral function, support recommendations, or alerts. It makes no decisions.
+Recency is latest-count rather than a wall-clock interval. There is no automatic
+pipeline recording, source authentication, task-version model, disk persistence,
+or concurrency guarantee. Restart loses history; later this small in-memory source
+can be replaced/backed by Supabase. No database implementation or repository/service
+abstraction was added. Research rationale remains in PRD §12.6 rather than duplicated.
+
+Nineteen focused tests verify explicit recording/retrieval, order (including late
+records and timestamp ties), storage/query bounds, empty history, session/seat/task
+isolation, deterministic typed JSON output, and invalid fields, outcomes, timestamps,
+identifiers, limits, and configuration. Full offline suite: 208 passed, 3 skipped;
+Ruff lint and formatting passed. No live test, agent registration, shared-contract
+change, teacher-review tool, external integration, commit, merge, or push.
+
+## Two-tool Deep Agent integration
+
+Registered get_prompt_history alongside get_recent_progress_history. Factory API
+adds optional `prompt_history=PromptHistoryStore()`; omitting it creates an empty
+local prompt store, preserving existing callers. Core remains provider-independent.
+Both request-scoped wrappers expose only limit, bind session/seat/activity to the
+current request, return JSON text, and exclude future observations. Prompt retrieval
+filters the ten latest source records before returning at most the requested limit;
+if newer/future records occupy that slice, older as-of records may be unavailable.
+No shared contract or store semantics changed. No teacher-review tool was added.
+
+Progress history describes prior stalls/recovery/completion. Prompt history describes
+explicit response outcomes and independence/support, which progress cannot establish.
+System instructions distinguish these uses, preserve established routing eligibility,
+prohibit invented prompting/levels, and require only materially helpful tools. Unknown
+progress with zero duration is missing evidence, not success. No automatic both-tool
+sequence is implemented. Instructions were shortened after live tests showed a strong
+bias toward the first-described progress tool despite support-oriented questions.
+
+The four-model and three-domain-attempt budgets remain. The installed limiter accepts
+only one tool-name filter; a narrow subclass overrides its matching predicate to count
+both domain tools together, excluding AgentAssessment output-format calls. This uses
+an installed-library internal hook that should be rechecked on dependency upgrades.
+Duplicate successful sequential queries reuse prior results separately by tool/limit;
+identical arguments on different tools never share cached content. Default/max agent
+retrieval is ten entries per tool. Rationale cap and live timeout/retries are unchanged.
+Evidence labels now include prompt_history (up to four unique constrained labels).
+Validation rejects either history label unless that specific tool returned successful
+nonempty data. It does not prove the quality of the model's reasoning from that data.
+
+The optional live script now has six scenarios and logs tool names/order, actual results,
+validated decision/rationale/evidence_used, and follow-up model-step coverage. Its
+coverage gate requires both tools to be exercised in successful same-run assessments
+somewhere across the selected scenarios, rather than forcing a particular per-scenario
+sequence. Errors still fail the script. Evaluation questions now explicitly distinguish
+progress-pattern and independence/support questions, without revealing stored outcomes
+or instructing a tool call. This is a test-harness question, not a new shared field or
+an automatic production inference about which context is needed.
+
+Live Groq model: openai/gpt-oss-20b. Latest complete six-scenario pass plus one targeted
+retry after 45 seconds (not one clean uninterrupted passing run):
+
+| Scenario | Tools selected | Validated decision / evidence |
+|---|---|---|
+| Sufficient current context | Neither | continue_monitoring; current_progress |
+| Ambiguous isolated stall | Progress only | teacher_review_warranted; current_progress + recent_progress_history |
+| Repeated stalls | Progress only | teacher_review_warranted; recent_progress_history |
+| Prompt-support pattern | Prompt only | teacher_review_warranted; current_progress + prompt_history |
+| Mixed ambiguous | Prompt only | Initial RateLimitError; retry teacher_review_warranted, current_progress + prompt_history |
+| Empty histories | Progress only | Returned []; final evidence claim rejected with ValueError on both attempts; no validated assessment |
+
+Repeated-stall reasoning cited the actual interleaved stalls/improvements. Prompt-support
+reasoning cited one independent correct response followed by three prompted-correct
+responses. Mixed reasoning cited the observed correct/incorrect/prompted/no-response
+sequence. Thus the selected tool results affected the next model step and final rationale.
+No live case selected both; this remains optional, mechanically verified offline.
+
+Limitations: generic stalled contexts sometimes skipped retrieval entirely; explicit
+assessment questions changed tool choice. Earlier runs incorrectly treated unknown
+history as absence of prior stalls. Latest ambiguous reasoning used absence of a
+subsequent recovery observation to justify review, which overstates sparse data.
+Empty results still prompted unsupported history evidence labels; the validator correctly
+refused them instead of silently accepting/removing labels or weakening assertions.
+Both tools were independently demonstrated in successful live runs, but the live suite
+still exits 1 due to the empty-history quality failure. No retries beyond existing
+transport limits plus the documented targeted rerun were added. Model judgment is not
+reliably established by passing schema/mechanics tests.
+
+Offline additions verify both registered tool names, prompt results returning to the
+same model run, rejection of unqueried/empty prompt evidence, a shared cross-tool attempt
+budget, both-tools sequential execution, and tool-specific duplicate reuse. Full offline
+suite: 213 passed, 3 skipped. Ruff lint and formatting passed. Prior notes/citations are
+preserved. No provider-specific core configuration, new provider, subagent, integration,
+commit, merge, or push.
 
 ## Citations
 
