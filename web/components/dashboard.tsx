@@ -381,8 +381,11 @@ export default function Dashboard({
 
   // Session controls sit in the toolbar (main, PR #48); the popover is only
   // the fallback when they are not connected.
+  // Live session controls get their own row in the room view; the
+  // not-connected fallback stays a small pill in the header.
+  const sessionLive = Boolean(sessionControlsEnabled && client);
   const activityPopover =
-    sessionControlsEnabled && client ? (
+    sessionLive && client ? (
       <section className="session-toolbar" aria-label="Session controls">
         <SessionControls
           client={client}
@@ -490,33 +493,38 @@ export default function Dashboard({
       />
       <main id="main-content" className="dashboard-main">
         {roomViewEnabled ? (
-          <header className="room-header">
-            <div>
-              <h1>your classroom</h1>
-              <p className="room-subtitle">
-                {activity}
-                {allSimulated ? " · simulated class" : null}
-              </p>
-            </div>
-            <div className="room-actions">
-              {activityPopover}
-              <button
-                type="button"
-                className="room-details-toggle"
-                aria-expanded={drawerOpen}
-                aria-controls="room-drawer"
-                ref={drawerToggle}
-                onClick={() => {
-                  detailOpener.current = drawerToggle.current;
-                  setDrawerOpen(true);
-                  requestAnimationFrame(() => drawerClose.current?.focus());
-                }}
-              >
-                <WorkspaceIcon name="camera" />
-                Camera and details
-              </button>
-            </div>
-          </header>
+          <>
+            <header className="room-header">
+              <div>
+                <h1>your classroom</h1>
+                <p className="room-subtitle">
+                  {activity}
+                  {allSimulated ? " · simulated class" : null}
+                </p>
+              </div>
+              <div className="room-actions">
+                {sessionLive ? null : activityPopover}
+                <button
+                  type="button"
+                  className="room-details-toggle"
+                  aria-expanded={drawerOpen}
+                  aria-controls="room-drawer"
+                  ref={drawerToggle}
+                  onClick={() => {
+                    detailOpener.current = drawerToggle.current;
+                    setDrawerOpen(true);
+                    requestAnimationFrame(() => drawerClose.current?.focus());
+                  }}
+                >
+                  <WorkspaceIcon name="camera" />
+                  Camera and details
+                </button>
+              </div>
+            </header>
+            {sessionLive ? (
+              <div className="room-session">{activityPopover}</div>
+            ) : null}
+          </>
         ) : (
           <>
             <div className="ws-hero">

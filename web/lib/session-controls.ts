@@ -30,6 +30,19 @@ export function sessionControlState(snapshot: SessionSnapshot | null, refreshReq
   if (!snapshot) return 'loading' as const;
   return snapshot.session ? 'active' as const : 'ready' as const;
 }
+/** Which session actions the bar offers: one primary action at a time.
+ * Start when there is no session; with a session, End, plus Change only
+ * when a different activity is picked. Nothing while loading. */
+export function sessionActions(
+  snapshot: SessionSnapshot | null,
+  selection: string,
+): { primary: "start" | "change" | null; end: boolean } {
+  if (!snapshot) return { primary: null, end: false };
+  const session = snapshot.session;
+  if (!session) return { primary: "start", end: false };
+  const changed = !!selection && session.current_activity_id !== selection;
+  return { primary: changed ? "change" : null, end: true };
+}
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function parseSession(input: unknown, station: string): Session {
   const s = input as Session;
