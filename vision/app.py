@@ -2,7 +2,7 @@
 
 Run from the repo root:
 
-    uv run --project vision uvicorn vision.app:app --port 8000
+    uv run uvicorn vision.app:app --port 8000
 
 Then open http://localhost:8000/stream for the live video and
 http://localhost:8000/health for the camera status and frame rates.

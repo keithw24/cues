@@ -5,14 +5,14 @@ The vision service reports what happens at each seat as structured events
 
 * `emit(event)` and `update_seat_state(...)` return immediately. A background
   thread does the network work, so a slow connection never stalls the camera.
-* With SUPABASE_URL and SUPABASE_KEY set, events go to the Supabase `events`
-  table and seat state to `seat_state`.
+* With SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY set (root .env), events go
+  to the Supabase `events` table and seat state to `seat_state`.
 * Without them, or if a Supabase write fails, the same rows are appended to
   vision/logs/events.jsonl and vision/logs/seat_state.jsonl.
 
 Try it from the repo root:
 
-    uv run --project vision python -m vision.events --demo
+    uv run python -m vision.events --demo
 """
 
 from __future__ import annotations

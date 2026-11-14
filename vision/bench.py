@@ -10,10 +10,10 @@ the same frames, times each one, and prints:
 
 Usage (from the repo root):
 
-    uv run --project vision python -m vision.bench              # webcam, 30 s
-    uv run --project vision python -m vision.bench --seconds 10 --camera 1
-    uv run --project vision python -m vision.bench --video clip.mp4
-    uv run --project vision python -m vision.bench --fake       # synthetic frames
+    uv run python -m vision.bench              # webcam, 30 s
+    uv run python -m vision.bench --seconds 10 --camera 1
+    uv run python -m vision.bench --video clip.mp4
+    uv run python -m vision.bench --fake       # synthetic frames
 
 Answers PRD open question 1. Synthetic frames contain no hands or faces, so
 only the real camera gives realistic numbers.

@@ -99,8 +99,8 @@ def test_jsonl_sink_appends_lines(tmp_path):
 
 
 @pytest.mark.skipif(
-    not (os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY")),
-    reason="needs SUPABASE_URL and SUPABASE_KEY",
+    not (os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
+    reason="needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
 )
 def test_supabase_round_trip():
     from vision.events import SupabaseSink
