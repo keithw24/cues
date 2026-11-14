@@ -40,6 +40,7 @@ export default function TeacherProfileForm() {
   >("loading");
   const [message, setMessage] = useState<string | null>(null);
   const locked = useRef(false);
+  const userRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!client) return;
@@ -69,6 +70,7 @@ export default function TeacherProfileForm() {
       const userId = session?.user.id ?? null;
       if (userId === loadedFor) return;
       loadedFor = userId;
+      userRef.current = userId;
       setProfile(null);
       setName("");
       setCountryCode("1");
@@ -97,6 +99,8 @@ export default function TeacherProfileForm() {
     event.preventDefault();
     if (!client || locked.current || phoneInvalid) return;
     locked.current = true;
+    // If the teacher signs out mid-save, the result belongs to nobody on screen.
+    const savingFor = userRef.current;
     setState("saving");
     setMessage(null);
     try {
@@ -104,9 +108,11 @@ export default function TeacherProfileForm() {
         display_name: name,
         phone_number: normalizedPhone,
       });
+      if (userRef.current !== savingFor) return;
       setProfile(saved);
       setMessage("Profile saved.");
     } catch (cause) {
+      if (userRef.current !== savingFor) return;
       setMessage(
         cause instanceof Error
           ? cause.message
@@ -114,9 +120,10 @@ export default function TeacherProfileForm() {
       );
     } finally {
       locked.current = false;
-      setState("ready");
+      if (userRef.current === savingFor) setState("ready");
     }
   }
+
 
   if (!client)
     return (
