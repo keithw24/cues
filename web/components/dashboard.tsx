@@ -414,25 +414,26 @@ export default function Dashboard({
             <span className="toolbar-label">Current activity</span>
             <strong>{activity}</strong>
           </div>
-          <details className="activity-popover">
-            <summary>
-              Manage activity
-              <WorkspaceIcon name="chevronDown" />
-            </summary>
-            <div className="activity-popover-body">
-              <h2>Session controls</h2>
-              {sessionControlsEnabled && client ? (
-                <SessionControls
-                  client={client}
-                  station={stationId}
-                  onActivity={setSessionActivity}
-                  teacherLoginEnabled={teacherLoginEnabled}
-                />
-              ) : (
+          {sessionControlsEnabled && client ? (
+            <section className="session-toolbar" aria-label="Session controls">
+              <SessionControls
+                client={client}
+                station={stationId}
+                onActivity={setSessionActivity}
+                teacherLoginEnabled={teacherLoginEnabled}
+              />
+            </section>
+          ) : (
+            <details className="activity-popover">
+              <summary>
+                Session controls
+                <WorkspaceIcon name="chevronDown" />
+              </summary>
+              <div className="activity-popover-body">
                 <p>Session controls are not connected in this environment.</p>
-              )}
-            </div>
-          </details>
+              </div>
+            </details>
+          )}
           {seats.length > 0 && seats.every((seat) => seat.is_simulated) ? (
             <span className="status-chip">Simulated data</span>
           ) : null}

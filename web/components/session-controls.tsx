@@ -26,6 +26,9 @@ export function SessionControls({
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null);
   const [selection, setSelection] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    "start" | "change" | "end" | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshRequired, setRefreshRequired] = useState(false);
@@ -98,7 +101,9 @@ export function SessionControls({
         ) {
           if (!loaded) onActivity("Session unavailable");
           setError(
-            cause instanceof Error ? cause.message : "Session could not be refreshed. Check your station access and retry.",
+            cause instanceof Error
+              ? cause.message
+              : "Session could not be refreshed. Check your station access and retry.",
           );
           needsRefresh.current = true;
           setRefreshRequired(true);
@@ -137,7 +142,7 @@ export function SessionControls({
         () => void refresh(),
       )
       .subscribe((status) => {
-      if (status === "SUBSCRIBED") void refresh();
+        if (status === "SUBSCRIBED") void refresh();
         else if (
           ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status) &&
           !disposed
@@ -164,6 +169,9 @@ export function SessionControls({
   async function act(activityId: string | null) {
     if (locked.current || !snapshot || refreshRequired) return;
     locked.current = true;
+    setPendingAction(
+      activityId === null ? "end" : snapshot.session ? "change" : "start",
+    );
     request.current++;
     const epoch = generation.current;
     setBusy(true);
@@ -202,6 +210,7 @@ export function SessionControls({
       locked.current = false;
       if (epoch === generation.current) {
         setBusy(false);
+        setPendingAction(null);
         refreshAfterAction.current?.();
       }
     }
@@ -265,14 +274,14 @@ export function SessionControls({
   const controlState = sessionControlState(snapshot, refreshRequired);
   return (
     <div className="session-controls" aria-busy={busy}>
-      <label className="sr-only" htmlFor="session-activity">
-        Activity
-      </label>
+      <label htmlFor="session-activity">Activity</label>
       <select
         id="session-activity"
         value={selection}
         onChange={(e) => setSelection(e.target.value)}
-        disabled={busy || controlState === 'loading' || controlState === 'refresh'}
+        disabled={
+          busy || controlState === "loading" || controlState === "refresh"
+        }
       >
         <option value="">Select activity</option>
         {snapshot?.activities.map((a) => (
@@ -288,18 +297,31 @@ export function SessionControls({
           !snapshot ||
           !selection ||
           refreshRequired ||
-          snapshot.session?.current_activity_id === selection
+          !!snapshot.session
         }
         onClick={() => void act(selection)}
       >
-        {busy ? "Updating…" : controlState === 'active' ? "Change activity" : "Start Session"}
+        {pendingAction === "start" ? "Starting…" : "Start Session"}
+      </button>
+      <button
+        type="button"
+        disabled={
+          busy ||
+          !snapshot?.session ||
+          !selection ||
+          refreshRequired ||
+          snapshot.session.current_activity_id === selection
+        }
+        onClick={() => void act(selection)}
+      >
+        {pendingAction === "change" ? "Changing…" : "Change activity"}
       </button>
       <button
         type="button"
         disabled={busy || !snapshot?.session || refreshRequired}
         onClick={() => void act(null)}
       >
-        End Session
+        {pendingAction === "end" ? "Ending…" : "End Session"}
       </button>
       <button
         type="button"
@@ -326,21 +348,30 @@ export function SessionControls({
       ) : null}
       {snapshot ? (
         <details className="session-sync-status">
-          <summary>Session status · {station} · {snapshot.session ? "Active" : "Inactive"}</summary>
+          <summary>
+            Session status · {station} ·{" "}
+            {snapshot.session ? "Active" : "Inactive"}
+          </summary>
           <p>Session: {snapshot.session?.id ?? "None"}</p>
           <p>Activity: {snapshot.session?.current_activity_id ?? "None"}</p>
-          <p>Owner: {snapshot.session?.teacher_id ?? "Unowned / unavailable"}</p>
+          <p>
+            Owner: {snapshot.session?.teacher_id ?? "Unowned / unavailable"}
+          </p>
         </details>
       ) : null}
-      {sessionOwnership(snapshot?.session ?? null, user) === "unowned" ? (
-        <p className="session-sync-status" role="status">
-          This session has no teacher owner, so its reviews stay hidden. End it
-          and start an activity to own a new session.
+      {snapshot ? (
+        <p className="session-ownership" role="status">
+          {!snapshot.session
+            ? `No active session at ${station}. Select an activity to start.`
+            : sessionOwnership(snapshot.session, user) === "owned"
+              ? `Your session at ${station}. End it before starting another.`
+              : sessionOwnership(snapshot.session, user) === "unowned"
+                ? `Previous session at ${station} has no teacher owner. End it, then select an activity and start your own session.`
+                : sessionOwnership(snapshot.session, user) === "other"
+                  ? `This ${station} session belongs to another teacher. Changing its activity keeps its owner.`
+                  : `Active session at ${station}. Teacher ownership is unavailable.`}
         </p>
       ) : null}
-      {controlState === 'ready' ? <p role="status">No active session. Select an activity and start a new session.</p> : null}
-      {sessionOwnership(snapshot?.session ?? null, user) === 'other' ? <p role="status">This active session belongs to another teacher. Station authorization is required to change or end it; starting an activity will not claim ownership.</p> : null}
-      {snapshot?.session && sessionOwnership(snapshot.session, user) === 'unknown' ? <p role="status">Active session ownership is unavailable. End the existing session before starting a new owned session; migrations 006 and 007 are required.</p> : null}
       {error ? <p role="alert">{error}</p> : null}
     </div>
   );

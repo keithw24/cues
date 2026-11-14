@@ -888,3 +888,35 @@
     border-radius: 24px;
   }
 }
+
+/* Session lifecycle stays visible beside the saved activity. */
+.dashboard-shell .session-toolbar {
+  flex-basis: 100%;
+  min-width: 0;
+}
+.dashboard-shell .session-toolbar .session-controls {
+  gap: 8px;
+}
+.dashboard-shell .session-toolbar .session-controls > label {
+  font-size: 12px;
+}
+.dashboard-shell .session-toolbar .session-controls select {
+  width: auto;
+  flex: 1 1 170px;
+  min-width: 0;
+  max-width: 260px;
+}
+.dashboard-shell .session-toolbar .session-controls button {
+  white-space: nowrap;
+}
+.dashboard-shell .session-ownership {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--ws-ink-soft);
+}
+@media (max-width: 600px) {
+  .dashboard-shell .session-toolbar .session-controls select {
+    max-width: none;
+  }
+}
