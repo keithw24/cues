@@ -7,9 +7,9 @@ Cues helps a special-education teacher see which students need help. A local cam
 | Area | Folder | Owner |
 |---|---|---|
 | Vision service (camera, MediaPipe, HSEmotion, task events) | `vision/` | Keith |
-| Dashboard, station page, Supabase schema | `web/` | Evan |
-| Rules engine, Deep Agent, FastAPI backend, Photon | `agent/` | Michelle |
-| Shared: CI, this file, team workflow, feature flags | `.github/`, `CLAUDE.md`, `TEAM_WORKFLOW.md`, `flags.json`, `.claude/agents/` | everyone |
+| Frontend, app backend, station page, Supabase schema | `web/` (current frontend scaffold; app backend placement not yet established) | Evan |
+| Agent / routing, rules engine, Deep Agent, LLM integration, Photon | planned; no `agent/` directory yet | Michelle |
+| Shared: CI, this file, feature flags | `.github/`, `CLAUDE.md`, `flags.json`, `.claude/agents/` | everyone |
 
 Only edit another owner's folder when the task needs it, and say so in the PR.
 
@@ -32,50 +32,31 @@ uv run ruff format --check vision
 
 Fix formatting (rewrites files): `uv run ruff format vision`
 
-Run the service and tools:
+Run the service and tools (these modules arrive with T1, T2 and T3; until those PRs merge they exist only on their branches):
 
 ```bash
-uv run uvicorn vision.app:app          # service: /stream, /health
-uv run python -m vision.bench          # laptop benchmark
-uv run python -m vision.events --demo  # send one test event
+uv run uvicorn vision.app:app          # (after T1) service: /stream, /health
+uv run python -m vision.bench          # (after T2) laptop benchmark
+uv run python -m vision.events --demo  # (after T3) send one test event
 ```
 
-## Workflow and naming
 
-`TEAM_WORKFLOW.md` is the source of truth for how the team works. In short:
+## Workflow: personal branches and scoped PRs
 
-**Branches.** Each person works on their own branch, named after them. `main` is for integration only; nobody commits to it directly.
+`TEAM_WORKFLOW.md` defines the current branches and ownership: `keith` for CV, `evan` for frontend/app backend, `michelle` for agent/routing, and `main` for integration.
 
-| Branch | Who | Area |
-|---|---|---|
-| `keith` | Keith | `vision/` |
-| `evan` | Evan | `web/`, Supabase |
-| `michelle` | Michelle | `agent/` |
-| `main` | everyone | integration |
-
-Don't create other branches (no `feat/...`, no per-ticket branches) unless the team agrees.
-
-**Before starting work**, bring in the latest `main`:
-
-```bash
-git switch <your-name>
-git pull
-git merge main
-```
-
-**Commits.** Small and scoped to one change. The message is a short imperative description of what changed, for example `Add hand tracking stage` or `Fix seat dead band`. No ticket prefixes. Push regularly. Don't force-push unless the whole team agrees.
-
-**Merging into `main`.** Open a pull request from your branch into `main`.
-- **Title:** short and plain, a few words naming what it adds, for example `Hand tracking`, `Gesture matching`, `Cleanup`. No ticket numbers, prefixes or person names.
-- **Body:** fill in the PR template. List any check CI cannot run (camera, Supabase, Photon) as an unticked box with the exact command and who will run it.
-- **Before opening it:** merge the latest `main` into your branch and resolve conflicts there, not on `main`.
-- **Before merging it:** CI passes and the pre-merge review (below) has no open blocking finding.
-
-**Feature flag names** follow the pattern in the next section (`<area>.<feature>`, for example `vision.hands`).
-
-**Checks.** CI (`.github/workflows/`) must pass. Tests that need a camera or model weights use `@pytest.mark.hardware` and are skipped in CI. CI only runs for paths that have a workflow, so "No checks reported" is fine for a PR that changes none of those paths. Don't make the `vision` check a required status check: PRs that skip it would wait on it forever.
-
-**Shared files.** Stay in your own area. `flags.json` is shared: add only your own entries. If you must change another person's files for integration, say so in the PR.
+1. Work on your personal branch and keep each change scoped to one task.
+2. Follow `TEAM_WORKFLOW.md` for synchronizing with `main` and resolving conflicts on your branch before integration.
+3. Fill in the PR template:
+   - the ticket ID, and its Verify step copied word for word (the ticket list is not in the repo, so the PR body is where reviewers read it);
+   - what it delivers, and how it was verified;
+   - the feature flag, if any;
+   - the files owned.
+   List any check CI cannot run (camera, Supabase, Photon) as an unticked box with the exact command and the name of the person who will run it.
+4. PRs that are worked on at the same time must not edit the same files. One exception: `flags.json` is shared. Each PR only adds its own entry and rebases if another PR's entry conflicts.
+5. CI (`.github/workflows/`) must pass. Tests that need a camera or model weights use `@pytest.mark.hardware` and are skipped in CI. CI only runs for paths that have a workflow. "No checks reported" is fine for a PR that changes none of those paths. Don't make the `vision` check a required status check: PRs that skip it would wait on it forever.
+6. Every new feature ships behind a feature flag (next section).
+7. Before any merge, run the pre-merge review (section after next).
 
 ## Feature flags
 
@@ -101,11 +82,11 @@ Every feature can be turned on and off without a code change. This lets the team
 
 **Reading flags.** Each area has one helper and only reads flags through it: `vision/flags.py`, `agent/flags.py`, `web/lib/flags.ts`. Each helper reads `flags.json`, applies the overrides, and treats an unknown flag name as an error.
 
-**Status:** `vision/flags.py` exists. The vision stage and route loaders skip modules whose `FLAG` is off, and `/health` lists every vision flag's current value. `agent/flags.py` and `web/lib/flags.ts` are not built yet; until an area's helper exists, don't merge a flagged feature in that area into `main`.
+**Status:** `vision/flags.py` exists. The vision stage and route loaders skip modules whose `FLAG` is off, and `/health` lists every vision flag's current value. `agent/flags.py` and `web/lib/flags.ts` are not built yet; until an area's helper exists, don't merge a feature PR in that area that has a flag.
 
-**Rules for every feature:**
-1. Add the feature's flag to `flags.json` in the same change as the feature.
-2. A new flag starts with `"default": false`. Change it to `true` once the feature's Verify step has passed (on real hardware, if the feature needs a camera or model). That can happen in the same PR into `main` if the PR records the check.
+**Rules for every feature PR:**
+1. Add the feature's flag to `flags.json` in the same PR.
+2. A new flag starts with `"default": false`. Change it to `true` once the feature's Verify step has passed (on real hardware, if the feature needs a camera or model). That can happen in the same PR if the PR records the check.
 3. When the flag is off, the feature's code does not run, and everything else still starts and works. Two patterns:
    - **A whole module** (a stage or router in `vision/`): the module sets `FLAG = "vision.<feature>"`, and the loader skips it when the flag is off.
    - **A behaviour inside code that always runs** (for example, sending events to Supabase instead of only to local files): check the flag where the choice is made. The flag-off path is the fallback.
