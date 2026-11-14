@@ -1,6 +1,7 @@
 """Print what the vision pipeline sees, once a second, for each seat.
 
-    uv run python -m vision.watch --all-on                 # webcam, all perception on
+    uv run python -m vision.watch --all-on                 # webcam + overlay window
+    uv run python -m vision.watch --all-on --no-window     # text only
     uv run python -m vision.watch --all-on --task custom_gesture_01
     CUES_CAMERA=fake uv run python -m vision.watch --all-on --seconds 5
 
@@ -70,6 +71,33 @@ def format_snapshot(ctx, seat_ids, tasks, top: int = 3, debug: bool = False) -> 
     return "\n\n".join(blocks)
 
 
+class CameraWindow:
+    """Shows the pipeline's annotated frames (the same image as /stream) in a window."""
+
+    TITLE = "Cues vision (press q to quit)"
+
+    def show(self, jpeg: bytes) -> bool:
+        """Draw one frame. Returns False when the user presses q or closes the window."""
+        import cv2
+        import numpy as np
+
+        image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
+        cv2.imshow(self.TITLE, image)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            return False
+        try:
+            return cv2.getWindowProperty(self.TITLE, cv2.WND_PROP_VISIBLE) >= 1
+        except cv2.error:
+            return False
+
+    def close(self) -> None:
+        import cv2
+
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Print per-seat perception results.")
     parser.add_argument(
@@ -81,6 +109,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--seconds", type=float, help="stop after this many seconds")
     parser.add_argument("--top", type=int, default=3, help="expression labels to show (max 8)")
     parser.add_argument("--debug", action="store_true", help="show raw gesture distances")
+    parser.add_argument(
+        "--no-window", action="store_true", help="don't open the camera window with overlays"
+    )
     args = parser.parse_args(argv)
 
     if args.all_on:
@@ -104,18 +135,31 @@ def main(argv: list[str] | None = None) -> None:
     pipeline = Pipeline(camera_from_env(), discover_stages())
     print("Starting camera and models (first run downloads models)...", flush=True)
     pipeline.start()
+    window = None if args.no_window else CameraWindow()
     started = time.monotonic()
+    next_print = started + 1.0
+    frame_index = 0
     try:
         while args.seconds is None or time.monotonic() - started < args.seconds:
-            time.sleep(1.0)
-            print("\033[2J\033[H" if os.isatty(1) else "-" * 40 + "\n", end="")
-            snapshot = format_snapshot(pipeline.ctx, ZONES.seat_ids, TASKS, args.top, args.debug)
-            print(snapshot, flush=True)
-            print(f"\n[{pipeline.health()['fps']} fps]", flush=True)
+            if window is not None:
+                # Show every new annotated frame; the text summary still prints once a second.
+                frame_index, jpeg = pipeline.wait_for_jpeg(after=frame_index, timeout=0.1)
+                if jpeg is not None and not window.show(jpeg):
+                    break  # q pressed or window closed
+            else:
+                time.sleep(0.1)
+            if time.monotonic() >= next_print:
+                next_print += 1.0
+                print("\033[2J\033[H" if os.isatty(1) else "-" * 40 + "\n", end="")
+                snap = format_snapshot(pipeline.ctx, ZONES.seat_ids, TASKS, args.top, args.debug)
+                print(snap, flush=True)
+                print(f"\n[{pipeline.health()['fps']} fps]", flush=True)
     except KeyboardInterrupt:
         pass
     finally:
         pipeline.stop()
+        if window is not None:
+            window.close()
 
 
 if __name__ == "__main__":

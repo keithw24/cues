@@ -56,6 +56,7 @@ class StatusStage:
         self._expression: dict[str, ExpressionTracker] = {}
         self._last_state: dict[str, tuple[str, float]] = {}  # seat -> (status, time sent)
         self.recent: deque[str] = deque(maxlen=RECENT_EVENTS)
+        self._last_event: dict[str, tuple[str, float]] = {}  # seat -> (event type, time)
 
     @property
     def emitter(self):
@@ -83,9 +84,11 @@ class StatusStage:
             events += expr_tracker.update(t, expressions.get(seat))
             for event in events:
                 self._send_event(seat, activity.id, event)
+                self._last_event[seat] = (event.type, t)
             self._maybe_send_state(seat, tracker, score, expressions.get(seat), t)
         ctx["status"] = {seat: tr.status for seat, tr in self._trackers.items()}
         ctx["events"] = list(self.recent)
+        ctx["last_event"] = {s: e for s, (e, when) in self._last_event.items() if t - when < 3.0}
 
     def _send_event(self, seat: str, activity_id: str, event: StatusEvent) -> None:
         from shared.contracts import Event
@@ -134,9 +137,19 @@ class StatusStage:
         import cv2
 
         h, w = image.shape[:2]
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        colors = {
+            "done": (0, 200, 0),
+            "review": (0, 200, 255),
+            "needs_help": (0, 0, 230),
+            "tracking_lost": (160, 160, 160),
+        }
+        last = ctx.get("last_event", {})
         for seat, status in ctx.get("status", {}).items():
             x = 10 if seat == self.zones.left_id else w // 2 + 10
-            cv2.putText(image, status, (x, 48), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            cv2.putText(image, status, (x, 48), font, 0.6, colors.get(status, (255, 255, 255)), 2)
+            if seat in last:  # the latest event stays on screen for 3 s
+                cv2.putText(image, last[seat], (x, 72), font, 0.6, (0, 255, 255), 2)
 
     def close(self) -> None:
         if self._emitter is not None:
