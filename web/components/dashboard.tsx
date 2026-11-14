@@ -33,7 +33,6 @@ import {
   PersonRowContent,
   ReviewRowContent,
 } from "@/components/workspace-rows";
-import { displayName } from "@/lib/simulated-names";
 
 const INITIAL: FeedState = {
   snapshot: null,
@@ -182,7 +181,6 @@ export default function Dashboard({
   reviewsEnabled = false,
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
-  simulatedNamesEnabled = false,
   roomViewEnabled = false,
   themeToggleEnabled = false,
   liveViewEnabled = false,
@@ -193,7 +191,6 @@ export default function Dashboard({
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
   teacherLoginEnabled?: boolean;
-  simulatedNamesEnabled?: boolean;
   roomViewEnabled?: boolean;
   themeToggleEnabled?: boolean;
   liveViewEnabled?: boolean;
@@ -293,12 +290,9 @@ export default function Dashboard({
     if (selectedId || selectedReviewId) detailsHeading.current?.focus();
   }, [selectedId, selectedReviewId]);
 
-  const seats = feed.snapshot
-    ? seatViews(feed.snapshot).map((seat) => ({
-        ...seat,
-        display_name: displayName(seat, simulatedNamesEnabled),
-      }))
-    : [];
+  // People are labelled as the backend names them (seats.display_name,
+  // "Person 1", "Person 2"…): no made-up names.
+  const seats = feed.snapshot ? seatViews(feed.snapshot) : [];
   const reviewActivity = (id: string) =>
     activityLabel(
       id,

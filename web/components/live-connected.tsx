@@ -16,7 +16,6 @@ import {
   observationPresentation,
   type ObservationOptions,
 } from "@/lib/observation-presentation";
-import { displayName } from "@/lib/simulated-names";
 import { createDashboardClient } from "@/lib/supabase";
 import { resolveTeacherReview } from "@/lib/teacher-review-actions";
 import {
@@ -44,7 +43,7 @@ import {
   type LiveStudent,
 } from "@/components/live-screen";
 
-// The Live screen on real data (web.live_data). People are the ones the
+// The Live screen, on what the station camera reports. People are the ones the
 // station camera sees right now. The feed lists finishes this page has seen
 // since it opened (this tab only, never stored or used to decide anything)
 // and review times from the backend.
@@ -80,13 +79,11 @@ export default function LiveConnected({
   reviewsEnabled = false,
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
-  simulatedNamesEnabled = false,
 }: {
   personObservationsEnabled?: boolean;
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
   teacherLoginEnabled?: boolean;
-  simulatedNamesEnabled?: boolean;
 }) {
   // Clock values are set after mount, so the server and first render agree.
   const [openedAt, setOpenedAt] = useState<number | null>(null);
@@ -196,12 +193,8 @@ export default function LiveConnected({
     now,
     connected: feed.connection === "connected" && !feed.error,
   };
-  const seats = feed.snapshot
-    ? seatViews(feed.snapshot).map((seat) => ({
-        ...seat,
-        display_name: displayName(seat, simulatedNamesEnabled),
-      }))
-    : [];
+  // People are labelled as the backend names them ("Person 1"…).
+  const seats = feed.snapshot ? seatViews(feed.snapshot) : [];
   const nameOf = (seatId: string) =>
     seats.find((seat) => seat.id === seatId)?.display_name ?? seatId;
   const activityOf = (id: string) =>
