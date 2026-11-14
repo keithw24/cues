@@ -29,9 +29,9 @@ using (user_id = auth.uid()) with check (user_id = auth.uid());
 alter table public.sessions add column teacher_id uuid references auth.users(id);
 create index sessions_teacher_id_idx on public.sessions(teacher_id);
 -- Historical sessions remain unowned; never assign an arbitrary teacher.
-grant insert on public.sessions to authenticated;
-create policy own_session_create on public.sessions for insert to authenticated
-with check (teacher_id = auth.uid());
+-- Browser session creation is RPC-only. The SECURITY DEFINER start RPC
+-- validates station membership/activity and assigns auth.uid() (migration 007).
+revoke insert on public.sessions from authenticated;
 create policy own_session_read on public.sessions for select to authenticated
 using (teacher_id = auth.uid());
 
