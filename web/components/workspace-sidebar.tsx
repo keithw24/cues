@@ -10,13 +10,11 @@ export function WorkspaceSidebar({
   accountEnabled = false,
   themeToggle = false,
   liveView = false,
-  onReviews,
 }: {
   accountEnabled?: boolean;
   themeToggle?: boolean;
   /** Show the Live screen (web.live_view) in the rail. */
   liveView?: boolean;
-  onReviews?: () => void;
 }) {
   // The current entry follows the URL, so /live, /dashboard and settings
   // each highlight their own link.
@@ -57,22 +55,6 @@ export function WorkspaceSidebar({
             <span className="nav-label">Live</span>
           </Link>
         ) : null}
-        <Link href="/dashboard#seats-heading">
-          <WorkspaceIcon name="people" />
-          <span className="nav-label">People</span>
-        </Link>
-        <Link href="/dashboard#attention-panel" onClick={onReviews}>
-          <WorkspaceIcon name="review" />
-          <span className="nav-label">Teacher reviews</span>
-        </Link>
-        <Link
-          href="/settings/notifications"
-          {...current("/settings/notifications")}
-        >
-          <WorkspaceIcon name="photon" />
-          <span className="nav-label">Notifications</span>
-          <span className="soon-label">Soon</span>
-        </Link>
       </nav>
       <div className="sidebar-bottom">
         {themeToggle ? (
