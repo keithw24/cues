@@ -20,6 +20,10 @@ MODEL_URLS = {
         "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
         "hand_landmarker/float16/1/hand_landmarker.task"
     ),
+    "gesture_recognizer.task": (
+        "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/"
+        "gesture_recognizer/float16/1/gesture_recognizer.task"
+    ),
     "pose_landmarker_lite.task": (
         "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
         "pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
@@ -58,6 +62,27 @@ def hand_landmarker(num_hands: int = 4):
         num_hands=num_hands,
     )
     return HandLandmarker.create_from_options(options)
+
+
+def gesture_recognizer(num_hands: int = 4):
+    """MediaPipe Gesture Recognizer in IMAGE mode.
+
+    Returns the same 21 hand landmarks and handedness as the Hand Landmarker,
+    plus a score per hand for each built-in gesture: Thumb_Up, Thumb_Down,
+    Open_Palm, Closed_Fist, Pointing_Up, Victory, ILoveYou and None. Trained on
+    many people and angles, so it handles viewpoint changes far better than
+    matching recorded examples.
+    """
+    from mediapipe.tasks.python import BaseOptions
+    from mediapipe.tasks.python.components.processors import ClassifierOptions
+    from mediapipe.tasks.python.vision import GestureRecognizer, GestureRecognizerOptions
+
+    options = GestureRecognizerOptions(
+        base_options=BaseOptions(model_asset_path=str(model_path("gesture_recognizer.task"))),
+        num_hands=num_hands,
+        canned_gesture_classifier_options=ClassifierOptions(max_results=-1, score_threshold=0.0),
+    )
+    return GestureRecognizer.create_from_options(options)
 
 
 def pose_landmarker(num_poses: int = 4, video: bool = True):

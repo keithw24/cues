@@ -7,9 +7,10 @@
       "thumbs up",
       "thumb"
     ],
-    "success_threshold": 0.78,
-    "review_threshold": 0.58,
-    "no_progress_seconds": 30
+    "success_threshold": 0.7,
+    "review_threshold": 0.5,
+    "no_progress_seconds": 30,
+    "builtin": "Thumb_Up"
   },
   {
     "id": "raise_hand",

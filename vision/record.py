@@ -27,7 +27,7 @@ import numpy as np
 from vision.camera import standard_frame
 from vision.gestures import templates as tpl
 from vision.gestures.matcher import calibrate_rejection
-from vision.gestures.normalize import normalize
+from vision.gestures.normalize import is_reliable, normalize
 
 WINDOW = "Cues recorder (press q to cancel)"
 GREEN, RED, WHITE = (0, 200, 0), (0, 0, 230), (255, 255, 255)
@@ -89,7 +89,9 @@ class Recorder:
             result = self.detector.detect(self.make_image(rgb))
             hand = pick_hand(hands_from_result(result, AllHands()).get("any", []))
             if record and hand is not None and now >= next_sample:
-                vectors.append(normalize(hand.landmarks, hand.handedness))
+                vector = normalize(hand.landmarks, hand.handedness)
+                if is_reliable(vector):  # skip end-on hands and bad detections
+                    vectors.append(vector)
                 next_sample = now + 1.0 / fps
             if self.preview:
                 self.show(bgr, hand, f"{banner} {end - now:.0f}s", record, len(vectors))
@@ -147,6 +149,11 @@ def main(argv: list[str] | None = None) -> None:
     activity = activities.get(args.activity_id)
     if activity.check_type != "gesture":
         raise SystemExit(f"{activity.id} is a {activity.check_type} task; nothing to record")
+    if activity.builtin:
+        raise SystemExit(
+            f"{activity.id} uses MediaPipe's built-in {activity.builtin} gesture; "
+            "no recording needed"
+        )
 
     detector = models.hand_landmarker(num_hands=4)
     cap = cv2.VideoCapture(args.camera)
@@ -156,6 +163,10 @@ def main(argv: list[str] | None = None) -> None:
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     templates = tpl.load(activity.id)
+    if templates.stale:
+        print(f"Existing {activity.id} examples were recorded with older code and no longer")
+        print("match live hands. They will be replaced by this recording.")
+        templates = tpl.Templates(activity.id)
     rec = Recorder(cap, detector, not args.no_preview)
     if rec.preview:
         print("A camera window opens: check your hand is in view and drawn in green.")

@@ -33,10 +33,20 @@ PERCEPTION_FLAGS = (
     "vision.raise_hand",
     "vision.expression",
     "vision.task_status",
+    "vision.all_scores",
 )
 
 
-def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False) -> str:
+def format_seat(
+    seat,
+    task,
+    match,
+    expression,
+    top: int = 3,
+    debug: bool = False,
+    all_scores=None,
+    recognized=None,
+) -> str:
     lines = [f"Seat: {seat}", f"Task: {task}"]
     if match is None:
         lines.append("Match score: -- (no hand detected)")
@@ -46,6 +56,22 @@ def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False
         lines.append(f"Match score: {match.score:.2f}")
         if debug and match.detail:
             lines.append(f"  ({match.detail})")
+    if recognized is not None:
+        if recognized.activity_id is None:
+            lines.append("Recognised: no gesture")
+        else:
+            lines.append(f"Recognised: {recognized.activity_id} {recognized.score:.2f}")
+        if recognized.hand is not None:  # always shown in recognise mode
+            from vision.gestures.hand_pose import describe
+
+            hand = recognized.hand
+            lines.append(f"Hand: {describe(hand.landmarks, hand.handedness)}")
+        else:
+            lines.append("Hand: none detected")
+    if all_scores:
+        from vision.stages.s45_all_scores import format_scores
+
+        lines.append(f"All gestures: {format_scores(all_scores)}")
     if not expression:
         lines.append("Expression: -- (no face detected)")
     else:
@@ -64,7 +90,11 @@ def format_snapshot(ctx, seat_ids, tasks, top: int = 3, debug: bool = False) -> 
             task = f"{task}  [{status}]"
         match = ctx.get("match", {}).get(seat)
         expression = ctx.get("expression", {}).get(seat)
-        blocks.append(format_seat(seat, task, match, expression, top, debug))
+        all_scores = ctx.get("all_scores", {}).get(seat)
+        recognized = ctx.get("recognized", {}).get(seat)
+        blocks.append(
+            format_seat(seat, task, match, expression, top, debug, all_scores, recognized)
+        )
     events = ctx.get("events", [])
     if events:
         blocks.append("Recent events:\n" + "\n".join(f"  {e}" for e in events[-8:]))
@@ -110,12 +140,24 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--top", type=int, default=3, help="expression labels to show (max 8)")
     parser.add_argument("--debug", action="store_true", help="show raw gesture distances")
     parser.add_argument(
+        "--debug-overlay",
+        action="store_true",
+        help="draw every stage's own detail on the video instead of the normal overlay",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=("task", "recognize"),
+        help="task (default) or recognize: show which gesture each person is doing",
+    )
+    parser.add_argument(
         "--no-window", action="store_true", help="don't open the camera window with overlays"
     )
     args = parser.parse_args(argv)
 
-    if args.debug:
+    if args.debug_overlay:
         os.environ["CUES_OVERLAY"] = "debug"
+    if args.mode:
+        os.environ["CUES_MODE"] = args.mode
     if args.all_on:
         from vision import flags
 

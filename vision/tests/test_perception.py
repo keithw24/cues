@@ -211,10 +211,10 @@ def test_faces_keep_largest_per_seat_with_padded_crop():
 
 def test_gesture_stage_scores_current_task(tmp_path):
     m_target = normalize(hand_points(shape_seed=1))
-    t = tpl.Templates("thumbs_up")
+    t = tpl.Templates("custom_gesture_01")
     t.add("target", [m_target + RNG.normal(0, 0.02, 63) for _ in range(4)])
     tpl.save(t, tmp_path)
-    tasks = CurrentTasks("thumbs_up")
+    tasks = CurrentTasks("custom_gesture_01")
     stage = GesturesStage(tasks=tasks, zones=SeatZones(), cache=MatcherCache(tmp_path))
     ctx = {"hands": {"S1-L": [Hand(hand_points((0.2, 0.5), shape_seed=1), "Right", "S1-L")]}}
     stage.process(None, ctx)
@@ -359,14 +359,45 @@ def test_recorder_keeps_a_hand_in_the_middle_of_the_frame():
 
 def test_gesture_match_keeps_the_best_hand_only(tmp_path):
     target = normalize(hand_points(shape_seed=1))
-    t = tpl.Templates("thumbs_up")
+    t = tpl.Templates("custom_gesture_01")
     t.add("target", [target + RNG.normal(0, 0.02, 63) for _ in range(4)])
     tpl.save(t, tmp_path)
     stage = GesturesStage(
-        tasks=CurrentTasks("thumbs_up"), zones=SeatZones(), cache=MatcherCache(tmp_path)
+        tasks=CurrentTasks("custom_gesture_01"), zones=SeatZones(), cache=MatcherCache(tmp_path)
     )
     good = Hand(hand_points((0.2, 0.5), shape_seed=1), "Right", "S1-L")
     other = Hand(hand_points((0.3, 0.5), shape_seed=2), "Right", "S1-L")
     ctx = {"hands": {"S1-L": [other, good]}}
     stage.process(None, ctx)
     assert ctx["match"]["S1-L"].hand is good
+
+
+def test_thumbs_up_is_built_in_and_needs_no_recording(tmp_path):
+    from vision import activities
+
+    assert activities.get("thumbs_up").builtin == "Thumb_Up"
+    stage = GesturesStage(
+        tasks=CurrentTasks("thumbs_up"), zones=SeatZones(), cache=MatcherCache(tmp_path)
+    )  # no examples recorded
+    hand = Hand(hand_points((0.2, 0.5)), "Right", "S1-L", {"Thumb_Up": 0.88, "None": 0.1})
+    other = Hand(hand_points((0.3, 0.5)), "Right", "S1-L", {"Thumb_Up": 0.2})
+    ctx = {"hands": {"S1-L": [other, hand]}}
+    stage.process(None, ctx)
+    match = ctx["match"]["S1-L"]
+    assert match.score == pytest.approx(0.88) and match.hand is hand
+
+
+def test_hands_carry_recogniser_gesture_scores():
+    result = mp_hand_result([(hand_points((0.2, 0.5)), "Right")])
+    result.gestures = [
+        [NS(category_name="Thumb_Up", score=0.9), NS(category_name="None", score=0.1)]
+    ]
+    hands = hands_from_result(result, SeatZones())
+    assert hands["S1-L"][0].gestures == {"Thumb_Up": 0.9, "None": 0.1}
+
+
+def test_recording_a_built_in_gesture_is_refused():
+    from vision.record import main
+
+    with pytest.raises(SystemExit, match="built-in"):
+        main(["thumbs_up", "target"])

@@ -104,7 +104,10 @@ class OverlayStage:
             color = person_color(pid)
             face = faces.get(pid)
             match = ctx.get("match", {}).get(pid)
+            recognized = ctx.get("recognized", {}).get(pid)  # recognise mode only
             hand = match.hand if match is not None and match.hand is not None else None
+            if recognized is not None and recognized.hand is not None:
+                hand = recognized.hand
             if hand is None:  # no score yet: still show the person's highest hand
                 person_hands = ctx.get("hands", {}).get(pid, [])
                 hand = min(person_hands, key=lambda hd: hd.wrist[1]) if person_hands else None
@@ -132,11 +135,32 @@ class OverlayStage:
                 cv2.rectangle(image, (hx0, hy0), (hx1, hy1), color, 2)
                 text = "" if face is not None else short_id(pid) + "  "
                 fill = GREY
-                if match is not None:
+                if recognized is not None:  # recognise mode: the gesture being done
+                    from vision.gestures.hand_pose import palm_side
+
+                    side = palm_side(hand.landmarks, hand.handedness)
+                    if recognized.activity_id is None:
+                        text += f"no gesture ({side})"
+                    else:
+                        text += f"{recognized.activity_id} {recognized.score:.2f} ({side})"
+                        fill = GREEN
+                elif match is not None:
                     score = "--" if match.score is None else f"{match.score:.2f}"
                     text += f"{match.activity_id} {score}"
                     fill = score_color(match.activity_id, match.score)
                 labels.append((text.strip() or short_id(pid), hx0, hy0, fill))
+                extra = ctx.get("all_scores", {}).get(pid)
+                if extra:  # all-gestures readout (vision.all_scores), under the hand box
+                    shown_id = (
+                        recognized.activity_id
+                        if recognized is not None
+                        else (match.activity_id if match is not None else None)
+                    )
+                    others = {a: v for a, v in extra.items() if a != shown_id}
+                    if others:
+                        from vision.stages.s45_all_scores import format_scores
+
+                        labels.append((format_scores(others), hx0, hy1 + 22, (210, 210, 210)))
 
         for text, x, y, fill in labels:
             label(image, text, x, y, fill)

@@ -120,10 +120,12 @@ belong to the dashboard and the agent.
 
 | Task type | Score | Source |
 |---|---|---|
-| gesture (`thumbs_up`, `custom_gesture_01`) | match score 0-1: how close the person's best hand is to the teacher's recorded examples. Not a probability. | `vision/gestures/matcher.py` |
+| built-in gesture (`thumbs_up`) | MediaPipe Gesture Recognizer score 0-1 for `Thumb_Up` (best hand). No recording needed. | `vision/stages/s30_gestures.py` (`score_gesture`) |
+| recorded gesture (`custom_gesture_01`) | match score 0-1: how close the person's best hand is to the teacher's recorded examples. Not a probability. | `vision/gestures/matcher.py` |
 | rule (`raise_hand`) | raise confidence 0-1: wrist height above the shoulders, in shoulder widths, times MediaPipe visibility | `vision/stages/s35_raise_hand.py` |
 
-Thresholds are per task (`vision/activities.json`): `thumbs_up` and
+Thresholds are per task (`vision/activities.json`): `thumbs_up` success
+0.7 / review 0.5 (recogniser scores; to confirm on camera);
 `custom_gesture_01` success 0.78 / review 0.58; `raise_hand` success 0.7 /
 review 0.4.
 

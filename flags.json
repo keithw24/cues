@@ -52,5 +52,11 @@
     "default": false,
     "owner": "keith",
     "ticket": "T7"
+  },
+  "vision.all_scores": {
+    "description": "Display-only readout of every task's score for every person (overlay and vision.watch). Not sent to Supabase.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "all-gestures-readout"
   }
 }
