@@ -120,6 +120,8 @@ Camera-free development: `CUES_CAMERA=fake ./scripts/dev.sh`.
 - `Target not allowed for this project`: activate teacher destination in Spectrum Users.
 - Missing Supabase configuration: set root backend variables; public keys are insufficient.
 - Camera unavailable: check OS permissions/index or use fake mode.
-- Port collision: stop the process using 3000/8000, then restart.
+- Port collision: the launcher automatically stops previous Cues Next.js/vision
+  listeners on 3000/8000 after verifying their command and project directory.
+  Unrelated or unidentified listeners are left running with a clear error.
 - Photon env missing: save `cues/.env`, check required names and install nested dependencies.
 - Unknown activity: align catalog with vision and restart worker.

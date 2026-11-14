@@ -8,11 +8,7 @@ import {
   watchTeacherReviews,
   type ReviewFeedState,
 } from "@/lib/teacher-review-feed";
-import {
-  activityLabel,
-  groupReviewsBySeat,
-  priorityLabels,
-} from "@/lib/teacher-reviews";
+import { activityLabel, groupReviewsBySeat } from "@/lib/teacher-reviews";
 import { ProgressContext } from "@/components/progress-context";
 import { TeacherReviewDetails } from "@/components/teacher-review-details";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
@@ -29,6 +25,10 @@ import {
 } from "@/lib/observation-presentation";
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { WorkspaceIcon } from "@/components/workspace-icon";
+import {
+  PersonRowContent,
+  ReviewRowContent,
+} from "@/components/workspace-rows";
 import { displayName } from "@/lib/simulated-names";
 
 const INITIAL: FeedState = {
@@ -43,14 +43,6 @@ const observationTime = (value: string) =>
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date(value));
-// "Person 3" → "P3"; a made-up simulated name → its first letter.
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .map((word) => (/^\d+$/.test(word) ? word : word[0]))
-    .join("")
-    .slice(0, 3)
-    .toUpperCase();
 type Presentation = ReturnType<typeof observationPresentation>;
 const statusTone = (presentation: Presentation) =>
   presentation.needsReview
@@ -134,6 +126,11 @@ function SeatDetails({
               )}
             </dd>
           </div>
+          <div><dt>Person / activity ID</dt><dd>{seat.id} / {seat.state?.activity_id ?? "None"}</dd></div>
+          <div><dt>Tracking valid</dt><dd>{seat.state?.tracking_valid == null ? "Unknown" : seat.state.tracking_valid ? "Yes" : "Tracking unavailable"}</dd></div>
+          <div><dt>Supporting expression context</dt><dd>{seat.state?.expression_context
+            ? `${seat.state.expression_context.label}: ${seat.state.expression_context.probability.toFixed(2)} (model output only)`
+            : "Unavailable"}</dd></div>
         </dl>
         {seat.is_simulated ? (
           <p className="detail-simulation">Simulated seat · {seat.id}</p>
@@ -205,7 +202,7 @@ export default function Dashboard({
   const [client] = useState(() => {
     try {
       return createDashboardClient(
-        sessionControlsEnabled || teacherLoginEnabled,
+        sessionControlsEnabled || teacherLoginEnabled || reviewActionsEnabled,
       );
     } catch {
       return null;
@@ -466,7 +463,10 @@ export default function Dashboard({
         <div className="monitor-workspace">
           <div className="monitor-main">
             <LocalClassroomFeed activity={activity} />
-            <section className="seat-strip" aria-labelledby="seats-heading">
+            <section
+              className="seat-strip people-card"
+              aria-labelledby="seats-heading"
+            >
               <header className="strip-heading">
                 <h2 id="seats-heading">People</h2>
               </header>
@@ -503,26 +503,11 @@ export default function Dashboard({
                           selectSeat(seat, event.currentTarget)
                         }
                       >
-                        <span className="seat-avatar" aria-hidden="true">
-                          {initials(seat.display_name)}
-                        </span>
-                        <span className="seat-item-body">
-                          <span className="seat-item-name">
-                            {seat.display_name}
-                          </span>
-                          <span className="seat-item-meta">
-                            <span className="seat-item-status">
-                              <WorkspaceIcon name={statusIcon(presentation)} />
-                              {presentation.label}
-                            </span>
-                            <span className="seat-item-activity">
-                              {seat.activity}
-                            </span>
-                          </span>
-                        </span>
-                        <WorkspaceIcon
-                          className="seat-item-arrow"
-                          name="chevronRight"
+                        <PersonRowContent
+                          name={seat.display_name}
+                          status={presentation.label}
+                          icon={statusIcon(presentation)}
+                          activity={seat.activity}
                         />
                       </button>
                     );
@@ -650,42 +635,20 @@ export default function Dashboard({
                                   setSelectedReviewId(lead.id);
                                 }}
                               >
-                                <span
-                                  className="seat-avatar"
-                                  aria-hidden="true"
-                                >
-                                  {initials(reviewName(group.seat_id))}
-                                </span>
-                                <span className="review-body">
-                                  <span className="review-name">
-                                    {reviewName(group.seat_id)}
-                                  </span>
-                                  <span className="review-meta">
-                                    {tasks.size > 1
+                                <ReviewRowContent
+                                  name={reviewName(group.seat_id)}
+                                  meta={`${
+                                    tasks.size > 1
                                       ? `${tasks.size} tasks`
-                                      : reviewActivity(lead.activity_id)}
-                                    {group.reviews.length > 1
+                                      : reviewActivity(lead.activity_id)
+                                  }${
+                                    group.reviews.length > 1
                                       ? ` · ${group.reviews.length} reviews`
-                                      : null}
-                                  </span>
-                                </span>
-                                <time
-                                  className="review-time"
-                                  dateTime={group.latest}
-                                >
-                                  {new Intl.DateTimeFormat(undefined, {
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                  }).format(new Date(group.latest))}
-                                </time>
-                                {group.elevated ? (
-                                  <span className="review-flag">
-                                    <WorkspaceIcon name="flag" />
-                                    <span className="sr-only">
-                                      {priorityLabels.elevated}
-                                    </span>
-                                  </span>
-                                ) : null}
+                                      : ""
+                                  }`}
+                                  time={group.latest}
+                                  elevated={group.elevated}
+                                />
                                 <span className="sr-only">View review</span>
                               </button>
                             </li>

@@ -136,5 +136,17 @@
     "default": false,
     "owner": "evan",
     "ticket": "teacher-profile"
+  },
+  "web.landing_demo": {
+    "description": "Landing hero shows a looping demo of the real dashboard (banner, People rows, review rows) with simulated students. When off, the hero keeps the older preview card.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "landing-demo"
+  },
+  "web.landing_motion": {
+    "description": "Landing page sections fade in once as they scroll into view. When off, every section is visible from the start.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "landing-demo"
   }
 }

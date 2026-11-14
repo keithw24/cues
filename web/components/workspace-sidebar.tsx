@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { WorkspaceIcon } from "@/components/workspace-icon";
+import CuesMark from "@/components/cues-mark";
 
 export function WorkspaceSidebar({
   accountEnabled = false,
@@ -15,11 +16,7 @@ export function WorkspaceSidebar({
   return (
     <aside className="workspace-sidebar">
       <Link href="/" className="wordmark" aria-label="Cues home">
-        {/* Placeholder mark until the logo is designed. */}
-        <span className="brand-mark" aria-hidden="true">
-          <i />
-          <i />
-        </span>
+        <CuesMark className="brand-mark" />
         <span className="nav-label">Cues</span>
       </Link>
       {accountEnabled ? (
@@ -32,6 +29,12 @@ export function WorkspaceSidebar({
         </Link>
       ) : null}
       <nav className="sidebar-nav" aria-label="Workspace">
+        {accountEnabled ? (
+          <Link href="/settings/profile">
+            <WorkspaceIcon name="account" />
+            <span className="nav-label">Teacher profile</span>
+          </Link>
+        ) : null}
         <Link
           href="/dashboard"
           className={!notifications ? "is-current" : ""}

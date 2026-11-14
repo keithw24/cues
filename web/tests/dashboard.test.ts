@@ -33,6 +33,16 @@ const input = {
   stations: [{ id: "S1", name: "Demo station" }],
 };
 
+test("supporting expression context survives the person-state projection", () => {
+  const expression = { label: 'sadness', probability: 0.62,
+    duration_seconds: 5, supporting_only: true };
+  const parsed = parseSnapshot({ ...input, states: [{ ...states[0],
+    expression_context: expression }] }, true);
+  assert.deepEqual(parsed.states[0].expression_context, expression);
+  assert.throws(() => parseSnapshot({ ...input, states: [{ ...states[0],
+    expression_context: { ...expression, probability: 2 } }] }, true));
+});
+
 test("canonical fixtures cover exactly the dashboard status vocabulary", () => {
   const parsed = parseSnapshot(input);
   assert.deepEqual(

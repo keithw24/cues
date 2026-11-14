@@ -27,6 +27,20 @@ const row = {
   resolved_at: null,
 };
 const settled = () => new Promise<void>((resolve) => setImmediate(resolve));
+test("review details expose only stored evaluated progress and escalation", () => {
+  const parsed = parseTeacherReviews([{ ...row, evaluation: {
+    progress: { trend: 'stalled', stalled_seconds: 12 },
+    escalation: { reason: 'stalled_progress' },
+  }}])[0];
+  assert.deepEqual(parsed.progress, { trend: 'stalled', stalled_seconds: 12 });
+  assert.equal(parsed.escalation_reason, 'stalled_progress');
+  const missing = parseTeacherReviews([row])[0];
+  assert.equal(missing.progress, undefined);
+  const invalid = parseTeacherReviews([{ ...row, evaluation: {
+    progress: { trend: 'stalled', stalled_seconds: -1 },
+  }}])[0];
+  assert.equal(invalid.progress, null);
+});
 const debounce = () => new Promise<void>((resolve) => setTimeout(resolve, 130));
 
 type Change = { eventType: string; new?: unknown; old?: unknown };

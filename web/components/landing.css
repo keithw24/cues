@@ -1,10 +1,10 @@
 .landing {
-  --ln-ink: #0b1a4d;
-  --ln-ink-soft: #4a5268;
-  --ln-ink-faint: #8a90a2;
+  --ln-ink: #eef1fb;
+  --ln-ink-soft: #aeb6cc;
+  --ln-ink-faint: #7c86a3;
   --ln-blue: #425cc8;
-  --ln-line: #e8eaf0;
-  --ln-surface: #f6f7fa;
+  --ln-line: rgb(255 255 255 / 0.1);
+  --ln-surface: #131c3a;
   --ln-review: #934d31;
   --ln-review-soft: #fcf0e9;
   --ln-done: #1d6b45;
@@ -12,7 +12,15 @@
   --ln-ease: cubic-bezier(0.2, 0, 0, 1);
   position: relative;
   min-height: 100vh;
-  background: #ffffff;
+  /* Navy deepens toward Cues blue as the page nears the call to action. */
+  background: linear-gradient(
+    180deg,
+    #111a3a 0%,
+    #121c42 40%,
+    #18245a 75%,
+    #22317a 92%,
+    #111a3a 100%
+  );
   color: var(--ln-ink);
   font-family: var(--font-inter), system-ui, sans-serif;
   overflow-x: clip;
@@ -40,22 +48,9 @@
   text-decoration: none;
 }
 .ln-brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 45%, #5a74d6, #2f48ad);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
-}
-.ln-brand-mark i {
-  width: 4px;
-  height: 9px;
-  margin-top: -2px;
-  border-radius: 4px;
-  background: #ffffff;
+  flex: none;
+  color: var(--ln-ink);
+  --cues-mark-accent: #8fa3ff;
 }
 .ln-nav nav {
   display: flex;
@@ -154,45 +149,6 @@ a.ln-button:active {
   position: relative;
   isolation: isolate;
   padding: 168px 16px 0;
-}
-.ln-sky {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  background: #4459b4;
-}
-.ln-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(64px);
-}
-.ln-glow-blue {
-  top: -18%;
-  left: -4%;
-  width: 108%;
-  height: 88%;
-  background: radial-gradient(
-    closest-side,
-    #33489f 0%,
-    #4459b4 45%,
-    rgb(82 103 190 / 0.55) 75%,
-    transparent
-  );
-}
-.ln-glow-sky {
-  top: -22%;
-  right: -14%;
-  width: 54%;
-  height: 58%;
-  background: radial-gradient(closest-side, rgb(143 182 245 / 0.8), transparent);
-}
-.ln-glow-violet {
-  top: 32%;
-  left: -12%;
-  width: 46%;
-  height: 52%;
-  background: radial-gradient(closest-side, rgb(140 116 230 / 0.6), transparent);
 }
 /* Film grain over the colour, as in a risograph print. */
 .ln-grain {
@@ -448,7 +404,9 @@ a.ln-button:active {
   }
   .ln-status,
   .ln-suggestion .ln-button-dark {
-    transition: background-color 300ms var(--ln-ease), color 300ms var(--ln-ease);
+    transition:
+      background-color 300ms var(--ln-ease),
+      color 300ms var(--ln-ease);
   }
   .ln-seat-note {
     animation: ln-note-in 300ms ease-out both;
@@ -607,15 +565,26 @@ a.ln-button:active {
 }
 
 /* Closing call to action, on the grainy sky */
+/* The closing line sits on the page's own gradient, with only an edgeless
+   glow behind it: no panel. */
 .ln-cta {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
   max-width: 1040px;
   margin: clamp(72px, 12vw, 140px) auto 0;
-  padding: 72px 24px;
-  border-radius: 28px;
+  padding: 96px 24px;
   text-align: center;
+}
+.ln-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(45% 60% at 50% 50%, rgb(66 92 200 / 0.55), transparent 75%),
+    radial-gradient(30% 40% at 68% 40%, rgb(140 116 230 / 0.3), transparent 75%);
+  filter: blur(40px);
+  pointer-events: none;
 }
 .ln-cta h2 {
   margin: 0;
@@ -783,17 +752,270 @@ a.ln-button:active {
   }
 }
 
+/* Night: the page is dark navy, and the light dashboard demo sits on it. */
+.ln-button-light {
+  color: #0b1a4d;
+}
+/* The older preview card, shown when web.landing_demo is off. */
+.ln-preview {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 24px 60px -24px rgb(0 0 0 / 0.6);
+}
+.ln-seats,
+.ln-suggestion {
+  background: #1b2650;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+.ln-chip {
+  background: rgb(255 255 255 / 0.08);
+}
+.ln-hero-dots {
+  background-image: radial-gradient(
+    rgb(255 255 255 / 0.12) 1px,
+    transparent 1px
+  );
+}
+.ln-inline-chip {
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+}
+.ln-inline-chip svg,
+.ln-facts svg {
+  color: #8fa3ff;
+}
+.ln-button-dark {
+  background: #ffffff;
+  color: #0b1a4d;
+}
+.ln-button-outline {
+  border-color: rgb(255 255 255 / 0.25);
+}
+.ln-site-footer {
+  background: linear-gradient(180deg, transparent, #0c1430 45%);
+}
+.ln-footer-note {
+  border-color: rgb(255 255 255 / 0.1);
+}
+@media (hover: hover) {
+  .ln-button-dark:hover {
+    background: #e3e8f8;
+  }
+  .ln-button-outline:hover {
+    background: rgb(255 255 255 / 0.06);
+  }
+}
+
+/* Depth for the Night page: a faint grainy aurora behind the hero. */
+.ln-hero::before,
+.ln-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -3;
+  height: 780px;
+  pointer-events: none;
+}
+.ln-hero::before {
+  background:
+    radial-gradient(38% 48% at 30% 28%, rgb(66 92 200 / 0.5), transparent 70%),
+    radial-gradient(
+      32% 42% at 72% 20%,
+      rgb(140 116 230 / 0.36),
+      transparent 70%
+    ),
+    radial-gradient(50% 40% at 50% 72%, rgb(68 89 180 / 0.26), transparent 70%);
+  filter: blur(40px);
+}
+.ln-hero::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+  mix-blend-mode: overlay;
+  opacity: 0.22;
+  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+}
+
+/* Section headings share the hero's display face. */
+.ln-section h2,
+.ln-privacy h2,
+.ln-faq h2 {
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: clamp(34px, 5vw, 52px);
+  letter-spacing: -0.015em;
+}
+
+/* Every card on the page is the same soft off-white, like the dashboard
+   demo, so they stand out on navy without glaring. */
+.ln-card,
+.ln-faq-list,
+.ln-facts li {
+  --ln-ink: #0b1a4d;
+  --ln-ink-soft: #4a5268;
+  --ln-ink-faint: #737a8f;
+  --ln-line: #c9d0de;
+  --ln-surface: #d2d8e6;
+  background: #dde2ee;
+  color: var(--ln-ink);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 24px 50px -28px rgb(0 0 0 / 0.55),
+    0 0 60px -24px rgb(66 92 200 / 0.25);
+}
+.ln-facts svg {
+  color: var(--ln-blue);
+}
+.ln-card .ln-button-dark {
+  background: #0b1a4d;
+  color: #ffffff;
+}
+.ln-card .ln-button-outline {
+  border-color: rgb(11 26 77 / 0.2);
+}
+
+/* The hero's glow, repeated faintly behind each section. */
+.ln-section,
+.ln-privacy,
+.ln-faq {
+  position: relative;
+  isolation: isolate;
+}
+.ln-section::before,
+.ln-privacy::before,
+.ln-faq::before {
+  content: "";
+  position: absolute;
+  inset: 15% -10% -10%;
+  z-index: -1;
+  background:
+    radial-gradient(40% 55% at 72% 55%, rgb(66 92 200 / 0.36), transparent 70%),
+    radial-gradient(
+      30% 40% at 85% 30%,
+      rgb(140 116 230 / 0.24),
+      transparent 70%
+    );
+  filter: blur(40px);
+  pointer-events: none;
+}
+.ln-section-flip::before {
+  background:
+    radial-gradient(40% 55% at 28% 55%, rgb(66 92 200 / 0.36), transparent 70%),
+    radial-gradient(
+      30% 40% at 15% 30%,
+      rgb(140 116 230 / 0.24),
+      transparent 70%
+    );
+}
+.ln-privacy::before,
+.ln-faq::before {
+  background:
+    radial-gradient(45% 50% at 50% 65%, rgb(66 92 200 / 0.34), transparent 70%),
+    radial-gradient(30% 35% at 70% 40%, rgb(140 116 230 / 0.2), transparent 70%);
+}
+
+/* Motion (jmo animate rules): sections ease in once as they scroll into
+   view, staggered 100ms. Hidden only once the reveal script is running. */
+@media (prefers-reduced-motion: no-preference) {
+  .landing[data-reveal-ready] [data-reveal] {
+    opacity: 0;
+    filter: blur(4px);
+    translate: 0 12px;
+    transition-property: opacity, filter, translate, box-shadow;
+    transition-duration: 300ms;
+    transition-timing-function: ease-out;
+    transition-delay: calc(var(--i, 0) * 100ms);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing[data-reveal-ready] [data-reveal] {
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+  }
+}
+.landing[data-reveal-ready] [data-reveal][data-shown] {
+  opacity: 1;
+  filter: none;
+  translate: 0 0;
+}
+/* After the first reveal, hover responds at once instead of after the stagger. */
+.landing[data-reveal-ready] [data-reveal][data-settled] {
+  transition-delay: 0ms;
+}
+/* Cards lift a little under a pointer. */
+.ln-card,
+.ln-facts li {
+  transition-property: opacity, filter, translate, box-shadow;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .ln-card:hover,
+  .ln-facts li:hover,
+  .landing[data-reveal-ready] .ln-card[data-shown]:hover,
+  .landing[data-reveal-ready] .ln-facts li[data-shown]:hover {
+    translate: 0 -3px;
+    transition-delay: 0ms;
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.1),
+      0 30px 60px -28px rgb(0 0 0 / 0.6),
+      0 0 70px -22px rgb(66 92 200 / 0.35);
+  }
+}
+/* An FAQ answer fades up when its question opens. */
+@media (prefers-reduced-motion: no-preference) {
+  .ln-faq-list details[open] p {
+    animation: ln-answer 200ms ease-out both;
+  }
+}
+@keyframes ln-answer {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+/* A glow fixed behind the page, so colour carries all the way down instead
+   of flattening to plain navy. Plain gradients, no blur, so scrolling stays
+   smooth. */
+.landing {
+  isolation: isolate;
+}
+.landing::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(40% 45% at 12% 35%, rgb(66 92 200 / 0.22), transparent 70%),
+    radial-gradient(
+      38% 45% at 90% 65%,
+      rgb(140 116 230 / 0.16),
+      transparent 70%
+    ),
+    radial-gradient(50% 35% at 50% 105%, rgb(68 89 180 / 0.2), transparent 70%);
+  pointer-events: none;
+}
+
 /* First-load entrance: staggered by 100ms, once. */
 @media (prefers-reduced-motion: no-preference) {
   .ln-enter {
     animation: ln-enter 300ms ease-out both;
   }
-  .ln-enter:nth-child(2) { animation-delay: 100ms; }
-  .ln-enter:nth-child(3) { animation-delay: 200ms; }
-  .ln-enter:nth-child(4) { animation-delay: 300ms; }
-  .ln-enter:nth-child(5) { animation-delay: 400ms; }
-  .ln-enter:nth-child(6) { animation-delay: 500ms; }
-  .ln-preview.ln-enter { animation-delay: 600ms; }
+  .ln-enter:nth-child(2) {
+    animation-delay: 100ms;
+  }
+  .ln-enter:nth-child(3) {
+    animation-delay: 200ms;
+  }
+  .ln-enter:nth-child(4) {
+    animation-delay: 300ms;
+  }
+  .ln-enter:nth-child(5) {
+    animation-delay: 400ms;
+  }
+  .ln-enter:nth-child(6) {
+    animation-delay: 500ms;
+  }
+  .ln-preview.ln-enter {
+    animation-delay: 600ms;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .ln-enter {
@@ -836,5 +1058,36 @@ a.ln-button:active {
   .ln-footer {
     flex-direction: column;
     padding-inline: 16px;
+  }
+}
+
+/* Live dashboard demo in the hero */
+.ln-demo {
+  max-width: 980px;
+  margin: 56px auto 0;
+}
+.ln-stage:has(.ln-demo) {
+  max-width: 980px;
+}
+.ln-stage .ln-demo {
+  margin-top: 0;
+}
+.ln-demo-caption {
+  max-width: 560px;
+  min-height: 3em;
+  margin: 20px auto 0;
+  color: var(--ln-ink-soft);
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ln-demo-caption {
+    animation: ln-enter 300ms ease-out both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ln-demo-caption {
+    animation: ln-fade 300ms ease-out both;
   }
 }
