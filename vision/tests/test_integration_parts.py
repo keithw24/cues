@@ -45,7 +45,7 @@ class FakeClient:
 
 
 # ---- Supabase sink ---------------------------------------------------------
-def test_seat_state_sends_only_columns_the_table_has():
+def test_seat_state_upsert_keeps_tracking_valid():
     from vision.events import SupabaseSink
 
     client = FakeClient()
@@ -53,7 +53,7 @@ def test_seat_state_sends_only_columns_the_table_has():
         {"seat_id": "S1-P1", "status": "done", "tracking_valid": True, "task_score": 0.9}
     )
     sent = client.store["seat_state"][0]
-    assert "tracking_valid" not in sent
+    assert sent["tracking_valid"] is True
     assert sent["status"] == "done" and sent["task_score"] == 0.9
 
 

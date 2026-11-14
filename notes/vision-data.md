@@ -8,6 +8,15 @@ is sent. The examples below were produced by the real code path (status stage
 
 ## Flow
 
+**Primary output: `seat_state`.** Michelle's rolling progress pipeline reads it:
+
+```text
+vision -> seat_state -> ProgressEvaluator -> EscalationEvaluator -> EvaluationRouter -> Deep Agent
+```
+
+Events are informational (audit and debugging). They do not route teacher
+review or invoke the agent, and vision makes no review or agent decision.
+
 ```text
 camera (station laptop)
   -> vision: people, hands, faces, gesture / raise-hand score, expression
@@ -62,7 +71,12 @@ After 10 s the id is released; a returning child may get a new id.
 | `score` | number 0-1 or null | see the table below |
 | `payload` | JSON object | `{"source": "auto"}`, or the expression context |
 
-### Event types vision sends
+### Event types vision sends (informational only)
+
+None of these triggers teacher review or the agent. `review_needed` is a
+low-level vision state ("the score stayed in the review band"); it does not
+mean a teacher review must happen. The name is kept because it is part of the
+shared `EventType` enum.
 
 | `type` | When it is sent | `score` | `payload` |
 |---|---|---|---|
@@ -113,46 +127,67 @@ Thresholds are per task (`vision/activities.json`): `thumbs_up` and
 `custom_gesture_01` success 0.78 / review 0.58; `raise_hand` success 0.7 /
 review 0.4.
 
-## 2. `SeatState` -> table `seat_state` (upsert on `seat_id`)
+## 2. `SeatState` -> table `seat_state` (upsert on `seat_id`), primary output
 
-Sent on every status change, otherwise once per second per person. One row per
-person; each write replaces the previous one (the live expression is not kept
-as history).
+Sent when the status or `tracking_valid` changes, and otherwise about once
+per second per person. One row per person; each write replaces the previous
+one (the live expression is not kept as history).
 
-The full contract object:
+Final shape (`shared.contracts.SeatState`), exactly as upserted:
 
 ```json
 {
   "seat_id": "S1-P1",
   "session_id": "00000000-0000-4000-8000-000000000001",
-  "status": "done",
+  "status": "in_progress",
   "updated_at": "2026-11-14T05:00:00.000000Z",
   "activity_id": "raise_hand",
   "tracking_valid": true,
-  "task_score": 0.82,
+  "task_score": 0.31,
   "expression_context": {
     "label": "sadness",
     "probability": 0.63,
-    "duration_seconds": null,
+    "duration_seconds": 5.2,
     "supporting_only": true
   }
 }
 ```
 
-**What actually reaches Supabase today:** the same object **without
-`tracking_valid`**, because the `seat_state` table has no such column (see
-"Gaps").
-
 | Field | Type | Notes |
 |---|---|---|
 | `seat_id` | text | person id; primary key |
-| `session_id` | UUID | |
+| `session_id` | UUID | `CUES_SESSION_ID` |
 | `status` | text | `idle`, `in_progress`, `review`, `done`, `needs_help`, `tracking_lost` |
-| `updated_at` | timestamp (UTC) | |
-| `activity_id` | text | the person's current task |
-| `tracking_valid` | boolean | `false` only while `tracking_lost` (**not stored yet**) |
-| `task_score` | number 0-1 or null | latest score for the task; null when it cannot be judged |
-| `expression_context` | JSON or null | strongest current expression; `duration_seconds` is null here |
+| `updated_at` | timestamp (UTC) | **observation time**: when the camera frame was captured, not when the row was sent |
+| `activity_id` | text | the person's current task (from `sessions.current_activity_id`) |
+| `tracking_valid` | boolean | see below |
+| `task_score` | number 0-1 or null | latest score; always null when `tracking_valid` is false |
+| `expression_context` | JSON or null | null when no face is visible; see below |
+
+### `tracking_valid`
+
+- `true`: the person (pose), their face or their hand is seen in this frame,
+  so `task_score` is a real observation. A low score with `tracking_valid:
+  true` means the child was seen and is not (yet) doing the task.
+- `false`: the person is not seen in this frame (from the first missed frame,
+  before `status` becomes `tracking_lost` after 3 s), or the status is
+  `tracking_lost`. `task_score` is then null.
+- Tracking loss never counts as student failure: vision pauses its own
+  timers, and the progress pipeline can ignore rows with `tracking_valid:
+  false`.
+
+### Expression persistence (`expression_context`)
+
+- If anger, fear or sadness is at or above 0.5 (smoothed over 2 s), the label
+  is that expression and `duration_seconds` is how long it has stayed at or
+  above 0.5 without a break.
+- Otherwise the label is the strongest expression and `duration_seconds` is
+  how long it has been the strongest.
+- `duration_seconds` is never null once a face has been seen; it resets when
+  the label changes.
+- `supporting_only` is always `true`. The escalation logic uses label,
+  probability and duration together, and expression never decides anything on
+  its own.
 
 ## 3. What vision reads
 
@@ -182,9 +217,8 @@ From `web/lib/dashboard-feed.ts`, the dashboard reads `seats`, `seat_state`,
 - `agent/progress.py` reads `SeatState` snapshots: `status`, `task_score`,
   `activity_id` and **`tracking_valid`**. A snapshot only counts when
   `tracking_valid is True` and status is not `idle` / `tracking_lost`.
-- **Gap:** snapshots read back from Supabase have no `tracking_valid` (the
-  column is missing), so the progress evaluator would treat every person as
-  untracked. The column is needed for Michelle's logic too.
+- `tracking_valid` is now sent on every row; the `seat_state` table still
+  needs the column (Gaps, item 1).
 - `agent/escalation.py` uses `expression_context` only to raise priority on
   stalled progress, matching the "supporting only" rule.
 - The rules engine reads `events` per `seat_id`; with person ids, history
@@ -192,8 +226,11 @@ From `web/lib/dashboard-feed.ts`, the dashboard reads `seats`, `seat_state`,
 
 ## Gaps (owned by Evan unless noted)
 
-1. Add `tracking_valid boolean` to `seat_state`. Needed by Michelle's progress
-   evaluator. Then Keith removes `SEAT_STATE_COLUMNS` in `vision/events.py`.
+1. **Add the `tracking_valid` column (Evan, Supabase schema):**
+   `alter table public.seat_state add column tracking_valid boolean;`
+   Vision always sends this field. Until the column exists in the live project,
+   `seat_state` writes fail and vision falls back to
+   `vision/logs/seat_state.jsonl`.
 2. Show person ids on the dashboard: `seats` rows for `S1-P1`...`S1-P4` (or
    cards built from `seat_state`), and a read policy that allows them.
 3. Add `thumbs_up` and `custom_gesture_01` to `activities`.

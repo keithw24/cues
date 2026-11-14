@@ -174,9 +174,11 @@ class ExpressionTracker:
     ) -> None:
         self.min_probability = min_probability
         self.min_seconds = min_seconds
-        self._label: str | None = None
+        self._label: str | None = None  # sustained negative label, if any
         self._since: float | None = None
         self._sent = False
+        self._top: str | None = None  # strongest label overall
+        self._top_since: float | None = None
 
     def update(self, t: float, distribution: dict[str, float] | None) -> list[StatusEvent]:
         label = None
@@ -190,6 +192,9 @@ class ExpressionTracker:
                 label = max(candidates)[1]
         if label != self._label:
             self._label, self._since, self._sent = label, t, False
+        top = max(distribution, key=distribution.get) if distribution else None
+        if top != self._top:
+            self._top, self._top_since = top, t
         if label is None or self._sent or t - self._since < self.min_seconds:
             return []
         self._sent = True
@@ -204,3 +209,27 @@ class ExpressionTracker:
                 },
             )
         ]
+
+    def context(self, t: float, distribution: dict[str, float] | None) -> dict | None:
+        """Expression context for SeatState, with how long it has persisted.
+
+        Call after update() with the same t and distribution.
+        * If anger, fear or sadness is at or above min_probability, report that
+          label with the time it has stayed there (the persistence the
+          escalation logic checks).
+        * Otherwise report the strongest label with the time it has been the
+          strongest.
+        Returns None when there is no distribution (no face).
+        """
+        if not distribution:
+            return None
+        if self._label is not None:
+            label, since = self._label, self._since
+        else:
+            label, since = self._top, self._top_since
+        return {
+            "label": label,
+            "probability": round(float(distribution[label]), 3),
+            "duration_seconds": round(max(t - since, 0.0), 1),
+            "supporting_only": True,
+        }

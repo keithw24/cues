@@ -12,15 +12,19 @@ On each frame this stage:
    Supabase when `vision.supabase_events` is on and keys are set.
 5. Keeps the last few events in ctx["events"] so vision.watch can print them.
 
-Seat state is sent when the status changes and otherwise once per second, so
-the dashboard sees live scores without a write on every frame.
+Seat state is the primary output: Michelle's progress pipeline reads it. It is
+sent when the status or tracking changes and otherwise once per second, with
+tracking_valid (person seen in this frame) and the expression's persistence.
+Events are informational (audit/debug); vision makes no review or agent
+decision.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from collections import deque
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from vision import activities
 from vision.activities import TASKS
@@ -32,6 +36,16 @@ SEAT_STATE_INTERVAL = 1.0
 RECENT_EVENTS = 20
 
 log = logging.getLogger(__name__)
+
+
+def observed_at(frame_timestamp: float) -> datetime:
+    """Wall-clock time (UTC) at which this frame was captured.
+
+    Frame timestamps are time.monotonic() values. Converting them keeps the
+    observation time in SeatState.updated_at and Event.created_at, instead of
+    the later time the row happens to be sent.
+    """
+    return datetime.now(UTC) - timedelta(seconds=max(time.monotonic() - frame_timestamp, 0.0))
 
 
 def format_event(seat_id: str, activity_id: str, event: StatusEvent) -> str:
@@ -54,7 +68,8 @@ class StatusStage:
         self._emitter = emitter
         self._trackers: dict[str, SeatTracker] = {}
         self._expression: dict[str, ExpressionTracker] = {}
-        self._last_state: dict[str, tuple[str, float]] = {}  # seat -> (status, time sent)
+        # seat -> ((status, tracking_valid), time sent)
+        self._last_state: dict[str, tuple[tuple[str, bool], float]] = {}
         self.recent: deque[str] = deque(maxlen=RECENT_EVENTS)
         self._last_event: dict[str, tuple[str, float]] = {}  # seat -> (event type, time)
 
@@ -80,13 +95,18 @@ class StatusStage:
             match = matches.get(seat)
             score = match.score if match is not None and match.activity_id == activity.id else None
             visible = seat in faces or seat in ctx.get("people", {})
-            events = tracker.update(t, score, seat in hands, visible)
+            in_hand = seat in hands
+            events = tracker.update(t, score, in_hand, visible)
             expr_tracker = self._expression.setdefault(seat, ExpressionTracker())
             events += expr_tracker.update(t, expressions.get(seat))
+            when = observed_at(t)
             for event in events:
-                self._send_event(seat, activity.id, event)
+                self._send_event(seat, activity.id, event, when)
                 self._last_event[seat] = (event.type, t)
-            self._maybe_send_state(seat, tracker, score, expressions.get(seat), t)
+            # Tracked now = the person, their face or their hand is seen in this frame.
+            tracking_valid = (visible or in_hand) and tracker.status != "tracking_lost"
+            expression = expr_tracker.context(t, expressions.get(seat))
+            self._maybe_send_state(seat, tracker, score, expression, tracking_valid, t, when)
         live = set(self.zones.ids(ctx))
         for gone in [s for s in self._trackers if s not in live]:  # released person ids
             self._trackers.pop(gone, None)
@@ -97,7 +117,7 @@ class StatusStage:
         ctx["events"] = list(self.recent)
         ctx["last_event"] = {s: e for s, (e, when) in self._last_event.items() if t - when < 3.0}
 
-    def _send_event(self, seat: str, activity_id: str, event: StatusEvent) -> None:
+    def _send_event(self, seat: str, activity_id: str, event: StatusEvent, when: datetime) -> None:
         from shared.contracts import Event
 
         line = format_event(seat, activity_id, event)
@@ -112,31 +132,31 @@ class StatusStage:
                 activity_id=activity_id,
                 score=event.score,
                 payload=event.payload or {"source": "auto"},
-                created_at=datetime.now(UTC),
+                created_at=when,
             )
         )
 
-    def _maybe_send_state(self, seat, tracker: SeatTracker, score, distribution, t) -> None:
+    def _maybe_send_state(
+        self, seat, tracker: SeatTracker, score, expression, tracking_valid, t, when
+    ) -> None:
+        """Send SeatState on a status or tracking change, else once per SEAT_STATE_INTERVAL."""
         from shared.contracts import ExpressionContext, SeatState
 
+        key = (tracker.status, tracking_valid)
         last = self._last_state.get(seat)
-        if last is not None and last[0] == tracker.status and t - last[1] < SEAT_STATE_INTERVAL:
+        if last is not None and last[0] == key and t - last[1] < SEAT_STATE_INTERVAL:
             return
-        self._last_state[seat] = (tracker.status, t)
-        expression = None
-        if distribution:
-            label = max(distribution, key=distribution.get)
-            expression = ExpressionContext(label=label, probability=distribution[label])
+        self._last_state[seat] = (key, t)
         self.emitter.update_seat_state(
             SeatState(
                 seat_id=seat,
                 session_id=self.emitter.session_id,
                 status=tracker.status,
-                updated_at=datetime.now(UTC),
+                updated_at=when,
                 activity_id=tracker.activity.id,
-                tracking_valid=tracker.status != "tracking_lost",
-                task_score=score,
-                expression_context=expression,
+                tracking_valid=tracking_valid,
+                task_score=score if tracking_valid else None,
+                expression_context=ExpressionContext(**expression) if expression else None,
             )
         )
 

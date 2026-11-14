@@ -1069,7 +1069,9 @@ Vision writes two kinds of data to Supabase, both validated against `shared/cont
 
 Vision reads one value: `sessions.current_activity_id` for its session, once per second, to know the class-wide task the teacher picked.
 
-`seat_id` holds a person id (`S1-P1`…). Known gaps, owned by Evan: `seat_state` has no `tracking_valid` column (vision drops the field until it exists, and Michelle's progress evaluator needs it); `seats` rows exist only for `S1-L` / `S1-R`, so the dashboard does not yet show person cards; `activities` contains only `raise_hand`.
+`seat_state` is the primary input to the progress pipeline (vision → `seat_state` → ProgressEvaluator → EscalationEvaluator → EvaluationRouter → Deep Agent). Each row carries `tracking_valid` (person seen in this frame; low score vs tracking failure) and an `expression_context` with `duration_seconds` (how long it has persisted). Events are informational for audit and debugging; vision makes no review or agent decision.
+
+`seat_id` holds a person id (`S1-P1`…). Known gaps, owned by Evan: add a `tracking_valid boolean` column to `seat_state` (vision sends it; until then live `seat_state` writes fail); `seats` rows exist only for `S1-L` / `S1-R`, so the dashboard does not yet show person cards; `activities` contains only `raise_hand`.
 
 ## 18. Local FastAPI interfaces
 
