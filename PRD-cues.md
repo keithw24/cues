@@ -979,6 +979,20 @@ support_preferences (
 
 ---
 
+### 17.4 Initial database setup
+
+The initial schema is versioned in `supabase/migrations/20261114000100_initial_schema.sql`;
+`supabase/seed.sql` supplies two simulated seats at station S1. The migration
+implements the fields in §17.3 without introducing new event types or a status enum.
+It intentionally permits events before session/seat rows are provisioned, matching
+the current vision emitter. All tables enable Row Level Security. Public clients
+have read-only access to simulated seats and their associated station, session,
+activity and seat state; events, alerts, interventions and support preferences
+remain server-only. Simulated demo state is publicly readable and must contain
+no real student data or private notes. Only `seat_state` is initially enabled for
+Postgres Changes. Authenticated teacher access and approval endpoints remain
+separate implementation work. See `supabase/README.md` for setup and verification.
+
 ## 18. Local FastAPI interfaces
 
 Example endpoints:
