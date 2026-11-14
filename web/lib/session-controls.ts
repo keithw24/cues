@@ -24,6 +24,12 @@ export type SessionSnapshot = {
   session: Session | null;
   activities: { id: string; name: string }[];
 };
+/** A successful empty lookup is ready for creation, not a refresh error. */
+export function sessionControlState(snapshot: SessionSnapshot | null, refreshRequired: boolean) {
+  if (refreshRequired) return 'refresh' as const;
+  if (!snapshot) return 'loading' as const;
+  return snapshot.session ? 'active' as const : 'ready' as const;
+}
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function parseSession(input: unknown, station: string): Session {
   const s = input as Session;
@@ -132,6 +138,8 @@ export async function readSession(
   const { data, error } = await client
     .rpc("read_station_session", { p_station_id: station })
     .abortSignal(AbortSignal.timeout(12000));
+  if (error?.code === '42501')
+    throw new Error('Not authorized for this station. Ask an administrator to assign your teacher account.');
   if (error || !data || !Array.isArray(data.activities))
     throw new Error(
       "Session could not be loaded. Check your station access and retry.",
@@ -148,7 +156,7 @@ export async function readSession(
     return { id: a.id, name: a.name };
   });
   const session =
-    data.session === null ? null : parseSession(data.session, station);
+    data.session == null ? null : parseSession(data.session, station);
   if (session?.ended_at) throw new Error("Unexpected ended session");
   return {
     session,
