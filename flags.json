@@ -79,7 +79,7 @@
   },
   "web.teacher_reviews": {
     "description": "Read-only pending TeacherReview queue via Supabase; requires Michelle-side persistence, RLS and Realtime publication.",
-    "default": true,
+    "default": false,
     "owner": "evan",
     "ticket": "teacher-review-queue"
   },
@@ -91,7 +91,7 @@
   },
   "web.session_controls": {
     "description": "Authenticated station session lifecycle and activity controls",
-    "default": true,
+    "default": false,
     "owner": "evan",
     "ticket": "session-controls"
   },

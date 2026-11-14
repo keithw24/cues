@@ -5,8 +5,12 @@ import { isEnabled } from "../lib/flags.ts";
 
 const person = { id: "S1-P3", display_name: "Person 3", is_simulated: true };
 
-test("simulated names default off and keep the position label", () => {
+test("simulated names default on; turned off they keep the position label", () => {
   assert.equal(isEnabled("web.simulated_names", {}), true);
+  assert.equal(
+    isEnabled("web.simulated_names", { CUES_FLAG_WEB_SIMULATED_NAMES: "0" }),
+    false,
+  );
   assert.equal(displayName(person, false), "Person 3");
 });
 

@@ -99,7 +99,7 @@ test("dashboard defaults on, server override wins, invalid and unknown flags fai
 });
 
 test("teacher review transport defaults off independently of the seat dashboard", () => {
-  assert.equal(isEnabled("web.teacher_reviews", {}), true);
+  assert.equal(isEnabled("web.teacher_reviews", {}), false);
   assert.equal(
     isEnabled("web.teacher_reviews", { CUES_FLAG_WEB_TEACHER_REVIEWS: "1" }),
     true,

@@ -45,10 +45,14 @@ test("calm states follow the camera: working, no one in view, camera off", () =>
   assert.match(calm(0, false), /camera is off/);
 });
 
-test("room view defaults off; the card layout stays without it", async () => {
+test("room view defaults on; the card layout stays without it", async () => {
   const { isEnabled } = await import("../lib/flags.ts");
   const { readFileSync } = await import("node:fs");
   assert.equal(isEnabled("web.room_view", {}), true);
+  assert.equal(
+    isEnabled("web.room_view", { CUES_FLAG_WEB_ROOM_VIEW: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.room_view", { CUES_FLAG_WEB_ROOM_VIEW: "1" }),
     true,
