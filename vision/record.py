@@ -7,6 +7,7 @@ vision service stopped, since only one process can use the camera.
     uv run python -m vision.record thumbs_up target          # the gesture
     uv run python -m vision.record thumbs_up rest            # relaxed / other hands
     uv run python -m vision.record custom_gesture_01 target --seat S1-L --takes 3
+    uv run python -m vision.record thumbs_up target --delay 0   # skip the 10 s wait
 
 Record 3-5 takes of the target and at least 2 of rest, varying the hand a
 little (angle, distance) between takes.
@@ -94,6 +95,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--fps", type=float, default=10.0)
     parser.add_argument("--seat", help="only use hands in this seat, e.g. S1-L")
     parser.add_argument("--camera", type=int, default=0)
+    parser.add_argument(
+        "--delay", type=int, default=10, help="seconds to get ready before the first take"
+    )
     args = parser.parse_args(argv)
 
     activity = activities.get(args.activity_id)
@@ -108,6 +112,9 @@ def main(argv: list[str] | None = None) -> None:
     zones = recording_zones(args.seat)
     try:
         drain(cap, 1.0)  # camera warm-up: the first frames are often dark
+        for remaining in range(args.delay, 0, -1):
+            print(f"Get ready: recording starts in {remaining}s...", flush=True)
+            drain(cap, 1.0)
         for take in range(1, args.takes + 1):
             for n in (3, 2, 1):
                 print(f"Take {take}/{args.takes}: show '{args.label}' in {n}...", flush=True)
