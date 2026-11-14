@@ -154,3 +154,15 @@ def test_scores_respect_hand_side(cache):
     )
     assert scores["thumbs_up"][0] == 0.0  # palm facing the camera: not a thumbs-up
     assert scores["raise_hand"][0] > 0.7
+
+
+def test_hand_side_always_shown_in_recognise_mode():
+    from vision.stages.s46_recognize import Recognized
+    from vision.tests.hands import PERSONS_RIGHT, open_palm
+    from vision.watch import format_seat
+
+    hand = Hand(open_palm(), PERSONS_RIGHT, "S1-P1")
+    text = format_seat("S1-P1", "thumbs_up", None, None, recognized=Recognized(None, None, hand))
+    assert "Hand: palm, open (4/4 fingers)" in text  # without --debug
+    none = format_seat("S1-P1", "thumbs_up", None, None, recognized=Recognized(None, None, None))
+    assert "Hand: none detected" in none

@@ -61,11 +61,13 @@ def format_seat(
             lines.append("Recognised: no gesture")
         else:
             lines.append(f"Recognised: {recognized.activity_id} {recognized.score:.2f}")
-        if debug and recognized.hand is not None:
+        if recognized.hand is not None:  # always shown in recognise mode
             from vision.gestures.hand_pose import describe
 
             hand = recognized.hand
-            lines.append(f"  (hand: {describe(hand.landmarks, hand.handedness)})")
+            lines.append(f"Hand: {describe(hand.landmarks, hand.handedness)}")
+        else:
+            lines.append("Hand: none detected")
     if all_scores:
         from vision.stages.s45_all_scores import format_scores
 
@@ -138,6 +140,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--top", type=int, default=3, help="expression labels to show (max 8)")
     parser.add_argument("--debug", action="store_true", help="show raw gesture distances")
     parser.add_argument(
+        "--debug-overlay",
+        action="store_true",
+        help="draw every stage's own detail on the video instead of the normal overlay",
+    )
+    parser.add_argument(
         "--mode",
         choices=("task", "recognize"),
         help="task (default) or recognize: show which gesture each person is doing",
@@ -147,7 +154,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
 
-    if args.debug:
+    if args.debug_overlay:
         os.environ["CUES_OVERLAY"] = "debug"
     if args.mode:
         os.environ["CUES_MODE"] = args.mode

@@ -136,12 +136,13 @@ class OverlayStage:
                 text = "" if face is not None else short_id(pid) + "  "
                 fill = GREY
                 if recognized is not None:  # recognise mode: the gesture being done
-                    if recognized.activity_id is None:
-                        from vision.gestures.hand_pose import palm_side
+                    from vision.gestures.hand_pose import palm_side
 
-                        text += f"no gesture ({palm_side(hand.landmarks, hand.handedness)})"
+                    side = palm_side(hand.landmarks, hand.handedness)
+                    if recognized.activity_id is None:
+                        text += f"no gesture ({side})"
                     else:
-                        text += f"{recognized.activity_id} {recognized.score:.2f}"
+                        text += f"{recognized.activity_id} {recognized.score:.2f} ({side})"
                         fill = GREEN
                 elif match is not None:
                     score = "--" if match.score is None else f"{match.score:.2f}"
