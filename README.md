@@ -5,32 +5,32 @@ a student may need attention. Built by Keith, Michelle, and Evan for HackPrincet
 
 ```mermaid
 flowchart TD
-    A[Teacher selects activity] --> B[sessions.current_activity_id]
+    A["Teacher selects activity"] --> B["sessions.current_activity_id"]
 
-    C[Logitech camera] --> D[Local MediaPipe + HSEmotion]
+    C["Logitech camera"] --> D["Local MediaPipe + HSEmotion"]
     B --> D
 
-    D --> E[Supabase seat_state]
-    E --> F[ProgressEvaluator]
-    F --> G[ProgressHistoryStore]
-    G --> H[EscalationEvaluator]
-    H --> I[EvaluationRouter]
-    I --> J[ContextEnricher]
-    J --> K[Deep Agent]
+    D --> E["Supabase seat_state"]
+    E --> F["ProgressEvaluator"]
+    F --> G["ProgressHistoryStore"]
+    G --> H["EscalationEvaluator"]
+    H --> I["EvaluationRouter"]
+    I --> J["ContextEnricher"]
+    J --> K["Deep Agent"]
 
-    K --> L[request_teacher_review()]
-    L --> M[Supabase teacher_reviews]
+    K --> L["request_teacher_review()"]
+    L --> M["Supabase teacher_reviews"]
 
-    M --> N[Teacher dashboard]
-    M --> O[Photon / Spectrum iMessage]
+    M --> N["Teacher dashboard"]
+    M --> O["Photon / Spectrum iMessage"]
 
-    N --> P{Teacher review}
+    N --> P{"Teacher review"}
     O --> P
 
-    P -->|Needs attention| Q[confirmed]
-    P -->|Dismiss| R[dismissed]
+    P -->|Needs attention| Q["confirmed"]
+    P -->|Dismiss| R["dismissed"]
 
-    Q --> S[resolve_teacher_review RPC]
+    Q --> S["resolve_teacher_review RPC"]
     R --> S
 
 The continuous agent worker polls structured state and selects information/action
