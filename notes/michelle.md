@@ -1,22 +1,18 @@
 # Michelle — routing / agent engineering log
 
 # Architecture
-flowchart TD
+```mermaid
+flowchart LR
     A[CV observations] --> B[ProgressEvaluator]
-    B --> C{ProgressState}
+    B --> C[ProgressState]
+    C --> D[EscalationEvaluator]
+    E[ExpressionContext] --> D
+    D --> F[EscalationDecision]
+    F --> G[EvaluationRouter]
+    G --> H[AgentEvaluationRequest]
+    H --> I[Deep Agent]
+```
 
-    C -->|improving| D[Continue monitoring]
-    C -->|completed| D
-    C -->|unknown| D
-    C -->|stalled| E[EscalationEvaluator]
-
-    F[ExpressionContext] --> E
-
-    E --> G{Should evaluate?}
-    G -->|No| D
-    G -->|Yes| H[Evaluation Router]
-    H --> I[Future Deep Agent]
-    I --> J[Choose what Cues should do]
 - **ProgressEvaluator:** Is the student making progress?
 - **EscalationEvaluator:** Is this situation worth asking the agent about?
 - **Evaluation Router:** Should we invoke the agent now, or have we already evaluated this situation?
