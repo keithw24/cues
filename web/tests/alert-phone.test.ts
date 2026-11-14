@@ -16,8 +16,9 @@ test("alert phone numbers combine the country code into E.164", () => {
   assert.equal(normalizeAlertPhone("44", "1234567890123456"), null);
 });
 
-test("the phone step is off by default and sign-up works without it", () => {
-  assert.equal(isEnabled("web.alert_phone", {}), false);
+test("the phone step defaults on and sign-up works with it turned off", () => {
+  assert.equal(isEnabled("web.alert_phone", {}), true);
+  assert.equal(isEnabled("web.alert_phone", { CUES_FLAG_WEB_ALERT_PHONE: "0" }), false);
   const page = readFileSync(
     new URL("../app/signup/page.tsx", import.meta.url),
     "utf8",
