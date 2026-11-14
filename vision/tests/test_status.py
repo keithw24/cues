@@ -154,8 +154,8 @@ def test_status_stage_emits_shared_contract_events():
     from vision.activities import CurrentTasks
     from vision.camera import Frame
     from vision.perception import Match
-    from vision.seats import SeatZones
     from vision.stages.s50_status import StatusStage
+    from vision.tests.test_perception import SeatZones
 
     em = RecordingEmitter()
     stage = StatusStage(emitter=em, tasks=CurrentTasks("thumbs_up"), zones=SeatZones())

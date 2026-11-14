@@ -15,8 +15,8 @@ from vision.gestures import templates as tpl
 from vision.gestures.matcher import Matcher
 from vision.gestures.normalize import normalize
 from vision.grouping import GROUPING
+from vision.people import person_color as seat_color
 from vision.perception import Match
-from vision.stages.s00_seats import seat_color
 
 FLAG = "vision.gestures"
 
@@ -65,21 +65,24 @@ class GesturesStage:
             if matcher is None:
                 result[seat] = Match(activity_id, None, reason)
                 continue
-            best = max(
-                (normalize(h.landmarks, h.handedness) for h in hands[seat]), key=matcher.score
-            )
+            scored = [
+                (matcher.score(v), v, h)
+                for h in hands[seat]
+                for v in [normalize(h.landmarks, h.handedness)]
+            ]
+            score, best, hand = max(scored, key=lambda item: item[0])  # one hand per person
             d_target, d_rest = matcher.distances(best)
             detail = (
                 f"nearest target {d_target:.2f}, nearest rest {d_rest:.2f}, "
                 f"score reaches 0 at {matcher.rejection_threshold:.2f}"
             )
-            result[seat] = Match(activity_id, matcher.score(best), detail=detail)
+            result[seat] = Match(activity_id, score, detail=detail, hand=hand)
         ctx["match"] = result
 
     def draw(self, image, ctx) -> None:
         from vision import overlay
 
-        if self.zones.mode == "people" and not overlay.debug():
+        if not overlay.debug():
             return
         h, w = image.shape[:2]
         for seat, match in ctx.get("match", {}).items():

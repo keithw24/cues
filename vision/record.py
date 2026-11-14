@@ -9,7 +9,7 @@ drawn in green when it is detected. Press q in the window to cancel.
 
     uv run python -m vision.record thumbs_up target          # the gesture
     uv run python -m vision.record thumbs_up rest            # relaxed / other hands
-    uv run python -m vision.record custom_gesture_01 target --seat S1-L --takes 3
+    uv run python -m vision.record custom_gesture_01 target --takes 3
     uv run python -m vision.record thumbs_up target --delay 0   # skip the 10 s wait
 
 Record 3-5 takes of the target and at least 2 of rest, varying the hand a
@@ -33,29 +33,18 @@ WINDOW = "Cues recorder (press q to cancel)"
 GREEN, RED, WHITE = (0, 200, 0), (0, 0, 230), (255, 255, 255)
 
 
-def pick_hand(by_seat: dict, seat: str | None):
-    if seat is not None:
-        hands = by_seat.get(seat, [])
-    else:
-        hands = [h for hs in by_seat.values() for h in hs]
+def pick_hand(hands: list):
+    """The hand with the largest spread, i.e. the one closest to the camera."""
     if not hands:
         return None
-    # The hand with the largest spread is the one closest to the camera.
     return max(hands, key=lambda h: float(np.ptp(h.landmarks[:, :2], axis=0).prod()))
 
 
-def recording_zones(seat: str | None):
-    """Seat zones for recording.
+class AllHands:
+    """Grouping for recording: every detected hand counts, whoever it belongs to."""
 
-    Without --seat, keep every hand: no dead band, so a hand in the middle of
-    the frame (where a single person usually holds it) is not thrown away.
-    With --seat, use the service's normal zones so only that seat counts.
-    """
-    from vision.seats import ZONES, SeatZones
-
-    if seat is None:
-        return SeatZones(station_id=ZONES.station_id, divider=ZONES.divider, dead_band=0.0)
-    return ZONES
+    def hand_owner(self, hand_points, ctx=None) -> str:
+        return "any"
 
 
 class Cancelled(Exception):
@@ -65,11 +54,9 @@ class Cancelled(Exception):
 class Recorder:
     """Reads the camera, finds the hand, shows a live preview, collects poses."""
 
-    def __init__(self, cap, detector, zones, seat: str | None, preview: bool = True) -> None:
+    def __init__(self, cap, detector, preview: bool = True) -> None:
         self.cap = cap
         self.detector = detector
-        self.zones = zones
-        self.seat = seat
         self.preview = preview
 
     def run(self, seconds: float, banner: str, record: bool = False, fps: float = 10.0):
@@ -92,7 +79,7 @@ class Recorder:
             bgr = standard_frame(bgr)
             rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
             result = self.detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
-            hand = pick_hand(hands_from_result(result, self.zones), self.seat)
+            hand = pick_hand(hands_from_result(result, AllHands()).get("any", []))
             if record and hand is not None and now >= next_sample:
                 vectors.append(normalize(hand.landmarks, hand.handedness))
                 next_sample = now + 1.0 / fps
@@ -140,7 +127,6 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--takes", type=int, default=1)
     parser.add_argument("--seconds", type=float, default=2.0)
     parser.add_argument("--fps", type=float, default=10.0)
-    parser.add_argument("--seat", help="only use hands in this seat, e.g. S1-L")
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument(
         "--delay", type=int, default=10, help="seconds to get ready before the first take"
@@ -162,7 +148,7 @@ def main(argv: list[str] | None = None) -> None:
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     templates = tpl.load(activity.id)
-    rec = Recorder(cap, detector, recording_zones(args.seat), args.seat, not args.no_preview)
+    rec = Recorder(cap, detector, not args.no_preview)
     if rec.preview:
         print("A camera window opens: check your hand is in view and drawn in green.")
     try:

@@ -41,3 +41,4 @@ class Match:
     score: float | None  # 0..1, None when the task has no recorded examples yet
     reason: str = ""  # why score is None, for display
     detail: str = ""  # raw distances, shown by `vision.watch --debug`
+    hand: Hand | None = None  # the one hand this score is for (one hand per person)

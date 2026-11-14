@@ -18,7 +18,7 @@ import cv2
 import numpy as np
 
 from vision.grouping import GROUPING
-from vision.stages.s00_seats import seat_color
+from vision.people import person_color as seat_color
 
 FLAG = "vision.expression"
 
@@ -88,7 +88,7 @@ class ExpressionStage:
     def draw(self, image, ctx) -> None:
         from vision import overlay
 
-        if self.zones.mode == "people" and not overlay.debug():
+        if not overlay.debug():
             return
         for seat, dist in ctx.get("expression", {}).items():
             face = ctx.get("faces", {}).get(seat)

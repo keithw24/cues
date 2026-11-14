@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="turn on all perception stages for this run",
     )
-    parser.add_argument("--task", help="current task for both seats (default: CUES_TASK)")
+    parser.add_argument("--task", help="current task for everyone (default: CUES_TASK)")
     parser.add_argument("--seconds", type=float, help="stop after this many seconds")
     parser.add_argument("--top", type=int, default=3, help="expression labels to show (max 8)")
     parser.add_argument("--debug", action="store_true", help="show raw gesture distances")

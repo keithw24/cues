@@ -78,7 +78,7 @@ def test_rate_meter():
 def test_discover_stages_with_perception_flags_off(monkeypatch):
     for name in ("HANDS", "FACES", "GESTURES", "RAISE_HAND", "EXPRESSION", "TASK_STATUS"):
         monkeypatch.delenv(f"CUES_FLAG_VISION_{name}", raising=False)
-    assert [s.name for s in discover_stages()] == ["seats", "people"]
+    assert [s.name for s in discover_stages()] == ["people", "overlay"]
 
 
 def test_discover_stages_with_perception_flags_on(monkeypatch):
@@ -86,7 +86,6 @@ def test_discover_stages_with_perception_flags_on(monkeypatch):
         monkeypatch.setenv(f"CUES_FLAG_VISION_{name}", "1")
     names = [s.name for s in discover_stages()]
     assert names == [
-        "seats",
         "people",
         "hands",
         "faces",
@@ -94,6 +93,7 @@ def test_discover_stages_with_perception_flags_on(monkeypatch):
         "raise_hand",
         "expression",
         "status",
+        "overlay",
     ]
 
 

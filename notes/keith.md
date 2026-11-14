@@ -117,3 +117,15 @@ uv run pytest vision                                        # tests (hardware te
 - **Supabase keys** for the station laptop (`SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY` in the root `.env`) and a `sessions` row id for
   `CUES_SESSION_ID`, so the CV -> Supabase step can be tested for real.
+
+## Update: people only, new overlay
+
+- **Seats mode is removed.** Vision only reports people (`S1-P1`...). The
+  dashboard must handle person ids (see `notes/proposal-person-tracking.md`).
+- **Overlay:** per person, a face box labelled `P1  neutral 0.61`, one hand
+  (skeleton + box labelled with the task score, coloured green / orange / grey
+  against the task thresholds) and a line from the hand to the face. No face
+  visible: only the hand box, labelled `P1  ...`. `--debug` shows every stage's
+  detail instead.
+- **One hand per person:** the best-matching hand for gestures, the highest
+  hand for raise-hand.

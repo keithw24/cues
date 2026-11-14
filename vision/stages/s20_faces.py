@@ -11,8 +11,8 @@ import cv2
 import numpy as np
 
 from vision.grouping import GROUPING
+from vision.people import person_color as seat_color
 from vision.perception import Face
-from vision.stages.s00_seats import seat_color
 
 FLAG = "vision.faces"
 PADDING = 0.10
@@ -77,7 +77,7 @@ class FacesStage:
     def draw(self, image, ctx) -> None:
         from vision import overlay
 
-        if getattr(self.zones, "mode", "seats") == "people" and not overlay.debug():
+        if not overlay.debug():
             return
         for seat, face in ctx.get("faces", {}).items():
             x0, y0, x1, y1 = face.box

@@ -141,27 +141,7 @@ class StatusStage:
         )
 
     def draw(self, image, ctx) -> None:
-        if self.zones.mode == "people":  # the person label shows status and events
-            return
-        import cv2
-
-        h, w = image.shape[:2]
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        colors = {
-            "done": (0, 200, 0),
-            "review": (0, 200, 255),
-            "needs_help": (0, 0, 230),
-            "tracking_lost": (160, 160, 160),
-        }
-        last = ctx.get("last_event", {})
-        for seat, status in ctx.get("status", {}).items():
-            anchor = self.zones.anchor(seat, ctx, w, h, row=0)
-            if anchor is None:
-                continue
-            x, y = anchor
-            cv2.putText(image, status, (x, y), font, 0.6, colors.get(status, (255, 255, 255)), 2)
-            if seat in last:  # the latest event stays on screen for 3 s
-                cv2.putText(image, last[seat], (x, y + 22), font, 0.6, (0, 255, 255), 2)
+        """Status is shown on the dashboard and in vision.watch, not on the video."""
 
     def close(self) -> None:
         if self._emitter is not None:
