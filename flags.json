@@ -107,6 +107,12 @@
     "owner": "keith",
     "ticket": "session-controls"
   },
+  "web.simulated_names": {
+    "description": "Show made-up first names for simulated people instead of Person 1, Person 2 on the dashboard.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "dashboard-redesign"
+  },
   "vision.all_scores": {
     "description": "Display-only readout of every task's score for every person (overlay and vision.watch). Not sent to Supabase.",
     "default": false,

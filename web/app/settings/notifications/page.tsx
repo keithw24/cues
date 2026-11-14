@@ -2,12 +2,14 @@ import Link from "next/link";
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 import { isEnabled } from "@/lib/flags";
+import { garamond } from "@/components/workspace-fonts";
+import "@/components/workspace.css";
 
 export const metadata = { title: "Cues · Notifications" };
 
 export default function NotificationsPage() {
   return (
-    <div className="dashboard-shell">
+    <div className={`workspace dashboard-shell ${garamond.variable}`}>
       <WorkspaceSidebar
         accountEnabled={isEnabled("web.teacher_login")}
         notifications
@@ -17,7 +19,7 @@ export default function NotificationsPage() {
           Workspace <span>/</span> Notifications
         </div>
         <header className="page-intro">
-          <h1>Notifications</h1>
+          <h1>notifications</h1>
           <p>Stay close to your classroom, wherever you are.</p>
         </header>
         <section
