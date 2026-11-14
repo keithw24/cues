@@ -65,6 +65,10 @@ class PeopleStage:
     def active(self) -> bool:
         return True
 
+    def load(self) -> None:
+        """Load the model now (called by Pipeline.start before the first frame)."""
+        _ = self.detector
+
     @property
     def detector(self):
         if self._detector is None:
