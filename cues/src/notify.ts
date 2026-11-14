@@ -50,6 +50,21 @@ async function main() {
       ? { phone: process.env.SPECTRUM_SENDER_PHONE } : undefined);
     stage = "send";
     const sent = await space.send(message);
+    if (process.env.CUES_SPECTRUM_DEBUG === "1") {
+      const shape = (value: unknown): unknown => {
+        if (value == null) return { type: String(value) };
+        if (Array.isArray(value)) return { type: "array", length: value.length, items: value.map(shape) };
+        if (typeof value !== "object") return { type: typeof value };
+        const row = value as Record<string, unknown>;
+        return { type: "object", keys: Object.keys(row), fields: Object.fromEntries(
+          Object.entries(row).filter(([key, val]) =>
+            typeof val === "boolean" || (["id", "messageId", "requestId", "status"].includes(key) &&
+              (typeof val === "string" || typeof val === "number")))
+            .map(([key, val]) => [key, typeof val === "string" ? safe(val) : val])
+        ) };
+      };
+      diagnostic(JSON.stringify({ cuesNotification: true, stage, response: shape(sent) }));
+    }
     if (!sent || (Array.isArray(sent) && sent.length === 0)) throw new Error("No acknowledgement");
   } finally { await app.stop(); }
   process.stdout.write(JSON.stringify({ accepted: true }) + "\n");
@@ -57,5 +72,8 @@ async function main() {
 main().catch((error) => {
   diagnostic(JSON.stringify({ cuesNotification: true, stage,
     error: safe(error instanceof Error ? error.message : String(error)) }));
+  const category = error instanceof Error && error.message.includes("Target not allowed for this project")
+    ? "target_not_allowed" : "provider_failure";
+  process.stdout.write(JSON.stringify({ accepted: false, category }) + "\n");
   process.exitCode = 1;
 });

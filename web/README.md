@@ -137,7 +137,7 @@ are available. Remote-host dashboards intentionally cannot load the station feed
 Video remains 4:3, contains rather than stretches frames, and never goes through
 Next.js, Supabase, or an LLM.
 
-Migration `20261114000400_person_observations.sql` adds the `tracking_valid` field
+Migration `20261114000510_person_observations.sql` adds the `tracking_valid` field
 Keith now emits and provisions simulated S1-P1..P4 metadata for existing demo read
 policies. It creates no fabricated observations. Apply it to Supabase before
 expecting person state writes to succeed. Person metadata with no state row is

@@ -116,6 +116,42 @@ Camera-free development: `CUES_CAMERA=fake ./scripts/dev.sh`.
 
 ## Troubleshooting
 
+Notification activation is manual for the hackathon. The teacher opts in under
+/settings/profile; Cues records consent against the saved profile phone and shows
+“Notifications: activating”. The operator adds/invites that recipient through the
+Photon/Spectrum website, preserving the provider's eligibility restrictions.
+No Photon CLI provisioning or dashboard OAuth credentials are used by Cues.
+
+POST /api/notifications/register requires a verified Supabase bearer user and JSON
+{"opt_in":true,"first_name":"...","last_name":"..."}. It records consent and queues
+manual activation, returning HTTP 202/status pending. Deployed migration 009's
+registering status represents that request. opt_in:false revokes consent.
+No browser-supplied UUID, email or phone is accepted.
+
+After website activation, click **Send test notification** under /settings/profile.
+POST /api/notifications/test accepts no destination/identity fields: the verified
+bearer user, saved profile phone and current consent attempt are resolved server-side.
+An accepted test or real review send automatically records registration. Pending
+registration no longer blocks sending when opt-in, phone and project match.
+“Target not allowed” leaves Notifications: activating; finish website activation
+and retry. Other failures store only safe categories and never remove a review.
+No manual Supabase registration SQL or admin UI is required.
+
+Local migration 010 adds the backend-only atomic acknowledgement RPC. It has not
+been deployed by this change; apply it through the normal reviewed migration
+workflow before using automatic activation against hosted Supabase. Migration 009
+is unchanged. The Next server uses the root .venv Python and nested cues sender;
+run the existing Python/Node setup before testing.
+
+Runtime message sending continues to use SPECTRUM_PROJECT_ID and
+SPECTRUM_PROJECT_SECRET in cues/.env. Phone changes invalidate consent and
+registration; the new phone needs fresh opt-in and operator activation.
+Registration status is not a delivery or read receipt.
+
+Dynamic review notifications now require current-phone consent and successful
+registration in the same Spectrum project. Missing migration/settings/consent
+fails closed while preserving pending reviews. Static test mode is unchanged.
+
 - Missing `tracking_valid`: apply migration 005 to the correct project.
 - `Target not allowed for this project`: activate teacher destination in Spectrum Users.
 - Missing Supabase configuration: set root backend variables; public keys are insufficient.

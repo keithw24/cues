@@ -123,6 +123,31 @@ def database():
         yield fake, client
 
 
+def test_target_not_allowed_keeps_persisted_review(database, monkeypatch, tmp_path):
+    from agent.notifications import spectrum_notifier
+    from agent.tests.test_notification_activation import CONFIG, setup
+
+    fake, persistent = database
+    routing, send = setup(monkeypatch, "target_not_allowed")
+    # Session lookup precedes the shared profile/consent queries.
+    from types import SimpleNamespace
+
+    responses = list(
+        routing.table.return_value.select.return_value.eq.return_value.execute.side_effect
+    )
+    routing.table.return_value.select.return_value.eq.return_value.execute.side_effect = [
+        SimpleNamespace(data=[{"teacher_id": "owner"}]),
+        *responses,
+    ]
+    notifier = spectrum_notifier(CONFIG, tmp_path, routing)
+    store = SupabaseTeacherReviewStore(persistent, notifier=notifier)
+    review = store.request_teacher_review(evaluation(), assessment())
+    assert store.get_review(review.id).status == "pending"
+    assert len(fake.rows) == 1
+    send.assert_called_once()
+    assert routing.rpc.call_args.args[1]["p_result"] == "target_not_allowed"
+
+
 def test_row_round_trip_preserves_typed_context_evidence_and_exact_times():
     review = TeacherReviewStore(clock=lambda: NOW).request_teacher_review(
         evaluation(), assessment()

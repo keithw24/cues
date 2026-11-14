@@ -234,6 +234,88 @@ Ctrl-C cleanup were not exercised in the documented startup change.
 
 ## Verification and remaining work
 
+### Opted-in Photon recipient registration (local implementation)
+
+Migration 009 adds teacher_notification_settings with explicit opt-in and server
+consent timestamp, consented phone snapshot, explicit first/last names, project,
+registration attempt UUID, status, registered timestamp and safe failure category.
+Browsers can read only their own row; writes and the preparation RPC are backend
+service-only. A profile phone update invalidates consent and registration in the
+same transaction. Preparation locks the profile; attempt IDs remain available to
+bind future trusted completion to the current consent request.
+
+POST /api/notifications/register verifies the Supabase bearer token with getUser,
+uses authoritative confirmed Auth email, and obtains the phone from the profile
+through the service preparation RPC. Body accepts only opt_in, first_name and
+last_name. Names are explicit, not parsed from display text. opt_in:false revokes.
+No profile, station membership, session or review is removed on provider failure.
+
+Photon recipient provisioning is manual for the hackathon. After explicit opt-in,
+the operator adds/invites the current consented recipient through the Photon/
+Spectrum website. Cues no longer automates CLI provisioning or reads an operator's
+Photon Dashboard OAuth session. Runtime sending remains separate and uses the
+Spectrum project ID/secret.
+
+The endpoint records consent and queues manual activation, returning pending /
+“Notifications: activating”. Migration 009 remains deployed and unchanged; its
+registering status represents pending activation. Existing registration attempts,
+safe failure fields, and registered status are retained.
+
+Dynamic send eligibility is explicit opt-in, consented phone=current profile phone,
+a current registration attempt, and matching project. Registered status is an
+observation of accepted delivery, not a pre-send gate. Phone changes revoke consent.
+The first accepted test or real review notification marks the exact attempt registered,
+sets a server timestamp and clears safe errors. New migration 010 (not deployed)
+implements record_teacher_notification_send: service-only, profile lock followed by
+an atomic user/phone/attempt/project/opt-in guarded update. Stale responses cannot
+activate a different phone or consent attempt; consent timestamps/profile stay intact.
+
+The existing profile UI includes Send test notification only for current matching
+consent. POST /api/notifications/test verifies auth and accepts no body/identity.
+It invokes the same Python dynamic sender used by real reviews, using backend-only
+project credentials. “Target not allowed” returns activating with a retry message;
+other failures record provider_failure/network_failure only. Pending reviews survive.
+Manual Photon website provisioning is still required; manual Supabase SQL is not.
+No CLI provisioning, admin system, static fallback, or station/session changes.
+Accepted means Spectrum acknowledgement, not independent proof of handset delivery.
+
+Verification: 299 backend/shared/Supabase tests passed, including isolated full-chain
+migration replay, stale-attempt/phone/reconsent guards and pending-review preservation.
+98 frontend tests, TypeScript and ESLint passed; changed Python files pass Ruff.
+The unmodified full-suite run exposed four unrelated vision tests that assume the
+station-lifecycle flag is off. With CUES_FLAG_VISION_SESSION_LIFECYCLE=0 explicitly
+set for those legacy assumptions, the full suite passed: 502 passed, 4 skipped.
+No hosted migration, website provisioning or live notification send was performed.
+
+### Migration history reconciliation
+
+Historical duplicate versions were resolved by filename-only moves:
+00300_session_controls → 00310_session_controls,
+00400_person_observations → 00510_person_observations, and
+00500_station_session_sync → 00520_station_session_sync (same date prefix).
+All eleven migrations replayed on isolated local PostgreSQL with minimal Auth
+stubs. Hosted definitions/effects through 007 were verified; official CLI 3.1.0
+marked only those ten versions applied without replaying their SQL. The resulting
+official migration list matches through 007, and db push --dry-run selected only
+008_station_pairing. Migration 008 was not deployed. See supabase/README.md for
+the pinned CLI commands, explicit targeting helper and future deployment procedure.
+
+### Station pairing backend (local, not deployed)
+
+Migration 008 adds private station_pairing_codes and service-only
+issue_station_pairing_code(station_id, ttl_seconds=600), returning a random code
+once while storing only its normalized SHA-256 hash. Authenticated callers redeem
+with redeem_station_pairing_code(code), returning [{station_id}]. Row locking,
+expiry validation, membership insertion for auth.uid() and consumption happen in
+one transaction; concurrent use has one winner. Existing membership is harmless
+and still consumes a fresh code. Invalid/expired/used codes share one generic error.
+No browser membership inserts, arbitrary identity/station arguments, historical
+session claims or changes to session RPCs are introduced. Service access remains.
+Operator/frontend instructions and isolated local PostgreSQL test command are in
+supabase/README.md. Four SQL integration tests passed, including concurrent
+redemption, privacy/permissions, normalization, repeat membership, rejection cases,
+and unchanged historical sessions. No Photon registration or UI was added.
+
 ### Teacher profile and destination ownership
 
 Migration 006 adds teacher_profiles(user_id, display_name, phone_number,

@@ -459,7 +459,7 @@ commit, merge or push were added.
   go through membership-authorized RPCs; no service-role key is sent to the browser.
 - Flag web.session_controls defaults off; CUES_STATION_ID scopes the station.
   No migration was deployed and no teacher membership/account was created remotely.
-- Files: supabase/migrations/20261114000300_session_controls.sql,
+- Files: supabase/migrations/20261114000310_session_controls.sql,
   web/components/session-controls.tsx, web/lib/session-controls.ts,
   web/tests/session-controls.test.ts, web/components/dashboard.tsx,
   web/lib/supabase.ts, web/app/page.tsx, web/app/globals.css, flags.json,
@@ -690,8 +690,8 @@ Files for this feature:
   stages/s30_gestures.py, s35_raise_hand.py, s50_status.py, watch.py and
   tests/test_session_sync.py. These cross Keith's ownership boundary because the
   feature needs the real station to follow teacher session changes.
-- supabase/migrations/20261114000300_session_controls.sql,
-  20261114000500_station_session_sync.sql and tests/session_controls.sql;
+- supabase/migrations/20261114000310_session_controls.sql,
+  20261114000520_station_session_sync.sql and tests/session_controls.sql;
   flags.json, PRD-cues.md, web/SESSION_CONTROLS.md, vision/SESSION_LIFECYCLE.md,
   web/README.md and these notes. Other design/login work was preserved.
 
