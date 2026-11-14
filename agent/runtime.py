@@ -11,8 +11,15 @@ from agent.deep_agent import AgentBudgets, CuesDeepAgent, create_cues_deep_agent
 from agent.notifications import ReviewNotifier, spectrum_notifier
 from agent.progress_history import ProgressHistoryStore
 from agent.prompt_history import PromptHistoryStore
+from agent.seat_state_runtime import (
+    SeatStatePipeline,
+    SeatStateRuntime,
+    SeatStateSource,
+    SupabaseSeatStateSource,
+)
 from agent.supabase_teacher_review import SupabaseTeacherReviewStore
 from agent.teacher_review import TeacherReviewStorage, TeacherReviewStore
+from shared.contracts import Activity
 from shared.supabase_client import REPO_ROOT, get_client
 
 log = logging.getLogger(__name__)
@@ -40,6 +47,16 @@ def review_store_from_env(
         config = dict(dotenv_values(env_file))
     else:
         config = dict(dotenv_values(REPO_ROOT / "web/.env.local"))
+        # Photon/Spectrum is its own nested SDK project. Only its backend
+        # configuration is imported here; none of these values enter model or
+        # frontend context.
+        config.update(
+            {
+                k: v
+                for k, v in dotenv_values(REPO_ROOT / "cues/.env").items()
+                if k.startswith("SPECTRUM_") and v is not None and v.strip()
+            }
+        )
         config.update(
             {
                 k: v
@@ -103,3 +120,55 @@ def create_runtime_agent(
         budgets=budgets if budgets is not None else AgentBudgets(),
         reviews=reviews,
     )
+
+
+def create_seat_state_runtime(
+    model: BaseChatModel,
+    activities: list[Activity],
+    *,
+    history: ProgressHistoryStore | None = None,
+    prompt_history: PromptHistoryStore | None = None,
+    budgets: AgentBudgets | None = None,
+    offline: bool = False,
+    env_file: Path | None = None,
+    notifier: ReviewNotifier | None = None,
+    source: SeatStateSource | None = None,
+    progress_window_seconds: float = 4,
+    escalation_config=None,
+    poll_seconds: float = 1.0,
+) -> SeatStateRuntime:
+    """Build the continuous SeatState path using explicit, replaceable dependencies.
+
+    A supplied source supports offline tests/development. Without one, persistent
+    review configuration is required and its authenticated client is reused for
+    seat_state polling; a configured live runtime never silently reads locally.
+    """
+    from agent.escalation import DEFAULT_ESCALATION_CONFIG
+
+    progress_history = history if history is not None else ProgressHistoryStore()
+    agent = create_runtime_agent(
+        model,
+        progress_history,
+        prompt_history=prompt_history,
+        budgets=budgets,
+        offline=offline,
+        env_file=env_file,
+        notifier=notifier,
+    )
+    if source is None:
+        if not isinstance(agent.reviews, SupabaseTeacherReviewStore):
+            raise RuntimePersistenceError(
+                "Continuous SeatState runtime requires backend Supabase configuration "
+                "or an explicitly injected source."
+            )
+        source = SupabaseSeatStateSource(agent.reviews.client)
+    pipeline = SeatStatePipeline(
+        activities,
+        agent,
+        progress_history,
+        progress_window_seconds=progress_window_seconds,
+        escalation_config=(
+            DEFAULT_ESCALATION_CONFIG if escalation_config is None else escalation_config
+        ),
+    )
+    return SeatStateRuntime(source, pipeline, poll_seconds=poll_seconds)

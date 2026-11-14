@@ -101,6 +101,43 @@ def test_explicit_offline_ignores_config_and_does_not_construct_client(tmp_path,
     client_factory[1].assert_not_called()
 
 
+def test_continuous_runtime_reuses_persistent_client_for_seat_state(
+    tmp_path, client_factory
+):
+    configure(tmp_path)
+    client = client_factory[0]
+    result = runtime.create_seat_state_runtime(
+        FakeMessagesListChatModel(responses=[]),
+        [Activity(id="task", name="Task", check_type="rule", no_progress_seconds=30)],
+    )
+    assert result.source.client is client
+    assert result.pipeline.agent.reviews.client is client
+
+
+def test_continuous_runtime_accepts_explicit_offline_source(client_factory):
+    source = MagicMock()
+    source.fetch.return_value = []
+    result = runtime.create_seat_state_runtime(
+        FakeMessagesListChatModel(responses=[]),
+        [Activity(id="task", name="Task", check_type="rule", no_progress_seconds=30)],
+        source=source,
+        offline=True,
+    )
+    assert result.source is source
+    assert isinstance(result.pipeline.agent.reviews, TeacherReviewStore)
+    client_factory[1].assert_not_called()
+
+
+def test_continuous_runtime_without_source_or_backend_fails_clearly(client_factory):
+    with pytest.raises(runtime.RuntimePersistenceError, match="SeatState runtime requires"):
+        runtime.create_seat_state_runtime(
+            FakeMessagesListChatModel(responses=[]),
+            [Activity(id="task", name="Task", check_type="rule", no_progress_seconds=30)],
+            offline=True,
+        )
+    client_factory[1].assert_not_called()
+
+
 @pytest.mark.parametrize("entry", [f"SUPABASE_URL={URL}", f"SUPABASE_SERVICE_ROLE_KEY={SECRET}"])
 def test_partial_configuration_never_falls_back(tmp_path, client_factory, entry):
     (tmp_path / ".env").write_text(entry)

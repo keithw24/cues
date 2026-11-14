@@ -1349,7 +1349,7 @@ validation, using an injected ReviewNotifier. Duplicate ON CONFLICT reuse never
 notifies, including another backend instance; resolution never notifies. The
 in-memory store and a recommendation without the action do not send. No LLM call
 or new agent tool/node is involved. Runtime injects the Spectrum adapter using
-existing root SPECTRUM_PROJECT_ID/SPECTRUM_PROJECT_SECRET, plus the explicit
+SPECTRUM_PROJECT_ID/SPECTRUM_PROJECT_SECRET from the nested `cues/.env`, plus the explicit
 SPECTRUM_TEACHER_PHONE destination and optional SPECTRUM_SENDER_PHONE dedicated line.
 All remain backend-only. The existing cues/ Spectrum SDK project supplies the
 one-shot cues/src/notify.ts sender; no inbound listener or new transport service
@@ -1370,14 +1370,15 @@ provider response can lose a notification. No outbox or delivery-state schema wa
 introduced. Review IDs are available to injected transports as idempotency context;
 the Spectrum SDK sender does not claim server-side idempotency support.
 
-Live synthetic hosted attempt: review b04b075c-093f-415f-8ade-6272a70234ca persisted
+Initial live synthetic hosted attempt: review b04b075c-093f-415f-8ade-6272a70234ca persisted
 and remained retrievable, but Spectrum adapter failed acknowledgement (one attempt,
 zero confirmed acceptances). Delivery is **not verified**. No retry was forced;
 only the synthetic probe row was removed by smoke cleanup. Root project credentials
 and destination were present; provider-side configuration/line/allowlist and send
 diagnostics remain to be checked. Stage-only sender diagnostics were added without
 printing SDK errors, secrets or phone numbers. The pending-review persistence and
-failure-isolation branch is verified; live Photon delivery remains unresolved.
+failure-isolation branch was verified; later delivery success is recorded in the
+continuous SeatState runtime section below.
 
 Offline tests cover new insert/duplicate reuse across stores, persistence failure,
 both teacher resolutions, notification failure retaining the review, minimal
@@ -1404,7 +1405,71 @@ No acknowledgement/delivery was verified. The teacher destination must be
 registered/allowlisted in this Spectrum project's users before retesting. No
 automatic retry was made. TypeScript checking passed. Review trigger semantics,
 persistence, duplicate suppression and architecture were unchanged; this direct
-send probe created no review rows.
+send probe created no review rows. After the destination was activated in Spectrum,
+the later end-to-end hosted smoke received an acknowledgement as documented below.
+
+## Continuous SeatState runtime
+
+`agent/seat_state_runtime.py` now connects the existing components without a new
+decision node:
+
+```text
+Supabase seat_state (one-second polling)
+→ ProgressEvaluator
+→ ProgressHistoryStore.record
+→ EscalationEvaluator
+→ EvaluationRouter
+→ ContextEnricher
+→ Deep Agent
+→ existing TeacherReview persistence and Photon notification
+```
+
+`SupabaseSeatStateSource` selects only the canonical `SeatState` fields from
+`public.seat_state`. Polling is used because this repository has no existing
+Python Realtime subscriber; its default one-second interval matches vision's
+normal publication cadence without adding a broker or transport. Exact unchanged
+rows are skipped. Changed rows, including late or stale ones, still pass to the
+existing `ProgressEvaluator`, which remains authoritative for timestamp order,
+staleness, tracking gaps, completion, and activity identity. Progress history is
+recorded only when that evaluator accepts the observation as fresh.
+
+There is one evaluator per session/seat/activity. Activity changes therefore
+partition progress rather than carrying scores or stall time across tasks.
+`tracking_valid=false`, tracking-lost status, and null task scores clear/pause the
+existing progress window and cannot route a review. Expression context is passed
+only to the existing escalation evaluator and cannot bypass stalled progress.
+The existing router continues to suppress repeated/unchanged escalation levels.
+No prompt-history observations are inferred from SeatState.
+
+`agent.runtime.create_seat_state_runtime(model, activities, ...)` is the live
+composition path. It reuses the same authenticated Supabase client selected for
+the persistent `SupabaseTeacherReviewStore`, constructs the source and pipeline,
+and returns `SeatStateRuntime`. Call `run_forever()` to poll continuously, or
+`run_once()` for a supervised worker/test iteration. An explicit source can be
+injected for offline development; without a source or backend configuration,
+continuous startup fails clearly instead of pretending to persist or consume
+cloud state. Read failures are logged and retried at the next bounded poll; a
+malformed row, unknown activity, or provider failure is isolated to that row so
+other seats continue. Logs contain seat IDs and exception classes, not payloads,
+camera data, credentials, or model reasoning.
+
+Spectrum configuration discovery now reads backend-only `SPECTRUM_*` values from
+the nested `cues/.env`, matching the Photon SDK project location. This changes
+configuration loading only; persistence-first notification triggering, duplicate
+suppression, and failure isolation are unchanged.
+
+Offline tests cover improving/stalled/tracking-loss behavior, unchanged-row
+deduplication, activity partitioning, expression support, enrichment/agent
+delivery, the existing review action/store path, malformed-row and per-seat agent
+failure isolation, Supabase field selection, persistent-client reuse, explicit
+offline injection, and clear missing-backend failure. The full offline result is
+**449 passed, 4 skipped** (hardware/credential-gated checks).
+
+Hosted smoke on November 14, 2026: five synthetic valid `raise_hand` SeatState
+updates were written and consumed through the polling runtime. The deterministic
+pipeline detected the stall, routed a scripted Deep Agent action, persisted one
+pending teacher review, and invoked Photon exactly once; Spectrum acknowledged
+the notification. The synthetic review and SeatState row were removed afterward.
 
 ## Citations
 
