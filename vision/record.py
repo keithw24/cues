@@ -4,6 +4,9 @@ Records about 2 seconds of hand poses and adds them to the activity's
 examples in vision/templates/ (stored only on this laptop). Run with the
 vision service stopped, since only one process can use the camera.
 
+A preview window shows the camera (mirrored, like a selfie) with your hand
+drawn in green when it is detected. Press q in the window to cancel.
+
     uv run python -m vision.record thumbs_up target          # the gesture
     uv run python -m vision.record thumbs_up rest            # relaxed / other hands
     uv run python -m vision.record custom_gesture_01 target --seat S1-L --takes 3
@@ -24,6 +27,9 @@ import numpy as np
 from vision.gestures import templates as tpl
 from vision.gestures.matcher import calibrate_rejection
 from vision.gestures.normalize import normalize
+
+WINDOW = "Cues recorder (press q to cancel)"
+GREEN, RED, WHITE = (0, 200, 0), (0, 0, 230), (255, 255, 255)
 
 
 def pick_hand(by_seat: dict, seat: str | None):
@@ -51,37 +57,77 @@ def recording_zones(seat: str | None):
     return ZONES
 
 
-def drain(cap, seconds: float) -> None:
-    """Keep reading frames for `seconds` so the next read is a fresh frame."""
-    end = time.monotonic() + seconds
-    while time.monotonic() < end:
-        cap.grab()
+class Cancelled(Exception):
+    """The user pressed q in the preview window."""
 
 
-def record_take(
-    cap, detector, seconds: float, fps: float, seat: str | None, zones
-) -> tuple[list, int]:
-    """Returns (hand vectors, number of frames looked at)."""
-    import mediapipe as mp
+class Recorder:
+    """Reads the camera, finds the hand, shows a live preview, collects poses."""
 
-    from vision.stages.s10_hands import hands_from_result
+    def __init__(self, cap, detector, zones, seat: str | None, preview: bool = True) -> None:
+        self.cap = cap
+        self.detector = detector
+        self.zones = zones
+        self.seat = seat
+        self.preview = preview
 
-    vectors = []
-    frames = 0
-    end = time.monotonic() + seconds
-    period = 1.0 / fps
-    while time.monotonic() < end:
-        ok, bgr = cap.read()
-        if not ok:
-            continue
-        frames += 1
-        rgb = cv2.cvtColor(cv2.resize(bgr, (640, 480)), cv2.COLOR_BGR2RGB)
-        result = detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
-        hand = pick_hand(hands_from_result(result, zones), seat)
+    def run(self, seconds: float, banner: str, record: bool = False, fps: float = 10.0):
+        """Show the camera for `seconds`; if `record`, collect hand vectors.
+
+        Returns (hand vectors, frames looked at).
+        """
+        import mediapipe as mp
+
+        from vision.stages.s10_hands import hands_from_result
+
+        vectors, frames = [], 0
+        end = time.monotonic() + seconds
+        next_sample = 0.0
+        while (now := time.monotonic()) < end:
+            ok, bgr = self.cap.read()
+            if not ok:
+                continue
+            frames += 1
+            bgr = cv2.resize(bgr, (640, 480))
+            rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+            result = self.detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
+            hand = pick_hand(hands_from_result(result, self.zones), self.seat)
+            if record and hand is not None and now >= next_sample:
+                vectors.append(normalize(hand.landmarks, hand.handedness))
+                next_sample = now + 1.0 / fps
+            if self.preview:
+                self.show(bgr, hand, f"{banner} {end - now:.0f}s", record, len(vectors))
+        return vectors, frames
+
+    def show(self, bgr, hand, banner: str, record: bool, captured: int) -> None:
+        from vision.stages.s10_hands import CONNECTIONS
+
+        image = bgr.copy()
+        h, w = image.shape[:2]
         if hand is not None:
-            vectors.append(normalize(hand.landmarks, hand.handedness))
-        time.sleep(period)
-    return vectors, frames
+            pts = [(int(x * w), int(y * h)) for x, y, _ in hand.landmarks]
+            for a, b in CONNECTIONS:
+                cv2.line(image, pts[a], pts[b], GREEN, 2)
+            for pt in pts:
+                cv2.circle(image, pt, 3, GREEN, -1)
+        image = cv2.flip(image, 1)  # mirror view, like a selfie camera
+        found = hand is not None
+        status = "HAND FOUND" if found else "NO HAND - move it into view"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.rectangle(image, (0, 0), (w, 64), (30, 30, 30), -1)
+        cv2.putText(image, banner, (10, 26), font, 0.7, RED if record else WHITE, 2)
+        cv2.putText(image, status, (10, 54), font, 0.6, GREEN if found else RED, 2)
+        if record:
+            cv2.circle(image, (w - 24, 24), 10, RED, -1)
+            cv2.putText(image, f"{captured} poses", (w - 150, 54), font, 0.6, WHITE, 1)
+        cv2.imshow(WINDOW, image)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            raise Cancelled
+
+    def close(self) -> None:
+        if self.preview:
+            cv2.destroyAllWindows()
+            cv2.waitKey(1)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -98,6 +144,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--delay", type=int, default=10, help="seconds to get ready before the first take"
     )
+    parser.add_argument(
+        "--no-preview", action="store_true", help="don't open the live camera window"
+    )
     args = parser.parse_args(argv)
 
     activity = activities.get(args.activity_id)
@@ -109,24 +158,30 @@ def main(argv: list[str] | None = None) -> None:
     if not cap.isOpened():
         raise SystemExit("Could not open the camera. Is the vision service running?")
     templates = tpl.load(activity.id)
-    zones = recording_zones(args.seat)
+    rec = Recorder(cap, detector, recording_zones(args.seat), args.seat, not args.no_preview)
+    if rec.preview:
+        print("A camera window opens: check your hand is in view and drawn in green.")
     try:
-        drain(cap, 1.0)  # camera warm-up: the first frames are often dark
-        for remaining in range(args.delay, 0, -1):
-            print(f"Get ready: recording starts in {remaining}s...", flush=True)
-            drain(cap, 1.0)
+        rec.run(1.0, "Starting camera...")  # warm-up: the first frames are often dark
+        print(f"Get ready: {args.delay}s", flush=True)
+        rec.run(args.delay, "Get ready")
         for take in range(1, args.takes + 1):
-            for n in (3, 2, 1):
-                print(f"Take {take}/{args.takes}: show '{args.label}' in {n}...", flush=True)
-                drain(cap, 1.0)
+            print(f"Take {take}/{args.takes}: show '{args.label}'", flush=True)
+            rec.run(3.0, f"Take {take}/{args.takes}: '{args.label}' in")
             print("Recording...", flush=True)
-            vectors, frames = record_take(cap, detector, args.seconds, args.fps, args.seat, zones)
+            vectors, frames = rec.run(
+                args.seconds, f"RECORDING take {take}", record=True, fps=args.fps
+            )
             print(f"  captured {len(vectors)} hand poses from {frames} frames")
             if not vectors:
                 print("  No hand found. Keep the whole hand in view, closer and well lit.")
             templates.add(args.label, vectors)
+    except (Cancelled, KeyboardInterrupt):
+        print("\nCancelled. Nothing was saved.")
+        return
     finally:
         cap.release()
+        rec.close()
 
     path = tpl.save(templates)
     target, rest = templates.arrays()

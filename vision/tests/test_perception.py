@@ -289,3 +289,36 @@ def test_recording_keeps_hands_in_the_middle_of_the_frame():
     by_seat = hands_from_result(result, recording_zones(None))
     assert pick_hand(by_seat, None) is not None  # the recorder keeps it
     assert recording_zones("S1-L").dead_band > 0  # --seat uses the normal zones
+
+
+class FakeCap:
+    def read(self):
+        return True, np.zeros((480, 640, 3), np.uint8)
+
+
+class FakeHandDetector:
+    def __init__(self, hands):
+        self.result = mp_hand_result(hands)
+
+    def detect(self, image):
+        return self.result
+
+
+def test_recorder_collects_poses_without_preview():
+    from vision.record import Recorder, recording_zones
+
+    hand = (hand_points((0.5, 0.5)), "Right")
+    rec = Recorder(FakeCap(), FakeHandDetector([hand]), recording_zones(None), None, False)
+    vectors, frames = rec.run(0.35, "test", record=True, fps=10)
+    assert frames > 0
+    assert 3 <= len(vectors) <= 5  # about 10 per second, not every frame
+    assert vectors[0].shape == (63,)
+
+
+def test_recorder_countdown_collects_nothing():
+    from vision.record import Recorder, recording_zones
+
+    hand = (hand_points((0.5, 0.5)), "Right")
+    rec = Recorder(FakeCap(), FakeHandDetector([hand]), recording_zones(None), None, False)
+    vectors, _ = rec.run(0.1, "Get ready")
+    assert vectors == []
