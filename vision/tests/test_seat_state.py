@@ -130,12 +130,28 @@ def test_expression_duration_is_preserved_when_qualified():
     assert ctx["supporting_only"] is True
 
 
-def test_expression_duration_is_never_null_once_seen():
+def test_no_expression_context_when_nothing_qualifies():
     stage, em = stage_for()
     happy = {**sad(0.0), "happiness": 0.8, "neutral": 0.2}
-    run(stage, [(i * 0.1, ctx_for(score=0.1, expression=happy)) for i in range(20)])
-    ctx = person_states(em)[-1]["expression_context"]
-    assert ctx["label"] == "happiness" and ctx["duration_seconds"] >= 1.0
+    run(stage, [(i * 0.1, ctx_for(score=0.1, expression=happy)) for i in range(60)])
+    assert all(s["expression_context"] is None for s in person_states(em))
+
+
+def test_short_or_weak_negative_expression_does_not_qualify():
+    stage, em = stage_for()
+    run(stage, [(i * 0.1, ctx_for(score=0.1, expression=sad())) for i in range(40)])  # 4 s
+    assert person_states(em)[-1]["expression_context"] is None  # not yet 5 s
+    stage2, em2 = stage_for()
+    run(stage2, [(i * 0.1, ctx_for(score=0.1, expression=sad(0.45))) for i in range(80)])
+    assert person_states(em2)[-1]["expression_context"] is None  # below 0.5
+
+
+def test_expression_context_matches_the_escalation_rule():
+    from agent.escalation import DEFAULT_ESCALATION_CONFIG as cfg
+    from vision import status
+
+    assert status.EXPRESSION_MIN_PROBABILITY == cfg.expression_min_probability
+    assert status.EXPRESSION_MIN_SECONDS == cfg.expression_min_duration_seconds
 
 
 def test_no_expression_without_a_face():
