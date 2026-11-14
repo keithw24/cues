@@ -169,7 +169,7 @@ def test_detects_every_known_activity(monkeypatch):
     from vision.stages.s46_recognize import all_gesture_ids
 
     monkeypatch.setenv("CUES_FLAG_VISION_RAISE_HAND", "1")
-    assert set(all_gesture_ids()) == {"thumbs_up", "raise_hand", "custom_gesture_01"}
+    assert set(all_gesture_ids()) == {"thumbs_up", "raise_hand", "custom_gesture_01", "open_palm"}
     monkeypatch.setenv("CUES_FLAG_VISION_RAISE_HAND", "0")
     assert "raise_hand" not in all_gesture_ids()
 
@@ -201,3 +201,35 @@ def test_overlay_falls_back_to_the_assigned_task_when_no_gesture(cache):
     img = np.zeros((540, 960, 3), np.uint8)
     ov.draw(img, ctx)
     assert img.any()
+
+
+# ---- open palm ---------------------------------------------------------------
+def test_open_palm_is_built_in():
+    from vision import activities
+
+    act = activities.get("open_palm")
+    assert act.builtin == "Open_Palm" and act.check_type == "gesture"
+
+
+def test_open_palm_at_chest_height_is_open_palm(cache):
+    st = RecognizeStage(
+        grouping=PeopleGrouping(), cache=cache, gesture_ids=("thumbs_up", "raise_hand", "open_palm")
+    )
+    ctx = run(st, lambda: ctx_with(raised=False, thumb=False), 0.0, 1.0)
+    assert ctx["recognized"]["S1-P1"].activity_id == "open_palm"
+
+
+def test_raised_open_palm_is_raise_hand_not_open_palm(cache):
+    st = RecognizeStage(
+        grouping=PeopleGrouping(), cache=cache, gesture_ids=("thumbs_up", "raise_hand", "open_palm")
+    )
+    ctx = run(st, lambda: ctx_with(raised=True, thumb=False), 0.0, 1.0)
+    assert ctx["recognized"]["S1-P1"].activity_id == "raise_hand"
+
+
+def test_candidate_prefers_raise_hand_over_open_palm():
+    from vision.stages.s46_recognize import candidate
+
+    scores = {"open_palm": (0.95, None), "raise_hand": (0.8, None)}
+    assert candidate(scores) == ("raise_hand", 0.8)
+    assert candidate({"open_palm": (0.95, None), "raise_hand": (0.1, None)}) == ("open_palm", 0.95)

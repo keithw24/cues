@@ -49,6 +49,9 @@ Debug overlay exposes additional local detail. Gesture detection always runs: ev
 known gesture is checked and a completed one is shown green on the video. It is
 display-only, not a replacement for the assigned-task state feed. Raise-hand
 (task score and detection) requires an open palm facing the camera.
+Built-in gestures (MediaPipe Gesture Recognizer, no recording): `thumbs_up`
+(Thumb_Up) and `open_palm` (Open_Palm, success 0.7 / review 0.5). When a raised
+open palm completes both, `raise_hand` wins over `open_palm`.
 
 ## Tasks and perception
 

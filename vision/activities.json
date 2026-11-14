@@ -34,5 +34,19 @@
     "success_threshold": 0.78,
     "review_threshold": 0.58,
     "no_progress_seconds": 30
+  },
+  {
+    "id": "open_palm",
+    "name": "Open palm",
+    "check_type": "gesture",
+    "keywords": [
+      "open palm",
+      "stop",
+      "palm"
+    ],
+    "success_threshold": 0.7,
+    "review_threshold": 0.5,
+    "no_progress_seconds": 30,
+    "builtin": "Open_Palm"
   }
 ]

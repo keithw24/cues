@@ -80,15 +80,26 @@ def score_gestures(pid: str, ctx: dict, cache: MatcherCache, gesture_ids) -> dic
     return out
 
 
+# When both are completed, the more specific gesture wins: a raised open palm
+# is a raised hand, not just an open palm.
+PREFERRED_OVER = {"raise_hand": ("open_palm",)}
+
+
 def candidate(scores: dict) -> tuple[str | None, float | None]:
     """Highest-scoring gesture that clears its own success threshold, else (None, None)."""
-    best_id, best_score = None, None
-    for aid, (score, _) in scores.items():
-        if score is None or score < activities.get(aid).success_threshold:
-            continue
-        if best_score is None or score > best_score:
-            best_id, best_score = aid, score
-    return best_id, best_score
+    passed = {
+        aid: score
+        for aid, (score, _) in scores.items()
+        if score is not None and score >= activities.get(aid).success_threshold
+    }
+    for winner, losers in PREFERRED_OVER.items():
+        if winner in passed:
+            for loser in losers:
+                passed.pop(loser, None)
+    if not passed:
+        return None, None
+    best_id = max(passed, key=passed.get)
+    return best_id, passed[best_id]
 
 
 class Recognizer:
