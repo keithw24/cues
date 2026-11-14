@@ -1024,7 +1024,35 @@ support_preferences (
   notes text,
   preferences jsonb
 );
+
+teacher_reviews (
+  id uuid primary key,
+  created_at timestamptz,
+  session_id uuid,
+  seat_id text,
+  activity_id text,
+  priority text,
+  evaluation jsonb,
+  decision text,
+  rationale text,
+  evidence_used jsonb,
+  status text,
+  resolved_at timestamptz
+);
 ```
+
+`teacher_reviews` persists the existing typed `agent.teacher_review.TeacherReview`;
+the full `AgentEvaluationRequest` is retained in `evaluation`, with matching
+session/seat/activity/priority columns for consumers. Decision/rationale/evidence
+come from the existing `AgentAssessment`. The exact constraints, immutable-field
+guard and Realtime publication are in migration
+`20261114000300_teacher_reviews.sql`. Only pending → confirmed (teacher's Needs
+attention) or pending → dismissed is allowed. This records an attention decision,
+not intervention approval or an automatic instructional change. Server writes
+are required; the existing simulated-seat RLS pattern permits demo-only reads.
+The in-memory store remains the default; Supabase persistence is explicitly
+injected. Dashboard subscription and authorized teacher-facing endpoints remain
+separate integration work.
 
 ---
 
