@@ -13,6 +13,10 @@ Cues helps a special-education teacher see which students need help. A local cam
 
 Only edit another owner's folder when the task needs it, and say so in the PR.
 
+## Environment
+
+One shared Python environment for the whole repo, set up by Michelle: `pyproject.toml` and `uv.lock` at the root, Python 3.11 (`.python-version`). Run `uv sync` once. Add Python dependencies only to the root `pyproject.toml` with `uv add`; don't create per-folder Python projects. Secrets and settings go in the root `.env`; copy `.env.example`. The web app has its own `web/package.json`.
+
 ## Commands (vision)
 
 Run from the repo root.
@@ -20,23 +24,23 @@ Run from the repo root.
 Checks (the same ones CI runs):
 
 ```bash
-uv run --project vision pytest vision                   # unit tests (hardware tests skipped)
-CUES_HARDWARE=1 uv run --project vision pytest vision   # include camera / model tests
-uv run --project vision ruff check vision
-uv run --project vision ruff format --check vision
+uv run pytest vision                   # unit tests (hardware tests skipped)
+CUES_HARDWARE=1 uv run pytest vision   # include camera / model tests
+uv run ruff check vision
+uv run ruff format --check vision
 ```
 
-Fix formatting (rewrites files): `uv run --project vision ruff format vision`
+Fix formatting (rewrites files): `uv run ruff format vision`
 
 Run the service and tools (these modules arrive with T1, T2 and T3; until those PRs merge they exist only on their branches):
 
 ```bash
-uv run --project vision uvicorn vision.app:app          # (after T1) service: /stream, /health
-uv run --project vision python -m vision.bench          # (after T2) laptop benchmark
-uv run --project vision python -m vision.events --demo  # (after T3) send one test event
+uv run uvicorn vision.app:app          # (after T1) service: /stream, /health
+uv run python -m vision.bench          # (after T2) laptop benchmark
+uv run python -m vision.events --demo  # (after T3) send one test event
 ```
 
-`CUES_CAMERA=fake` runs the service without a webcam. Settings go in `vision/.env`; copy `vision/.env.example` (after T3).
+`CUES_CAMERA=fake` runs the service without a webcam.
 
 ## Workflow: one feature, one branch, one PR
 

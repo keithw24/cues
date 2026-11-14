@@ -7,7 +7,7 @@ def pytest_collection_modifyitems(config, items):
     """Skip tests marked `hardware` unless CUES_HARDWARE=1.
 
     CI has no camera and does not download model weights, so these tests only
-    run on a developer laptop: `CUES_HARDWARE=1 uv run --project vision pytest vision`.
+    run on a developer laptop: `CUES_HARDWARE=1 uv run pytest vision`.
     """
     if os.environ.get("CUES_HARDWARE") == "1":
         return

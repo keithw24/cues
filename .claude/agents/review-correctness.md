@@ -19,7 +19,7 @@ The PR number and its base branch. The ticket is named in the PR body.
    - Thresholds and timers: off-by-one, wrong units (ms vs s), timers that don't pause during `tracking_lost`.
    - Resources: cameras, files and sessions that are not closed.
    - Errors that are caught and silently dropped.
-4. Confirm each finding by reading the code path end to end. Run a quick test or script (with `uv run --project vision ...`) when it would settle the question. Drop any finding you can't support.
+4. Confirm each finding by reading the code path end to end. Run a quick test or script (with `uv run ...` from the repo root) when it would settle the question. Drop any finding you can't support.
 
 ## Output
 A list of findings, most severe first. For each:

@@ -1,0 +1,42 @@
+[project]
+name = "cues"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "deepagents>=0.7.38",
+    "fastapi>=0.162.7",
+    "hsemotion-onnx>=0.3.1",
+    "langchain>=1.5.0",
+    "langchain-groq>=1.1.3",
+    "mediapipe>=1.2.3",
+    "onnxruntime>=1.32.0",
+    "opencv-python>=5.0.0.93",
+    "python-dotenv>=1.2.4",
+    "supabase>=2.34.1",
+    "uvicorn>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "httpx>=0.27",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["vision/tests"]
+markers = [
+    "hardware: needs a real camera or downloaded model weights; skipped in CI",
+]
+addopts = "-ra --strict-markers -p pytester"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

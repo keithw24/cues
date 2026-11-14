@@ -14,7 +14,7 @@ The PR number and its base branch. The ticket ID and its Verify step are in the 
 2. CI: `gh pr checks <N>`.
    - Every check must pass. A pending check is a blocking finding until it finishes.
    - "No checks reported" is fine when the PR changes no path that has a workflow in `.github/workflows/`.
-3. Run the tests locally, from the repo root, with the PR branch checked out: `uv run --project vision pytest vision` (or that area's test command). Report the result. Don't switch branches if another reviewer may be using the same checkout; say what you could not run instead.
+3. Run the tests locally, from the repo root, with the PR branch checked out: `uv run pytest vision` (or that area's test command). Report the result. Don't switch branches if another reviewer may be using the same checkout; say what you could not run instead.
 4. Compare the ticket's Verify step with the tests:
    - Each behaviour in the Verify step has a test, or the PR lists it as a manual check with an exact command.
    - Tests check behaviour (outputs, events, state), not only that code runs without errors.

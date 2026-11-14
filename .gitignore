@@ -1,13 +1,17 @@
-# Python
+.venv/
 __pycache__/
 *.pyc
-.venv/
 .pytest_cache/
 .ruff_cache/
 
-# Secrets: every .env file in any folder (Next.js uses several), except examples
-.env*
+.env
+.env.*
 !.env.example
+
+web/node_modules/
+web/.next/
+
+.DS_Store
 
 # Vision: local-only data (never synced or committed)
 # Gesture templates stay on the laptop; thumbs_up.json is the built-in,
@@ -33,6 +37,3 @@ vision/**/*.avi
 # Logs anywhere
 *.log
 logs/
-
-# OS
-.DS_Store
