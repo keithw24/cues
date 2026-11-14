@@ -169,7 +169,9 @@ def test_detects_every_known_activity(monkeypatch):
     from vision.stages.s46_recognize import all_gesture_ids
 
     monkeypatch.setenv("CUES_FLAG_VISION_RAISE_HAND", "1")
-    assert set(all_gesture_ids()) == {"thumbs_up", "raise_hand", "custom_gesture_01", "open_palm"}
+    assert set(all_gesture_ids()) == {
+        "thumbs_up", "raise_hand", "custom_gesture_01", "open_palm", "pointing", "peace", "fist",
+    }  # fmt: skip
     monkeypatch.setenv("CUES_FLAG_VISION_RAISE_HAND", "0")
     assert "raise_hand" not in all_gesture_ids()
 
@@ -233,3 +235,23 @@ def test_candidate_prefers_raise_hand_over_open_palm():
     scores = {"open_palm": (0.95, None), "raise_hand": (0.8, None)}
     assert candidate(scores) == ("raise_hand", 0.8)
     assert candidate({"open_palm": (0.95, None), "raise_hand": (0.1, None)}) == ("open_palm", 0.95)
+
+
+@pytest.mark.parametrize(
+    "label,expected",
+    [("Pointing_Up", "pointing"), ("Victory", "peace"), ("Closed_Fist", "fist")],
+)
+def test_new_built_in_gestures_are_recognized(cache, label, expected):
+    from vision import activities
+
+    assert activities.get(expected).builtin == label
+    ids = ("thumbs_up", "raise_hand", "open_palm", "pointing", "peace", "fist")
+    st = RecognizeStage(grouping=PeopleGrouping(), cache=cache, gesture_ids=ids)
+
+    def ctx_fn():
+        ctx = ctx_with(raised=False, thumb=True)
+        ctx["hands"]["S1-P1"][0].gestures = {label: 0.9, "Thumb_Up": 0.05}
+        return ctx
+
+    ctx = run(st, ctx_fn, 0.0, 1.0)
+    assert ctx["recognized"]["S1-P1"].activity_id == expected
