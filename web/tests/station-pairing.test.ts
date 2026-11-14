@@ -51,3 +51,32 @@ test("form source exposes controls, loading protection and existing memberships"
   assert.match(source, /disabled=\{state === "saving" \|\| !code.trim\(\)\}/);
   assert.ok(source.includes('locked.current = true'));
 });
+
+test("teachers never see the word station; the Details id is the only exception", () => {
+  const files = [
+    "../components/session-controls.tsx",
+    "../components/station-pairing-form.tsx",
+    "../components/dashboard.tsx",
+    "../components/live-connected.tsx",
+    "../components/local-classroom-feed.tsx",
+    "../components/landing.tsx",
+    "../components/landing-faq.tsx",
+    "../app/settings/profile/page.tsx",
+    "../app/settings/stations/page.tsx",
+    "../lib/station-pairing.ts",
+    "../lib/default-station.ts",
+    "../lib/session-controls.ts",
+    "../lib/next-up.ts",
+  ];
+  for (const file of files) {
+    // Comments may still say "station" (the backend entity); visible text may not.
+    const source = readFileSync(new URL(file, import.meta.url), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    assert.doesNotMatch(
+      source,
+      /Station access|the station|station laptop|station camera|Invalid station response|Connect station|Station idle|Waiting for station|this station|a station\b|Not authorized for this station/,
+      file,
+    );
+  }
+});

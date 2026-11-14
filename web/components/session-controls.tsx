@@ -35,7 +35,7 @@ export function SessionControls({
     "start" | "change" | "end" | null
   >(null);
   const [error, setError] = useState<string | null>(null);
-  // Why the session never loaded (e.g. not authorized for this station),
+  // Why the session never loaded (e.g. the camera is not linked to you),
   // kept apart from later action, sign-out or live-update errors.
   const [loadError, setLoadError] = useState<string | null>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
@@ -334,7 +334,7 @@ export function SessionControls({
     </button>
   );
   // The session could not load (for example, this account is not assigned to
-  // the station): say so plainly instead of showing controls that can't act.
+  // the camera): say so plainly instead of showing controls that can't act.
   if (!snapshot && loadError && controlState === "refresh")
     return (
       <div className="session-controls is-blocked" aria-busy={busy}>
@@ -344,7 +344,7 @@ export function SessionControls({
         </p>
         <div className="session-row">
           <Link className="session-quiet" href="/settings/stations">
-            Station access
+            Classroom camera
           </Link>
           {refreshButton}
           {signOutButton}

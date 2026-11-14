@@ -16,7 +16,7 @@ export function parseDefaultStation(data: unknown): DefaultStation {
     (row.name != null && typeof row.name !== "string") ||
     typeof row.created !== "boolean"
   )
-    throw new Error("Invalid station response");
+    throw new Error("Unexpected response from your classroom camera");
   return { id: row.station_id, name: (row.name as string | null) ?? null, created: row.created };
 }
 

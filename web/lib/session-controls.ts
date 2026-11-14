@@ -104,7 +104,7 @@ export function parseStationRuntime(
     typeof r.updated_at !== "string" ||
     !Number.isFinite(Date.parse(r.updated_at))
   )
-    throw new Error("Invalid station response");
+    throw new Error("Unexpected response from your classroom camera");
   return {
     station_id: r.station_id,
     session_id: r.session_id,
