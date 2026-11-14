@@ -14,17 +14,16 @@ Cues is designed to **assist the teacher, not replace them**. Computer vision ha
 
 ### Core product loop
 
-1. The teacher selects or speaks a task.
-2. The local camera pipeline observes student task attempts.
-3. MediaPipe measures hand movement and HSEmotion provides facial-expression context.
-4. Cues converts local model outputs into task-progress events.
-5. Supabase synchronizes the current classroom state.
-6. The rules engine determines when a situation is meaningful enough to invoke the agent.
-7. The Deep Agent retrieves context, chooses tools, and creates a teacher alert or support suggestion.
-8. Photon can notify the teacher when attention is needed.
-9. The teacher reviews the alert and decides whether to approve an instructional change.
+1. Teacher dashboard activity selection updates sessions.current_activity_id.
+2. Local MediaPipe and HSEmotion publish structured seat_state observations.
+3. ProgressEvaluator → EscalationEvaluator → EvaluationRouter → ContextEnricher
+   selects meaningful stalled-progress episodes for the Deep Agent.
+4. The agent adaptively retrieves history and may call request_teacher_review().
+5. A pending review persists in Supabase teacher_reviews and triggers a minimal
+   Photon/Spectrum iMessage notification.
+6. The teacher chooses Needs attention or Dismiss through the review workflow.
 
-**Student camera frames never go to the LLM.**
+Video stays local; the LLM receives no camera frames or images.
 
 ---
 
@@ -45,110 +44,41 @@ The product does not attempt to determine a student's diagnosis, intent, or inte
 
 ---
 
-## 3. Goals and non-goals
+## 3. MVP scope
 
-### 3.1 MVP goals
+The implemented MVP combines local person tracking, task-specific gesture and
+raise-hand checks, optional supporting expression context, structured SeatState
+publication, continuous progress evaluation, adaptive agent tools, persistent
+teacher reviews, and deterministic teacher resolution.
 
-1. **Teacher-controlled task selection**
-   - The teacher can select a task using large dashboard buttons.
-   - The teacher can also use push-to-talk voice commands.
-   - Voice input maps to the existing task list rather than allowing unrestricted LLM-generated commands.
+Teacher activity selection uses dashboard controls and sessions.current_activity_id.
+Voice/push-to-talk is optional future work, not required by the current demo.
+Custom static gesture templates remain local; built-in thumbs-up needs no recording.
 
-2. **Camera-based task observation**
-   - One Logitech camera connected to the station laptop.
-   - MVP supports one student reliably.
-   - Two fixed seat zones from one camera are supported when framing and performance allow.
-
-3. **Hand and pose-related task checks**
-   - Rule-based task: e.g. “raise your hand.”
-   - Built-in/simple gesture task: e.g. “thumbs up.”
-   - Teacher-defined static gestures learned from a few demonstrations.
-
-4. **Teacher-defined gesture recording**
-   - The teacher records 3–5 examples of a target gesture.
-   - Cues normalizes the MediaPipe landmarks and calibrates a nearest-neighbor match threshold.
-   - A newly recorded gesture can be used within seconds.
-   - No model training from scratch.
-
-5. **Facial-expression context**
-   - HSEmotion runs locally on face crops.
-   - Native expression probabilities are preserved.
-   - Facial-expression evidence can increase alert priority, but **never independently determines that a student is struggling**.
-
-6. **Task-progress state**
-   - Each student/seat has a current task and current status.
-   - Cues distinguishes success, in-progress attempts, repeated misses, no progress, and tracking loss.
-   - Tracking failures are never counted as student failures.
-
-7. **Live teacher dashboard**
-   - Shows one card per student/seat.
-   - Displays current task, progress state, latest task event, task match score, and optional expression context.
-   - Simulated students, if used, are visibly labeled as simulated.
-
-8. **Rules engine**
-   - Converts low-level events into meaningful triggers.
-   - Applies cooldowns to prevent alert flooding.
-   - Invokes the agent only when meaningful context exists.
-
-9. **Agentic support workflow**
-   - LangChain Deep Agents runs on the FastAPI backend.
-   - The agent uses a configurable LLM provider and model. Selection is undecided; Groq and SpaceXSI are under consideration.
-   - The agent chooses which available tools to call based on the current situation.
-   - It retrieves task state, recent attempts, support preferences, and current contextual signals before deciding what action is appropriate.
-   - Instructional changes always require teacher approval.
-
-10. **Teacher notification**
-    - Photon sends a concise alert when the teacher may need to intervene.
-    - Notifications contain no images and no raw facial-expression label.
-
-11. **Event log**
-    - Meaningful task outcomes, alerts, agent actions, and teacher decisions are stored as structured events.
-    - The event log is the basis for future progress summaries and analytics.
-
-### 3.2 Non-goals for the MVP
-
-- No ESP32, Arduino, buttons, LEDs, haptics, or other physical controls.
-- No object-state recognition such as “open your book.”
-- No YOLO, MobileNet object classifier, or custom object detector.
-- No whole-classroom camera.
-- No face recognition or biometric identification.
-- No attempt to infer diagnoses, intent, attention, or internal emotional state.
-- No emotion-based behavioral scoring.
-- No automatic instructional changes without teacher approval.
-- No raw video or images sent to Supabase, any LLM provider, LangChain, Photon, or any other cloud service.
-- No raw camera frames sent to the LLM.
-- No training of large models from scratch.
-- No complex multi-step physical tasks.
-- No individualized curriculum planner or IEP editor.
-- No real student data during the hackathon.
-- No demo choreography in the PRD; demo design will be created separately after the product works.
+The system routes teacher attention. It does not diagnose, infer internal
+emotional state, identify students biometrically, or automatically change
+instruction. Tracking loss is not student failure. Use simulated data only.
+Object recognition, physical controls, curriculum planning, autonomous
+interventions and cloud video processing remain outside this MVP.
 
 ---
 
-## 4. Recommended technology stack
+## 4. Current technology stack
 
-| Component | Recommended technology |
+| Component | Technology |
 |---|---|
-| Frontend / UI | Next.js + Tailwind |
-| Local hand tracking | MediaPipe Hand Landmarker |
-| Gesture matching | Normalized landmark nearest neighbor |
-| Facial-expression context | `hsemotion-onnx` with `enet_b0_8_best_vgaf` |
-| Realtime data | Supabase Postgres + Realtime |
-| Agent orchestration | LangChain Deep Agents |
-| LLM inference | Configurable provider and model (TBD) |
-| Physical hardware | Logitech camera |
-| Teacher messaging | Photon |
-| Agent / API backend | FastAPI (Python) |
+| Dashboard | Next.js + Tailwind |
+| Local perception | MediaPipe Pose/Hands/Gesture Recognizer; HSEmotion ONNX |
+| Camera | Logitech C930e |
+| State and reviews | Supabase Postgres + Realtime |
+| Agent | LangChain Deep Agents |
+| Demo inference | Groq openai/gpt-oss-20b |
+| Local vision/video API | FastAPI |
+| Teacher notifications | Photon 2.0 through Spectrum iMessage |
 
-LLM provider and model selection is undecided; Groq and SpaceXSI are under consideration. Keep the provider/model configurable through environment variables so they can be replaced without changing agent logic. These settings are placeholders for future integration; no provider is implemented yet.
-
-Example:
-
-```env
-LLM_PROVIDER=
-LLM_MODEL=
-LLM_API_KEY=
-```
+The core agent accepts an injected model and remains provider-independent.
+The continuous agent is a Python worker, separate from the vision FastAPI service.
+See STARTUP.md for operational configuration.
 
 ---
 
@@ -156,15 +86,24 @@ LLM_API_KEY=
 
 ### 5.1 High-level architecture
 
-```mermaid
-flowchart LR
-    A[Logitech Camera] --> B[Local Vision Service]
-    B --> C[MediaPipe + HSEmotion]
-    C --> D[Supabase Realtime]
-    D --> E[Teacher Dashboard]
-    D --> F[FastAPI + Deep Agent]
-    F --> G[Configurable LLM provider]
-    F --> H[Photon Alert]
+ ```mermaid
+flowchart TD
+    A[Teacher dashboard activity selection] --> B[sessions.current_activity_id]
+    B --> C[Local vision]
+    D[Logitech camera] --> C
+    C --> E[Supabase seat_state]
+    E --> F[ProgressEvaluator]
+    F --> G[EscalationEvaluator]
+    G --> H[EvaluationRouter]
+    H --> I[ContextEnricher]
+    I --> J[Deep Agent]
+    J --> K[request_teacher_review]
+    K --> L[Supabase teacher_reviews: pending]
+    L --> M[Dashboard review queue]
+    L --> N[Photon / Spectrum iMessage]
+    M --> O[Teacher: Needs attention / Dismiss]
+    O --> P[resolve_teacher_review RPC]
+    P --> Q[confirmed / dismissed]
 ```
 
 ### 5.2 Architecture principles
@@ -509,214 +448,49 @@ Tracking-loss time pauses progress timers and is excluded from miss counts.
 
 ---
 
-## 11. Rules engine
+## 11. Deterministic progress and routing
 
-The rules engine operates on structured events from Supabase.
+The continuous worker polls Supabase seat_state approximately once per second.
+ProgressEvaluator uses a rolling task-progress window and activity-specific
+completion criteria. Its outputs are improving, stalled, completed and unknown.
+Tracking invalidity, missing gesture scores and observation gaps clear the window;
+tracking loss cannot accumulate student failure.
 
-Its purpose is to decide **when the AI agent should be invoked**, not to perform open-ended reasoning itself.
+EscalationEvaluator requires stalled progress. Sustained qualifying expression
+may support earlier evaluation or higher priority, never trigger it alone.
+EvaluationRouter suppresses repeated eligible levels within a session/seat/task
+episode. Improving or completion rearms an episode; unknown pauses suppression.
+There is no timed cooldown or durable delivery guarantee.
 
-### Example triggers
-
-- sustained stalled task progress;
-- no progress for the activity-specific timeout;
-- teacher manually requests agent help;
-- stalled progress with supporting sustained expression context;
-- a previously flagged situation changes substantially.
-
-### Alert cooldown
-
-Apply cooldowns by:
-
-```text
-seat + alert reason
-```
-
-to avoid repeated notifications.
-
-Example:
-
-```text
-one alert per seat per reason every 2 minutes
-```
-
-Configuration should be easy to tune.
-
-### Expression rule
-
-Expression context should not independently create a task-struggle alert.
-
-Instead:
-
-```text
-task difficulty signal
-+
-expression evidence
-→ increase priority / context
-```
+ContextEnricher resolves task context before the Deep Agent runs. The legacy
+activity no_progress_seconds field is not an agent eligibility gate.
+ProgressHistoryStore records accepted evaluated summaries; it remains process-local.
 
 ---
 
 ## 12. AI support agent
 
-### 12.1 Agent stack
+The provider-independent Deep Agent receives an already eligible evaluation
+request plus activity context and selects tools adaptively:
 
-- LangChain Deep Agents
-- FastAPI
-- Configurable LLM provider and model (TBD; Groq and SpaceXSI are under consideration)
-
-### 12.2 Agent objective
-
-The agent determines:
-
-> Given this student’s current task, recent attempts, contextual signals, and approved support preferences, what should Cues do next?
-
-The answer is expressed through **tool choices**, not unrestricted text generation.
-
-### 12.3 Planned tool concepts (not implemented)
-
-The following are earlier workflow concepts, not implemented capabilities. The focused initial Deep Agent tool plan is in §12.6. The future agent may choose among tools such as:
-
-#### `get_session_state`
-
-Returns:
-
-- current activity;
-- current status;
-- time on task;
-- latest task match score;
-- current contextual signals.
-
-#### `get_recent_attempts`
-
-Returns recent structured events for the seat:
-
-- successes;
-- misses;
-- reviews;
-- tracking loss;
-- previous alerts.
-
-#### `get_support_preferences`
-
-Returns the simulated / teacher-configured support preferences for the seat.
-
-Examples:
-
-- repeat demonstration first;
-- prefer simpler verbal instruction;
-- allow a short break;
-- prompt teacher check-in.
-
-#### `choose_intervention`
-
-Selects one option from an approved intervention menu.
-
-Initial menu:
-
-- demonstrate the target again;
-- simplify the instruction;
-- pause and retry shortly;
-- teacher checks in personally;
-- no action yet / continue monitoring.
-
-#### `create_teacher_alert`
-
-Creates an alert in Supabase containing:
-
-- reason;
-- concise evidence;
-- priority;
-- proposed support action.
-
-#### `notify_teacher`
-
-Uses Photon to notify the teacher that a Cues alert requires attention.
-
-#### `record_teacher_decision`
-
-Records whether the teacher:
-
-- approved;
-- dismissed;
-- changed the suggestion.
-
-#### `apply_approved_intervention`
-
-Only runs after teacher approval.
-
-Possible actions are restricted to approved product behaviors such as updating the displayed instruction or assigning an allowed task override.
-
-### 12.4 Agent choice
-
-The agent does **not** have to call every tool in every run.
-
-Examples:
-
-**Low urgency**
-
-```text
-get_session_state
-→ get_recent_attempts
-→ continue monitoring
-```
-
-**Repeated difficulty**
-
-```text
-get_session_state
-→ get_recent_attempts
-→ get_support_preferences
-→ choose_intervention
-→ create_teacher_alert
-→ notify_teacher
-```
-
-**Teacher approves**
-
-```text
-record_teacher_decision
-→ apply_approved_intervention
-```
-
-This tool-choice behavior is the key agentic element of Cues.
-
-### 12.5 Guardrails
-
-The agent:
-
-- cannot diagnose a student;
-- cannot make claims about a child’s internal emotional state;
-- cannot alter an instructional task without teacher approval;
-- cannot send images to Photon;
-- cannot access camera frames;
-- can only choose interventions from an approved menu;
-- falls back to a deterministic rule-based alert if the LLM call fails or times out.
-
-
-### 12.6 Planned Deep Agent tools — not implemented
-
-Preserve this focused plan for later implementation. The Deep Agent runtime and
-these tools are **planned, not implemented**; the current context enricher resolves
-an activity definition, not longitudinal progress or prompting history.
-
-```text
-AgentEvaluationRequest
-→ ContextEnricher
-→ Deep Agent
-   ↳ get_recent_progress_history()
-   ↳ get_prompt_history()
-   ↳ request_teacher_review()
-```
-
-The Deep Agent chooses tools only when needed; this is not a required sequence
-and it need not call every tool for each request. Evaluation eligibility alone
-does not imply a teacher notification.
-
-| Planned tool | Purpose and data boundary |
+| Implemented tool | Purpose |
 |---|---|
-| `get_recent_progress_history(...)` | Likely **first tool to implement**. Retrieve recent task-progress/trend history for the relevant seat/task/session to distinguish an isolated stall from a repeated pattern, using longitudinal observable data rather than one snapshot. A history retrieval source/API is not implemented yet. |
-| `get_prompt_history(...)` | Retrieve prior prompting/support history for the current student/task. Where recorded, distinguish independent/unprompted correct responses, prompted responses, errors/no-response, and prompt level so the agent can consider changing support needs over time. This structured prompting history is not currently available; missing records must remain unknown, not be inferred. |
-| `request_teacher_review(...)` | Create a structured teacher-facing review/suggestion when agent reasoning determines attention may be useful. The teacher remains in control; this tool must not autonomously change instruction or apply an intervention. Implementation and its relationship to the earlier alert concepts in §12.3 remain future work. |
+| get_recent_progress_history | Distinguish isolated stalls from repeated progress patterns |
+| get_prompt_history | Retrieve explicitly recorded independence/prompting outcomes |
+| request_teacher_review | Create a pending review using trusted application identity and priority |
+
+History is scoped to session/seat/activity and bounded to ten entries per query.
+Prompt history has no production observation producer yet; missing data remains
+unknown. The agent never invents history or interprets empty results as evidence
+for escalation.
+
+Structured output contains continue_monitoring or teacher_review_warranted,
+a concise rationale and constrained evidence_used labels. Defaults bound each run
+to four model calls and three domain-tool attempts. Successful review creation
+terminates from the stored assessment/review without another model turn.
+Provider failures are surfaced and isolated; no automatic fallback review is fabricated.
+
+### Research rationale and citations
 
 **Design principles.** Prefer observable progress/task data over inferred emotional
 state. Facial-expression output remains supporting context only. Do not introduce
@@ -733,7 +507,7 @@ educator-controlled intervention decisions. These sources inform the tool design
 they do not validate a Cues algorithm, prescribe its timeout values, or justify
 inferring behavioral function from one camera observation.
 
-#### Research citations for the planned tools
+#### Research citations for the information tools
 
 - [IRIS Center — Systematic Direct Observation](https://iris.peabody.vanderbilt.edu/information-brief/systematic-direct-observation/): supports defining observable/measurable behavior and matching measurement methods, including latency, duration, frequency, and interval recording, to the observation goal.
 - [National Center on Intensive Intervention — Progress Monitoring](https://intensiveintervention.org/data-based-individualization/progress-monitoring): supports repeated progress data and trend review, with educators/teams deciding whether to continue or adapt instruction/intervention.
@@ -741,86 +515,34 @@ inferring behavioral function from one camera observation.
 - [AFIRM — Prompting Step-by-Step](https://afirm.fpg.unc.edu/sites/default/files/imce/resources/PP%20Step-by-Step.pdf): reference for tracking independence, prompted responses, errors, no-response, and prompt levels. The supplied PDF could not be retrieved during this update; the explicit outcome categories are also documented in [NPDC's prompting implementation guidance](https://autismpdc.fpg.unc.edu/sites/autismpdc.fpg.unc.edu/files/prompting-steps-LTM-impl.pdf).
 - [IRIS Center — FBA / ABC Data Guidance](https://iris.peabody.vanderbilt.edu/module/fba-elem/cresource/q2/p06/): supports repeated, observable antecedent-behavior-consequence records to identify patterns; a single event is insufficient to infer behavioral function. This informs careful data representation, not automated diagnosis.
 
----
-
-## 13. Photon notification workflow
-
-Photon exists to **get the teacher’s attention**, not to notify them after they already acted in the dashboard.
-
-Correct flow:
-
-```text
-task difficulty trigger
-        ↓
-Deep Agent evaluates context
-        ↓
-agent creates alert + proposed support
-        ↓
-Photon notifies teacher
-        ↓
-teacher opens Cues
-        ↓
-teacher approves / dismisses
-        ↓
-approved intervention is applied
-```
-
-Photon message should contain only the minimum necessary information.
-
-Example:
-
-```text
-Cues: Station B may need assistance with “Custom Gesture 1.”
-Task progress has remained stalled.
-Open the dashboard to review the suggested support.
-```
-
-Do not include:
-
-- images;
-- raw camera data;
-- expression labels;
-- diagnoses;
-- unnecessary personal information.
 
 ---
 
-## 14. Voice task controls
+## 13. Teacher review and notification workflow
 
-Voice remains part of the MVP.
+request_teacher_review() creates a pending Supabase-backed teacher review.
+Trusted session/seat/activity/priority and original assessment remain immutable.
+Only a new persisted review triggers the injected Photon/Spectrum notifier;
+duplicate reuse and resolution do not notify. Notification failure retains the
+review and surfaces a sanitized error without rolling back persistence.
 
-### 14.1 Interaction
+The minimal message directs the teacher back to Cues, for example:
+“Cues: Seat S1-P1 may need attention. Open Cues to review.”
+No camera data, expression labels, diagnoses or detailed reasoning are sent.
+Spectrum message acknowledgement has been verified in direct and hosted
+pipeline smoke tests; acknowledgement does not establish device read receipt.
 
-The teacher uses:
+The teacher chooses Needs attention (confirmed) or Dismiss (dismissed).
+resolve_teacher_review(review_id, action) permits pending → confirmed/dismissed
+only, records server resolution time and rejects repeated resolution.
+This records human attention decisions, not approval of an automatic intervention.
 
-- a push-to-talk microphone button; or
-- a held keyboard shortcut.
+## 14. Optional future voice controls
 
-The browser captures a short teacher utterance.
-
-### 14.2 Interpretation
-
-For the MVP, voice input is mapped deterministically to known tasks.
-
-Example:
-
-```text
-"raise your hand" → raise_hand
-"thumbs up" → thumbs_up
-"gesture one" → custom_gesture_01
-```
-
-Use keyword matching / aliases rather than sending voice commands to the LLM.
-
-Large on-screen task buttons remain the fallback.
-
-### 14.3 Privacy
-
-The privacy claim is specifically:
-
-> **Student camera images and video remain local.**
-
-If the Web Speech API or another hosted speech service is used for teacher voice transcription, the PRD should not claim that all audio stays on-device.
+Voice/push-to-talk is outside the current demo startup path. Dashboard task
+selection through sessions.current_activity_id is the core activity flow.
+Any future voice control should map to known activities and describe hosted
+transcription privacy accurately.
 
 ---
 
@@ -844,37 +566,13 @@ Each card displays:
 - contextual expression signal if enabled;
 - active alert state.
 
-### 15.2 Alert panel
+### 15.2 Teacher review queue
 
-Each alert shows:
-
-- student / seat;
-- current task;
-- concise reason;
-- relevant structured evidence;
-- agent recommendation;
-- Approve;
-- Dismiss.
-
-### 15.3 Review queue
-
-Uncertain task results can appear in a review queue.
-
-The teacher can mark:
-
-```text
-verified_success
-verified_failure
-```
-
-Teacher overrides are logged.
-
-### 15.4 Task controls
-
-- large task buttons;
-- push-to-talk voice command;
-- per-seat override;
-- custom gesture recorder.
+The dashboard consumes persisted teacher_reviews through Supabase reads/Realtime.
+Needs attention and Dismiss resolve pending reviews through the authenticated RPC.
+Person-ID card/read-policy alignment remains a handoff gap. Teacher login/profile,
+dynamic phone lookup and teacher/session ownership authorization remain incomplete;
+current simulated-seat authorization is demo-only.
 
 ---
 
@@ -997,6 +695,7 @@ seat_state (
   activity_id text,
   status text,
   task_score real,
+  tracking_valid boolean,
   expression_context jsonb,
   updated_at timestamptz
 );
@@ -1063,9 +762,7 @@ guard and Realtime publication are in migration
 attention) or pending → dismissed is allowed. This records an attention decision,
 not intervention approval or an automatic instructional change. Server writes
 are required; the existing simulated-seat RLS pattern permits demo-only reads.
-The in-memory store remains the default; Supabase persistence is explicitly
-injected. Dashboard subscription and authorized teacher-facing endpoints remain
-separate integration work.
+The live runtime injects Supabase persistence; the in-memory store remains for offline use. Migration 004 provides authenticated resolution; demo scope permits authenticated users to resolve simulated-seat reviews, without teacher/session ownership authorization.
 
 ---
 
@@ -1084,12 +781,11 @@ Postgres Changes. The read-only teacher seat overview is implemented in `web/`
 behind `web.dashboard` (default off), with initial reads and realtime state
 refreshes. The follow-up `20261114000200_align_demo_activity.sql` migration aligns
 the synthetic activity's check type and timeout with the shared contract.
-Authenticated teacher access and approval endpoints remain
-separate implementation work. See `supabase/README.md` for setup and verification.
+Migrations 003–005 add persistent teacher reviews, authenticated resolution RPC and nullable tracking_valid; seat_state and teacher_reviews are published through Realtime. See `supabase/README.md` for setup and verification.
 
 ### 17.5 What vision writes and how it is used
 
-*Added during the build (Keith). Full field-level detail: `notes/vision-data.md`.*
+See notes/keith.md for the current vision handoff.
 
 Vision writes two kinds of data to Supabase, both validated against `shared/contracts.py`:
 
@@ -1100,30 +796,16 @@ Vision writes two kinds of data to Supabase, both validated against `shared/cont
 
 Vision reads one value: `sessions.current_activity_id` for its session, once per second, to know the class-wide task the teacher picked.
 
-`seat_state` is the primary input to the progress pipeline (vision → `seat_state` → ProgressEvaluator → EscalationEvaluator → EvaluationRouter → Deep Agent). Each row carries `tracking_valid` (person seen in this frame; low score vs tracking failure) and an `expression_context` with `duration_seconds` (how long it has persisted). Events are informational for audit and debugging; vision makes no review or agent decision.
+`seat_state` is the primary input to the progress pipeline (vision → `seat_state` → ProgressEvaluator → EscalationEvaluator → EvaluationRouter → ContextEnricher → Deep Agent). Each row carries `tracking_valid` (person seen in this frame; low score vs tracking failure) and an `expression_context` with `duration_seconds` (how long it has persisted). Events are informational for audit and debugging; vision makes no review or agent decision.
 
-`seat_id` holds a person id (`S1-P1`…). Known gaps, owned by Evan: add a `tracking_valid boolean` column to `seat_state` (vision sends it; until then live `seat_state` writes fail); `seats` rows exist only for `S1-L` / `S1-R`, so the dashboard does not yet show person cards; `activities` contains only `raise_hand`.
+`seat_id` holds a person id (`S1-P1`…). tracking_valid is nullable with no default (migration 005). Invalid tracking persists false with null task_score; historical unknown values remain null. Remaining gaps include person-ID dashboard/read-policy provisioning and activity catalog alignment.
 
-## 18. Local FastAPI interfaces
+## 18. Runtime boundaries
 
-Example endpoints:
-
-```text
-GET  /health
-GET  /stream
-
-POST /templates/record
-DELETE /templates/{activity_id}
-
-POST /seats/swap
-POST /seats/divider
-
-POST /agent/evaluate
-POST /alerts/{alert_id}/approve
-POST /alerts/{alert_id}/dismiss
-```
-
-The exact API may evolve during implementation, but the event schema and major state transitions should remain stable.
+FastAPI serves local vision /health, /stream and gesture template recording/
+retrieval/deletion endpoints. Fixed-seat controls and agent/alert endpoints are
+not implemented. The agent runs through create_seat_state_runtime and the
+agent.worker entrypoint. Teacher resolution uses Supabase RPC. See STARTUP.md.
 
 ---
 
@@ -1144,7 +826,7 @@ vision/
 Responsibilities:
 
 - webcam capture;
-- seat zones;
+- person tracking;
 - MediaPipe Hand Landmarker;
 - face crop pipeline;
 - HSEmotion ONNX inference;
@@ -1176,7 +858,7 @@ Responsibilities:
 - alert panel;
 - review queue;
 - task controls;
-- push-to-talk voice commands;
+- optional future voice controls;
 - custom gesture recorder UI;
 - station page;
 - simulated seat support.
@@ -1186,13 +868,13 @@ Responsibilities:
 Owns primarily:
 
 ```text
-Agent / routing implementation (planned; no directory yet)
+agent/
 ```
 
 Responsibilities:
 
 - event routing;
-- alert cooldowns;
+- episode suppression;
 - rules engine;
 - Deep Agents;
 - provider-neutral LLM integration;
@@ -1202,7 +884,7 @@ Responsibilities:
 - alert creation;
 - teacher approval workflow;
 - Photon;
-- deterministic fallback when LLM is unavailable.
+- isolated provider failure handling;
 
 ### Shared by all 3
 
@@ -1218,100 +900,13 @@ Responsibilities:
 
 ---
 
-## 20. Implementation milestones
+## 20. Integration and verification
 
-This is a product build plan, not a demo script.
-
-### Phase 1 — foundations
-
-**Everyone**
-
-- create repository structure;
-- create Supabase project;
-- freeze the first event schema;
-- verify camera access;
-- verify API access for the selected LLM provider;
-- verify Photon access;
-- verify voice transcription option.
-
-**Vision**
-
-- webcam + MediaPipe landmarks.
-
-**Web**
-
-- dashboard shell + Supabase realtime.
-
-**Agent**
-
-- FastAPI + selected-provider LLM smoke test + fake agent tools.
-
-### Phase 2 — independent vertical components
-
-**Vision**
-
-- normalized landmark vectors;
-- custom gesture templates;
-- nearest-neighbor matching;
-- raise-hand rule;
-- tracking loss.
-
-**Web**
-
-- seat cards;
-- activities;
-- status updates;
-- task controls;
-- voice commands;
-- station UI.
-
-**Agent**
-
-- rules engine;
-- session-state tool;
-- recent-attempts tool;
-- agent decision path;
-- alerts written to Supabase.
-
-### Phase 3 — intelligence and context
-
-**Vision**
-
-- HSEmotion ONNX;
-- smoothed native probabilities;
-- expression-context signal.
-
-**Web**
-
-- alert panel;
-- review queue;
-- teacher approval flow;
-- gesture-recording controls.
-
-**Agent**
-
-- support-preferences tool;
-- intervention chooser;
-- Photon notification;
-- deterministic fallback.
-
-### Phase 4 — shared integration
-
-All 3 team members work together on:
-
-- camera → event → Supabase;
-- Supabase → rules engine;
-- rules engine → agent;
-- agent → dashboard alert;
-- agent → Photon;
-- teacher decision → intervention;
-- edge cases;
-- latency;
-- alert cooldowns;
-- UI polish;
-- error handling.
-
-Feature additions stop if they endanger the core end-to-end loop.
+Local perception, continuous structured-state consumption, deterministic routing,
+adaptive information/action tools, persisted reviews, human resolution and
+Photon acknowledgement have been implemented and exercised with offline and hosted
+synthetic tests. Hardware accuracy and complete live dashboard/person-ID acceptance
+remain separate checks. No automatic instructional intervention is implemented.
 
 ---
 
@@ -1319,11 +914,11 @@ Feature additions stop if they endanger the core end-to-end loop.
 
 - Logitech webcam is available.
 - Demo laptop can run MediaPipe + HSEmotion concurrently at acceptable interactive speed.
-- Internet is available for Supabase, the selected LLM provider, Photon, and potentially browser speech recognition.
+- Internet is available for Supabase, Groq demo inference and Spectrum.
 - A phone hotspot is available as a fallback.
 - The selected provider must support event-driven agent calls within available rate limits.
 - Photon sponsor access is available.
-- The teacher voice interface has button fallback.
+- Dashboard activity controls are the current task selection path.
 - Only structured state reaches the agent.
 - The system has no dependency on AWS Bedrock.
 - Practitioner consultation and supporting evidence for the Forward Deployed Challenge are maintained separately from this technical PRD.
@@ -1404,7 +999,7 @@ Exact package names should be confirmed during implementation.
 - no image/video input;
 - select a provider/model with suitable latency and tool support;
 - constrain actions to a fixed toolset;
-- deterministic fallback on timeout.
+- bounded provider timeout/retries and isolated failures.
 
 ### R5 — Agent unpredictability
 
@@ -1412,7 +1007,7 @@ Exact package names should be confirmed during implementation.
 
 **Mitigation:**
 
-- fixed intervention menu;
+- constrained teacher-review action;
 - structured tools;
 - teacher approval;
 - no direct free-form instructional control;
@@ -1426,7 +1021,7 @@ Exact package names should be confirmed during implementation.
 
 - event cooldowns;
 - persistence windows;
-- alert cooldown by seat + reason;
+- episode-level routing suppression;
 - combine task failure and contextual signals into one agent run.
 
 ### R7 — Venue Wi-Fi
@@ -1516,14 +1111,14 @@ The product is considered functionally successful when:
 6. expression context can augment—but not replace—task-progress evidence;
 7. meaningful student events appear in Supabase;
 8. the teacher dashboard updates in realtime;
-9. voice or buttons can select a known activity;
+9. dashboard controls select a known activity;
 10. the rules engine invokes the agent only for meaningful situations;
 11. the Deep Agent chooses among real tools rather than returning only free-form chat;
 12. the configured LLM provider supplies inference without receiving camera frames;
-13. the agent can create a structured teacher alert;
+13. the agent can create a persisted pending teacher review;
 14. Photon can notify the teacher of that alert;
-15. the teacher can approve or dismiss the proposed support;
-16. the teacher decision and resulting action are written to the event log.
+15. the teacher can confirm attention or dismiss the review;
+16. review status and resolution time persist without automatic instruction changes.
 
 ---
 
@@ -1543,18 +1138,14 @@ Only attempt these after the complete core loop works.
 
 ---
 
-## 26. Open implementation questions
+## 26. Remaining implementation gaps
 
-1. What frame rate can the selected laptop sustain with MediaPipe and HSEmotion running together?
-2. Should one-camera/two-seat mode be enabled by default or only after one-seat mode is reliable?
-3. What match-score mapping gives the clearest calibration behavior for teacher-recorded gestures?
-4. How many target and “other/rest” examples produce reliable custom gesture recognition?
-5. What persistence windows should be used for each task type?
-6. What expression probability and duration settings produce stable contextual signals without excessive noise?
-7. What exact Photon API/SDK workflow is available to the team?
-8. Which browser speech-recognition implementation is most reliable at the venue?
-9. What LLM request timeout should trigger the deterministic fallback?
-10. Which intervention options should be included in the final approved menu?
+- Teacher login/profile workflow and dynamic teacher phone destination lookup.
+- Teacher/session ownership authorization beyond simulated-seat demo scope.
+- Person-ID dashboard visibility/read policies and vision/activity catalog alignment.
+- Production prompt-history recording and durable longitudinal history.
+- Hardware/demo acceptance, deployment supervision and delivery recovery.
+- Instructional/support intervention workflow; voice remains optional future work.
 
 ---
 
@@ -1572,4 +1163,4 @@ The implemented ProgressEvaluator compares earlier/later half-window means over 
 
 The separate pure evaluate_escalation function requires stalled progress before considering expression. Classroom thresholds are 5 seconds minimum observation, 6 expression-assisted, 10 normal stall, and 15 prolonged stall. Demo thresholds are 2/5/4/6 seconds, passed through a configuration object. These are engineering defaults, not clinical or universal learner thresholds. Demo timings are intentionally compressed and are not classroom recommendations. The progress window is configured separately; demo callers explicitly select the two-second progress window; expression persistence remains five seconds.
 
-Only qualifying sustained expression context can accelerate or elevate an already stalled situation. Improving, completed, and unknown never escalate. Eligibility does not create an alert or imply student failure. No LLM calls, notifications, or cooldown logic are implemented. See notes/michelle.md for API, source citations, qualifications, and verification results.
+Only qualifying sustained expression context can accelerate or elevate an already stalled situation. Improving, completed, and unknown never escalate. Eligibility does not create an alert or imply student failure. LLM evaluation and notifications are implemented downstream; timed cooldowns are not. See notes/michelle.md for API, source citations, qualifications, and verification results.
