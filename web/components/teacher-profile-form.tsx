@@ -106,13 +106,13 @@ export default function TeacherProfileForm() {
 
   if (!client)
     return (
-      <div className="settings-panel integration-details">
+      <div className="settings-panel profile-form">
         <p>Teacher accounts aren’t configured in this environment.</p>
       </div>
     );
   if (state === "loading")
     return (
-      <div className="settings-panel integration-details" role="status">
+      <div className="settings-panel profile-form" role="status">
         <p>Loading your profile…</p>
       </div>
     );
@@ -120,13 +120,20 @@ export default function TeacherProfileForm() {
   if (state === "signed-out") return null;
   if (state === "error")
     return (
-      <div className="settings-panel integration-details">
+      <div className="settings-panel profile-form">
         <p role="alert">{message}</p>
       </div>
     );
   return (
     <>
-      <form className="integration-details profile-form" onSubmit={save}>
+      <form
+        className="settings-panel profile-form"
+        aria-labelledby="profile-form-heading"
+        onSubmit={save}
+      >
+        <header className="profile-card-head">
+          <h2 id="profile-form-heading">Name and alert phone</h2>
+        </header>
         <label className="profile-field">
           <span>Display name</span>
           <input
@@ -171,27 +178,24 @@ export default function TeacherProfileForm() {
               aria-describedby="profile-phone-hint"
             />
           </div>
-          <p id="profile-phone-hint" className="integration-note">
+          <p id="profile-phone-hint" className="profile-hint">
             {phoneInvalid
               ? "Check the number and its country code."
               : "Optional. Alerts carry only the seat and task, never images."}
           </p>
         </fieldset>
-        <button
-          className="primary-button"
-          type="submit"
-          disabled={state === "saving" || phoneInvalid}
-        >
-          {state === "saving" ? "Saving…" : "Save profile"}
-        </button>
-        {message ? (
-          <p role="status" aria-live="polite">
+        <div className="profile-actions">
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={state === "saving" || phoneInvalid}
+          >
+            {state === "saving" ? "Saving…" : "Save profile"}
+          </button>
+          <p className="profile-hint" role="status" aria-live="polite">
             {message}
           </p>
-        ) : null}
-        {profile?.phone_number ? (
-          <p className="integration-note">Saved as {profile.phone_number}</p>
-        ) : null}
+        </div>
       </form>
       <DemoNotifications
         client={client}
