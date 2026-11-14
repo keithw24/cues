@@ -36,30 +36,55 @@ def pick_hand(by_seat: dict, seat: str | None):
     return max(hands, key=lambda h: float(np.ptp(h.landmarks[:, :2], axis=0).prod()))
 
 
-def record_take(cap, detector, seconds: float, fps: float, seat: str | None, zones) -> list:
+def recording_zones(seat: str | None):
+    """Seat zones for recording.
+
+    Without --seat, keep every hand: no dead band, so a hand in the middle of
+    the frame (where a single person usually holds it) is not thrown away.
+    With --seat, use the service's normal zones so only that seat counts.
+    """
+    from vision.seats import ZONES, SeatZones
+
+    if seat is None:
+        return SeatZones(station_id=ZONES.station_id, divider=ZONES.divider, dead_band=0.0)
+    return ZONES
+
+
+def drain(cap, seconds: float) -> None:
+    """Keep reading frames for `seconds` so the next read is a fresh frame."""
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        cap.grab()
+
+
+def record_take(
+    cap, detector, seconds: float, fps: float, seat: str | None, zones
+) -> tuple[list, int]:
+    """Returns (hand vectors, number of frames looked at)."""
     import mediapipe as mp
 
     from vision.stages.s10_hands import hands_from_result
 
     vectors = []
+    frames = 0
     end = time.monotonic() + seconds
     period = 1.0 / fps
     while time.monotonic() < end:
         ok, bgr = cap.read()
         if not ok:
             continue
+        frames += 1
         rgb = cv2.cvtColor(cv2.resize(bgr, (640, 480)), cv2.COLOR_BGR2RGB)
         result = detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
         hand = pick_hand(hands_from_result(result, zones), seat)
         if hand is not None:
             vectors.append(normalize(hand.landmarks, hand.handedness))
         time.sleep(period)
-    return vectors
+    return vectors, frames
 
 
 def main(argv: list[str] | None = None) -> None:
     from vision import activities, models
-    from vision.seats import ZONES
 
     parser = argparse.ArgumentParser(description="Record gesture examples from the webcam.")
     parser.add_argument("activity_id")
@@ -80,14 +105,18 @@ def main(argv: list[str] | None = None) -> None:
     if not cap.isOpened():
         raise SystemExit("Could not open the camera. Is the vision service running?")
     templates = tpl.load(activity.id)
+    zones = recording_zones(args.seat)
     try:
+        drain(cap, 1.0)  # camera warm-up: the first frames are often dark
         for take in range(1, args.takes + 1):
             for n in (3, 2, 1):
                 print(f"Take {take}/{args.takes}: show '{args.label}' in {n}...", flush=True)
-                time.sleep(1)
+                drain(cap, 1.0)
             print("Recording...", flush=True)
-            vectors = record_take(cap, detector, args.seconds, args.fps, args.seat, ZONES)
-            print(f"  captured {len(vectors)} hand poses")
+            vectors, frames = record_take(cap, detector, args.seconds, args.fps, args.seat, zones)
+            print(f"  captured {len(vectors)} hand poses from {frames} frames")
+            if not vectors:
+                print("  No hand found. Keep the whole hand in view, closer and well lit.")
             templates.add(args.label, vectors)
     finally:
         cap.release()

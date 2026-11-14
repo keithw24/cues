@@ -279,3 +279,13 @@ def test_real_models_run_on_a_blank_frame(monkeypatch):
     ExpressionStage(zones=SeatZones()).process(frame, ctx)
     assert ctx["hands"] == {}
     assert set(ctx["expression"]["S1-L"]) == set(LABELS)
+
+
+def test_recording_keeps_hands_in_the_middle_of_the_frame():
+    from vision.record import pick_hand, recording_zones
+
+    result = mp_hand_result([(hand_points((0.5, 0.5)), "Right")])
+    assert hands_from_result(result, SeatZones()) == {}  # the service drops it
+    by_seat = hands_from_result(result, recording_zones(None))
+    assert pick_hand(by_seat, None) is not None  # the recorder keeps it
+    assert recording_zones("S1-L").dead_band > 0  # --seat uses the normal zones
