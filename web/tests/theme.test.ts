@@ -145,3 +145,15 @@ test("the rail links to /live only when the live view is on", () => {
   ])
     assert.match(read(page), /isEnabled\("web\.live_view"\)/);
 });
+
+test("the rail keeps only Teacher profile, Classroom and Live", () => {
+  const rail = read("../components/workspace-sidebar.tsx");
+  const links = [...rail.matchAll(/<Link\s+href="([^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((href) => !["/", "/login"].includes(href));
+  assert.deepEqual(links, ["/settings/profile", "/dashboard", "/live"]);
+  assert.doesNotMatch(
+    rail,
+    /#seats-heading|#attention-panel|\/settings\/notifications/,
+  );
+});

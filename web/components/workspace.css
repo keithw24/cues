@@ -1716,6 +1716,7 @@ body .dashboard-shell.ws-demo {
 /* "Who needs you next" matches the room and timeline panels: a quiet panel
    on Night, a white card in light mode. Page tokens flip with the theme. */
 .dashboard-shell:not(.ws-demo) .next-up {
+  --ring: var(--ws-night-accent);
   background: rgb(255 255 255 / 0.03);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
   color: var(--ws-page-ink);
