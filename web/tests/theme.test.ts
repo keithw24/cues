@@ -7,8 +7,12 @@ import { THEME_KEY, themeScript } from "../lib/theme.ts";
 const read = (path: string) =>
   readFileSync(new URL(path, import.meta.url), "utf8");
 
-test("theme toggle defaults off; without it no script runs and no toggle shows", () => {
-  assert.equal(isEnabled("web.theme_toggle", {}), false);
+test("theme toggle defaults on; without it no script runs and no toggle shows", () => {
+  assert.equal(isEnabled("web.theme_toggle", {}), true);
+  assert.equal(
+    isEnabled("web.theme_toggle", { CUES_FLAG_WEB_THEME_TOGGLE: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.theme_toggle", { CUES_FLAG_WEB_THEME_TOGGLE: "1" }),
     true,
@@ -53,8 +57,12 @@ test("the saved theme applies only for known values", () => {
   assert.equal(run(null), undefined);
 });
 
-test("the live mock defaults off and never touches Supabase", () => {
-  assert.equal(isEnabled("web.live_view", {}), false);
+test("the live mock defaults on and never touches Supabase", () => {
+  assert.equal(isEnabled("web.live_view", {}), true);
+  assert.equal(
+    isEnabled("web.live_view", { CUES_FLAG_WEB_LIVE_VIEW: "0" }),
+    false,
+  );
   assert.match(
     read("../app/live/page.tsx"),
     /if \(!isEnabled\("web\.live_view"\)\)/,

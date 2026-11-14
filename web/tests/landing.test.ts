@@ -45,8 +45,12 @@ test("the email-confirmed page is unavailable when sign-up is off", () => {
   assert.match(page, /Teacher sign-up is unavailable\./);
 });
 
-test("FAQ and site footer default off; the landing keeps its short footer", () => {
-  assert.equal(isEnabled("web.landing_faq", {}), false);
+test("FAQ and site footer default on; turned off, the landing keeps its short footer", () => {
+  assert.equal(isEnabled("web.landing_faq", {}), true);
+  assert.equal(
+    isEnabled("web.landing_faq", { CUES_FLAG_WEB_LANDING_FAQ: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.landing_faq", { CUES_FLAG_WEB_LANDING_FAQ: "1" }),
     true,
@@ -57,8 +61,12 @@ test("FAQ and site footer default off; the landing keeps its short footer", () =
   assert.match(landing, /<footer className="ln-footer">/);
 });
 
-test("the dashboard demo defaults off; the hero keeps the older preview", () => {
-  assert.equal(isEnabled("web.landing_demo", {}), false);
+test("the dashboard demo defaults on; turned off, the hero keeps the older preview", () => {
+  assert.equal(isEnabled("web.landing_demo", {}), true);
+  assert.equal(
+    isEnabled("web.landing_demo", { CUES_FLAG_WEB_LANDING_DEMO: "0" }),
+    false,
+  );
   const landing = read("../components/landing.tsx");
   assert.match(
     landing,
@@ -99,8 +107,12 @@ test("the demo turns on with its override, stays labelled and stays offline", ()
   );
 });
 
-test("scroll reveal defaults off; without it every section is visible", () => {
-  assert.equal(isEnabled("web.landing_motion", {}), false);
+test("scroll reveal defaults on; without it every section is visible", () => {
+  assert.equal(isEnabled("web.landing_motion", {}), true);
+  assert.equal(
+    isEnabled("web.landing_motion", { CUES_FLAG_WEB_LANDING_MOTION: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.landing_motion", { CUES_FLAG_WEB_LANDING_MOTION: "1" }),
     true,
