@@ -234,6 +234,37 @@ Ctrl-C cleanup were not exercised in the documented startup change.
 
 ## Verification and remaining work
 
+### Teacher profile and destination ownership
+
+Migration 006 adds teacher_profiles(user_id, display_name, phone_number,
+created_at, updated_at) and sessions.teacher_id referencing Auth users.
+Email remains in Supabase Auth. Profile RLS allows each authenticated user to
+read/insert/update only their own profile; phone formatting is normalized and
+validated as international E.164. created_at is preserved and updated_at is
+generated server-side. Existing sessions remain unowned until trusted assignment.
+
+Review reads and resolve_teacher_review now require ownership of the review's
+session. Pending-only transitions and immutable context remain enforced.
+Testing = static mode 1; actual demo = dynamic mode 0. demo.sh forces 0;
+dev.sh remains overrideable. Dynamic lookup follows session teacher_id to the
+profile phone and never falls back to SPECTRUM_TEACHER_PHONE. The phone travels
+only through the backend sender boundary, never agent messages/review context.
+Missing phone or Spectrum rejection leaves the persisted pending review intact.
+
+Frontend contract for Evan: authenticate with Supabase Auth (email authority),
+upsert teacher_profiles with user_id=auth user.id, display_name and phone_number
+(international +country-code number; spaces/parentheses/dashes are normalized).
+Null phone is allowed but prevents notification. Read profile with user_id filter.
+Create sessions with teacher_id=auth user.id; existing-session ownership requires
+trusted backend assignment. Fetch teacher_reviews scoped by session, subscribe
+with the authenticated JWT, and call rpc('resolve_teacher_review',
+{review_id, action: 'confirmed' | 'dismissed'}). Result is a one-row array.
+Do not directly update review fields or expose service-role credentials.
+
+Migration and rollback SQL ownership checks are provided; hosted application
+is not claimed in this step. Historical demo-only authorization claims above
+describe migration 004 and are superseded by migration 006 once deployed.
+
 Latest full offline suite: **449 passed, 4 skipped**. Skips are existing hardware
 and credential-gated checks. Coverage includes deterministic routing, history
 isolation/bounds, evidence repair/budgets, terminal action, review lifecycle,

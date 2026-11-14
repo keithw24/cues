@@ -8,11 +8,21 @@ uv sync
 npm --prefix web ci
 npm --prefix cues ci
 ./scripts/dev.sh
+# Short presentation timings:
+./scripts/demo.sh
 ```
 
-The launcher starts vision on port 8000, `agent.worker`, and Next.js on port 3000.
-Component logs are prefixed. Ctrl-C/SIGTERM stops process groups, with forced
-termination after a five-second grace period per child. A component exit stops
+Both wrappers use scripts/run-stack.sh and the same agent.dev supervisor to start
+vision on port 8000, agent.worker, and Next.js on port 3000.
+Dev uses the existing normal runtime defaults (4-second progress window,
+5-second minimum observation, 10-second normal and 15-second prolonged stall).
+Demo selects the existing DEMO_PROGRESS_WINDOW_SECONDS and DEMO_ESCALATION_CONFIG:
+2-second window/minimum, 4-second normal, 5-second expression-assisted and
+6-second prolonged stall. Expression persistence remains five seconds. Demo
+timing is for presentation speed, not a classroom recommendation.
+Component logs are prefixed. Ctrl-C/SIGTERM stops all isolated process groups,
+with SIGKILL for surviving groups after a shared five-second grace period,
+even if their direct child has exited. Direct children are reaped. A component exit stops
 the stack. Photon runs on demand; no separate Photon daemon is started.
 The launcher does not apply migrations or create demo data.
 
@@ -30,9 +40,16 @@ Root `.env` (backend only; never commit credentials):
 | `CUES_CAMERA_INDEX` | Optional camera index, default 0; USB often 1 |
 | `CUES_CAMERA` | Optional `fake` for camera-free startup |
 
-For live publication set `CUES_FLAG_VISION_SUPABASE_EVENTS=1` and
-`CUES_FLAG_VISION_ACTIVITY_SYNC=1` in root .env. The launcher enables hands,
-faces, gestures, raise-hand, expression and task-status stages for vision.
+Both modes default hands, faces, gestures, raise-hand, expression, task-status,
+Supabase publication and activity-sync flags ON. Shell values take priority over
+root .env; saved nonempty root .env flag values take priority over defaults.
+For example:
+
+```bash
+CUES_FLAG_VISION_EXPRESSION=0 ./scripts/demo.sh
+CUES_CAMERA=fake ./scripts/dev.sh
+CUES_MODE=recognize ./scripts/demo.sh
+```
 For the current Logitech setup use `CUES_CAMERA_INDEX=1`; other machines may need
 0 or 2. Optional `CUES_MODE=recognize` is preserved but never forced.
 Weights may download on first use. Fake frames do not simulate student progress.
@@ -46,14 +63,27 @@ implemented teacher-review UI flags to enable here.
 Never expose service-role, Groq, or Spectrum credentials as `NEXT_PUBLIC_*`.
 
 `cues/.env`: backend-only `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`,
-`SPECTRUM_TEACHER_PHONE`; optional `SPECTRUM_SENDER_PHONE` selects the sending
-line. The teacher number is the fixed demo/test destination; dynamic profile
-lookup is future work. Add the opted-in destination to active Spectrum Users.
+`SPECTRUM_TEACHER_PHONE` is test-only; optional `SPECTRUM_SENDER_PHONE` selects the line.
+Testing = static mode 1: `CUES_USE_STATIC_TEACHER_PHONE=1 ./scripts/dev.sh` uses
+the env destination. Actual demo = dynamic mode 0: `./scripts/demo.sh` forces 0,
+even if the shell or env requests 1. Dynamic mode ignores the static destination
+and resolves review.session_id → sessions.teacher_id → teacher_profiles.phone_number.
+Missing owner/profile/phone fails notification clearly and retains the pending review.
+There is no static fallback. Add the opted-in profile destination to active Spectrum Users.
 The sender loads this file relative to its module, independent of working directory.
+Missing/incomplete Spectrum configuration produces a warning and disables the
+notifier for that worker; persistence and review processing can still run.
+Restart after adding notification configuration.
 
 ## Database and demo prerequisites
 
-Apply migrations 001 through 005 in filename order; see `supabase/README.md`.
+Apply migrations 001 through 006 in filename order; see `supabase/README.md`.
+Migration 004 is deployed: authenticated resolve_teacher_review exists with
+demo-only authorization. Migration 006 is implemented locally but **NOT deployed**:
+it adds teacher_profiles, sessions.teacher_id, owner-only review reads/resolution,
+and the schema required for dynamic teacher-profile Photon routing. It must be deployed before
+dynamic notifications/profile UI. Historical sessions remain unowned; assign
+ownership through a trusted backend/admin, never an arbitrary browser claim.
 The current hosted project already has `seat_state.tracking_valid`,
 `teacher_reviews`, authenticated `resolve_teacher_review` RPC, and Realtime
 publication membership. Do not reapply initial schema to that project.
@@ -62,8 +92,11 @@ Provision the session and activity manually. Worker startup converts the existin
 `vision/activities.json` catalog into canonical shared Activity models, matching
 the manual demo pipeline. Restart after catalog edits. Unknown IDs are skipped/logged.
 Person-ID dashboard provisioning/read-policy gaps remain in `notes/vision-data.md`.
-Teacher review resolution requires authentication; current demo authorization
-does not implement classroom ownership.
+The deployed migration 004 requires authentication but uses demo-only authorization.
+Owner-only authorization is implemented by migration 006 and awaits deployment.
+Dev permits a static phone override for testing. Demo forces dynamic mode and
+requires deployed migration 006 plus a teacher profile and owned session before
+Photon delivery can work. This startup procedure does not deploy migrations.
 
 ## Endpoints and readiness
 
