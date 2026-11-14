@@ -1,15 +1,18 @@
-"""Recognise mode: which gesture is each person doing? (display only)
+"""Gesture detection: which known gesture is each person doing? (display only)
 
-Runs only when CUES_MODE=recognize. For each person, on every frame:
+Always runs (with the vision.gestures flag), alongside each person's assigned
+task. For each person, on every frame:
 
-1. Score every gesture in vision.mode.RECOGNIZE_SET, with hand-shape rules so
-   the two gestures cannot both be true:
+1. Score every activity in vision/activities.json (thumbs_up, raise_hand,
+   recorded custom gestures; raise_hand only while vision.raise_hand is on),
+   with hand-shape rules so gestures cannot both be true:
    * raise_hand: the pose-based raise confidence, but only if the raised hand
-     is an open palm facing the camera (recogniser's Open_Palm + palm side).
+     is an open palm facing the camera (hand_pose.open_palm_facing).
      A raised thumbs-up or fist scores 0.
    * thumbs_up: the MediaPipe Gesture Recognizer's Thumb_Up score.
    * recorded gestures: the best hand against the teacher's examples,
-     skipping hands whose palm faces the camera.
+     skipping hands whose palm faces the camera. A gesture with no recorded
+     examples is skipped.
 2. The candidate is the gesture with the highest score, if that score is at
    or above that gesture's own success threshold; otherwise "no gesture".
 3. Hysteresis: a new candidate must stay the candidate for SWITCH_SECONDS
@@ -17,22 +20,23 @@ Runs only when CUES_MODE=recognize. For each person, on every frame:
    two scores are close or a score dips for a frame.
 
 Writes ctx["recognized"] = {person_id: Recognized(activity_id or None, score,
-hand)}. Nothing here changes seat_state, status or events.
+hand)}; the overlay shows a completed gesture in green. Nothing here changes
+seat_state, status or events: those follow the assigned task.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from vision import activities, mode
-from vision.gestures.hand_pose import is_open, palm_side
+from vision import activities, flags
+from vision.gestures.hand_pose import open_palm_facing
 from vision.grouping import GROUPING
 from vision.perception import Hand
 from vision.stages.s30_gestures import MatcherCache, score_gesture
 from vision.stages.s35_raise_hand import highest_hand, raise_confidence
 
+FLAG = "vision.gestures"
 SWITCH_SECONDS = 0.5
-OPEN_PALM_MIN = 0.5
 
 
 @dataclass
@@ -42,18 +46,15 @@ class Recognized:
     hand: Hand | None
 
 
-def has_open_palm(hand) -> bool:
-    """Open palm facing the camera.
-
-    Open: the Gesture Recognizer's Open_Palm score is at least OPEN_PALM_MIN
-    (finger counting is used when there are no recogniser scores). Facing:
-    vision.gestures.hand_pose.palm_side.
-    """
-    if hand is None or palm_side(hand.landmarks, hand.handedness) != "palm":
-        return False
-    if hand.gestures:
-        return hand.gestures.get("Open_Palm", 0.0) >= OPEN_PALM_MIN
-    return is_open(hand.landmarks)
+def all_gesture_ids() -> tuple[str, ...]:
+    """Every activity to detect: all of activities.json, raise_hand only if its flag is on."""
+    ids = []
+    for activity in activities.load_activities().values():
+        if activity.check_type == "gesture":
+            ids.append(activity.id)
+        elif activity.id == "raise_hand" and flags.enabled("vision.raise_hand"):
+            ids.append(activity.id)
+    return tuple(ids)
 
 
 def score_gestures(pid: str, ctx: dict, cache: MatcherCache, gesture_ids) -> dict:
@@ -75,19 +76,30 @@ def score_gestures(pid: str, ctx: dict, cache: MatcherCache, gesture_ids) -> dic
                 continue
             score = raise_confidence(person)[0]
             # A raised hand only counts as an open palm facing the camera.
-            out[aid] = (score if has_open_palm(hand) else 0.0, hand)
+            out[aid] = (score if open_palm_facing(hand) else 0.0, hand)
     return out
+
+
+# When both are completed, the more specific gesture wins: a raised open palm
+# is a raised hand, not just an open palm.
+PREFERRED_OVER = {"raise_hand": ("open_palm",)}
 
 
 def candidate(scores: dict) -> tuple[str | None, float | None]:
     """Highest-scoring gesture that clears its own success threshold, else (None, None)."""
-    best_id, best_score = None, None
-    for aid, (score, _) in scores.items():
-        if score is None or score < activities.get(aid).success_threshold:
-            continue
-        if best_score is None or score > best_score:
-            best_id, best_score = aid, score
-    return best_id, best_score
+    passed = {
+        aid: score
+        for aid, (score, _) in scores.items()
+        if score is not None and score >= activities.get(aid).success_threshold
+    }
+    for winner, losers in PREFERRED_OVER.items():
+        if winner in passed:
+            for loser in losers:
+                passed.pop(loser, None)
+    if not passed:
+        return None, None
+    best_id = max(passed, key=passed.get)
+    return best_id, passed[best_id]
 
 
 class Recognizer:
@@ -123,22 +135,25 @@ class RecognizeStage:
         self,
         grouping=GROUPING,
         cache: MatcherCache | None = None,
-        gesture_ids=mode.RECOGNIZE_SET,
-        enabled=None,
+        gesture_ids=None,
     ) -> None:
         self.grouping = grouping
         self.cache = cache or MatcherCache()
-        self.gesture_ids = tuple(gesture_ids)
-        self.enabled = mode.recognizing() if enabled is None else enabled
+        # None = follow the catalog live, so gestures created from the dashboard
+        # are detected without a restart.
+        self._fixed_ids = tuple(gesture_ids) if gesture_ids is not None else None
         self._recognizers: dict[str, Recognizer] = {}
 
+    @property
+    def gesture_ids(self) -> tuple[str, ...]:
+        return self._fixed_ids if self._fixed_ids is not None else all_gesture_ids()
+
     def process(self, frame, ctx) -> None:
-        if not self.enabled:
-            return
         result = {}
         live = self.grouping.ids(ctx)
+        ids = self.gesture_ids
         for pid in live:
-            scores = score_gestures(pid, ctx, self.cache, self.gesture_ids)
+            scores = score_gestures(pid, ctx, self.cache, ids)
             cand, _ = candidate(scores)
             shown = self._recognizers.setdefault(pid, Recognizer()).update(frame.timestamp, cand)
             if shown is None:
@@ -156,6 +171,4 @@ class RecognizeStage:
 
 
 def create_stage() -> RecognizeStage:
-    for aid in mode.RECOGNIZE_SET:
-        activities.get(aid)  # fail fast on a typo in RECOGNIZE_SET
     return RecognizeStage()

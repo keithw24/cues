@@ -17,6 +17,7 @@ from vision.gestures.normalize import normalize
 from vision.grouping import GROUPING
 from vision.people import person_color as seat_color
 from vision.perception import Match
+from vision.session_sync import frame_activity
 
 FLAG = "vision.gestures"
 

@@ -22,7 +22,7 @@ from typing import Any, Protocol
 import cv2
 import numpy as np
 
-from vision import flags, mode
+from vision import flags
 from vision.camera import Camera, Frame
 
 log = logging.getLogger(__name__)
@@ -229,5 +229,4 @@ class Pipeline:
             "fps": round(self.loop_rate.rate(), 1),
             "stages": {name: round(m.rate(), 1) for name, m in self.stage_rates.items()},
             "flags": flags.snapshot(),
-            "mode": mode.current(),
         }

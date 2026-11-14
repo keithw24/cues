@@ -117,6 +117,7 @@ class SeatState(_Contract):
     updated_at: AwareDatetime
     activity_id: Identifier | None = None
     tracking_valid: bool | None = None
+    session_revision: Annotated[int, Field(ge=0, strict=True)] | None = None
     task_score: UnitScore | None = None
     expression_context: ExpressionContext | None = None
 
@@ -151,3 +152,15 @@ class Alert(_Contract):
     evidence: dict[str, JsonValue] = Field(default_factory=dict)
     status: AlertStatus = AlertStatus.PENDING
     resolved_at: AwareDatetime | None = None
+
+
+class Session(_Contract):
+    """Authoritative teacher-managed station session; no perception data."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False, frozen=True)
+    id: UUID
+    station_id: Identifier
+    current_activity_id: Identifier | None
+    started_at: AwareDatetime
+    ended_at: AwareDatetime | None
+    revision: Annotated[int, Field(ge=0, strict=True)]

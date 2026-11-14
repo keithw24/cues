@@ -3,7 +3,8 @@ import test from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { watchDashboard, type FeedState } from "../lib/dashboard-feed.ts";
 
-function harness() {
+function harness(enabled = false) {
+  const projections: string[] = [];
   const rows: Record<string, Record<string, unknown>[]> = {
     seats: [
       {
@@ -47,16 +48,19 @@ function harness() {
     channel: () => channel,
     from(table: string) {
       return {
-        select: () => ({
-          abortSignal: async (signal: AbortSignal) => {
-            reads++;
-            signals.push(signal);
-            return {
-              data: structuredClone(rows[table]),
-              error: fail ? { message: "private details" } : null,
-            };
-          },
-        }),
+        select: (columns: string) => {
+          projections.push(columns);
+          return {
+            abortSignal: async (signal: AbortSignal) => {
+              reads++;
+              signals.push(signal);
+              return {
+                data: structuredClone(rows[table]),
+                error: fail ? { message: "private details" } : null,
+              };
+            },
+          };
+        },
       };
     },
     removeChannel: async () => {
@@ -64,9 +68,10 @@ function harness() {
     },
   } as unknown as SupabaseClient;
   const observed: FeedState[] = [];
-  const feed = watchDashboard(client, (s) => observed.push(s));
+  const feed = watchDashboard(client, (s) => observed.push(s), enabled);
   return {
     rows,
+    projections,
     feed,
     observed,
     signals,
@@ -87,7 +92,9 @@ test("healthy refreshes keep an established subscription connected", async () =>
   await settled();
   const before = h.observed.length;
   await h.feed.refresh();
-  assert.ok(h.observed.slice(before).every((state) => state.connection === "connected"));
+  assert.ok(
+    h.observed.slice(before).every((state) => state.connection === "connected"),
+  );
   assert.ok(h.observed.slice(before).some((state) => state.loading));
   h.feed.dispose();
 });
@@ -143,4 +150,33 @@ test("realtime events reload state and disposal cancels reads and future callbac
   await h.feed.refresh();
   assert.equal(h.observed.length, observed);
   assert.equal(h.reads(), reads);
+});
+
+test("person flag gates tracking_valid reads and realtime replacement preserves false", async () => {
+  const disabled = harness();
+  await settled();
+  assert.ok(
+    disabled.projections.every(
+      (columns) => !columns.includes("tracking_valid"),
+    ),
+  );
+  disabled.feed.dispose();
+  const enabled = harness(true);
+  await settled();
+  assert.ok(
+    enabled.projections.some((columns) => columns.includes("tracking_valid")),
+  );
+  Object.assign(enabled.rows.seat_state[0], {
+    tracking_valid: false,
+    status: "in_progress",
+    task_score: null,
+  });
+  enabled.change();
+  await new Promise((resolve) => setTimeout(resolve, 130));
+  await settled();
+  assert.equal(
+    enabled.observed.at(-1)?.snapshot?.states[0].tracking_valid,
+    false,
+  );
+  enabled.feed.dispose();
 });

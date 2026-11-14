@@ -1,7 +1,12 @@
-"""Current task from the app: reads sessions.current_activity_id from Supabase.
+"""Teacher task synchronization via Supabase.
 
-The teacher picks a task on Evan's dashboard (buttons or voice). The dashboard
-writes it to the `sessions` row for this session. This module checks that row
+With vision.session_lifecycle on, the station follows authoritative session
+UUID/activity/revision, acknowledges configuration and pauses task processing
+on end or sync failure. See vision/SESSION_LIFECYCLE.md. The implementation
+below is the preserved legacy path when the lifecycle flag is off.
+
+The teacher picks a task on Evan's dashboard. The dashboard
+saves it through station-scoped session RPCs. This module checks that row
 every POLL_SECONDS and sets the class-wide task in vision.activities.TASKS.
 
 * Off unless the `vision.activity_sync` flag is on and Supabase keys are set.
@@ -80,11 +85,20 @@ class ActivitySync:
             self._stop.wait(self.poll_seconds)
 
 
-def sync_from_env() -> ActivitySync | None:
-    """An ActivitySync if the flag is on; raises if keys or CUES_SESSION_ID are missing."""
+def sync_from_env():
+    """Station lifecycle takes precedence; otherwise preserve legacy fixed-session sync."""
     from vision import flags
     from vision.supabase_client import get_client
 
+    if flags.enabled("vision.session_lifecycle"):
+        from vision.session_sync import STATION_SESSION, StationSessionSync
+
+        STATION_SESSION.invalidate()
+        client = get_client()
+        if client is None:
+            log.warning("session lifecycle enabled without station credentials; tasks stay paused")
+            return None
+        return StationSessionSync(client, os.environ.get("CUES_STATION_ID", "S1"))
     if not flags.enabled("vision.activity_sync"):
         return None
     client = get_client()

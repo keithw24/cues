@@ -51,7 +51,8 @@ CUES_CAMERA=fake ./scripts/dev.sh
 CUES_MODE=recognize ./scripts/demo.sh
 ```
 For the current Logitech setup use `CUES_CAMERA_INDEX=1`; other machines may need
-0 or 2. Optional `CUES_MODE=recognize` is preserved but never forced.
+0 or 2. Gesture detection (every known gesture, shown green on the video when
+completed) is always on; there is no separate mode.
 Weights may download on first use. Fake frames do not simulate student progress.
 
 `web/.env.local`: browser-safe `NEXT_PUBLIC_SUPABASE_URL` and

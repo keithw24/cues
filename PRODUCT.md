@@ -41,15 +41,21 @@ checkout still has the gaps listed below.
 
 ## Brand Commitments
 
-The latest user-pinned brief supersedes all earlier screenshot directions. Cues
-should resemble restrained operational software: a neutral canvas, white surfaces,
-Courier Prime, thin borders, compact spacing, small corners and quiet normal statuses.
-Local video dominates beside an attention queue; only Needs Review receives strong
-status emphasis. The latest admin screenshots refine the palette to white/navy,
-cool gray, teal selection/live text and coral review, with no status dots or label
-icons. The user subsequently requested Courier Prime typewriter typography; the operational layout remains. The provided Card primitive is
-integrated without a shadow; no hero/beam implementation was supplied. No gradient,
-glass, hero, giant rounded cards or main-screen charts.
+The approved Columbia Catalog / LionPlan direction supersedes the earlier Courier
+Prime, Nexus mesh-tile and italic type treatments. Cues is quiet operational
+software: upright Inter, white content, cool neutral framing, navy actions and
+selection, thin borders and compact rounded controls. A persistent workspace rail
+becomes compact header navigation on mobile. Camera and teacher review context
+lead; activity management opens progressively and people use scan-friendly rows.
+Color supports explicit status text rather than implying learner state.
+
+Login asks one question at a time beneath an animated illustrated Cues companion.
+The character belongs to the product, never to a teacher profile or learner
+identity. It follows the pointer with a restrained gaze, sleeps during password
+entry and honors reduced motion. The login feature defaults off with an honest
+unavailable fallback. This is a code-led reference adaptation, not a pixel-exact
+copy. `DESIGN.md` records the implemented tokens and component rules;
+`.impeccable/teacher-workspace.md` records the approved direction.
 
 ## Current Implementation Limits
 

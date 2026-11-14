@@ -163,4 +163,3 @@ class SeatStateRuntime:
             except Exception as error:
                 log.error("SeatState source read failed: %s", type(error).__name__)
             stop.wait(self.poll_seconds)
-

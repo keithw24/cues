@@ -3,7 +3,6 @@
 import numpy as np
 import pytest
 
-from vision import mode
 from vision.camera import Frame
 from vision.gestures import templates as tpl
 from vision.gestures.normalize import normalize
@@ -51,17 +50,9 @@ def run(stage, ctx_fn, start, seconds, step=0.1):
 
 
 def stage(cache):
-    return RecognizeStage(grouping=PeopleGrouping(), cache=cache, enabled=True)
-
-
-def test_mode_setting(monkeypatch):
-    monkeypatch.delenv("CUES_MODE", raising=False)
-    assert mode.current() == "task" and not mode.recognizing()
-    monkeypatch.setenv("CUES_MODE", "recognize")
-    assert mode.recognizing()
-    monkeypatch.setenv("CUES_MODE", "freestyle")
-    with pytest.raises(ValueError):
-        mode.current()
+    return RecognizeStage(
+        grouping=PeopleGrouping(), cache=cache, gesture_ids=("thumbs_up", "raise_hand")
+    )
 
 
 def test_candidate_needs_the_gestures_own_success_threshold():
@@ -105,13 +96,6 @@ def test_recognize_mode_is_display_only(cache):
     stage(cache).process(Frame(IMG, 0.0, 1), ctx)
     assert ctx["match"] == {"S1-P1": assigned}  # assigned task untouched
     assert "status" not in ctx
-
-
-def test_off_in_task_mode(cache):
-    st = RecognizeStage(grouping=PeopleGrouping(), cache=cache, enabled=False)
-    ctx = ctx_with(raised=True, thumb=True)
-    st.process(Frame(IMG, 0.0, 1), ctx)
-    assert "recognized" not in ctx
 
 
 def test_overlay_and_watch_show_the_recognized_gesture(cache):
@@ -178,3 +162,96 @@ def test_raised_palm_that_the_recogniser_does_not_call_open_is_not_a_raised_hand
     ctx["hands"]["S1-P1"][0].gestures = {"Open_Palm": 0.2, "Closed_Fist": 0.7}
     scores = score_gestures("S1-P1", ctx, cache, ("thumbs_up", "raise_hand"))
     assert scores["raise_hand"][0] == 0.0
+
+
+# ---- always-on detection ---------------------------------------------------
+def test_detects_every_known_activity(monkeypatch):
+    from vision.stages.s46_recognize import all_gesture_ids
+
+    monkeypatch.setenv("CUES_FLAG_VISION_RAISE_HAND", "1")
+    assert set(all_gesture_ids()) == {
+        "thumbs_up", "raise_hand", "custom_gesture_01", "open_palm", "pointing", "peace", "fist",
+    }  # fmt: skip
+    monkeypatch.setenv("CUES_FLAG_VISION_RAISE_HAND", "0")
+    assert "raise_hand" not in all_gesture_ids()
+
+
+def test_raise_hand_task_needs_an_open_palm_facing_the_camera():
+    from vision.activities import CurrentTasks
+    from vision.stages.s35_raise_hand import RaiseHandStage
+
+    stage = RaiseHandStage(tasks=CurrentTasks("raise_hand"), zones=PeopleGrouping())
+    palm = ctx_with(raised=True, thumb=False)
+    stage.process(Frame(IMG, 0.0, 1), palm)
+    assert palm["match"]["S1-P1"].score > 0.7  # raised open palm: counts
+    thumb = ctx_with(raised=True, thumb=True)
+    stage.process(Frame(IMG, 0.1, 2), thumb)
+    assert thumb["match"]["S1-P1"].score == 0.0  # raised thumbs-up: does not
+    assert "palm not open" in thumb["match"]["S1-P1"].detail
+
+
+def test_overlay_falls_back_to_the_assigned_task_when_no_gesture(cache):
+    from vision.stages.s46_recognize import Recognized
+    from vision.stages.s90_overlay import OverlayStage
+
+    ctx = ctx_with(raised=False, thumb=False)
+    hand = ctx["hands"]["S1-P1"][0]
+    ctx["recognized"] = {"S1-P1": Recognized(None, None, hand)}
+    ctx["match"] = {"S1-P1": Match("raise_hand", 0.2, hand=hand)}
+    ov = OverlayStage(grouping=PeopleGrouping())
+    ov.process(Frame(IMG, 0.0, 1), ctx)
+    img = np.zeros((540, 960, 3), np.uint8)
+    ov.draw(img, ctx)
+    assert img.any()
+
+
+# ---- open palm ---------------------------------------------------------------
+def test_open_palm_is_built_in():
+    from vision import activities
+
+    act = activities.get("open_palm")
+    assert act.builtin == "Open_Palm" and act.check_type == "gesture"
+
+
+def test_open_palm_at_chest_height_is_open_palm(cache):
+    st = RecognizeStage(
+        grouping=PeopleGrouping(), cache=cache, gesture_ids=("thumbs_up", "raise_hand", "open_palm")
+    )
+    ctx = run(st, lambda: ctx_with(raised=False, thumb=False), 0.0, 1.0)
+    assert ctx["recognized"]["S1-P1"].activity_id == "open_palm"
+
+
+def test_raised_open_palm_is_raise_hand_not_open_palm(cache):
+    st = RecognizeStage(
+        grouping=PeopleGrouping(), cache=cache, gesture_ids=("thumbs_up", "raise_hand", "open_palm")
+    )
+    ctx = run(st, lambda: ctx_with(raised=True, thumb=False), 0.0, 1.0)
+    assert ctx["recognized"]["S1-P1"].activity_id == "raise_hand"
+
+
+def test_candidate_prefers_raise_hand_over_open_palm():
+    from vision.stages.s46_recognize import candidate
+
+    scores = {"open_palm": (0.95, None), "raise_hand": (0.8, None)}
+    assert candidate(scores) == ("raise_hand", 0.8)
+    assert candidate({"open_palm": (0.95, None), "raise_hand": (0.1, None)}) == ("open_palm", 0.95)
+
+
+@pytest.mark.parametrize(
+    "label,expected",
+    [("Pointing_Up", "pointing"), ("Victory", "peace"), ("Closed_Fist", "fist")],
+)
+def test_new_built_in_gestures_are_recognized(cache, label, expected):
+    from vision import activities
+
+    assert activities.get(expected).builtin == label
+    ids = ("thumbs_up", "raise_hand", "open_palm", "pointing", "peace", "fist")
+    st = RecognizeStage(grouping=PeopleGrouping(), cache=cache, gesture_ids=ids)
+
+    def ctx_fn():
+        ctx = ctx_with(raised=False, thumb=True)
+        ctx["hands"]["S1-P1"][0].gestures = {label: 0.9, "Thumb_Up": 0.05}
+        return ctx
+
+    ctx = run(st, ctx_fn, 0.0, 1.0)
+    assert ctx["recognized"]["S1-P1"].activity_id == expected

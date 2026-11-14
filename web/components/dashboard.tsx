@@ -1,18 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { seatViews, type SeatView } from "@/lib/dashboard";
 import {
-  attentionKey,
-  needsReview,
-  seatViews,
-  statuses,
-  type SeatView,
-} from "@/lib/dashboard";
+  INITIAL_REVIEWS,
+  DISABLED_REVIEWS,
+  watchTeacherReviews,
+  type ReviewFeedState,
+} from "@/lib/teacher-review-feed";
+import { activityLabel, priorityLabels } from "@/lib/teacher-reviews";
+import { ProgressContext } from "@/components/progress-context";
+import { TeacherReviewDetails } from "@/components/teacher-review-details";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
 import { createDashboardClient } from "@/lib/supabase";
 import { Card } from "@/components/ui/card";
+import { TeacherReviewActions } from "@/components/teacher-review-actions";
+import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
+import {
+  observationPresentation,
+  type ObservationOptions,
+} from "@/lib/observation-presentation";
+import { WorkspaceSidebar } from "@/components/workspace-sidebar";
+import { WorkspaceIcon } from "@/components/workspace-icon";
 
 const INITIAL: FeedState = {
   snapshot: null,
@@ -31,14 +41,14 @@ function SeatDetails({
   seat,
   close,
   headingRef,
+  observationOptions,
 }: {
+  observationOptions?: ObservationOptions;
   seat: SeatView;
   close: () => void;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
 }) {
-  const status = seat.state ? statuses[seat.state.status] : null;
-  const score =
-    seat.state?.status === "tracking_lost" ? null : seat.state?.task_score;
+  const presentation = observationPresentation(seat.state, observationOptions);
   return (
     <section
       className="seat-details"
@@ -57,13 +67,11 @@ function SeatDetails({
       </header>
       <div className="detail-body">
         <p
-          className={`detail-status ${needsReview(seat) ? "needs-review" : ""}`}
+          className={`detail-status ${presentation.needsReview ? "needs-review" : ""}`}
         >
-          {status?.label ?? "Awaiting observation"}
+          {presentation.label}
         </p>
-        <p className="detail-description">
-          {status?.detail ?? "No observation has been received for this seat."}
-        </p>
+        <p className="detail-description">{presentation.detail}</p>
         <dl className="detail-facts">
           <div>
             <dt>Current activity</dt>
@@ -71,7 +79,11 @@ function SeatDetails({
           </div>
           <div>
             <dt>Match score</dt>
-            <dd>{score == null ? "Unavailable" : score.toFixed(2)}</dd>
+            <dd>
+              {presentation.score == null
+                ? "Unavailable"
+                : presentation.score.toFixed(2)}
+            </dd>
           </div>
           <div>
             <dt>Last observation</dt>
@@ -89,13 +101,14 @@ function SeatDetails({
         {seat.is_simulated ? (
           <p className="detail-simulation">Simulated seat · {seat.id}</p>
         ) : null}
-        <section className="detail-section">
-          <h3>Recent progress</h3>
-          <p>Progress history is not available yet.</p>
-        </section>
+        <ProgressContext
+          observation={seat.state}
+          scope={seat.state ?? undefined}
+          observationOptions={observationOptions}
+        />
         <section className="detail-section">
           <h3>Agent assessment</h3>
-          <p>No assessment has been received.</p>
+          <p>Pending assessments are listed in Teacher reviews.</p>
         </section>
         <p className="detail-footnote">
           Match scores describe gesture similarity, not probabilities.
@@ -105,18 +118,56 @@ function SeatDetails({
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({
+  personObservationsEnabled = false,
+  sessionControlsEnabled = false,
+  stationId = "",
+  reviewsEnabled = false,
+  reviewActionsEnabled = false,
+  teacherLoginEnabled = false,
+}: {
+  personObservationsEnabled?: boolean;
+  sessionControlsEnabled?: boolean;
+  stationId?: string;
+  reviewsEnabled?: boolean;
+  reviewActionsEnabled?: boolean;
+  teacherLoginEnabled?: boolean;
+}) {
+  const [observationNow, setObservationNow] = useState<number | null>(null);
+  useEffect(() => {
+    if (!personObservationsEnabled) return;
+    const tick = () => setObservationNow(Date.now());
+    const initial = setTimeout(tick, 0);
+    const timer = setInterval(tick, 1000);
+    const visible = () => {
+      if (!document.hidden) tick();
+    };
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  }, [personObservationsEnabled]);
+  const [sessionActivity, setSessionActivity] = useState("Session unavailable");
   const [feed, setFeed] = useState<FeedState>(INITIAL);
   const [attempt, setAttempt] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
-  const detailsHeading = useRef<HTMLHeadingElement>(null);
+  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const attentionHeading = useRef<HTMLHeadingElement>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<ReviewFeedState>(
+    reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS,
+  );
+  const resolvedReviewIds = useRef(new Set<string>());
+  const [reviewAttempt, setReviewAttempt] = useState(0);
+  const detailsHeading = useRef<HTMLHeadingElement>(null);
   const detailOpener = useRef<HTMLButtonElement | null>(null);
   const seatButtons = useRef(new Map<string, HTMLButtonElement>());
   const [client] = useState(() => {
     try {
-      return createDashboardClient();
+      return createDashboardClient(
+        sessionControlsEnabled || teacherLoginEnabled,
+      );
     } catch {
       return null;
     }
@@ -124,7 +175,18 @@ export default function Dashboard() {
   const configurationError = client === null;
   useEffect(() => {
     if (!client) return;
-    const subscription = watchDashboard(client, setFeed);
+    const subscription = watchDashboard(
+      client,
+      (state) => {
+        if (personObservationsEnabled)
+          setFeed((previous) => ({
+            ...state,
+            snapshot: state.snapshot ?? previous.snapshot,
+          }));
+        else setFeed(state);
+      },
+      personObservationsEnabled,
+    );
     const offline = () => subscription.disconnect();
     const online = () => setAttempt((n) => n + 1);
     window.addEventListener("offline", offline);
@@ -134,21 +196,51 @@ export default function Dashboard() {
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [attempt, client]);
+  }, [attempt, client, personObservationsEnabled]);
   useEffect(() => {
-    if (selectedId) detailsHeading.current?.focus();
-  }, [selectedId]);
+    if (!client) return;
+    const subscription = watchTeacherReviews(
+      client,
+      (state) =>
+        setReviews({
+          ...state,
+          reviews:
+            state.reviews?.filter(
+              (review) => !resolvedReviewIds.current.has(review.id),
+            ) ?? null,
+        }),
+      reviewsEnabled,
+    );
+    const offline = () => subscription.disconnect();
+    const online = () => setReviewAttempt((n) => n + 1);
+    window.addEventListener("offline", offline);
+    window.addEventListener("online", online);
+    return () => {
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("online", online);
+      subscription.dispose();
+    };
+  }, [client, reviewsEnabled, reviewAttempt]);
+  useEffect(() => {
+    if (selectedId || selectedReviewId) detailsHeading.current?.focus();
+  }, [selectedId, selectedReviewId]);
 
   const seats = feed.snapshot ? seatViews(feed.snapshot) : [];
+  const observationOptions: ObservationOptions = {
+    enabled: personObservationsEnabled,
+    now: observationNow,
+    connected: feed.connection === "connected" && !feed.error,
+  };
   const selected = seats.find((seat) => seat.id === selectedId);
-  const reviewSeats = seats.filter(needsReview);
-  const queue = reviewSeats
-    .filter((seat) => !dismissed.has(attentionKey(seat)))
-    .sort(
-      (a, b) =>
-        Number(b.state?.status === "needs_help") -
-          Number(a.state?.status === "needs_help") || a.id.localeCompare(b.id),
+  const hasCurrentTaskObservations =
+    !personObservationsEnabled ||
+    seats.some(
+      (seat) =>
+        observationPresentation(seat.state, observationOptions)
+          .currentStatus !== null,
     );
+  const queue = reviews.reviews ?? [];
+  const selectedReview = queue.find((item) => item.id === selectedReviewId);
   const activityNames = [
     ...new Set(
       seats
@@ -156,25 +248,26 @@ export default function Dashboard() {
         .map((seat) => seat.activity),
     ),
   ];
-  const activity = !feed.snapshot
+  const observationActivity = !feed.snapshot
     ? "Activity unavailable"
     : activityNames.length > 1
       ? "Multiple activities"
       : (activityNames[0] ?? "No activity assigned");
-  const live =
-    !configurationError && feed.connection === "connected" && !feed.error;
-  const connectionLabel = configurationError
-    ? "Not configured"
-    : feed.error
-      ? "Data unavailable"
-      : live
-        ? "Updates live"
-        : feed.connection === "disconnected"
-          ? "Updates disconnected"
-          : "Connecting to updates";
+  const activity = sessionControlsEnabled
+    ? sessionActivity
+    : observationActivity;
   const selectSeat = (seat: SeatView, opener: HTMLButtonElement) => {
     detailOpener.current = opener;
+    setSelectedReviewId(null);
     setSelectedId(seat.id);
+  };
+  const closeReview = () => {
+    setSelectedReviewId(null);
+    requestAnimationFrame(() => {
+      const opener = document.getElementById(`review-${selectedReviewId}`);
+      if (opener instanceof HTMLButtonElement) opener.focus();
+      else attentionHeading.current?.focus();
+    });
   };
   const closeDetails = () => {
     setSelectedId(null);
@@ -182,62 +275,119 @@ export default function Dashboard() {
     if (opener?.isConnected) opener.focus();
     else if (selectedId) seatButtons.current.get(selectedId)?.focus();
   };
-  const dismiss = (seat: SeatView) => {
-    setDismissed((current) => new Set([...current, attentionKey(seat)]));
-    attentionHeading.current?.focus();
-  };
 
   return (
     <div className="dashboard-shell">
-      <header className="app-header">
-        <Link className="wordmark" href="/" aria-label="Cues home">
-          Cues
-        </Link>
-        <span className="header-divider" aria-hidden="true" />
-        <span className="header-activity">{activity}</span>
-        <div
-          className={`connection-state ${live ? "is-live" : ""}`}
-          role="status"
-        >
-          {connectionLabel}
-        </div>
-        <button
-          className="end-session"
-          type="button"
-          disabled
-          aria-describedby="session-unavailable"
-        >
-          End session
-        </button>
-        <span id="session-unavailable" className="sr-only">
-          Session controls are not connected in this dashboard.
-        </span>
-      </header>
+      <WorkspaceSidebar
+        accountEnabled={teacherLoginEnabled}
+        onReviews={() => {
+          setSelectedId(null);
+          setSelectedReviewId(null);
+        }}
+      />
       <main id="main-content" className="dashboard-main">
-        <h1 className="sr-only">Classroom monitoring</h1>
-        <div className="workspace-toolbar">
-          <span>
-            Classroom
-            {seats.length
-              ? ` · ${seats.length} ${seats.length === 1 ? "seat" : "seats"}`
-              : ""}
-          </span>
-          <div className="workspace-tools">
-            <span className="simulated-label">
-              {seats.length > 0 && seats.every((seat) => seat.is_simulated)
-                ? "Simulated classroom"
-                : "Seat observations"}
-            </span>
-            <button
-              type="button"
-              className="refresh-button"
-              onClick={() => setAttempt((n) => n + 1)}
-              disabled={!client || feed.loading}
-              aria-label="Refresh seats"
-            >
-              {feed.loading ? "Refreshing…" : "Refresh seats"}
-            </button>
+        <div className="page-breadcrumb">
+          Workspace <span>/</span> Classroom
+        </div>
+        <header className="page-intro">
+          <div>
+            <h1>Your classroom.</h1>
+            <p>A clear view of who’s ready and who needs a hand.</p>
           </div>
+          <button
+            className="refresh-button"
+            type="button"
+            onClick={() => {
+              setAttempt((n) => n + 1);
+              setReviewAttempt((n) => n + 1);
+            }}
+            disabled={!client || feed.loading}
+          >
+            <WorkspaceIcon name="refresh" />
+            {feed.loading && client ? "Refreshing…" : "Refresh"}
+          </button>
+        </header>
+        <section className="classroom-summary" aria-label="Classroom summary">
+          <dl className="overview-metrics">
+            <div>
+              <dd>
+                {feed.snapshot
+                  ? seats.filter((seat) => seat.state).length
+                  : "—"}
+              </dd>
+              <dt>People observed</dt>
+            </div>
+            <div>
+              <dd>
+                {feed.snapshot && hasCurrentTaskObservations
+                  ? seats.filter(
+                      (seat) =>
+                        observationPresentation(seat.state, observationOptions)
+                          .currentStatus === "in_progress",
+                    ).length
+                  : "—"}
+              </dd>
+              <dt>In progress</dt>
+            </div>
+            <div>
+              <dd>
+                {feed.snapshot && hasCurrentTaskObservations
+                  ? seats.filter(
+                      (seat) =>
+                        observationPresentation(seat.state, observationOptions)
+                          .currentStatus === "done",
+                    ).length
+                  : "—"}
+              </dd>
+              <dt>Completed</dt>
+            </div>
+            <div>
+              <dd>
+                {reviews.reviews &&
+                !reviews.error &&
+                reviews.connection === "connected"
+                  ? queue.length
+                  : "—"}
+              </dd>
+              <dt>Pending reviews</dt>
+            </div>
+          </dl>
+        </section>
+        <div className="workspace-toolbar">
+          <div className="current-activity">
+            <span className="toolbar-label">Current activity</span>
+            <strong>{activity}</strong>
+          </div>
+          <details className="activity-popover">
+            <summary>
+              Manage activity{" "}
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path d="m4 6 4 4 4-4" />
+              </svg>
+            </summary>
+            <div className="activity-popover-body">
+              <h2>Session controls</h2>
+              {sessionControlsEnabled && client ? (
+                <SessionControls
+                  client={client}
+                  station={stationId}
+                  onActivity={setSessionActivity}
+                  teacherLoginEnabled={teacherLoginEnabled}
+                />
+              ) : (
+                <p>Session controls are not connected in this environment.</p>
+              )}
+            </div>
+          </details>
+          {seats.length > 0 && seats.every((seat) => seat.is_simulated) ? (
+            <span className="status-chip">Simulated data</span>
+          ) : null}
         </div>
         {configurationError ||
         feed.error ||
@@ -275,48 +425,63 @@ export default function Dashboard() {
             <LocalClassroomFeed activity={activity} />
             <section className="seat-strip" aria-labelledby="seats-heading">
               <header className="strip-heading">
-                <h2 id="seats-heading">Seats</h2>
-                <span>
-                  {reviewSeats.length
-                    ? `${reviewSeats.length} need review`
-                    : "Current observations"}
-                </span>
+                <h2 id="seats-heading">People</h2>
               </header>
               {!feed.snapshot ? (
                 <p className="strip-empty" role="status">
                   {feed.loading && !configurationError
-                    ? "Loading seat observations…"
+                    ? "Loading observations…"
                     : "Seat observations unavailable"}
                 </p>
               ) : seats.length === 0 ? (
-                <p className="strip-empty">No seats to show yet.</p>
+                <p className="strip-empty">No people observed yet.</p>
               ) : (
                 <div className="seat-items">
-                  {seats.map((seat) => (
-                    <button
-                      className={`seat-item ${needsReview(seat) ? "needs-review" : ""} ${selected?.id === seat.id ? "is-selected" : ""}`}
-                      key={seat.id}
-                      ref={(node) => {
-                        if (node) seatButtons.current.set(seat.id, node);
-                        else seatButtons.current.delete(seat.id);
-                      }}
-                      type="button"
-                      aria-pressed={selected?.id === seat.id}
-                      onClick={(event) => selectSeat(seat, event.currentTarget)}
-                    >
-                      <span className="seat-item-name">
-                        {seat.display_name}
-                      </span>
-                      <span className="seat-item-status">
-                        {seat.state
-                          ? statuses[seat.state.status].label
-                          : "Awaiting observation"}
-                      </span>
-                      {seat.is_simulated ? (
-                        <span className="sim-badge">SIM</span>
-                      ) : null}
-                    </button>
-                  ))}
+                  {seats.map((seat) => {
+                    const presentation = observationPresentation(
+                      seat.state,
+                      observationOptions,
+                    );
+                    return (
+                      <button
+                        className={`seat-item ${presentation.needsReview ? "needs-review" : ""} ${selected?.id === seat.id ? "is-selected" : ""}`}
+                        key={seat.id}
+                        ref={(node) => {
+                          if (node) seatButtons.current.set(seat.id, node);
+                          else seatButtons.current.delete(seat.id);
+                        }}
+                        type="button"
+                        aria-pressed={selected?.id === seat.id}
+                        onClick={(event) =>
+                          selectSeat(seat, event.currentTarget)
+                        }
+                      >
+                        <span className="seat-item-name">
+                          {seat.display_name}
+                        </span>
+                        <span className="seat-item-status">
+                          {presentation.label}
+                        </span>
+                        <span className="seat-item-activity">
+                          {seat.activity}
+                        </span>
+                        {personObservationsEnabled &&
+                        presentation.unavailable &&
+                        seat.state ? (
+                          <time
+                            className="seat-item-time"
+                            dateTime={seat.state.updated_at}
+                          >
+                            Last observed{" "}
+                            {observationTime(seat.state.updated_at)}
+                          </time>
+                        ) : null}
+                        {seat.is_simulated ? (
+                          <span className="sim-badge">SIM</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -324,11 +489,47 @@ export default function Dashboard() {
           <Card
             role="complementary"
             className="attention-panel"
-            aria-label={selected ? "Seat details" : "Attention queue"}
+            id="attention-panel"
+            aria-label={
+              selectedReviewId
+                ? "Review details"
+                : selected
+                  ? "Seat details"
+                  : "Teacher reviews"
+            }
           >
-            {selected ? (
+            {selectedReviewId ? (
+              <TeacherReviewDetails
+                review={selectedReview}
+                observationOptions={observationOptions}
+                seats={seats}
+                activities={feed.snapshot?.activities ?? []}
+                stale={!!reviews.error || reviews.connection === "disconnected"}
+                close={closeReview}
+                headingRef={detailsHeading}
+              >
+                {reviewActionsEnabled && client && selectedReview ? (
+                  <TeacherReviewActions
+                    key={selectedReviewId}
+                    client={client}
+                    review={selectedReview}
+                    onResolved={(resolved) => {
+                      resolvedReviewIds.current.add(resolved.id);
+                      setReviews((state) => ({
+                        ...state,
+                        reviews:
+                          state.reviews?.filter(
+                            (item) => item.id !== resolved.id,
+                          ) ?? null,
+                      }));
+                    }}
+                  />
+                ) : null}
+              </TeacherReviewDetails>
+            ) : selected ? (
               <SeatDetails
                 seat={selected}
+                observationOptions={observationOptions}
                 close={closeDetails}
                 headingRef={detailsHeading}
               />
@@ -340,7 +541,7 @@ export default function Dashboard() {
                     ref={attentionHeading}
                     tabIndex={-1}
                   >
-                    Attention
+                    Teacher reviews
                   </h2>
                   <span
                     className={
@@ -349,78 +550,119 @@ export default function Dashboard() {
                         : "attention-count"
                     }
                   >
-                    {feed.snapshot ? queue.length : "—"}
+                    {reviews.reviews &&
+                    !reviews.error &&
+                    reviews.connection === "connected"
+                      ? queue.length
+                      : "—"}
                   </span>
                 </header>
-                {queue.length ? (
-                  <ul className="attention-list">
-                    {queue.map((seat) => (
-                      <li key={attentionKey(seat)}>
-                        <div className="attention-item-heading">
-                          <h3>{seat.display_name}</h3>
-                          <span className="review-label">Needs Review</span>
-                        </div>
-                        <p>
-                          {seat.state
-                            ? statuses[seat.state.status].detail
-                            : "Review this seat’s observation."}
-                        </p>
-                        <div className="attention-actions">
-                          <button
-                            type="button"
-                            onClick={(event) =>
-                              selectSeat(seat, event.currentTarget)
-                            }
-                          >
-                            View details
-                          </button>
-                          <button
-                            className="text-button"
-                            type="button"
-                            onClick={() => dismiss(seat)}
-                          >
-                            Dismiss
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
+                {!reviewsEnabled || configurationError ? (
                   <div className="queue-empty">
-                    <p>
-                      {!feed.snapshot
-                        ? "Waiting for observations"
-                        : reviewSeats.length
-                          ? "Review items dismissed"
-                          : "No seats need review"}
-                    </p>
+                    <p>Teacher reviews not connected</p>
                     <span>
-                      {!feed.snapshot
-                        ? "Attention items will appear when seat data is available."
-                        : reviewSeats.length
-                          ? "Seat statuses remain visible below the classroom feed."
-                          : "Seats marked for review or support will appear here."}
+                      Pending reviews will appear here when the review data
+                      source is available.
                     </span>
                   </div>
+                ) : (
+                  <>
+                    {reviews.error || reviews.connection === "disconnected" ? (
+                      <div className="review-feed-notice" role="alert">
+                        <p>
+                          {reviews.error ??
+                            "Live review updates are disconnected."}
+                        </p>
+                        {reviews.reviews ? (
+                          <p>
+                            Showing the last loaded reviews. Resolved items may
+                            still appear.
+                          </p>
+                        ) : null}
+                        <button
+                          type="button"
+                          disabled={reviews.loading}
+                          onClick={() => setReviewAttempt((n) => n + 1)}
+                        >
+                          Retry reviews
+                        </button>
+                      </div>
+                    ) : null}
+                    {queue.length ? (
+                      <ul className="attention-list">
+                        {queue.map((review) => (
+                          <li key={review.id}>
+                            <button
+                              type="button"
+                              className="review-entry"
+                              id={`review-${review.id}`}
+                              onClick={() => {
+                                setSelectedId(null);
+                                setSelectedReviewId(review.id);
+                              }}
+                            >
+                              <span className="attention-item-heading">
+                                <span className="review-person">
+                                  {seats.find(
+                                    (seat) => seat.id === review.seat_id,
+                                  )?.display_name ?? review.seat_id}
+                                </span>
+                                <span
+                                  className={`review-label ${review.priority === "elevated" ? "is-elevated" : ""}`}
+                                >
+                                  {priorityLabels[review.priority]}
+                                </span>
+                                <svg
+                                  className="review-chevron"
+                                  viewBox="0 0 16 16"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  aria-hidden="true"
+                                >
+                                  <path d="m6 4 4 4-4 4" />
+                                </svg>
+                              </span>
+                              <span className="review-metadata">
+                                <span>
+                                  {activityLabel(
+                                    review.activity_id,
+                                    feed.snapshot?.activities.find(
+                                      (item) => item.id === review.activity_id,
+                                    )?.name,
+                                  )}
+                                </span>
+                                <time dateTime={review.created_at}>
+                                  {new Intl.DateTimeFormat(undefined, {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                  }).format(new Date(review.created_at))}
+                                </time>
+                              </span>
+                              <span className="sr-only">View review</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : !reviews.error &&
+                      reviews.connection !== "disconnected" ? (
+                      <div className="queue-empty" role="status">
+                        <p>
+                          {reviews.reviews === null
+                            ? "Loading teacher reviews…"
+                            : "No pending teacher reviews"}
+                        </p>
+                        <span>
+                          {reviews.reviews === null
+                            ? "Checking the review queue."
+                            : "New pending reviews will appear here automatically."}
+                        </span>
+                      </div>
+                    ) : null}
+                  </>
                 )}
-                {dismissed.size > 0 ? (
-                  <div className="dismiss-note">
-                    <p>
-                      Dismiss hides an observation for this visit. New
-                      observations can appear again.
-                    </p>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => {
-                        setDismissed(new Set());
-                        attentionHeading.current?.focus();
-                      }}
-                    >
-                      Restore dismissed items
-                    </button>
-                  </div>
-                ) : null}
               </section>
             )}
           </Card>
@@ -429,7 +671,11 @@ export default function Dashboard() {
           <span>
             Student camera images and video stay on the station laptop.
           </span>
-          <span>Session controls are not connected.</span>
+          <span>
+            {sessionControlsEnabled
+              ? "Session controls use saved station state."
+              : "Session controls are not connected."}
+          </span>
         </footer>
       </main>
     </div>

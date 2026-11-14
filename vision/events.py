@@ -82,7 +82,11 @@ class SupabaseSink:
 
     def write_seat_state(self, row: dict[str, Any]) -> None:
         """Upsert the complete SeatState row, including tracking_valid."""
-        self.client.table("seat_state").upsert(row, on_conflict="seat_id").execute()
+        # Legacy mode must still work before lifecycle migration 005 exists.
+        payload = dict(row)
+        if payload.get("session_revision") is None:
+            payload.pop("session_revision", None)
+        self.client.table("seat_state").upsert(payload, on_conflict="seat_id").execute()
 
 
 class Emitter:
