@@ -17,6 +17,13 @@ from functools import lru_cache
 from pathlib import Path
 
 ACTIVITIES_FILE = Path(__file__).resolve().parent / "activities.json"
+# Gestures a teacher created from the dashboard. Stored next to their recorded
+# examples in vision/templates/ (git-ignored, never leaves this laptop). The dots
+# in the name keep it apart from any <activity_id>.json example file.
+CUSTOM_FILE = ACTIVITIES_FILE.parent / "templates" / "custom_gestures.catalog.json"
+CUSTOM_PREFIX = "custom_"
+CUSTOM_SUCCESS, CUSTOM_REVIEW = 0.78, 0.58
+_custom_lock = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -35,7 +42,7 @@ class Activity:
 
 @lru_cache(maxsize=1)
 def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
-    items = json.loads(Path(path).read_text())
+    items = json.loads(Path(path).read_text()) + _read_custom()
     result = {}
     for item in items:
         activity = Activity(
@@ -54,6 +61,63 @@ def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
             raise ValueError(f"{activity.id}: need 0 <= review <= success <= 1")
         result[activity.id] = activity
     return result
+
+
+def _read_custom() -> list[dict]:
+    if not CUSTOM_FILE.exists():
+        return []
+    return json.loads(CUSTOM_FILE.read_text())
+
+
+def _write_custom(items: list[dict]) -> None:
+    CUSTOM_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = CUSTOM_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(items, indent=2))
+    tmp.replace(CUSTOM_FILE)
+    load_activities.cache_clear()
+
+
+def is_custom(activity_id: str) -> bool:
+    return any(item["id"] == activity_id for item in _read_custom())
+
+
+def _slug(name: str) -> str:
+    out = "".join(c if c.isalnum() else "_" for c in name.strip().lower())
+    return "_".join(p for p in out.split("_") if p)[:40]
+
+
+def add_custom_gesture(name: str, keywords: tuple[str, ...] = ()) -> Activity:
+    """Create a teacher-recorded gesture task. Returns it; record examples next."""
+    slug = _slug(name)
+    if not slug:
+        raise ValueError("name needs at least one letter or digit")
+    with _custom_lock:
+        taken = set(load_activities())
+        aid, n = f"{CUSTOM_PREFIX}{slug}", 2
+        while aid in taken:
+            aid, n = f"{CUSTOM_PREFIX}{slug}_{n}", n + 1
+        item = {
+            "id": aid,
+            "name": name.strip(),
+            "check_type": "gesture",
+            "keywords": list(keywords) or [name.strip().lower()],
+            "success_threshold": CUSTOM_SUCCESS,
+            "review_threshold": CUSTOM_REVIEW,
+            "no_progress_seconds": 30,
+        }
+        _write_custom(_read_custom() + [item])
+    return get(aid)
+
+
+def remove_custom_gesture(activity_id: str) -> bool:
+    """Remove a dashboard-created gesture. Built-in catalog entries can't be removed."""
+    with _custom_lock:
+        items = _read_custom()
+        kept = [i for i in items if i["id"] != activity_id]
+        if len(kept) == len(items):
+            return False
+        _write_custom(kept)
+    return True
 
 
 def get(activity_id: str) -> Activity:

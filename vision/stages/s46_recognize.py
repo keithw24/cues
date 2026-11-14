@@ -139,14 +139,21 @@ class RecognizeStage:
     ) -> None:
         self.grouping = grouping
         self.cache = cache or MatcherCache()
-        self.gesture_ids = tuple(gesture_ids) if gesture_ids is not None else all_gesture_ids()
+        # None = follow the catalog live, so gestures created from the dashboard
+        # are detected without a restart.
+        self._fixed_ids = tuple(gesture_ids) if gesture_ids is not None else None
         self._recognizers: dict[str, Recognizer] = {}
+
+    @property
+    def gesture_ids(self) -> tuple[str, ...]:
+        return self._fixed_ids if self._fixed_ids is not None else all_gesture_ids()
 
     def process(self, frame, ctx) -> None:
         result = {}
         live = self.grouping.ids(ctx)
+        ids = self.gesture_ids
         for pid in live:
-            scores = score_gestures(pid, ctx, self.cache, self.gesture_ids)
+            scores = score_gestures(pid, ctx, self.cache, ids)
             cand, _ = candidate(scores)
             shown = self._recognizers.setdefault(pid, Recognizer()).update(frame.timestamp, cand)
             if shown is None:
