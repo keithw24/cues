@@ -27,7 +27,7 @@ changes. Production builds evaluate flags/public configuration at build time.
 
 ## Local classroom feed
 
-No WebRTC component or signaling service exists in this checkout. The frontend
+MJPEG is the intentional local demo transport; WebRTC is not required. The frontend
 uses the existing vision service's MJPEG endpoint directly from the browser:
 `http://127.0.0.1:8000/stream`. It is not proxied through Next.js or a cloud API.
 The dashboard must be opened on localhost/127.0.0.1 on the station laptop.
@@ -63,8 +63,9 @@ Supabase, the LLM, or another cloud service.
 - Match score and observation time live in details. Lost tracking/missing scores
   show Unavailable. No fabricated observations fill loading or empty views.
 - End session is visibly disabled: no session-write endpoint exists. Activity
-  controls, persistent alert dismissal, approval actions, progress history, stall
-  duration, and agent assessments require their actual integrations. No backend
+  controls, persistent review resolution and display of backend history/assessment context
+  require frontend integration. Supabase teacher_reviews and authenticated
+  resolve_teacher_review RPC already exist; local hiding is not review resolution. No backend
   code or shared event/table contracts were changed for this redesign.
 
 ## Verification
@@ -85,7 +86,7 @@ attention/dismiss/restore using browser-only intercepted synthetic state. No
 Supabase rows were modified. The layout was checked from 320–1440px: video takes
 about 69% of the laptop workspace and attention moves below it on mobile.
 
-Physical camera/model behavior, actual WebRTC, authenticated session/alert writes,
+Physical camera/model behavior, authenticated session/review UI wiring,
 and physical touch-device testing remain unverified or unimplemented as above.
 
 ## UI components and reference palette

@@ -1,3 +1,9 @@
+# Archived coordination material
+
+Historical build plan; statements below may describe superseded implementation.
+Current authority: [PRD](../../PRD-cues.md), [overview](../../README.md), and
+[startup](../../STARTUP.md). Engineering summaries are in the parent notes folder.
+
 # Cues — Team Workflow
 
 This file defines how the 3-person Cues team builds independently and integrates safely.
@@ -124,7 +130,7 @@ Owns:
 
 LLM provider and model selection is undecided; Groq and SpaceXSI are under consideration. Keep provider integration configurable and separate from routing and tool logic.
 
-The future Deep Agent tool architecture is preserved in [PRD §12.6](PRD-cues.md#126-planned-deep-agent-tools--not-implemented): optional progress-history retrieval (likely first), prompt-history retrieval where data exists, and teacher-review requests. These tools and the Deep Agent runtime are planned, not implemented.
+The future Deep Agent tool architecture is preserved in [PRD §12.6](../../PRD-cues.md#12-ai-support-agent): optional progress-history retrieval (likely first), prompt-history retrieval where data exists, and teacher-review requests. These tools and the Deep Agent runtime are planned, not implemented.
 
 Michelle's code receives **structured state only**.
 

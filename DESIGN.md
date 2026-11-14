@@ -137,5 +137,5 @@ The connect-feed action uses navy fill and white text; its hover fill is #1e293b
 - **Don't** restore glass, gradients, giant rounded tiles, heroes or oversized counts.
 - **Don't** add decorative charts, imagery or an icon to every label.
 - **Don't** imply dismissal resolves an alert, changes task state or applies support.
-- **Don't** claim WebRTC, connected session controls, history or agent assessments exist.
+- **Don't** imply that backend history/agent assessments are already wired into the current detail panels. MJPEG is the intentional local demo transport; WebRTC is not required.
 - **Don't** style tracking loss as student failure or match scores as probabilities.
