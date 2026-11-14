@@ -62,14 +62,56 @@ def test_ids_follow_people_who_move_a_little():
     assert moved_left == left_id
 
 
+def seen_for(tr, frames, x=0.2, start=0.0, scale=0.1):
+    """A person seen on `frames` consecutive frames (enough to count as confirmed)."""
+    for i in range(frames):
+        tr.update(start + i / 30, [pose(x, scale=scale)])
+    return start + (frames - 1) / 30
+
+
 def test_ids_are_released_after_the_timeout_and_reused():
     tr = PersonTracker(release_seconds=10)
-    tr.update(0.0, [pose(0.2)])
+    seen_for(tr, 12)
     assert tr.update(5.0, []) == {}  # not visible
     assert tr.live_ids == ["S1-P1"]  # still live: status can report tracking_lost
     tr.update(11.0, [])
     assert tr.live_ids == []
     assert set(tr.update(12.0, [pose(0.8)])) == {"S1-P1"}
+
+
+def test_a_second_detection_of_the_same_person_is_not_a_new_person():
+    tr = PersonTracker()
+    seen_for(tr, 12)
+    # MediaPipe reports the same person twice: a slightly smaller box inside the first.
+    people = tr.update(1.0, [pose(0.2), pose(0.2, scale=0.09)])
+    assert set(people) == {"S1-P1"}
+    assert tr.live_ids == ["S1-P1"]
+
+
+def test_two_people_standing_apart_still_get_two_ids():
+    tr = PersonTracker()
+    people = tr.update(0.0, [pose(0.25), pose(0.7)])
+    assert set(people) == {"S1-P1", "S1-P2"}
+
+
+def test_a_stray_detection_is_released_quickly_and_its_id_reused():
+    tr = PersonTracker()
+    seen_for(tr, 12)
+    t = 1.0
+    tr.update(t, [pose(0.2), pose(0.8)])  # a stray second person for one frame
+    assert tr.live_ids == ["S1-P1", "S1-P2"]
+    for i in range(1, 40):  # gone again; the real person stays
+        tr.update(t + i / 30, [pose(0.2)])
+    assert tr.live_ids == ["S1-P1"]
+    assert set(tr.update(3.0, [pose(0.2), pose(0.8)])) == {"S1-P1", "S1-P2"}
+
+
+def test_a_confirmed_person_keeps_their_id_through_a_long_miss():
+    tr = PersonTracker()
+    last = seen_for(tr, 12)
+    tr.update(last + 3.0, [])  # gone for 3 s: far longer than a stray's 1 s
+    assert tr.live_ids == ["S1-P1"]
+    assert set(tr.update(last + 3.1, [pose(0.21)])) == {"S1-P1"}
 
 
 def test_at_most_four_people():
@@ -99,7 +141,7 @@ def test_box_is_smoothed_between_frames():
 def test_person_survives_a_short_miss_but_not_a_long_one():
     tr = PersonTracker()
     tr.update(0.0, [pose(0.5)])
-    assert "S1-P1" in tr.update(0.3, [])  # missed one frame: still shown
+    assert "S1-P1" in tr.update(0.2, [])  # missed a few frames: still shown
     assert tr.update(1.0, []) == {}  # gone from view (still a live id)
     assert tr.live_ids == ["S1-P1"]
     assert set(tr.update(1.2, [pose(0.52)])) == {"S1-P1"}  # same id when back
@@ -330,3 +372,208 @@ def test_all_scores_stage_is_skipped_when_flag_is_off(monkeypatch):
 
     monkeypatch.delenv("CUES_FLAG_VISION_ALL_SCORES", raising=False)
     assert "all_scores" not in [s.name for s in discover_stages()]
+
+
+def test_a_returning_person_gets_their_old_id_even_from_a_different_spot():
+    tr = PersonTracker()
+    last = seen_for(tr, 40, x=0.2)
+    assert tr.live_ids == ["S1-P1"]
+    tr.update(last + 3.0, [])  # out of view for 3 s
+    back = tr.update(last + 3.1, [pose(0.8)])  # returns somewhere else entirely
+    assert set(back) == {"S1-P1"}
+
+
+def test_a_stray_id_does_not_take_the_place_of_the_person_who_left():
+    tr = PersonTracker()
+    t = 0.0
+    for i in range(40):  # the real person, at the left
+        t = i / 30
+        tr.update(t, [pose(0.2)] + ([pose(0.8)] if 20 <= i < 33 else []))
+    assert tr.live_ids == ["S1-P1", "S1-P2"]  # a stray lasted long enough to be tracked
+    tr.update(t + 3.0, [])  # everyone gone
+    back = tr.update(t + 3.1, [pose(0.25)])  # the real person comes back near the left
+    assert set(back) == {"S1-P1"}
+
+
+def test_a_new_person_while_someone_is_still_visible_gets_a_new_id():
+    tr = PersonTracker()
+    seen_for(tr, 40, x=0.2)
+    people = tr.update(2.0, [pose(0.2), pose(0.8)])
+    assert set(people) == {"S1-P1", "S1-P2"}
+
+
+def test_overlay_face_box_follows_the_body_between_face_detections():
+    from vision.people import Person
+    from vision.perception import Face
+    from vision.stages.s90_overlay import OverlayStage
+
+    stage = OverlayStage(grouping=PeopleGrouping())
+    blank = np.zeros((480, 640, 3), np.uint8)
+    face = Face((100, 100, 180, 190), blank[:1, :1], "S1-P1")
+
+    def ctx_at(cx):
+        lm = pose(cx)
+        return {"faces": {"S1-P1": face}, "people": {"S1-P1": Person("S1-P1", (0, 0, 1, 1), lm)}}
+
+    stage.process(Frame(blank, 0.0, 1), ctx_at(0.3))
+    ctx = ctx_at(0.4)  # same face detection (not refreshed), but the person moved right
+    stage.process(Frame(blank, 0.05, 2), ctx)
+    assert ctx["overlay_faces"]["S1-P1"][0] == pytest.approx(100 + 0.1 * 640, abs=1)
+
+
+def test_overlay_shows_no_gesture_label_when_the_hand_is_gone():
+    from types import SimpleNamespace
+
+    from vision.perception import Face
+    from vision.stages.s46_recognize import Recognized
+    from vision.stages.s90_overlay import OverlayStage
+
+    stage = OverlayStage(grouping=PeopleGrouping())
+    blank = np.zeros((480, 640, 3), np.uint8)
+    face = Face((100, 100, 180, 190), blank[:1, :1], "S1-P1")
+    ctx = {
+        "person_ids": ["S1-P1"],
+        "faces": {"S1-P1": face},
+        "recognized": {"S1-P1": Recognized("thumbs_up", 0.9, None)},
+    }
+    stage.process(SimpleNamespace(timestamp=0.0, image=blank), ctx)
+    img = blank.copy()
+    stage.draw(img, ctx)
+    green = (img[:, :, 1] == 190) & (img[:, :, 0] == 0) & (img[:, :, 2] == 0)
+    assert not green.any()  # no green gesture label on the face or anywhere else
+
+
+def test_face_box_disappears_when_the_person_leaves_the_frame():
+    from vision.people import Person
+    from vision.perception import Face
+    from vision.stages.s90_overlay import OverlayStage
+
+    stage = OverlayStage(grouping=PeopleGrouping())
+    blank = np.zeros((480, 640, 3), np.uint8)
+    face = Face((100, 100, 180, 190), blank[:1, :1], "S1-P1")
+    person = {"S1-P1": Person("S1-P1", (0, 0, 1, 1), pose(0.3))}
+    ctx = {"faces": {"S1-P1": face}, "people": person}
+    stage.process(Frame(blank, 0.0, 1), ctx)
+    assert "S1-P1" in ctx["overlay_faces"]
+    # The body tracker loses them, while the face detector has not run again yet
+    # (the same old face is still in ctx): the box must go, not stay frozen.
+    ctx = {"faces": {"S1-P1": face}, "people": {}}
+    stage.process(Frame(blank, 0.05, 2), ctx)
+    assert "S1-P1" not in ctx["overlay_faces"]
+    ctx = {"faces": {"S1-P1": face}, "people": person}  # not brought back by the stale face
+    stage.process(Frame(blank, 0.1, 3), ctx)
+    assert "S1-P1" not in ctx["overlay_faces"]
+
+
+def test_a_stale_face_box_expires_even_if_the_face_detector_never_clears_it():
+    from vision.people import Person
+    from vision.perception import Face
+    from vision.stages.s90_overlay import OverlayStage
+
+    stage = OverlayStage(grouping=PeopleGrouping())
+    blank = np.zeros((480, 640, 3), np.uint8)
+    face = Face((100, 100, 180, 190), blank[:1, :1], "S1-P1")
+    person = {"S1-P1": Person("S1-P1", (0, 0, 1, 1), pose(0.3))}
+    stage.process(Frame(blank, 0.0, 1), {"faces": {"S1-P1": face}, "people": person})
+    ctx = {"faces": {"S1-P1": face}, "people": person}  # the same old face, frame after frame
+    stage.process(Frame(blank, 0.3, 2), ctx)
+    assert "S1-P1" in ctx["overlay_faces"]
+    stage.process(Frame(blank, 0.8, 3), ctx)
+    assert "S1-P1" not in ctx["overlay_faces"]  # held no longer than the grace period
+
+
+def _overlay_run(detections, scale_at=None, cx=0.5):
+    """Feed an OverlayStage one frame per 1/30 s; a new face detection every 6th frame.
+
+    detections: face boxes in order; scale_at(frame_index) -> body scale (default 0.1).
+    Returns the displayed face box for every frame.
+    """
+    from vision.people import Person
+    from vision.perception import Face
+    from vision.stages.s90_overlay import OverlayStage
+
+    stage = OverlayStage(grouping=PeopleGrouping())
+    blank = np.zeros((480, 640, 3), np.uint8)
+    shown, face = [], None
+    for i in range(len(detections) * 6):
+        if i % 6 == 0:
+            face = Face(detections[i // 6], blank[:1, :1], "S1-P1")
+        lm = pose(cx, scale=scale_at(i) if scale_at else 0.1)
+        ctx = {"faces": {"S1-P1": face}, "people": {"S1-P1": Person("S1-P1", (0, 0, 1, 1), lm)}}
+        stage.process(Frame(blank, i / 30, i), ctx)
+        shown.append(ctx["overlay_faces"]["S1-P1"])
+    return shown
+
+
+def test_face_box_stays_still_for_a_still_person_despite_detector_noise():
+    rng = np.random.default_rng(1)
+    noisy = [
+        (
+            100 + rng.normal(0, 2),
+            100 + rng.normal(0, 2),
+            180 + rng.normal(0, 2),
+            190 + rng.normal(0, 2),
+        )
+        for _ in range(30)
+    ]
+    shown = np.array(_overlay_run([(100, 100, 180, 190), *noisy])[6:])
+    assert (shown.max(axis=0) - shown.min(axis=0)).max() < 1.5  # pixels of wobble
+
+
+def test_a_hand_over_the_face_cannot_suddenly_shrink_the_face_box():
+    full, covered = (100, 100, 180, 190), (100, 100, 135, 150)  # detector sees half the face
+    shown = _overlay_run([full] * 3 + [covered] * 2)
+    widths = [b[2] - b[0] for b in shown]
+    assert min(widths) > 0.85 * 80  # one bad detection moves the width only a little
+    assert (
+        max(abs(a - b) for a, b in zip(widths, widths[1:], strict=False)) < 6
+    )  # no frame-to-frame jump
+
+
+def test_face_box_grows_when_the_person_moves_toward_the_camera():
+    def scale_at(i):
+        return 0.1 + 0.03 * min(i, 20) / 20  # shoulders 30% wider over 20 frames
+
+    boxes = []
+    for k in range(8):  # the detector reports the face as it really is: bigger each time
+        g = scale_at(6 * k) / 0.1
+        boxes.append((140 - 40 * g, 145 - 45 * g, 140 + 40 * g, 145 + 45 * g))
+    shown = _overlay_run(boxes, scale_at=scale_at)
+    start, end = shown[0], shown[-1]
+    assert (end[2] - end[0]) / (start[2] - start[0]) == pytest.approx(1.3, abs=0.06)
+
+
+def test_face_box_grows_between_detections_from_the_body_alone():
+    # The detector reports the same size every time (it cannot be trusted to keep
+    # up): the body's size change alone must still move the box toward 1.3x between
+    # detections, and the next detection only corrects it part of the way.
+    shown = _overlay_run(
+        [(100, 100, 180, 190)] * 6, scale_at=lambda i: 0.1 + 0.03 * min(i, 20) / 20
+    )
+    widths = [b[2] - b[0] for b in shown]
+    assert max(widths[:6]) > widths[0]  # grew within the first detection interval
+
+
+def test_hand_box_size_changes_only_a_little_per_frame():
+    from vision.stages.s90_overlay import HAND_SIZE_RANGE, smooth_box
+
+    old = (100.0, 100.0, 200.0, 200.0)
+    huge = (50.0, 50.0, 350.0, 350.0)  # a detector glitch triples the size
+    box = smooth_box(old, huge, 0.5, HAND_SIZE_RANGE)
+    assert box[2] - box[0] <= 100 * (1 + 0.5 * (HAND_SIZE_RANGE[1] - 1)) + 1e-6
+    assert box[2] - box[0] > 100  # it still grows, just slowly
+
+
+def test_hand_box_is_not_resized_across_a_jump_to_another_hand():
+    from types import SimpleNamespace
+
+    from vision.stages.s90_overlay import OverlayStage
+
+    stage = OverlayStage(grouping=PeopleGrouping())
+    stage._now = 0.0
+    first = stage._smooth_hand_box("S1-P1", (100, 100, 160, 160))
+    stage._now = 0.05
+    other = stage._smooth_hand_box("S1-P1", (400, 300, 560, 460))  # a different, bigger hand
+    assert first == (100, 100, 160, 160)
+    assert other == (400, 300, 560, 460)  # no slow morph across the screen
+    _ = SimpleNamespace
