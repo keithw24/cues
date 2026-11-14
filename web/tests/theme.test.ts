@@ -165,3 +165,13 @@ test("the workspace shows no simulated class or data labels", () => {
       /simulated class|Simulated data|Simulated seat|Simulated class/,
     );
 });
+
+test("no page shows a Workspace / … breadcrumb", async () => {
+  const { readdirSync } = await import("node:fs");
+  const files = readdirSync(new URL("../components/", import.meta.url))
+    .filter((name) => name.endsWith(".tsx"))
+    .map((name) => `../components/${name}`);
+  for (const file of files) {
+    assert.doesNotMatch(read(file), /page-breadcrumb|Workspace <span>\/<\/span>/, file);
+  }
+});

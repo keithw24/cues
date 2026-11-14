@@ -259,7 +259,7 @@ export default function TeacherLogin({
               <>
                 <p className="auth-hint">
                   Photon texts you when a student may need a hand: just the
-                  seat and task, never images.
+                  seat, never images.
                 </p>
                 <div className="auth-phone">
                   <label className="sr-only" htmlFor="teacher-country">
