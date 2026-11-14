@@ -172,5 +172,17 @@
     "default": true,
     "owner": "keith",
     "ticket": "station-handoff"
+  },
+  "agent.live_progress": {
+    "description": "Publish guarded live progress summaries after migration 012 deploys.",
+    "default": false,
+    "owner": "michelle",
+    "ticket": "live-progress"
+  },
+  "web.live_progress": {
+    "description": "Read agent-owned evaluated progress from seat_state after migration 012.",
+    "default": false,
+    "owner": "michelle",
+    "ticket": "live-progress"
   }
 }

@@ -107,11 +107,14 @@ class SeatStatePipeline:
         progress_window_seconds: float = 4,
         escalation_config: EscalationConfig = DEFAULT_ESCALATION_CONFIG,
         clock: Callable[[], datetime] | None = None,
+        publisher=None,
     ) -> None:
         catalog = [Activity.model_validate(item.model_dump()) for item in activities]
         self.activities = {item.id: item for item in catalog}
         if len(self.activities) != len(catalog):
             raise ValueError("activity IDs must be unique")
+        self.publisher = publisher
+        self._revision_started = {}
         self.agent = agent
         self.history = history
         self.router = router if router is not None else EvaluationRouter()
@@ -143,12 +146,14 @@ class SeatStatePipeline:
         key = (snapshot.session_id, snapshot.seat_id, snapshot.activity_id)
         evaluator = self._evaluators.get(key)
         if evaluator is None:
+            self._revision_started[key] = snapshot.updated_at
             evaluator = self._evaluators[key] = ProgressEvaluator(
                 activity, window_seconds=self.progress_window_seconds
             )
         if evaluator.key is not None and evaluator.key[-1] != snapshot.session_revision:
             if evaluator.last is not None and snapshot.updated_at <= evaluator.last:
                 return None
+            self._revision_started[key] = snapshot.updated_at
             evaluator.reset()
             self.router.reset(
                 session_id=snapshot.session_id,
@@ -164,6 +169,22 @@ class SeatStatePipeline:
         # become misleading history entries.
         if evaluator.last == snapshot.updated_at and evaluator.last != previous_timestamp:
             self.history.record(snapshot, progress)
+            if self.publisher is not None:
+                recent = [
+                    entry
+                    for entry in self.history.get_recent_progress_history(
+                        snapshot.session_id, snapshot.seat_id, snapshot.activity_id, limit=10
+                    )
+                    if entry.observed_at >= self._revision_started[key]
+                ]
+                try:
+                    self.publisher(snapshot, progress, recent)
+                except Exception as error:
+                    log.error(
+                        "Live progress publication failed seat=%s error=%s; check migration 012",
+                        snapshot.seat_id,
+                        type(error).__name__,
+                    )
         escalation = evaluate_escalation(
             progress, snapshot.expression_context, config=self.escalation_config
         )

@@ -77,12 +77,14 @@ function newFinishes(previous: Snapshot | null, next: Snapshot): Finish[] {
 }
 
 export default function LiveConnected({
+  liveProgressEnabled = false,
   personObservationsEnabled = false,
   reviewsEnabled = false,
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
   visionStationConfigEnabled = false,
 }: {
+  liveProgressEnabled?: boolean;
   personObservationsEnabled?: boolean;
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
@@ -159,6 +161,7 @@ export default function LiveConnected({
         }),
       personObservationsEnabled,
       station,
+      liveProgressEnabled,
     );
     const offline = () => subscription.disconnect();
     const online = () => setAttempt((n) => n + 1);
@@ -169,7 +172,7 @@ export default function LiveConnected({
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [attempt, client, personObservationsEnabled, station]);
+  }, [attempt, client, personObservationsEnabled, station, liveProgressEnabled]);
 
   const [reviews, setReviews] = useState<ReviewFeedState>(
     reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS,

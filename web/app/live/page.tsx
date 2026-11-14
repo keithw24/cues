@@ -25,7 +25,8 @@ export default async function LivePage() {
   const screen = (
     <LiveConnected
       visionStationConfigEnabled={isEnabled("web.vision_station_config")}
-      personObservationsEnabled={isEnabled("web.person_observations")}
+      liveProgressEnabled={isEnabled("web.live_progress")}
+        personObservationsEnabled={isEnabled("web.person_observations")}
       reviewsEnabled={isEnabled("web.teacher_reviews")}
       reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
       teacherLoginEnabled={isEnabled("web.teacher_login")}

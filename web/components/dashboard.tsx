@@ -175,6 +175,7 @@ function SeatDetails({
 }
 
 export default function Dashboard({
+  liveProgressEnabled = false,
   personObservationsEnabled = false,
   sessionControlsEnabled = false,
   stationId = "",
@@ -186,6 +187,7 @@ export default function Dashboard({
   liveViewEnabled = false,
   visionStationConfigEnabled = false,
 }: {
+  liveProgressEnabled?: boolean;
   personObservationsEnabled?: boolean;
   sessionControlsEnabled?: boolean;
   /** Explicit dev/test override (CUES_STATION_OVERRIDE). Normally empty: a signed-in
@@ -335,6 +337,7 @@ export default function Dashboard({
       },
       personObservationsEnabled,
       station,
+      liveProgressEnabled,
     );
     const offline = () => subscription.disconnect();
     const online = () => setAttempt((n) => n + 1);
@@ -345,7 +348,7 @@ export default function Dashboard({
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [attempt, client, personObservationsEnabled, station]);
+  }, [attempt, client, personObservationsEnabled, station, liveProgressEnabled]);
   useEffect(() => {
     if (!client) return;
     const subscription = watchTeacherReviews(
