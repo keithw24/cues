@@ -30,7 +30,10 @@ export function WorkspaceSidebar({
       ) : null}
       <nav className="sidebar-nav" aria-label="Workspace">
         {accountEnabled ? (
-          <Link href="/settings/profile">Teacher profile</Link>
+          <Link href="/settings/profile">
+            <WorkspaceIcon name="account" />
+            <span className="nav-label">Teacher profile</span>
+          </Link>
         ) : null}
         <Link
           href="/dashboard"
