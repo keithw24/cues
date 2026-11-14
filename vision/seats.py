@@ -57,6 +57,25 @@ class SeatZones:
         with self._lock:
             self.swapped = not self.swapped
 
+    # ---- grouping interface (shared with vision.people.PeopleGrouping) ----
+    mode = "seats"
+
+    def ids(self, ctx=None) -> list[str]:
+        return self.seat_ids
+
+    def hand_owner(self, hand_points, ctx=None) -> str | None:
+        return self.assign(float(hand_points[0, 0]))
+
+    def face_owner(self, cx: float, cy: float, box=None, ctx=None) -> str | None:
+        return self.assign(cx)
+
+    def anchor(self, seat_id: str, ctx, w: int, h: int, row: int) -> tuple[int, int]:
+        x = 10 if seat_id == self.left_id else w // 2 + 10
+        return x, 48 + 24 * row
+
+    def color(self, seat_id: str) -> tuple[int, int, int]:
+        return {"L": (255, 160, 0), "R": (0, 200, 255)}.get(seat_id[-1], (200, 200, 200))
+
     def as_dict(self) -> dict:
         return {
             "station_id": self.station_id,

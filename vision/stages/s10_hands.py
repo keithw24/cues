@@ -9,8 +9,8 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
+from vision.grouping import GROUPING
 from vision.perception import Hand
-from vision.seats import ZONES
 from vision.stages.s00_seats import seat_color
 
 FLAG = "vision.hands"
@@ -25,12 +25,12 @@ CONNECTIONS = [
 ]  # fmt: skip
 
 
-def hands_from_result(result, zones=ZONES) -> dict[str, list[Hand]]:
-    """Convert a MediaPipe HandLandmarkerResult into per-seat Hand lists."""
+def hands_from_result(result, zones=GROUPING, ctx=None) -> dict[str, list[Hand]]:
+    """Convert a MediaPipe HandLandmarkerResult into Hand lists per seat or person."""
     by_seat: dict[str, list[Hand]] = {}
     for landmarks, handedness in zip(result.hand_landmarks, result.handedness, strict=False):
         points = np.array([[p.x, p.y, p.z] for p in landmarks], dtype=np.float32)
-        seat = zones.assign(float(points[0, 0]))
+        seat = zones.hand_owner(points, ctx)
         if seat is None:
             continue
         side = handedness[0].category_name if handedness else "Right"
@@ -42,7 +42,7 @@ class HandsStage:
     name = "hands"
     rate_hz = None  # every frame
 
-    def __init__(self, detector=None, zones=ZONES) -> None:
+    def __init__(self, detector=None, zones=GROUPING) -> None:
         self.zones = zones
         self._detector = detector
 
@@ -59,7 +59,7 @@ class HandsStage:
 
         rgb = cv2.cvtColor(frame.image, cv2.COLOR_BGR2RGB)
         result = self.detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
-        ctx["hands"] = hands_from_result(result, self.zones)
+        ctx["hands"] = hands_from_result(result, self.zones, ctx)
 
     def draw(self, image, ctx) -> None:
         h, w = image.shape[:2]

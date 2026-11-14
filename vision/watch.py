@@ -39,7 +39,7 @@ PERCEPTION_FLAGS = (
 def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False) -> str:
     lines = [f"Seat: {seat}", f"Task: {task}"]
     if match is None:
-        lines.append("Match score: -- (no hand in this seat)")
+        lines.append("Match score: -- (no hand detected)")
     elif match.score is None:
         lines.append(f"Match score: -- ({match.reason})")
     else:
@@ -47,7 +47,7 @@ def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False
         if debug and match.detail:
             lines.append(f"  ({match.detail})")
     if not expression:
-        lines.append("Expression: -- (no face in this seat)")
+        lines.append("Expression: -- (no face detected)")
     else:
         lines.append("Expression:")
         for label, p in sorted(expression.items(), key=lambda kv: -kv[1])[:top]:
@@ -56,7 +56,7 @@ def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False
 
 
 def format_snapshot(ctx, seat_ids, tasks, top: int = 3, debug: bool = False) -> str:
-    blocks = []
+    blocks = [] if seat_ids else ["No people detected yet."]
     for seat in seat_ids:
         task = tasks.for_seat(seat)
         status = ctx.get("status", {}).get(seat)
@@ -123,8 +123,8 @@ def main(argv: list[str] | None = None) -> None:
     from vision import flags
     from vision.activities import TASKS
     from vision.camera import camera_from_env
+    from vision.grouping import GROUPING
     from vision.pipeline import Pipeline, discover_stages
-    from vision.seats import ZONES
 
     if args.task:
         TASKS.set_class_task(args.task)
@@ -151,7 +151,9 @@ def main(argv: list[str] | None = None) -> None:
             if time.monotonic() >= next_print:
                 next_print += 1.0
                 print("\033[2J\033[H" if os.isatty(1) else "-" * 40 + "\n", end="")
-                snap = format_snapshot(pipeline.ctx, ZONES.seat_ids, TASKS, args.top, args.debug)
+                snap = format_snapshot(
+                    pipeline.ctx, GROUPING.ids(pipeline.ctx), TASKS, args.top, args.debug
+                )
                 print(snap, flush=True)
                 print(f"\n[{pipeline.health()['fps']} fps]", flush=True)
     except KeyboardInterrupt:

@@ -17,7 +17,7 @@ from collections import deque
 import cv2
 import numpy as np
 
-from vision.seats import ZONES
+from vision.grouping import GROUPING
 from vision.stages.s00_seats import seat_color
 
 FLAG = "vision.expression"
@@ -59,7 +59,7 @@ class ExpressionStage:
     name = "expression"
     rate_hz = 3.0
 
-    def __init__(self, recognizer=None, zones=ZONES, window: float = WINDOW_SECONDS) -> None:
+    def __init__(self, recognizer=None, zones=GROUPING, window: float = WINDOW_SECONDS) -> None:
         self.zones = zones
         self.window = window
         self._recognizer = recognizer

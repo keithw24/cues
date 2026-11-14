@@ -10,8 +10,8 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
+from vision.grouping import GROUPING
 from vision.perception import Face
-from vision.seats import ZONES
 from vision.stages.s00_seats import seat_color
 
 FLAG = "vision.faces"
@@ -23,7 +23,7 @@ def padded_box(x: int, y: int, bw: int, bh: int, w: int, h: int, pad: float = PA
     return max(0, x - px), max(0, y - py), min(w, x + bw + px), min(h, y + bh + py)
 
 
-def faces_from_result(result, rgb: np.ndarray, zones=ZONES) -> dict[str, Face]:
+def faces_from_result(result, rgb: np.ndarray, zones=GROUPING, ctx=None) -> dict[str, Face]:
     """Convert a MediaPipe FaceDetectorResult into one Face per seat."""
     h, w = rgb.shape[:2]
     best: dict[str, tuple[int, Face]] = {}
@@ -31,7 +31,14 @@ def faces_from_result(result, rgb: np.ndarray, zones=ZONES) -> dict[str, Face]:
         b = det.bounding_box
         if b.width <= 0 or b.height <= 0:
             continue
-        seat = zones.assign((b.origin_x + b.width / 2) / w)
+        norm_box = (
+            b.origin_x / w,
+            b.origin_y / h,
+            (b.origin_x + b.width) / w,
+            (b.origin_y + b.height) / h,
+        )
+        cx, cy = (b.origin_x + b.width / 2) / w, (b.origin_y + b.height / 2) / h
+        seat = zones.face_owner(cx, cy, norm_box, ctx)
         if seat is None:
             continue
         x0, y0, x1, y1 = padded_box(b.origin_x, b.origin_y, b.width, b.height, w, h)
@@ -48,7 +55,7 @@ class FacesStage:
     name = "faces"
     rate_hz = 5.0
 
-    def __init__(self, detector=None, zones=ZONES) -> None:
+    def __init__(self, detector=None, zones=GROUPING) -> None:
         self.zones = zones
         self._detector = detector
 
@@ -65,7 +72,7 @@ class FacesStage:
 
         rgb = cv2.cvtColor(frame.image, cv2.COLOR_BGR2RGB)
         result = self.detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
-        ctx["faces"] = faces_from_result(result, rgb, self.zones)
+        ctx["faces"] = faces_from_result(result, rgb, self.zones, ctx)
 
     def draw(self, image, ctx) -> None:
         for seat, face in ctx.get("faces", {}).items():

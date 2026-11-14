@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 
 from vision import activities
 from vision.activities import TASKS
-from vision.seats import ZONES
+from vision.grouping import GROUPING
 from vision.status import ExpressionTracker, SeatTracker, StatusEvent
 
 FLAG = "vision.task_status"
@@ -48,7 +48,7 @@ class StatusStage:
     name = "status"
     rate_hz = None
 
-    def __init__(self, emitter=None, tasks=TASKS, zones=ZONES) -> None:
+    def __init__(self, emitter=None, tasks=TASKS, zones=GROUPING) -> None:
         self.tasks = tasks
         self.zones = zones
         self._emitter = emitter
@@ -72,20 +72,27 @@ class StatusStage:
         hands = ctx.get("hands", {})
         faces = ctx.get("faces", {})
         expressions = ctx.get("expression", {})
-        for seat in self.zones.seat_ids:
+        for seat in self.zones.ids(ctx):
             activity = activities.get(self.tasks.for_seat(seat))
             tracker = self._trackers.get(seat)
             if tracker is None or tracker.activity.id != activity.id:
                 tracker = self._trackers[seat] = SeatTracker(seat, activity)
             match = matches.get(seat)
             score = match.score if match is not None and match.activity_id == activity.id else None
-            events = tracker.update(t, score, seat in hands, seat in faces)
+            visible = seat in faces or seat in ctx.get("people", {})
+            events = tracker.update(t, score, seat in hands, visible)
             expr_tracker = self._expression.setdefault(seat, ExpressionTracker())
             events += expr_tracker.update(t, expressions.get(seat))
             for event in events:
                 self._send_event(seat, activity.id, event)
                 self._last_event[seat] = (event.type, t)
             self._maybe_send_state(seat, tracker, score, expressions.get(seat), t)
+        live = set(self.zones.ids(ctx))
+        for gone in [s for s in self._trackers if s not in live]:  # released person ids
+            self._trackers.pop(gone, None)
+            self._expression.pop(gone, None)
+            self._last_state.pop(gone, None)
+            self._last_event.pop(gone, None)
         ctx["status"] = {seat: tr.status for seat, tr in self._trackers.items()}
         ctx["events"] = list(self.recent)
         ctx["last_event"] = {s: e for s, (e, when) in self._last_event.items() if t - when < 3.0}
@@ -146,10 +153,13 @@ class StatusStage:
         }
         last = ctx.get("last_event", {})
         for seat, status in ctx.get("status", {}).items():
-            x = 10 if seat == self.zones.left_id else w // 2 + 10
-            cv2.putText(image, status, (x, 48), font, 0.6, colors.get(status, (255, 255, 255)), 2)
+            anchor = self.zones.anchor(seat, ctx, w, h, row=0)
+            if anchor is None:
+                continue
+            x, y = anchor
+            cv2.putText(image, status, (x, y), font, 0.6, colors.get(status, (255, 255, 255)), 2)
             if seat in last:  # the latest event stays on screen for 3 s
-                cv2.putText(image, last[seat], (x, 72), font, 0.6, (0, 255, 255), 2)
+                cv2.putText(image, last[seat], (x, y + 22), font, 0.6, (0, 255, 255), 2)
 
     def close(self) -> None:
         if self._emitter is not None:

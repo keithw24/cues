@@ -20,6 +20,10 @@ MODEL_URLS = {
         "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
         "hand_landmarker/float16/1/hand_landmarker.task"
     ),
+    "pose_landmarker_lite.task": (
+        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
+        "pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+    ),
     "blaze_face_short_range.tflite": (
         "https://storage.googleapis.com/mediapipe-models/face_detector/"
         "blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
@@ -54,6 +58,18 @@ def hand_landmarker(num_hands: int = 4):
         num_hands=num_hands,
     )
     return HandLandmarker.create_from_options(options)
+
+
+def pose_landmarker(num_poses: int = 4):
+    """MediaPipe Pose Landmarker (lite) in IMAGE mode: 33 body points per person."""
+    from mediapipe.tasks.python import BaseOptions
+    from mediapipe.tasks.python.vision import PoseLandmarker, PoseLandmarkerOptions
+
+    options = PoseLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=str(model_path("pose_landmarker_lite.task"))),
+        num_poses=num_poses,
+    )
+    return PoseLandmarker.create_from_options(options)
 
 
 def face_detector(min_confidence: float = 0.5):

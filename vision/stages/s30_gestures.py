@@ -14,8 +14,8 @@ from vision.activities import TASKS
 from vision.gestures import templates as tpl
 from vision.gestures.matcher import Matcher
 from vision.gestures.normalize import normalize
+from vision.grouping import GROUPING
 from vision.perception import Match
-from vision.seats import ZONES
 from vision.stages.s00_seats import seat_color
 
 FLAG = "vision.gestures"
@@ -47,7 +47,7 @@ class GesturesStage:
     name = "gestures"
     rate_hz = None
 
-    def __init__(self, tasks=TASKS, zones=ZONES, cache: MatcherCache | None = None) -> None:
+    def __init__(self, tasks=TASKS, zones=GROUPING, cache: MatcherCache | None = None) -> None:
         self.tasks = tasks
         self.zones = zones
         self.cache = cache or MatcherCache()
@@ -55,7 +55,7 @@ class GesturesStage:
     def process(self, frame, ctx) -> None:
         hands = ctx.get("hands", {})
         result: dict[str, Match] = {}
-        for seat in self.zones.seat_ids:
+        for seat in self.zones.ids(ctx):
             activity_id = self.tasks.for_seat(seat)
             if activities.get(activity_id).check_type != "gesture":
                 continue
@@ -79,12 +79,12 @@ class GesturesStage:
     def draw(self, image, ctx) -> None:
         h, w = image.shape[:2]
         for seat, match in ctx.get("match", {}).items():
-            x = 10 if seat == self.zones.left_id else w // 2 + 10
+            anchor = self.zones.anchor(seat, ctx, w, h, row=2)
+            if anchor is None:
+                continue
             score = "--" if match.score is None else f"{match.score:.2f}"
             text = f"{match.activity_id}: {score}"
-            cv2.putText(
-                image, text, (x, h - 16), cv2.FONT_HERSHEY_SIMPLEX, 0.6, seat_color(seat), 2
-            )
+            cv2.putText(image, text, anchor, cv2.FONT_HERSHEY_SIMPLEX, 0.6, seat_color(seat), 2)
 
 
 def create_stage() -> GesturesStage:
