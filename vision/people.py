@@ -22,7 +22,6 @@ and can be reused.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -301,4 +300,7 @@ class PeopleGrouping:
 
 def grouping_from_env() -> PeopleGrouping:
     """The service always groups by person (the fixed-seat mode was removed)."""
-    return PeopleGrouping(os.environ.get("CUES_STATION_ID", "S1"))
+    from vision.station import STATION, UNCONFIGURED_PREFIX
+
+    # Person ids come from PeopleStage, which follows the current station.
+    return PeopleGrouping(STATION.get() or UNCONFIGURED_PREFIX)

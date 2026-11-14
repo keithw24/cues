@@ -68,9 +68,23 @@ def frame_activity(tasks, seat_id: str, ctx: dict) -> str | None:
 
 
 class StationSessionSync:
-    def __init__(self, client, station_id: str, state=STATION_SESSION, poll_seconds=1.0):
+    """Polls the active session of the station this laptop works for.
+
+    `station` is a vision.station.ActiveStation (the dashboard's station) or a
+    fixed station id. With no station yet, nothing is read or reported. A poll
+    that started before a station change is discarded, never confirmed.
+    """
+
+    def __init__(self, client, station=None, state=STATION_SESSION, poll_seconds=1.0):
+        from vision import station as station_module
+
+        if station is None:
+            station = station_module.STATION
+        elif isinstance(station, str):
+            station = station_module.ActiveStation(station, pinned=True)
         self.client = client
-        self.station_id = station_id
+        self.station = station
+        self.station_id: str | None = station.get()
         self.state = state
         self.poll_seconds = poll_seconds
         self._stop = threading.Event()
@@ -93,6 +107,11 @@ class StationSessionSync:
         ).execute()
 
     def check_once(self) -> Session | None:
+        station_id, generation = self.station.snapshot()
+        self.station_id = station_id
+        if station_id is None:
+            self.state.invalidate()  # no teacher station yet: tasks stay paused
+            return None
         try:
             rows = (
                 self.client.table("sessions")
@@ -130,8 +149,8 @@ class StationSessionSync:
                 status = "idle"
             # A failed acknowledgement must not claim that the station is ready.
             self._report(session, status)
-            if self._stop.is_set():
-                self.state.invalidate()
+            if self._stop.is_set() or self.station.generation != generation:
+                self.state.invalidate()  # stopped, or the station changed mid-poll
                 return None
             self.state.confirm(session)
             return session

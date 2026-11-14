@@ -172,5 +172,17 @@
     "default": false,
     "owner": "evan",
     "ticket": "live-data"
+  },
+  "vision.station_config": {
+    "description": "Local /config endpoint: the signed-in teacher's dashboard sets this laptop's station. Vision writes nothing until a station is set. When off, the station is S1 (or CUES_STATION_ID) as before.",
+    "default": true,
+    "owner": "keith",
+    "ticket": "station-handoff"
+  },
+  "web.vision_station_config": {
+    "description": "Dashboard sends the signed-in teacher's station to the vision service on 127.0.0.1:8000/config. When off, nothing is sent.",
+    "default": true,
+    "owner": "keith",
+    "ticket": "station-handoff"
   }
 }

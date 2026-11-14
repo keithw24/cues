@@ -63,7 +63,11 @@ class StatusStage:
     name = "status"
     rate_hz = None
 
-    def __init__(self, emitter=None, tasks=TASKS, zones=GROUPING) -> None:
+    def __init__(self, emitter=None, tasks=TASKS, zones=GROUPING, station=None) -> None:
+        from vision import station as station_module
+
+        self.station = station or station_module.STATION
+        self._station_generation = self.station.generation
         self.tasks = tasks
         self.zones = zones
         self._emitter = emitter
@@ -83,19 +87,39 @@ class StatusStage:
             self._emitter = emitter_from_env()
         return self._emitter
 
+    def _reset(self) -> None:
+        self._trackers.clear()
+        self._expression.clear()
+        self._last_state.clear()
+        self._last_event.clear()
+        self.recent.clear()
+
     def process(self, frame, ctx) -> None:
+        # One station per frame: the one PeopleStage used for this frame's ids.
+        if "station_generation" in ctx:
+            station_id, generation = ctx["station_id"], ctx["station_generation"]
+        else:
+            station_id, generation = self.station.snapshot()
+        if generation != self._station_generation:
+            # New station: no score, status, expression or session carries over.
+            self._reset()
+            self._session_key = None
+            self._station_generation = generation
+        if station_id is None:
+            ctx.update(status={}, events=[], last_event={})
+            return  # no teacher station yet: nothing is written
         session = ctx.get("session") if ctx.get("session_managed") else None
+        if session is not None and session.station_id != station_id:
+            session = None
         key = (session.id, session.revision) if session else None
         if ctx.get("session_managed") and (key != self._session_key or session is None):
-            self._trackers.clear()
-            self._expression.clear()
-            self._last_state.clear()
-            self._last_event.clear()
-            self.recent.clear()
+            self._reset()
             self._session_key = key
         if ctx.get("session_managed") and session is None:
             ctx.update(status={}, events=[], last_event={})
             return
+        self.emitter.station_id = station_id
+        prefix = f"{station_id}-"
         session_id = session.id if session else self.emitter.session_id
         session_revision = session.revision if session else None
         t = frame.timestamp
@@ -104,6 +128,8 @@ class StatusStage:
         faces = ctx.get("faces", {})
         expressions = ctx.get("expression", {})
         for seat in self.zones.ids(ctx):
+            if not seat.startswith(prefix):
+                continue  # an id from another station's tracker; never written
             activity_id = frame_activity(self.tasks, seat, ctx)
             if activity_id is None:
                 continue

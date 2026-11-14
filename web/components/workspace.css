@@ -98,7 +98,17 @@
 }
 .dashboard-shell .connect-feed,
 .dashboard-shell .primary-button,
-.dashboard-shell .session-controls button:first-of-type,
+.dashboard-shell .session-controls .session-primary,
+.dashboard-shell .review-action-buttons button:first-child {
+  min-height: 40px;
+  padding: 0 20px;
+  border-color: transparent;
+  border-radius: 999px;
+  background: var(--ws-ink);
+  box-shadow: 0 8px 20px -10px rgb(11 26 77 / 0.6);
+  color: #ffffff;
+  font-size: 14px;
+}
 /* The decision the teacher is making, stated before the two buttons. */
 .dashboard-shell .review-prompt {
   margin-bottom: 12px;
@@ -113,16 +123,6 @@
   color: var(--ws-ink);
   font-size: 15px;
   font-weight: 600;
-}
-.dashboard-shell .review-action-buttons button:first-child {
-  min-height: 40px;
-  padding: 0 20px;
-  border-color: transparent;
-  border-radius: 999px;
-  background: var(--ws-ink);
-  box-shadow: 0 8px 20px -10px rgb(11 26 77 / 0.6);
-  color: #ffffff;
-  font-size: 14px;
 }
 .dashboard-shell :focus-visible {
   outline-color: var(--ring);
@@ -831,7 +831,7 @@
   }
   .dashboard-shell .connect-feed:not(:disabled):hover,
   .dashboard-shell .primary-button:not(:disabled):hover,
-  .dashboard-shell .session-controls button:first-of-type:not(:disabled):hover,
+  .dashboard-shell .session-controls .session-primary:not(:disabled):hover,
   .dashboard-shell
     .review-action-buttons
     button:first-child:not(:disabled):hover {
@@ -1045,36 +1045,155 @@
   }
 }
 
-/* Session lifecycle stays visible beside the saved activity. */
+/* Session controls: one row, one primary action. Every control is 40px
+   tall; secondary actions are a quiet pill, an icon and a text button. */
 .dashboard-shell .session-toolbar {
-  flex-basis: 100%;
   min-width: 0;
 }
-.dashboard-shell .session-toolbar .session-controls {
+.dashboard-shell .session-controls {
+  display: grid;
+  gap: 10px;
+}
+.dashboard-shell .session-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
-.dashboard-shell .session-toolbar .session-controls > label {
-  font-size: 12px;
-}
-.dashboard-shell .session-toolbar .session-controls select {
+.dashboard-shell .session-controls select {
   width: auto;
-  flex: 1 1 170px;
-  min-width: 0;
-  max-width: 260px;
+  flex: 0 1 240px;
+  min-width: 180px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--ws-line);
+  border-radius: 999px;
+  background: var(--ws-item);
+  color: var(--ws-ink);
+  font: inherit;
+  font-size: 14px;
 }
-.dashboard-shell .session-toolbar .session-controls button {
-  white-space: nowrap;
+.dashboard-shell .session-controls .session-secondary {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-control);
+  color: var(--ws-ink);
+  font-size: 14px;
 }
-.dashboard-shell .session-ownership {
-  flex-basis: 100%;
-  margin: 0;
+.dashboard-shell .session-controls .session-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ws-page-soft);
+}
+.dashboard-shell .session-controls .session-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.dashboard-shell .session-controls .session-quiet {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ws-page-soft);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.dashboard-shell .session-controls button:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .session-controls button {
+  transition-property: scale, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  color: var(--ws-page-soft);
+  font-size: 13px;
+}
+.dashboard-shell .session-details summary {
+  color: var(--ws-page-faint);
+  cursor: pointer;
+}
+.dashboard-shell .session-details p {
+  margin: 4px 0 0;
+  color: var(--ws-page-faint);
   font-size: 12px;
-  color: var(--ws-ink-soft);
 }
-@media (max-width: 600px) {
-  .dashboard-shell .session-toolbar .session-controls select {
-    max-width: none;
+.dashboard-shell .session-error {
+  margin: 0;
+  color: #f3a383;
+  font-size: 13px;
+}
+.dashboard-shell .session-blocked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ws-page-soft);
+  font-size: 14px;
+}
+.dashboard-shell .session-blocked svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+/* Night: the primary action uses the accent so it reads on the navy page. */
+.dashboard-shell:not(.ws-demo) .session-controls .session-primary,
+.dashboard-shell:not(.ws-demo) .session-login-link {
+  background: var(--ws-night-accent);
+  box-shadow: none;
+  color: #0b1a4d;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .session-controls .session-primary,
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .session-login-link {
+  color: #ffffff;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .session-error {
+  color: var(--ws-review);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .session-controls .session-secondary:not(:disabled):hover {
+    background: var(--ws-pill-hover);
   }
+  .dashboard-shell .session-controls .session-icon:not(:disabled):hover,
+  .dashboard-shell .session-controls .session-quiet:not(:disabled):hover {
+    color: var(--ws-page-ink);
+  }
+  .dashboard-shell:not(.ws-demo) .session-controls .session-primary:not(:disabled):hover,
+  .dashboard-shell:not(.ws-demo) .session-login-link:hover {
+    background: var(--ws-night-accent);
+    filter: brightness(1.08);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell .session-controls button {
+    transition-property: background-color, color;
+  }
+  .dashboard-shell .session-controls button:not(:disabled):active {
+    scale: 1;
+  }
+}
+/* In the room view the controls get their own row under the title. */
+.dashboard-shell .room-session {
+  margin: -8px 0 24px;
 }
 /* Landing page demo: the same banner and rows in a small framed app. It is
    a light window (the card colors), not the navy page. */
@@ -1704,6 +1823,53 @@ body .dashboard-shell.ws-demo {
   font-variant-numeric: tabular-nums;
 }
 
+/* Room header: session controls sit beside "Camera and details" instead of
+   taking a row of their own (the toolbar rule makes them full width). */
+.dashboard-shell .room-actions {
+  justify-content: flex-end;
+}
+
+/* "Who needs you next" matches the room and timeline panels: a quiet panel
+   on Night, a white card in light mode. Page tokens flip with the theme. */
+.dashboard-shell:not(.ws-demo) .next-up {
+  --ring: var(--ws-night-accent);
+  background: rgb(255 255 255 / 0.03);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  color: var(--ws-page-ink);
+}
+.dashboard-shell:not(.ws-demo) .next-up h2,
+.dashboard-shell:not(.ws-demo) .next-up-detail,
+.dashboard-shell:not(.ws-demo) .next-up-calm {
+  color: var(--ws-page-soft);
+}
+.dashboard-shell:not(.ws-demo) .next-up-then,
+.dashboard-shell:not(.ws-demo) .next-up-summary {
+  color: var(--ws-page-faint);
+}
+.dashboard-shell:not(.ws-demo) .next-up-flag {
+  color: #f3a383;
+}
+.dashboard-shell:not(.ws-demo) .next-up-open {
+  background: var(--ws-night-accent);
+  color: #0b1a4d;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up {
+  background: #ffffff;
+  box-shadow: var(--ws-card);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up-flag {
+  color: var(--ws-review);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up-open {
+  color: #ffffff;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell:not(.ws-demo) .next-up-open:not(:disabled):hover {
+    background: var(--ws-night-accent);
+    filter: brightness(1.08);
+  }
+}
+
 /* ---- Theme switch in the rail ---- */
 .dashboard-shell .rail-theme-toggle {
   display: grid;
@@ -1896,5 +2062,81 @@ body .dashboard-shell.ws-demo {
     .dashboard-shell:not(.ws-demo)
     .room-scrim:not(:disabled):hover {
     background: rgb(11 26 77 / 0.22);
+  }
+}
+
+/* Settings: each item is one quiet row, a white card in light mode. */
+.dashboard-shell .settings-list {
+  display: grid;
+  gap: 10px;
+  max-width: 640px;
+}
+.dashboard-shell .settings-row,
+.dashboard-shell .settings-panel {
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 0.03);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  color: var(--ws-page-ink);
+}
+.dashboard-shell .settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  text-decoration: none;
+  transition-property: background-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .settings-panel {
+  padding: 20px;
+}
+.dashboard-shell .settings-row-body {
+  display: grid;
+  gap: 4px;
+}
+.dashboard-shell .settings-row-body strong {
+  color: var(--ws-page-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+.dashboard-shell .settings-row-body span {
+  color: var(--ws-page-soft);
+  font-size: 14px;
+}
+.dashboard-shell .settings-row > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ws-page-faint);
+  transition-property: color, translate;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .settings-row,
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .settings-panel {
+  background: #ffffff;
+  box-shadow: var(--ws-card);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell a.settings-row:hover {
+    background: rgb(255 255 255 / 0.06);
+  }
+  :root[data-theme="light"] .dashboard-shell:not(.ws-demo) a.settings-row:hover {
+    background: var(--ws-pill-hover);
+  }
+  .dashboard-shell a.settings-row:hover > svg {
+    color: var(--ws-page-ink);
+    translate: 2px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell .settings-row > svg {
+    transition-property: color;
+  }
+  .dashboard-shell a.settings-row:hover > svg {
+    translate: none;
   }
 }
