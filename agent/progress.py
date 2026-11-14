@@ -43,7 +43,7 @@ class ProgressEvaluator:
         self.reset()
 
     def reset(self) -> None:
-        self.key: tuple[UUID, str, str | None] | None = None
+        self.key: tuple[UUID, str, str | None, int | None] | None = None
         self.last: datetime | None = None
         self.started: datetime | None = None
         self.samples: list[tuple[datetime, float | None]] = []
@@ -66,7 +66,12 @@ class ProgressEvaluator:
         snapshot = SeatState.model_validate(snapshot.model_dump())
         if snapshot.updated_at > now:
             return self.state
-        key = (snapshot.session_id, snapshot.seat_id, snapshot.activity_id)
+        key = (
+            snapshot.session_id,
+            snapshot.seat_id,
+            snapshot.activity_id,
+            snapshot.session_revision,
+        )
         if key != self.key:
             self.reset()
             self.key = key

@@ -79,7 +79,7 @@ def write_config(request: Request, body: StationConfig) -> dict:
     if content_type != "application/json":
         raise HTTPException(415, "send application/json")
     try:
-        changed = station_module.STATION.set(body.station_id)
+        changed = station_module.STATION.set(body.station_id, allow_clear=body.station_id is None)
     except station_module.InvalidStationError as exc:
         raise HTTPException(422, str(exc)) from None
     except station_module.StationPinnedError as exc:

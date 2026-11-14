@@ -77,9 +77,9 @@ class ActiveStation:
         with self._lock:
             self._listeners.append(listener)
 
-    def set(self, station_id: object) -> bool:
+    def set(self, station_id: object, *, allow_clear: bool = False) -> bool:
         """Set the station. Returns False if it was already this station (no reset)."""
-        new = validate(station_id)
+        new = None if station_id is None and allow_clear else validate(station_id)
         with self._lock:
             old = self._station
             if new == old:

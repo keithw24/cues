@@ -23,11 +23,11 @@ export type LocalVisionResult =
 type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
 export async function configureLocalVision(
-  stationId: string,
+  stationId: string | null,
   fetcher: Fetch = fetch,
   base: string = LOCAL_VISION_URL,
 ): Promise<LocalVisionResult> {
-  if (!STATION_ID.test(stationId)) return "invalid";
+  if (stationId !== null && !STATION_ID.test(stationId)) return "invalid";
   try {
     const response = await fetcher(`${base}/config`, {
       method: "POST",
@@ -82,6 +82,7 @@ export function startLocalVisionSync(
   const { data } = client.auth.onAuthStateChange((_event, session) => {
     signedIn = Boolean(session?.user?.id);
     if (signedIn) void send();
+    else void configureLocalVision(null, fetcher, base);
   });
   const timer = setInterval(() => void send(), intervalMs);
   return () => {

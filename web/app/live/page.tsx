@@ -25,6 +25,7 @@ export default async function LivePage() {
     ? await import("@/components/live-connected").then(
         ({ default: LiveConnected }) => (
           <LiveConnected
+            visionStationConfigEnabled={isEnabled("web.vision_station_config")}
             personObservationsEnabled={isEnabled("web.person_observations")}
             reviewsEnabled={isEnabled("web.teacher_reviews")}
             reviewActionsEnabled={isEnabled("web.teacher_review_actions")}

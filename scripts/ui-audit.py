@@ -103,9 +103,6 @@ def audit(root=ROOT, process=None, direct_next=False):
             status, reason = "hidden by flag", "; ".join(blocked)
         elif needs_client and not configured:
             status, reason = "blocked by config", "Browser Supabase URL/publishable key missing."
-        elif "web.session_controls" in gates and not env.get("CUES_STATION_ID"):
-            status = "blocked by config"
-            reason = "CUES_STATION_ID is missing in the Next environment."
         else:
             status, reason = (
                 "reachable; conditional" if condition else "mounted (static)",
@@ -203,7 +200,7 @@ def audit(root=ROOT, process=None, direct_next=False):
         controls,
         "snapshot?.activities.map",
         sflags,
-        "Authenticated + CUES_STATION_ID + station membership; "
+        "Authenticated + resolved default station + station membership; "
         "options from read_station_session RPC.",
         sm,
     )
@@ -425,7 +422,7 @@ def audit(root=ROOT, process=None, direct_next=False):
     )
     if "Coming soon" in source(root, "web/app/settings/notifications/page.tsx"):
         notes.append(
-            "Notifications navigation leads to a stale Coming soon/Not connected placeholder; "
+            "The /settings/notifications route remains a stale Coming soon/Not connected placeholder; "
             "DemoNotifications is mounted on Profile instead."
         )
     if not creation:

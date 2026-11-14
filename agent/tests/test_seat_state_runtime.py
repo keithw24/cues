@@ -243,9 +243,13 @@ def test_supabase_source_selects_only_contract_fields():
 
     table = Table()
     client = SimpleNamespace(table=lambda name: table if name == "seat_state" else None)
-    rows = SupabaseSeatStateSource(client).fetch()
-    assert rows == response.data
-    assert "tracking_valid" in table.fields and "expression_context" in table.fields
+    import pytest
+
+    with pytest.raises(RuntimeError, match="station provider"):
+        SupabaseSeatStateSource(client).fetch()
+    rows = SupabaseSeatStateSource(client, station_provider=lambda: None).fetch()
+    assert rows == []
+    assert table.fields is None
 
 
 class ActionModel(FakeMessagesListChatModel):
@@ -284,3 +288,31 @@ def test_orchestrator_reaches_existing_review_storage_action_path():
     result = feed(target, [snapshot(i) for i in range(5)])[-1]
     assert result.agent_result.pending_review is not None
     assert reviews.get_pending_reviews() == [result.agent_result.pending_review]
+
+
+def test_revision_restart_clears_completion_and_routes_again():
+    target = pipeline()
+    feed(target, [snapshot(0, status="done", session_revision=0)])
+    results = feed(target, [snapshot(i, score=0, session_revision=1) for i in range(1, 8)])
+    assert results[-1].progress.trend == "stalled"
+    assert any(result.request is not None for result in results)
+
+
+def test_station_source_filters_session_revision_and_foreign_seats():
+    from unittest.mock import MagicMock
+
+    client = MagicMock()
+    rows = [
+        snapshot(3, seat="S2-P1", session_revision=1).model_dump(mode="json"),
+        snapshot(3, seat="S1-P1", session_revision=1).model_dump(mode="json"),
+        snapshot(3, seat="S2-P2", session_revision=0).model_dump(mode="json"),
+    ]
+    session = {"id": str(UUID(int=1)), "current_activity_id": "task", "revision": 1}
+    active = client.table.return_value.select.return_value.eq.return_value.is_
+    active.return_value.execute.return_value.data = [session]
+    query = client.table.return_value.select.return_value.eq.return_value.execute
+    query.side_effect = [
+        SimpleNamespace(data=[{"id": "S2-P1"}, {"id": "S2-P2"}]),
+        SimpleNamespace(data=rows),
+    ]
+    assert SupabaseSeatStateSource(client, lambda: "S2").fetch() == [rows[0]]
