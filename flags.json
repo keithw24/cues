@@ -46,5 +46,11 @@
     "default": false,
     "owner": "keith",
     "ticket": "T12"
+  },
+  "vision.activity_sync": {
+    "description": "Read the current task from Supabase sessions.current_activity_id instead of CUES_TASK.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T7"
   }
 }

@@ -134,6 +134,11 @@ def main(argv: list[str] | None = None) -> None:
     if off:
         print(f"Off: {', '.join(off)}. Use --all-on or set CUES_FLAG_* to turn them on.\n")
 
+    from vision.activity_sync import sync_from_env
+
+    sync = None if args.task else sync_from_env()  # --task wins over the app
+    if sync is not None:
+        sync.start()
     pipeline = Pipeline(camera_from_env(), discover_stages())
     print("Starting camera and models (first run downloads models)...", flush=True)
     pipeline.start()
@@ -162,6 +167,8 @@ def main(argv: list[str] | None = None) -> None:
         pass
     finally:
         pipeline.stop()
+        if sync is not None:
+            sync.stop()
         if window is not None:
             window.close()
 

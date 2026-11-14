@@ -40,13 +40,14 @@ class Templates:
         )
 
 
-def path_for(activity_id: str, directory: Path = TEMPLATES_DIR) -> Path:
+def path_for(activity_id: str, directory: Path | None = None) -> Path:
+    directory = TEMPLATES_DIR if directory is None else directory
     if not activity_id.replace("_", "").isalnum():
         raise ValueError(f"invalid activity id {activity_id!r}")
     return directory / f"{activity_id}.json"
 
 
-def load(activity_id: str, directory: Path = TEMPLATES_DIR) -> Templates:
+def load(activity_id: str, directory: Path | None = None) -> Templates:
     path = path_for(activity_id, directory)
     if not path.exists():
         return Templates(activity_id)
@@ -54,7 +55,8 @@ def load(activity_id: str, directory: Path = TEMPLATES_DIR) -> Templates:
     return Templates(activity_id, data.get("target", []), data.get("rest", []))
 
 
-def save(templates: Templates, directory: Path = TEMPLATES_DIR) -> Path:
+def save(templates: Templates, directory: Path | None = None) -> Path:
+    directory = TEMPLATES_DIR if directory is None else directory
     directory.mkdir(parents=True, exist_ok=True)
     path = path_for(templates.activity_id, directory)
     tmp = path.with_suffix(".json.tmp")
@@ -71,7 +73,7 @@ def save(templates: Templates, directory: Path = TEMPLATES_DIR) -> Path:
     return path
 
 
-def delete(activity_id: str, directory: Path = TEMPLATES_DIR) -> bool:
+def delete(activity_id: str, directory: Path | None = None) -> bool:
     path = path_for(activity_id, directory)
     if path.exists():
         path.unlink()

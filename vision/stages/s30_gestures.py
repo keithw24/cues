@@ -24,7 +24,7 @@ FLAG = "vision.gestures"
 class MatcherCache:
     """Loads a Matcher per activity and reloads it when its template file changes."""
 
-    def __init__(self, directory=tpl.TEMPLATES_DIR) -> None:
+    def __init__(self, directory=None) -> None:
         self.directory = directory
         self._cache: dict[str, tuple[float, Matcher | None, str]] = {}
 

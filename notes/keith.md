@@ -1,6 +1,6 @@
 # Keith — Vision (CV / local perception)
 
-Branch: `keith`. Folder: `vision/`. Status as of Nov 14, ~03:10 UTC.
+Branch: `keith`. Folder: `vision/`. Status as of Nov 14, ~04:10 UTC.
 
 ## What vision does
 
@@ -92,3 +92,28 @@ uv run python -m vision.watch --all-on --debug              # per-seat printout
 uv run uvicorn vision.app:app                               # then open localhost:8000/stream
 uv run pytest vision                                        # tests (hardware tests skipped)
 ```
+
+## Update (~04:10 UTC): people mode and integration pieces
+
+- **People mode is the default** (`CUES_GROUPING=people`): up to 4 people are
+  boxed and tracked as `S1-P1`... Fixed seats remain with `CUES_GROUPING=seats`.
+  See `notes/proposal-person-tracking.md` (needs Evan's and Michelle's review).
+- **Status + events are built**: `attempt_success`, `attempt_miss`,
+  `review_needed`, `no_progress`, `tracking_lost`, `expression_context` per
+  person (flag `vision.task_status`).
+- **Current task from the app**: with flag `vision.activity_sync`, vision reads
+  `sessions.current_activity_id` for `CUES_SESSION_ID` once a second.
+- **Recording endpoint** (flag `vision.gestures`): `POST /templates/record`
+  `{activity_id, label: "target"|"rest", seconds, seat_id}`, plus
+  `GET` / `DELETE /templates/{activity_id}`. Records from the running service.
+
+## Needs from Evan
+
+- **`seat_state` has no `tracking_valid` column**, but the shared `SeatState`
+  contract has it. Vision currently drops that field before writing to
+  Supabase, so writes do not fail. Please add
+  `alter table public.seat_state add column tracking_valid boolean;` and tell
+  me, so I can remove the filter (`SEAT_STATE_COLUMNS` in `vision/events.py`).
+- **Supabase keys** for the station laptop (`SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY` in the root `.env`) and a `sessions` row id for
+  `CUES_SESSION_ID`, so the CV -> Supabase step can be tested for real.
