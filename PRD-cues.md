@@ -561,9 +561,9 @@ The agent determines:
 
 The answer is expressed through **tool choices**, not unrestricted text generation.
 
-### 12.3 Available tools
+### 12.3 Planned tool concepts (not implemented)
 
-The agent can choose among tools such as:
+The following are earlier workflow concepts, not implemented capabilities. The focused initial Deep Agent tool plan is in §12.6. The future agent may choose among tools such as:
 
 #### `get_session_state`
 
@@ -680,6 +680,55 @@ The agent:
 - cannot access camera frames;
 - can only choose interventions from an approved menu;
 - falls back to a deterministic rule-based alert if the LLM call fails or times out.
+
+
+### 12.6 Planned Deep Agent tools — not implemented
+
+Preserve this focused plan for later implementation. The Deep Agent runtime and
+these tools are **planned, not implemented**; the current context enricher resolves
+an activity definition, not longitudinal progress or prompting history.
+
+```text
+AgentEvaluationRequest
+→ ContextEnricher
+→ Deep Agent
+   ↳ get_recent_progress_history()
+   ↳ get_prompt_history()
+   ↳ request_teacher_review()
+```
+
+The Deep Agent chooses tools only when needed; this is not a required sequence
+and it need not call every tool for each request. Evaluation eligibility alone
+does not imply a teacher notification.
+
+| Planned tool | Purpose and data boundary |
+|---|---|
+| `get_recent_progress_history(...)` | Likely **first tool to implement**. Retrieve recent task-progress/trend history for the relevant seat/task/session to distinguish an isolated stall from a repeated pattern, using longitudinal observable data rather than one snapshot. A history retrieval source/API is not implemented yet. |
+| `get_prompt_history(...)` | Retrieve prior prompting/support history for the current student/task. Where recorded, distinguish independent/unprompted correct responses, prompted responses, errors/no-response, and prompt level so the agent can consider changing support needs over time. This structured prompting history is not currently available; missing records must remain unknown, not be inferred. |
+| `request_teacher_review(...)` | Create a structured teacher-facing review/suggestion when agent reasoning determines attention may be useful. The teacher remains in control; this tool must not autonomously change instruction or apply an intervention. Implementation and its relationship to the earlier alert concepts in §12.3 remain future work. |
+
+**Design principles.** Prefer observable progress/task data over inferred emotional
+state. Facial-expression output remains supporting context only. Do not introduce
+`diagnose_behavior()` or `get_student_emotional_state()` tools, infer why a student
+is struggling from a single observation, or store diagnoses as future behavioral
+history. Any future contextual history should record observable events, including
+antecedents and consequences only where actually observed. Teacher approval remains
+required before instructional changes. Cues is not an FBA or diagnostic system.
+
+**Research rationale.** Special-education progress-monitoring guidance favors
+repeated progress trends, observable measures (latency, duration, frequency, or
+interval data where appropriate), prompting outcomes and independence, and
+educator-controlled intervention decisions. These sources inform the tool design;
+they do not validate a Cues algorithm, prescribe its timeout values, or justify
+inferring behavioral function from one camera observation.
+
+#### Research citations for the planned tools
+
+- [IRIS Center — Systematic Direct Observation](https://iris.peabody.vanderbilt.edu/information-brief/systematic-direct-observation/): supports defining observable/measurable behavior and matching measurement methods, including latency, duration, frequency, and interval recording, to the observation goal.
+- [National Center on Intensive Intervention — Progress Monitoring](https://intensiveintervention.org/data-based-individualization/progress-monitoring): supports repeated progress data and trend review, with educators/teams deciding whether to continue or adapt instruction/intervention.
+- [NCII — Behavior Progress Monitoring Tools Chart](https://intensiveintervention.org/resource/behavior-progress-monitoring-tools-chart): supports selecting systematic monitoring tools suited to the target and assessing improvement/responsiveness over time; inclusion in the chart is not an endorsement of a particular tool or Cues.
+- [AFIRM — Prompting Step-by-Step](https://afirm.fpg.unc.edu/sites/default/files/imce/resources/PP%20Step-by-Step.pdf): reference for tracking independence, prompted responses, errors, no-response, and prompt levels. The supplied PDF could not be retrieved during this update; the explicit outcome categories are also documented in [NPDC's prompting implementation guidance](https://autismpdc.fpg.unc.edu/sites/autismpdc.fpg.unc.edu/files/prompting-steps-LTM-impl.pdf).
+- [IRIS Center — FBA / ABC Data Guidance](https://iris.peabody.vanderbilt.edu/module/fba-elem/cresource/q2/p06/): supports repeated, observable antecedent-behavior-consequence records to identify patterns; a single event is insufficient to infer behavioral function. This informs careful data representation, not automated diagnosis.
 
 ---
 

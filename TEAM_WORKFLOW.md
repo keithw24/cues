@@ -124,6 +124,8 @@ Owns:
 
 LLM provider and model selection is undecided; Groq and SpaceXSI are under consideration. Keep provider integration configurable and separate from routing and tool logic.
 
+The future Deep Agent tool architecture is preserved in [PRD §12.6](PRD-cues.md#126-planned-deep-agent-tools--not-implemented): optional progress-history retrieval (likely first), prompt-history retrieval where data exists, and teacher-review requests. These tools and the Deep Agent runtime are planned, not implemented.
+
 Michelle's code receives **structured state only**.
 
 The LLM must never receive camera frames.
