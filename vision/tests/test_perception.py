@@ -323,7 +323,7 @@ def test_recorder_collects_poses_without_preview():
     from vision.record import Recorder
 
     hand = (hand_points((0.5, 0.5)), "Right")
-    rec = Recorder(FakeCap(), FakeHandDetector([hand]), False)
+    rec = Recorder(FakeCap(), FakeHandDetector([hand]), False, make_image=lambda rgb: rgb)
     vectors, frames = rec.run(0.35, "test", record=True, fps=10)
     assert frames > 0
     assert 3 <= len(vectors) <= 5  # about 10 per second, not every frame
@@ -334,7 +334,7 @@ def test_recorder_countdown_collects_nothing():
     from vision.record import Recorder
 
     hand = (hand_points((0.5, 0.5)), "Right")
-    rec = Recorder(FakeCap(), FakeHandDetector([hand]), False)
+    rec = Recorder(FakeCap(), FakeHandDetector([hand]), False, make_image=lambda rgb: rgb)
     vectors, _ = rec.run(0.1, "Get ready")
     assert vectors == []
 
