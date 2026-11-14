@@ -40,14 +40,14 @@ and a 15-second resync update other clients. Reads are coalesced; heartbeat read
 do not flash the saving state or disable controls. A display clock expires old
 acknowledgements; it does not make task-progress decisions.
 
-- Waiting for station to sync: saved active configuration has no matching fresh
+- Waiting for the camera to sync: saved active configuration has no matching fresh
   acknowledgement.
 - Activity synced: fresh station report matches session UUID, revision and task.
   This acknowledges configuration, not proof that a camera/model is working.
-- Waiting for station to stop: End is saved, but the exact ended UUID/revision has
+- Waiting for the camera to stop: End is saved, but the exact ended UUID/revision has
   not been acknowledged idle.
-- Station idle: a fresh idle acknowledgement matches the saved ended session.
-- Activity unavailable on station: station reports an unsupported activity.
+- Camera idle: a fresh idle acknowledgement matches the saved ended session.
+- Activity unavailable on the camera: station reports an unsupported activity.
 
 ## Vision integration
 

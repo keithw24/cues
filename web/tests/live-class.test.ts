@@ -7,12 +7,6 @@ import {
   waitingCount,
   type LiveDecision,
 } from "../lib/live-class.ts";
-import {
-  MOCK_FEED,
-  MOCK_LABELS,
-  MOCK_STUDENTS,
-  mockSummary,
-} from "../lib/live-mock-data.ts";
 
 // Observation freshness off, as when web.person_observations is off.
 const OPTIONS = { enabled: false, now: null, connected: true };
@@ -40,28 +34,6 @@ function snapshot(states: SeatState[]): Snapshot {
     stations: [{ id: "S1", name: "Station 1" }],
   };
 }
-
-test("the simulated class shows 2 of 4 finished, the review, feed and list", () => {
-  assert.deepEqual(mockSummary(MOCK_STUDENTS), {
-    finished: 2,
-    total: 4,
-    needs: 1,
-    working: 1,
-  });
-  assert.deepEqual(
-    MOCK_STUDENTS.map((s) => [s.name, MOCK_LABELS[s.status]]),
-    [
-      ["Maya", "Finished"],
-      ["Leo", "Needs you"],
-      ["Ava", "Finished"],
-      ["Noah", "Working"],
-    ],
-  );
-  assert.equal(MOCK_FEED.length, 5);
-  assert.equal(MOCK_FEED[0].text, "Leo flagged · 3 tries");
-  // After the teacher confirms, the row reads as the decision, not a diagnosis.
-  assert.equal(MOCK_LABELS.checking, "Support needed");
-});
 
 test("live data: Supabase rows become the people in view and their statuses", () => {
   const seats = seatViews(

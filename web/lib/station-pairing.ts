@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export class StationSignInRequired extends Error {
-  constructor() { super("Sign in to connect a station."); }
+  constructor() { super("Sign in to link a classroom camera."); }
 }
 async function currentUser(client: SupabaseClient) {
   try {
@@ -16,7 +16,7 @@ async function currentUser(client: SupabaseClient) {
 function stations(data: unknown): string[] {
   if (!Array.isArray(data) || data.some(row => !row ||
       typeof row.station_id !== "string" || !row.station_id.trim()))
-    throw new Error("Invalid station response");
+    throw new Error("Unexpected response from your classroom camera");
   return [...new Set(data.map(row => row.station_id as string))].sort();
 }
 export async function readStationMemberships(client: SupabaseClient): Promise<string[]> {
@@ -27,7 +27,7 @@ export async function readStationMemberships(client: SupabaseClient): Promise<st
     if (error) throw error;
     return stations(data);
   } catch {
-    throw new Error("Station access could not be loaded. Try again.");
+    throw new Error("Your camera links could not be loaded. Try again.");
   }
 }
 export async function redeemStationCode(client: SupabaseClient, code: string): Promise<string> {
@@ -46,6 +46,6 @@ export async function redeemStationCode(client: SupabaseClient, code: string): P
   } catch (error) {
     if (error instanceof StationSignInRequired) throw error;
     if (error instanceof Error && error.message === "That pairing code is invalid or no longer available.") throw error;
-    throw new Error("Could not connect the station. Check your connection and try again.");
+    throw new Error("Could not link the camera. Check your connection and try again.");
   }
 }

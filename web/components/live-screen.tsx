@@ -5,8 +5,7 @@ import { WorkspaceIcon } from "@/components/workspace-icon";
 import { initials } from "@/components/workspace-rows";
 import "./live.css";
 
-// The Live screen's pieces, shared by the simulated mock and the connected
-// view: one big number, a card for whoever needs you, a short feed, and the
+// The Live screen's pieces: one big number, a card for whoever needs you, a short feed, and the
 // class as a list with status pills.
 import type { LiveStatus } from "@/lib/live-class";
 export type { LiveStatus };
@@ -27,14 +26,12 @@ export const clockTime = (ms: number) =>
 
 export function LiveHero({
   activity,
-  simulated,
   count,
   total,
   noun,
   summary,
 }: {
   activity: string;
-  simulated: boolean;
   count: ReactNode;
   total: number | null;
   noun: string;
@@ -42,10 +39,7 @@ export function LiveHero({
 }) {
   return (
     <header className="live-hero">
-      <p className="live-eyebrow">
-        {activity}
-        {simulated ? <span className="live-sim">Simulated class</span> : null}
-      </p>
+      <p className="live-eyebrow">{activity}</p>
       <p className="live-big" aria-live="polite">
         {count}
         {total ? <span className="live-big-of"> of {total}</span> : null}{" "}

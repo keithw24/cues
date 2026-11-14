@@ -6,8 +6,8 @@ import "@/components/workspace.css";
 
 export const metadata = { title: "Cues · Live" };
 
-// The Live screen (web.live_view). With web.live_data on it reads Supabase;
-// otherwise it shows the simulated mock.
+// The Live screen (web.live_view): who the station camera sees right now,
+// their task status and the review queue, read from Supabase.
 export default async function LivePage() {
   if (!isEnabled("web.live_view"))
     return (

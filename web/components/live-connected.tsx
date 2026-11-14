@@ -18,7 +18,6 @@ import {
   observationPresentation,
   type ObservationOptions,
 } from "@/lib/observation-presentation";
-import { displayName } from "@/lib/simulated-names";
 import { createDashboardClient } from "@/lib/supabase";
 import { resolveTeacherReview } from "@/lib/teacher-review-actions";
 import {
@@ -46,7 +45,7 @@ import {
   type LiveStudent,
 } from "@/components/live-screen";
 
-// The Live screen on real data (web.live_data). People are the ones the
+// The Live screen, on what the station camera reports. People are the ones the
 // station camera sees right now. The feed lists finishes this page has seen
 // since it opened (this tab only, never stored or used to decide anything)
 // and review times from the backend.
@@ -221,12 +220,8 @@ export default function LiveConnected({
     now,
     connected: feed.connection === "connected" && !feed.error,
   };
-  const seats = feed.snapshot
-    ? seatViews(feed.snapshot).map((seat) => ({
-        ...seat,
-        display_name: displayName(seat, simulatedNamesEnabled),
-      }))
-    : [];
+  // People are labelled as the backend names them ("Person 1"…).
+  const seats = feed.snapshot ? seatViews(feed.snapshot) : [];
   const nameOf = (seatId: string) =>
     seats.find((seat) => seat.id === seatId)?.display_name ?? seatId;
   const activityOf = (id: string) =>
@@ -275,8 +270,6 @@ export default function LiveConnected({
     counts.set(seat.activity, (counts.get(seat.activity) ?? 0) + 1);
   const activity =
     [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Live";
-  const simulated =
-    seats.length > 0 && seats.every((seat) => seat.is_simulated);
 
   const start = openedAt ?? 0;
 
@@ -499,7 +492,6 @@ export default function LiveConnected({
       <div className="live-main-col">
         <LiveHero
           activity={activity}
-          simulated={simulated}
           count={feed.snapshot ? doneNow : "—"}
           total={inView.length || null}
           noun="finished"
@@ -525,7 +517,9 @@ export default function LiveConnected({
               ? "Loading…"
               : cameraReporting
                 ? "No one is in view right now."
-                : "The camera is off. People appear here when the station camera sees them."
+                : !options.connected
+                  ? "Updates paused. Reconnecting…"
+                  : "The camera is off. People appear here when your classroom camera sees them."
         }
         action={<LiveCameraLink />}
       />

@@ -18,7 +18,7 @@
     "ticket": "photon-alert-phone"
   },
   "web.dashboard": {
-    "description": "Read-only teacher dashboard with simulated Supabase seats and realtime state updates.",
+    "description": "Read-only teacher dashboard with Supabase seats and realtime state updates.",
     "default": true,
     "owner": "evan",
     "ticket": "dashboard-foundation"
@@ -107,12 +107,6 @@
     "owner": "keith",
     "ticket": "session-controls"
   },
-  "web.simulated_names": {
-    "description": "Show made-up first names for simulated people instead of Person 1, Person 2 on the dashboard.",
-    "default": true,
-    "owner": "evan",
-    "ticket": "dashboard-redesign"
-  },
   "vision.all_scores": {
     "description": "Display-only readout of every task's score for every person (overlay and vision.watch). Not sent to Supabase.",
     "default": false,
@@ -162,16 +156,10 @@
     "ticket": "theme-toggle"
   },
   "web.live_view": {
-    "description": "Live screen at /live: a big count, a card for the next review, a short feed and the class as a list. With web.live_data off it shows a simulated class and makes no Supabase reads. When off, /live shows an unavailable page and the rail has no Live link.",
+    "description": "Live screen at /live: a big count, a card for the next review, a short feed and the class as a list, all from what the station camera reports. When off, /live shows an unavailable page and the rail has no Live link.",
     "default": true,
     "owner": "evan",
     "ticket": "live-view"
-  },
-  "web.live_data": {
-    "description": "Connects /live to Supabase: people the camera sees, their statuses, the review queue and a since-you-opened feed. Support needed / No support needed on a model review save it as confirmed / dismissed only when web.teacher_review_actions is on. When off, /live keeps the simulated mock.",
-    "default": false,
-    "owner": "evan",
-    "ticket": "live-data"
   },
   "vision.station_config": {
     "description": "Local /config endpoint: the signed-in teacher's dashboard sets this laptop's station. Vision writes nothing until a station is set. When off, the station is S1 (or CUES_STATION_ID) as before.",

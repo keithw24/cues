@@ -52,7 +52,7 @@ test("provider details never reach the page", async () => {
 test("malformed station answers are rejected", () => {
   for (const bad of [null, {}, { station_id: "", created: true }, { station_id: "S 1", created: false },
     { station_id: "S1" }, { station_id: 1, created: false }, { station_id: "S1", name: 5, created: false }])
-    assert.throws(() => parseDefaultStation(bad), /Invalid station response/);
+    assert.throws(() => parseDefaultStation(bad), /Unexpected response from your classroom camera/);
 });
 
 // ---- the feeds are limited to the resolved station --------------------------------

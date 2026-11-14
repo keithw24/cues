@@ -4,7 +4,7 @@ import { isEnabled } from "@/lib/flags";
 import { garamond } from "@/components/workspace-fonts";
 import "@/components/workspace.css";
 
-export const metadata = { title: "Cues · Station access" };
+export const metadata = { title: "Cues · Classroom camera" };
 
 export default async function StationsPage() {
   const enabled = isEnabled("web.teacher_login");
@@ -12,7 +12,7 @@ export default async function StationsPage() {
   return <div className={`workspace dashboard-shell ${garamond.variable}`}>
     <WorkspaceSidebar accountEnabled={enabled} />
     <main id="main-content" className="dashboard-main settings-main">
-      <header className="page-intro"><h1>Station access</h1><p>Connect this account to a classroom station.</p></header>
+      <header className="page-intro"><h1>Classroom camera</h1><p>Link this account to the camera in your classroom.</p></header>
       {Form ? <Form /> : <div className="integration-details"><p>Teacher accounts are not enabled in this environment.</p><Link href="/dashboard">Back to classroom</Link></div>}
     </main>
   </div>;
