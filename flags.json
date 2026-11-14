@@ -11,6 +11,12 @@
     "owner": "evan",
     "ticket": "teacher-signup"
   },
+  "web.alert_phone": {
+    "description": "Optional sign-up step that saves the teacher's mobile number (user metadata alert_phone) for Photon alerts.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "photon-alert-phone"
+  },
   "web.dashboard": {
     "description": "Read-only teacher dashboard with simulated Supabase seats and realtime state updates.",
     "default": true,

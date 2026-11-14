@@ -3,13 +3,14 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import {
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
+  RiArrowDownSLine,
+  RiArrowLeftLine,
+  RiArrowRightLine,
+} from "@remixicon/react";
+import TypedHeading from "@/components/typed-heading";
+import { countryCodes, normalizeAlertPhone } from "@/lib/alert-phone";
 import { createDashboardClient } from "@/lib/supabase";
 import "./auth.css";
 
@@ -18,7 +19,7 @@ const Companion = dynamic(() => import("@/components/login-companion"), {
   loading: () => <div className="login-companion" />,
 });
 
-type Step = "role" | "email" | "password" | "check";
+type Step = "role" | "email" | "phone" | "password" | "check";
 
 const MIN_PASSWORD = 8;
 const roles = ["Teacher", "Teaching assistant", "Therapist", "Something else"];
@@ -27,70 +28,36 @@ const headings: Record<"signin" | "signup", Record<Step, string>> = {
   signin: {
     role: "",
     email: "Welcome back",
+    phone: "",
     password: "Enter your password",
     check: "",
   },
   signup: {
     role: "Who’s setting up Cues?",
     email: "What’s your school email?",
+    phone: "Where should Cues text you?",
     password: "Choose a password",
     check: "Check your inbox",
   },
 };
 
-const subscribeMotion = (callback: () => void) => {
-  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-  query.addEventListener("change", callback);
-  return () => query.removeEventListener("change", callback);
-};
-
-/** Types the heading in, with a block caret, unless motion is reduced. */
-function TypedHeading({ text }: { text: string }) {
-  const reduced = useSyncExternalStore(
-    subscribeMotion,
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    () => true,
-  );
-  const [shown, setShown] = useState(0);
-  useEffect(() => {
-    if (reduced) return;
-    const timer = window.setInterval(
-      () =>
-        setShown((count) => {
-          if (count >= text.length) window.clearInterval(timer);
-          return Math.min(count + 1, text.length);
-        }),
-      32,
-    );
-    return () => window.clearInterval(timer);
-  }, [reduced, text]);
-  const typing = !reduced && shown < text.length;
-  return (
-    <h1 id="auth-heading" aria-label={text}>
-      {/* The invisible copy holds the final size, so nothing below jumps. */}
-      <span className="auth-heading-size" aria-hidden="true">
-        {text}
-      </span>
-      <span className="auth-heading-typed" aria-hidden="true">
-        {reduced ? text : text.slice(0, shown)}
-        {typing ? <span className="auth-caret" /> : null}
-      </span>
-    </h1>
-  );
-}
-
 export default function TeacherLogin({
   mode = "signin",
   signupEnabled = false,
+  phoneEnabled = false,
 }: {
   mode?: "signin" | "signup";
   signupEnabled?: boolean;
+  /** Ask for a mobile number Photon can text alerts to. */
+  phoneEnabled?: boolean;
 }) {
   const router = useRouter();
   const signingUp = mode === "signup";
   const [step, setStep] = useState<Step>(signingUp ? "role" : "email");
   const [role, setRole] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [countryCode, setCountryCode] = useState("1");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,13 +76,24 @@ export default function TeacherLogin({
       ? role !== null
       : step === "email"
         ? /^\S+@\S+\.\S+$/.test(email.trim())
-        : step === "password"
-          ? password.length >= (signingUp ? MIN_PASSWORD : 1) && !!client
-          : false;
+        : step === "phone"
+          ? normalizeAlertPhone(countryCode, phone) !== null
+          : step === "password"
+            ? password.length >= (signingUp ? MIN_PASSWORD : 1) && !!client
+            : false;
+  const askPhone = signingUp && phoneEnabled;
 
   function back() {
     setError(null);
-    setStep(step === "password" ? "email" : "role");
+    setStep(
+      step === "password"
+        ? askPhone
+          ? "phone"
+          : "email"
+        : step === "phone"
+          ? "email"
+          : "role",
+    );
   }
 
   async function submitPassword() {
@@ -128,7 +106,17 @@ export default function TeacherLogin({
         const { data, error } = await client.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { role } },
+          options: {
+            // Photon reads alert_phone (E.164) to text this teacher.
+            data: {
+              role,
+              ...(askPhone
+                ? { alert_phone: normalizeAlertPhone(countryCode, phone) }
+                : {}),
+            },
+            // The link in the confirmation email opens Cues' own welcome page.
+            emailRedirectTo: `${window.location.origin}/auth/confirmed`,
+          },
         });
         if (error)
           setError(
@@ -169,7 +157,8 @@ export default function TeacherLogin({
     if (!ready || busy) return;
     setError(null);
     if (step === "role") setStep("email");
-    else if (step === "email") setStep("password");
+    else if (step === "email") setStep(askPhone ? "phone" : "password");
+    else if (step === "phone") setStep("password");
     else if (step === "password") void submitPassword();
   }
 
@@ -250,6 +239,50 @@ export default function TeacherLogin({
                   autoFocus
                   maxLength={254}
                 />
+              </>
+            ) : step === "phone" ? (
+              <>
+                <p className="auth-hint">
+                  Photon texts you when a student may need a hand: just the
+                  seat and task, never images.
+                </p>
+                <div className="auth-phone">
+                  <label className="sr-only" htmlFor="teacher-country">
+                    Country code
+                  </label>
+                  <select
+                    id="teacher-country"
+                    value={countryCode}
+                    onChange={(event) => setCountryCode(event.target.value)}
+                    autoComplete="tel-country-code"
+                  >
+                    {countryCodes.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        +{country.code} {country.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="auth-phone-code" aria-hidden="true">
+                    +{countryCode}
+                    <RiArrowDownSLine />
+                  </span>
+                  <label className="sr-only" htmlFor="teacher-phone">
+                    Mobile number
+                  </label>
+                  <input
+                    id="teacher-phone"
+                    type="tel"
+                    name="phone"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder={countryCode === "1" ? "(555) 123-4567" : "Mobile number"}
+                    autoComplete="tel-national"
+                    inputMode="tel"
+                    required
+                    autoFocus
+                    maxLength={20}
+                  />
+                </div>
               </>
             ) : step === "password" ? (
               <>

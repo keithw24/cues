@@ -32,3 +32,9 @@ test("sign-up defaults on and shows an unavailable page when turned off", () => 
     /isEnabled\("web\.teacher_signup"\) \? "\/signup" : "\/login"/,
   );
 });
+
+test("the email-confirmed page is unavailable when sign-up is off", () => {
+  const page = read("../app/auth/confirmed/page.tsx");
+  assert.match(page, /if \(!isEnabled\("web\.teacher_signup"\)\)/);
+  assert.match(page, /Teacher sign-up is unavailable\./);
+});

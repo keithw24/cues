@@ -298,3 +298,64 @@
     opacity: 0;
   }
 }
+/* Phone: a country-code picker inside the same pill as the number */
+.auth-phone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 360px;
+  height: 48px;
+  border: 1px solid #e3e3e3;
+  border-radius: 999px;
+  background: #ffffff;
+  transition: border-color 150ms ease-out;
+}
+.auth-phone:focus-within {
+  border-color: var(--auth-blue);
+}
+.auth-phone select {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 84px;
+  opacity: 0;
+  cursor: pointer;
+}
+.auth-phone-code {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  width: 84px;
+  height: 100%;
+  padding-left: 18px;
+  border-right: 1px solid #ececec;
+  color: var(--auth-ink);
+  font-size: 16px;
+  pointer-events: none;
+}
+.auth-phone-code svg {
+  width: 16px;
+  height: 16px;
+  color: var(--auth-ink-faint);
+}
+.auth-phone select:focus-visible + .auth-phone-code {
+  outline: 2px solid var(--auth-blue);
+  outline-offset: -2px;
+  border-radius: 999px 0 0 999px;
+}
+.auth-phone input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 18px 0 14px;
+  border: 0;
+  border-radius: 0 999px 999px 0;
+  background: transparent;
+  color: var(--auth-ink);
+  font-size: 16px;
+  outline: none;
+}
+.auth-phone input::placeholder {
+  color: #a8abb2;
+}
