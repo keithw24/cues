@@ -3,13 +3,13 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
 import {
-  RiArrowLeftLine,
-  RiArrowRightLine,
-  RiLock2Line,
-  RiMailLine,
-} from "@remixicon/react";
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
 import { createDashboardClient } from "@/lib/supabase";
 import "./auth.css";
 
@@ -18,20 +18,66 @@ const Companion = dynamic(() => import("@/components/login-companion"), {
   loading: () => <div className="login-companion" />,
 });
 
-type Step = "email" | "password" | "check";
+type Step = "role" | "email" | "password" | "check";
 
 const MIN_PASSWORD = 8;
+const roles = ["Teacher", "Teaching assistant", "Therapist", "Something else"];
 
-const headings = {
+const headings: Record<"signin" | "signup", Record<Step, string>> = {
   signin: {
-    email: "Welcome back. What’s your email?",
+    role: "",
+    email: "Welcome back",
     password: "Enter your password",
+    check: "",
   },
   signup: {
-    email: "Let’s set up your classroom. What’s your email?",
+    role: "Who’s setting up Cues?",
+    email: "What’s your school email?",
     password: "Choose a password",
+    check: "Check your inbox",
   },
-} as const;
+};
+
+const subscribeMotion = (callback: () => void) => {
+  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+};
+
+/** Types the heading in, with a block caret, unless motion is reduced. */
+function TypedHeading({ text }: { text: string }) {
+  const reduced = useSyncExternalStore(
+    subscribeMotion,
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => true,
+  );
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    if (reduced) return;
+    const timer = window.setInterval(
+      () =>
+        setShown((count) => {
+          if (count >= text.length) window.clearInterval(timer);
+          return Math.min(count + 1, text.length);
+        }),
+      32,
+    );
+    return () => window.clearInterval(timer);
+  }, [reduced, text]);
+  const typing = !reduced && shown < text.length;
+  return (
+    <h1 id="auth-heading" aria-label={text}>
+      {/* The invisible copy holds the final size, so nothing below jumps. */}
+      <span className="auth-heading-size" aria-hidden="true">
+        {text}
+      </span>
+      <span className="auth-heading-typed" aria-hidden="true">
+        {reduced ? text : text.slice(0, shown)}
+        {typing ? <span className="auth-caret" /> : null}
+      </span>
+    </h1>
+  );
+}
 
 export default function TeacherLogin({
   mode = "signin",
@@ -41,8 +87,11 @@ export default function TeacherLogin({
   signupEnabled?: boolean;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("email");
+  const signingUp = mode === "signup";
+  const [step, setStep] = useState<Step>(signingUp ? "role" : "email");
+  const [role, setRole] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const locked = useRef(false);
@@ -53,14 +102,24 @@ export default function TeacherLogin({
       return null;
     }
   });
-  const signingUp = mode === "signup";
 
-  async function submitPassword(event: React.SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const firstStep: Step = signingUp ? "role" : "email";
+  const ready =
+    step === "role"
+      ? role !== null
+      : step === "email"
+        ? /^\S+@\S+\.\S+$/.test(email.trim())
+        : step === "password"
+          ? password.length >= (signingUp ? MIN_PASSWORD : 1) && !!client
+          : false;
+
+  function back() {
+    setError(null);
+    setStep(step === "password" ? "email" : "role");
+  }
+
+  async function submitPassword() {
     if (locked.current || !client) return;
-    const password = String(
-      new FormData(event.currentTarget).get("password") ?? "",
-    );
     locked.current = true;
     setBusy(true);
     setError(null);
@@ -69,6 +128,7 @@ export default function TeacherLogin({
         const { data, error } = await client.auth.signUp({
           email: email.trim(),
           password,
+          options: { data: { role } },
         });
         if (error)
           setError(
@@ -104,6 +164,15 @@ export default function TeacherLogin({
     }
   }
 
+  function next(event: React.FormEvent) {
+    event.preventDefault();
+    if (!ready || busy) return;
+    setError(null);
+    if (step === "role") setStep("email");
+    else if (step === "email") setStep("password");
+    else if (step === "password") void submitPassword();
+  }
+
   const switchLink = signingUp ? (
     <Link className="auth-switch" href="/login">
       Log in
@@ -117,50 +186,60 @@ export default function TeacherLogin({
   return (
     <main id="main-content" className="auth-page">
       <header className="auth-header">
-        <Link className="auth-wordmark" href="/">
-          Cues
-        </Link>
+        {step !== firstStep && step !== "check" ? (
+          <button
+            className="auth-back"
+            aria-label="Go back"
+            disabled={busy}
+            onClick={back}
+          >
+            <RiArrowLeftLine />
+          </button>
+        ) : (
+          <Link className="auth-wordmark" href="/">
+            Cues
+          </Link>
+        )}
         {switchLink}
       </header>
-      {step === "password" ? (
-        <button
-          className="auth-back"
-          aria-label="Go back"
-          disabled={busy}
-          onClick={() => {
-            setError(null);
-            setStep("email");
-          }}
-        >
-          <RiArrowLeftLine />
-        </button>
-      ) : null}
       <section className="auth-content" aria-labelledby="auth-heading">
-        <Companion busy={busy} privacy={step === "password"} />
-        <div className="auth-step" key={step}>
-          <h1 id="auth-heading">
-            {step === "check" ? "Check your inbox" : headings[mode][step]}
-          </h1>
-          {step === "email" ? (
-            <form
-              className="auth-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                setStep("password");
-              }}
-            >
-              <p className="auth-hint">
-                {signingUp
-                  ? "You’ll use it to sign in to your teacher dashboard."
-                  : "Use the email your teacher account was created with."}
-              </p>
-              <label className="sr-only" htmlFor="teacher-email">
-                Teacher email
-              </label>
-              <div className="auth-field">
-                <RiMailLine aria-hidden="true" />
+        <Companion size={92} busy={busy} privacy={step === "password"} />
+        <form className="auth-step" key={step} onSubmit={next} aria-busy={busy}>
+          <TypedHeading text={headings[mode][step]} />
+          <div className="auth-body">
+            {step === "role" ? (
+              <>
+                <p className="auth-hint">
+                  So Cues can word its suggestions for you.
+                </p>
+                <div className="auth-chips" role="radiogroup" aria-label="Your role">
+                  {roles.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      role="radio"
+                      aria-checked={role === option}
+                      className="auth-chip"
+                      onClick={() => setRole(option)}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : step === "email" ? (
+              <>
+                <p className="auth-hint">
+                  {signingUp
+                    ? "You’ll use it to sign in to your classroom."
+                    : "Use the email your teacher account was created with."}
+                </p>
+                <label className="sr-only" htmlFor="teacher-email">
+                  Email
+                </label>
                 <input
                   id="teacher-email"
+                  className="auth-input"
                   type="email"
                   name="email"
                   value={email}
@@ -171,34 +250,28 @@ export default function TeacherLogin({
                   autoFocus
                   maxLength={254}
                 />
-                <button className="auth-next" type="submit" aria-label="Continue">
-                  <RiArrowRightLine />
+              </>
+            ) : step === "password" ? (
+              <>
+                <button
+                  type="button"
+                  className="auth-email"
+                  onClick={() => setStep("email")}
+                  disabled={busy}
+                >
+                  {email}
+                  <span>Change</span>
                 </button>
-              </div>
-            </form>
-          ) : step === "password" ? (
-            <form className="auth-form" onSubmit={submitPassword} aria-busy={busy}>
-              <button
-                type="button"
-                className="auth-chip"
-                onClick={() => {
-                  setStep("email");
-                  setError(null);
-                }}
-                disabled={busy}
-              >
-                {email}
-                <span>Change</span>
-              </button>
-              <label className="sr-only" htmlFor="teacher-password">
-                Password
-              </label>
-              <div className="auth-field">
-                <RiLock2Line aria-hidden="true" />
+                <label className="sr-only" htmlFor="teacher-password">
+                  Password
+                </label>
                 <input
                   id="teacher-password"
+                  className="auth-input"
                   name="password"
                   type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder={
                     signingUp
                       ? `At least ${MIN_PASSWORD} characters`
@@ -210,54 +283,57 @@ export default function TeacherLogin({
                   autoFocus
                   disabled={busy}
                 />
-                <button
-                  className="auth-next"
-                  type="submit"
-                  aria-label={signingUp ? "Create account" : "Sign in"}
-                  disabled={busy || !client}
-                >
-                  <RiArrowRightLine />
-                </button>
-              </div>
-              <p className="auth-hint" aria-live="polite">
-                {busy
-                  ? signingUp
-                    ? "Creating your account…"
-                    : "Signing in…"
-                  : signingUp
-                    ? "Your camera never leaves the classroom laptop."
-                    : " "}
+                <p className="auth-hint" aria-live="polite">
+                  {busy
+                    ? signingUp
+                      ? "Creating your account…"
+                      : "Signing in…"
+                    : "Student video never leaves the classroom laptop."}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="auth-hint">
+                  We sent a link to <strong>{email}</strong>. Open it to
+                  confirm your account, then log in.
+                </p>
+                <Link className="auth-primary" href="/login">
+                  Go to log in
+                  <RiArrowRightLine aria-hidden="true" />
+                </Link>
+              </>
+            )}
+            {!client && step !== "check" && step !== "role" ? (
+              <p className="auth-error" role="status">
+                Teacher accounts aren’t configured in this environment. You
+                can still <Link href="/dashboard">open the classroom</Link>.
               </p>
-            </form>
-          ) : (
-            <div className="auth-form">
-              <p className="auth-hint">
-                We sent a link to <strong>{email}</strong>. Open it to confirm
-                your account, then log in.
+            ) : null}
+            {error ? (
+              <p className="auth-error" role="alert">
+                {error}
               </p>
-              <Link className="auth-primary" href="/login">
-                Go to log in
+            ) : null}
+            {step !== "check" ? (
+              <button
+                className="auth-next"
+                type="submit"
+                data-ready={ready || undefined}
+                disabled={!ready || busy}
+                aria-label={
+                  step === "password"
+                    ? signingUp
+                      ? "Create account"
+                      : "Sign in"
+                    : "Continue"
+                }
+              >
                 <RiArrowRightLine />
-              </Link>
-            </div>
-          )}
-          {!client && step !== "check" ? (
-            <p className="auth-error" role="status">
-              Teacher accounts aren’t configured in this environment. You can
-              still <Link href="/dashboard">open the classroom</Link>.
-            </p>
-          ) : null}
-          {error ? (
-            <p className="auth-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </div>
+              </button>
+            ) : null}
+          </div>
+        </form>
       </section>
-      <footer className="auth-footer">
-        <RiLock2Line aria-hidden="true" />
-        Camera stays local. You stay in control.
-      </footer>
     </main>
   );
 }
