@@ -15,6 +15,7 @@ import numpy as np
 
 from vision.grouping import GROUPING
 from vision.people import MAX_PEOPLE, PersonTracker, person_color
+from vision.station import UNCONFIGURED_PREFIX
 
 
 def poses_from_result(result) -> list[np.ndarray]:
@@ -55,11 +56,32 @@ class PeopleStage:
     name = "people"
     rate_hz = None
 
-    def __init__(self, detector=None, grouping=GROUPING, tracker: PersonTracker | None = None):
+    def __init__(
+        self,
+        detector=None,
+        grouping=GROUPING,
+        tracker: PersonTracker | None = None,
+        station=None,
+    ):
+        from vision import station as station_module
+
         self.grouping = grouping
         self._detector = detector
-        self.tracker = tracker or PersonTracker(getattr(grouping, "station_id", "S1"))
+        self.station = station or station_module.STATION
+        station_id, self._station_generation = self.station.snapshot()
+        self.tracker = tracker or PersonTracker(station_id or UNCONFIGURED_PREFIX)
         self._last_ts = -1
+
+    def _follow_station(self, ctx) -> None:
+        """Person ids are "<station>-P<n>". A new station starts with no tracks."""
+        station_id, generation = self.station.snapshot()
+        if generation != self._station_generation:
+            self._station_generation = generation
+            self.tracker = PersonTracker(
+                station_id or UNCONFIGURED_PREFIX, release_seconds=self.tracker.release_seconds
+            )
+        ctx["station_id"] = station_id
+        ctx["station_generation"] = generation
 
     @property
     def active(self) -> bool:
@@ -78,6 +100,7 @@ class PeopleStage:
         return self._detector
 
     def process(self, frame, ctx) -> None:
+        self._follow_station(ctx)
         if not self.active:
             return
         import mediapipe as mp

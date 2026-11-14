@@ -133,8 +133,15 @@ class CurrentTasks:
     def __init__(self, default: str) -> None:
         get(default)
         self._lock = threading.Lock()
+        self.default = default
         self.class_task = default
         self.overrides: dict[str, str] = {}
+
+    def reset(self) -> None:
+        """Back to the start-up task with no overrides (used on a station change)."""
+        with self._lock:
+            self.class_task = self.default
+            self.overrides.clear()
 
     def for_seat(self, seat_id: str) -> str:
         with self._lock:

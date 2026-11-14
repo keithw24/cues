@@ -31,13 +31,16 @@ export const SIGN_IN_TO_SEE_REVIEWS =
 /**
  * Read-only Supabase feed; queue and selected details share this snapshot.
  * Reviews are readable only by the signed-in teacher who owns their session
- * (migration 006), so reads are scoped to that teacher's sessions.
+ * (migration 006), so reads are scoped to that teacher's sessions. With a `station`,
+ * only reviews from that teacher's sessions at that station are shown.
  */
 export function watchTeacherReviews(
   client: SupabaseClient,
   notify: (state: ReviewFeedState) => void,
   enabled: boolean,
+  station = "",
 ) {
+  const scoped = station.trim();
   if (!enabled) {
     notify(DISABLED_REVIEWS);
     return { refresh: async () => {}, disconnect() {}, dispose() {} };
@@ -86,11 +89,9 @@ export function watchTeacherReviews(
         publish({ reviews: null, error: SIGN_IN_TO_SEE_REVIEWS });
         return;
       }
-      const sessions = await client
-        .from("sessions")
-        .select("id")
-        .eq("teacher_id", teacherId)
-        .abortSignal(signal());
+      let sessionQuery = client.from("sessions").select("id").eq("teacher_id", teacherId);
+      if (scoped) sessionQuery = sessionQuery.eq("station_id", scoped);
+      const sessions = await sessionQuery.abortSignal(signal());
       if (sessions.error) throw new Error("Session read failed");
       const ids = (sessions.data ?? [])
         .map((session: { id?: unknown }) => session.id)

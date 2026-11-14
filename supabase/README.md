@@ -41,6 +41,19 @@ Never print the connection URL, enable shell tracing, or run a remote db reset.
 The earlier duplicate-history warnings in historical notes are superseded by
 this reconciliation. Fresh projects should apply the current unique sorted chain.
 
+## Default station per teacher (migration 011, local only)
+
+`20261114001100_default_station.sql` adds `station_teachers.is_default` (at most one
+default per teacher, enforced by a partial unique index) and
+`get_or_create_my_default_station()`, callable only by signed-in users and always for
+`auth.uid()`. A teacher whose single existing assignment is a station keeps it as their
+default (backfilled; Keith → S1). A teacher with none gets a new `S<n>` station with
+simulated `S<n>-P1..P4` person slots. Existing stations, sessions and their owners are
+not modified. Nothing here has been deployed.
+
+Local tests (need PostgreSQL's `initdb`, `pg_ctl` and `psql`; skipped otherwise):
+`uv run pytest supabase/tests/test_default_station.py supabase/tests/test_migration_replay.py`.
+
 ## Station pairing (migration 008, local only)
 
 `20261114000800_station_pairing.sql` adds private, single-use station invitations.

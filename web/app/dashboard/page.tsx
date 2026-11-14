@@ -20,13 +20,14 @@ export default async function DashboardPage() {
       <Dashboard
         personObservationsEnabled={isEnabled("web.person_observations")}
         sessionControlsEnabled={isEnabled("web.session_controls")}
-        stationId={process.env.CUES_STATION_ID ?? ""}
+        stationId={process.env.CUES_STATION_OVERRIDE ?? ""}
         reviewsEnabled={isEnabled("web.teacher_reviews")}
         reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
         teacherLoginEnabled={isEnabled("web.teacher_login")}
         roomViewEnabled={isEnabled("web.room_view")}
         themeToggleEnabled={isEnabled("web.theme_toggle")}
         liveViewEnabled={isEnabled("web.live_view")}
+        visionStationConfigEnabled={isEnabled("web.vision_station_config")}
       />
     </div>
   );

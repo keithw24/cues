@@ -37,3 +37,18 @@ def pytest_collection_modifyitems(config, items):
         # or class names that happen to contain "hardware".
         if item.get_closest_marker("hardware") is not None:
             item.add_marker(skip)
+
+
+@pytest.fixture(autouse=True)
+def _configured_station(monkeypatch):
+    """Most tests act as a laptop whose dashboard already set station S1.
+
+    Tests of the unconfigured start or of switching build their own
+    ActiveStation and pass it in, or replace this one.
+    """
+    from vision import station
+
+    current = station.ActiveStation("S1")
+    current.subscribe(station._reset_shared_state)
+    monkeypatch.setattr(station, "STATION", current)
+    yield current
