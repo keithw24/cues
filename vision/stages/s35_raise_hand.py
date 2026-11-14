@@ -1,5 +1,8 @@
 """Raise-hand rule: a 0-1 confidence that each person has raised a hand.
 
+The hand must also be an open palm facing the camera
+(vision.gestures.hand_pose.open_palm_facing); otherwise the score is 0.
+
 The score comes from the person's pose points (see raise_confidence). The
 status logic then requires the score to stay above the activity's thresholds,
 which acts as the hold time. The person's single displayed hand is their
@@ -10,13 +13,18 @@ from __future__ import annotations
 
 from vision import activities
 from vision.activities import TASKS
+from vision.gestures.hand_pose import open_palm_facing
 from vision.grouping import GROUPING
 from vision.perception import Match
 from vision.session_sync import frame_activity
 
 FLAG = "vision.raise_hand"
 ACTIVITY_ID = "raise_hand"
-FULL_RAISE_SHOULDER_WIDTHS = 1.5
+# A wrist this many shoulder widths above the shoulder line scores 1.0. With
+# true (aspect-corrected) proportions, 1.0 is about the top of the head.
+FULL_RAISE_SHOULDER_WIDTHS = 1.0
+# Wrist and shoulders must be at least this visible to MediaPipe to count.
+MIN_VISIBILITY = 0.5
 
 
 def raise_confidence(person) -> tuple[float, str]:
@@ -26,9 +34,11 @@ def raise_confidence(person) -> tuple[float, str]:
     * height: how far the higher wrist is above the shoulder line, measured in
       shoulder widths so it works near and far. Level with the shoulders gives
       0; FULL_RAISE_SHOULDER_WIDTHS above (about the top of the head) gives 1.
-    * visibility: MediaPipe's own confidence that the wrist and shoulders are
-      visible. A barely visible wrist lowers the score.
-    confidence = height x visibility. Returns (confidence, explanation).
+    * visibility is a gate, not a multiplier: a wrist whose (or shoulders
+      whose) MediaPipe visibility is below MIN_VISIBILITY does not count.
+      Multiplying by visibility pulled clearly raised hands below the success
+      threshold, because raised wrists often read 0.6-0.9.
+    Returns (confidence, explanation).
     """
     from vision.people import LEFT_SHOULDER, LEFT_WRIST, RIGHT_SHOULDER, RIGHT_WRIST
 
@@ -42,7 +52,7 @@ def raise_confidence(person) -> tuple[float, str]:
         height = (shoulder_y - wy) / width  # image y grows downward
         geometry = min(max(height / FULL_RAISE_SHOULDER_WIDTHS, 0.0), 1.0)
         visibility = min(wv, lsv, rsv)
-        confidence = round(geometry * visibility, 3)
+        confidence = round(geometry, 3) if visibility >= MIN_VISIBILITY else 0.0
         if confidence > best:
             best = confidence
             detail = (
@@ -78,6 +88,10 @@ class RaiseHandStage:
                 continue
             score, detail = raise_confidence(person)
             hand = highest_hand(hands.get(pid, []))
+            # A raised hand only counts as an open palm facing the camera, so a
+            # raised fist or thumbs-up never completes raise_hand.
+            if score > 0 and not open_palm_facing(hand):
+                score, detail = 0.0, f"{detail}; palm not open toward the camera"
             matches[pid] = Match(ACTIVITY_ID, score, detail=detail, hand=hand)
 
     def draw(self, image, ctx) -> None:

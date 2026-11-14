@@ -1,25 +1,31 @@
 {
   "web.teacher_login": {
     "description": "Teacher sign-in with an animated Cues companion; uses existing Supabase teacher accounts.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "teacher-login-redesign"
   },
   "web.teacher_signup": {
     "description": "Teacher sign-up at /signup with the Cues companion; creates a Supabase account.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "teacher-signup"
   },
+  "web.alert_phone": {
+    "description": "Optional sign-up step that saves the teacher's mobile number (user metadata alert_phone) for Photon alerts.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "photon-alert-phone"
+  },
   "web.dashboard": {
     "description": "Read-only teacher dashboard with simulated Supabase seats and realtime state updates.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "dashboard-foundation"
   },
   "web.landing": {
     "description": "Public landing page at /; the teacher dashboard moves to /dashboard.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "landing-page"
   },
@@ -106,5 +112,16 @@
     "default": false,
     "owner": "evan",
     "ticket": "dashboard-redesign"
+  "vision.all_scores": {
+    "description": "Display-only readout of every task's score for every person (overlay and vision.watch). Not sent to Supabase.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "all-gestures-readout"
+  },
+  "vision.custom_gestures": {
+    "description": "Dashboard API to create teacher-recorded gestures (/gestures). Definitions and examples stay in vision/templates/ on this laptop.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "custom-gestures"
   }
 }

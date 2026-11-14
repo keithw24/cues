@@ -1,4 +1,8 @@
-"""Hand tracking: MediaPipe hand landmarks, assigned to a seat by wrist position.
+"""Hand tracking: MediaPipe Gesture Recognizer hands, assigned to a person.
+
+The Gesture Recognizer gives each hand's 21 landmarks and handedness (as the
+Hand Landmarker does) plus built-in gesture scores (Thumb_Up, Open_Palm, ...),
+stored in Hand.gestures.
 
 Writes ctx["hands"] = {seat_id: [Hand, ...]}. Hands in the dead band near the
 divider are dropped.
@@ -28,13 +32,17 @@ CONNECTIONS = [
 def hands_from_result(result, zones=GROUPING, ctx=None) -> dict[str, list[Hand]]:
     """Convert a MediaPipe HandLandmarkerResult into Hand lists per seat or person."""
     by_seat: dict[str, list[Hand]] = {}
-    for landmarks, handedness in zip(result.hand_landmarks, result.handedness, strict=False):
+    gesture_lists = getattr(result, "gestures", None) or [[] for _ in result.hand_landmarks]
+    for landmarks, handedness, gestures in zip(
+        result.hand_landmarks, result.handedness, gesture_lists, strict=False
+    ):
         points = np.array([[p.x, p.y, p.z] for p in landmarks], dtype=np.float32)
         seat = zones.hand_owner(points, ctx)
         if seat is None:
             continue
         side = handedness[0].category_name if handedness else "Right"
-        by_seat.setdefault(seat, []).append(Hand(points, side, seat))
+        scores = {g.category_name: float(g.score) for g in gestures if g.category_name}
+        by_seat.setdefault(seat, []).append(Hand(points, side, seat, scores))
     return by_seat
 
 
@@ -46,19 +54,23 @@ class HandsStage:
         self.zones = zones
         self._detector = detector
 
+    def load(self) -> None:
+        """Load the model now (called by Pipeline.start before the first frame)."""
+        _ = self.detector
+
     @property
     def detector(self):
         if self._detector is None:
             from vision import models
 
-            self._detector = models.hand_landmarker(num_hands=4)
+            self._detector = models.gesture_recognizer(num_hands=4)
         return self._detector
 
     def process(self, frame, ctx) -> None:
         import mediapipe as mp
 
         rgb = cv2.cvtColor(frame.image, cv2.COLOR_BGR2RGB)
-        result = self.detector.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
+        result = self.detector.recognize(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
         ctx["hands"] = hands_from_result(result, self.zones, ctx)
 
     def draw(self, image, ctx) -> None:

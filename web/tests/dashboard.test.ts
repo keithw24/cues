@@ -68,8 +68,9 @@ test("invalid scores and unknown statuses fail visibly", () => {
     );
   }
 });
-test("dashboard defaults off, server override wins, invalid and unknown flags fail", () => {
-  assert.equal(isEnabled("web.dashboard", {}), false);
+test("dashboard defaults on, server override wins, invalid and unknown flags fail", () => {
+  assert.equal(isEnabled("web.dashboard", {}), true);
+  assert.equal(isEnabled("web.dashboard", { CUES_FLAG_WEB_DASHBOARD: "0" }), false);
   assert.equal(
     isEnabled("web.dashboard", { NEXT_PUBLIC_CUES_FLAG_WEB_DASHBOARD: "true" }),
     true,
@@ -142,14 +143,21 @@ test("person observations replace legacy seats per station without counting empt
   );
 });
 
-test("teacher login defaults off independently of classroom access", () => {
-  assert.equal(isEnabled("web.teacher_login", {}), false);
+test("teacher login defaults on and turns off independently of classroom access", () => {
+  assert.equal(isEnabled("web.teacher_login", {}), true);
+  assert.equal(
+    isEnabled("web.teacher_login", { CUES_FLAG_WEB_TEACHER_LOGIN: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.teacher_login", { CUES_FLAG_WEB_TEACHER_LOGIN: "1" }),
     true,
   );
   assert.equal(
-    isEnabled("web.dashboard", { CUES_FLAG_WEB_TEACHER_LOGIN: "1" }),
+    isEnabled("web.dashboard", {
+      CUES_FLAG_WEB_TEACHER_LOGIN: "1",
+      CUES_FLAG_WEB_DASHBOARD: "0",
+    }),
     false,
   );
 });

@@ -21,12 +21,24 @@ import numpy as np
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 LABELS = ("target", "rest")
 
+# Version of how examples are captured and normalised. Examples from an older
+# version no longer match live hands and must be re-recorded.
+#   1 (no version): stretched frames.  2: frames centre-cropped to 4:3.
+#   3: hand size = largest palm distance (vision.gestures.normalize).
+#   4: 16:9 station camera (Logitech C930e) and aspect-corrected x/z.
+FORMAT = 4
+
 
 @dataclass
 class Templates:
     activity_id: str
     target: list[list[float]] = field(default_factory=list)
     rest: list[list[float]] = field(default_factory=list)
+    format: int = FORMAT
+
+    @property
+    def stale(self) -> bool:
+        return self.format < FORMAT
 
     def add(self, label: str, vectors: list[np.ndarray]) -> None:
         if label not in LABELS:
@@ -52,7 +64,9 @@ def load(activity_id: str, directory: Path | None = None) -> Templates:
     if not path.exists():
         return Templates(activity_id)
     data = json.loads(path.read_text())
-    return Templates(activity_id, data.get("target", []), data.get("rest", []))
+    return Templates(
+        activity_id, data.get("target", []), data.get("rest", []), int(data.get("format", 1))
+    )
 
 
 def save(templates: Templates, directory: Path | None = None) -> Path:
@@ -64,6 +78,7 @@ def save(templates: Templates, directory: Path | None = None) -> Path:
         json.dumps(
             {
                 "activity_id": templates.activity_id,
+                "format": FORMAT,
                 "target": templates.target,
                 "rest": templates.rest,
             }
