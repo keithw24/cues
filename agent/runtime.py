@@ -54,7 +54,9 @@ def review_store_from_env(
             {
                 k: v
                 for k, v in dotenv_values(REPO_ROOT / "cues/.env").items()
-                if k.startswith("SPECTRUM_") and v is not None and v.strip()
+                if (k.startswith("SPECTRUM_") or k == "CUES_USE_STATIC_TEACHER_PHONE")
+                and v is not None
+                and v.strip()
             }
         )
         config.update(
@@ -93,7 +95,7 @@ def review_store_from_env(
         ) from None
     log.info("Teacher review storage: Supabase")
     if notifier is None:
-        notifier = spectrum_notifier(config, REPO_ROOT)
+        notifier = spectrum_notifier(config, REPO_ROOT, client=client)
     if notifier is None and config.get("PHOTON_API_KEY"):
         log.warning(
             "Photon key is configured but no Photon sender is injected; notifications disabled"

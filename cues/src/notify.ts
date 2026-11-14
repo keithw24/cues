@@ -22,9 +22,12 @@ let stage = "input";
 async function main() {
   let input = "";
   for await (const chunk of process.stdin) input += chunk;
-  const { message } = JSON.parse(input);
+  const { message, destination } = JSON.parse(input);
   if (typeof message !== "string" || message.length > 500) throw new Error("Invalid message");
-  const phone = process.env.SPECTRUM_TEACHER_PHONE;
+  const phone = process.env.CUES_USE_STATIC_TEACHER_PHONE === "1"
+    ? process.env.SPECTRUM_TEACHER_PHONE : destination;
+  if (typeof phone !== "string" || !/^\+[1-9]\d{7,14}$/.test(phone))
+    throw new Error("Valid E.164 teacher destination required");
   if (!phone) throw new Error("Teacher destination missing");
   if (!process.env.SPECTRUM_PROJECT_ID || !process.env.SPECTRUM_PROJECT_SECRET)
     throw new Error("Spectrum project credentials missing");

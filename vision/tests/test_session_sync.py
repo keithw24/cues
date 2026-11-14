@@ -255,3 +255,18 @@ def test_stopping_sync_cannot_reactivate_a_late_response():
     sync.stop()
     assert sync.check_once() is None
     assert state.for_frame(11) is None
+
+
+def test_gesture_stage_scores_nothing_while_session_is_paused():
+    from types import SimpleNamespace
+
+    from vision.stages.s30_gestures import GesturesStage
+
+    class OnePerson:
+        def ids(self, ctx):
+            return ["S1-P1"]
+
+    stage = GesturesStage(zones=OnePerson())
+    ctx = {"session_managed": True, "session": None, "hands": {"S1-P1": [object()]}}
+    stage.process(SimpleNamespace(timestamp=0.0), ctx)
+    assert ctx["match"] == {}
