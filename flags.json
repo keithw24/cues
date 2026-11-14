@@ -124,5 +124,11 @@
     "default": false,
     "owner": "keith",
     "ticket": "custom-gestures"
+  },
+  "web.landing_faq": {
+    "description": "FAQ section and the full site footer on the landing page. When off, the landing page keeps its one-line footer.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "landing-faq"
   }
 }

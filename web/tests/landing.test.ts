@@ -13,8 +13,14 @@ test("landing defaults on and the server override turns it off", () => {
 
 test("with landing off, / still renders the dashboard", () => {
   const home = read("../app/page.tsx");
-  assert.match(home, /if \(!isEnabled\("web\.landing"\)\) return DashboardPage\(\);/);
-  assert.match(read("../app/dashboard/page.tsx"), /isEnabled\("web\.dashboard"\)/);
+  assert.match(
+    home,
+    /if \(!isEnabled\("web\.landing"\)\) return DashboardPage\(\);/,
+  );
+  assert.match(
+    read("../app/dashboard/page.tsx"),
+    /isEnabled\("web\.dashboard"\)/,
+  );
 });
 
 test("sign-up defaults on and shows an unavailable page when turned off", () => {
@@ -37,4 +43,16 @@ test("the email-confirmed page is unavailable when sign-up is off", () => {
   const page = read("../app/auth/confirmed/page.tsx");
   assert.match(page, /if \(!isEnabled\("web\.teacher_signup"\)\)/);
   assert.match(page, /Teacher sign-up is unavailable\./);
+});
+
+test("FAQ and site footer default off; the landing keeps its short footer", () => {
+  assert.equal(isEnabled("web.landing_faq", {}), false);
+  assert.equal(
+    isEnabled("web.landing_faq", { CUES_FLAG_WEB_LANDING_FAQ: "1" }),
+    true,
+  );
+  const landing = read("../components/landing.tsx");
+  assert.match(landing, /const faq = isEnabled\("web\.landing_faq"\);/);
+  assert.match(landing, /\{faq \? <LandingFaq \/> : null\}/);
+  assert.match(landing, /<footer className="ln-footer">/);
 });
