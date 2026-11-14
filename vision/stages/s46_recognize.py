@@ -37,6 +37,9 @@ from vision.stages.s35_raise_hand import highest_hand, raise_confidence
 
 FLAG = "vision.gestures"
 SWITCH_SECONDS = 0.5
+# A shown gesture stays up this long after it stops being the candidate, so a
+# flickering hand detection does not make the green label blink off.
+CLEAR_SECONDS = 1.5
 
 
 @dataclass
@@ -105,8 +108,11 @@ def candidate(scores: dict) -> tuple[str | None, float | None]:
 class Recognizer:
     """Per-person hysteresis between candidate gestures."""
 
-    def __init__(self, switch_seconds: float = SWITCH_SECONDS) -> None:
+    def __init__(
+        self, switch_seconds: float = SWITCH_SECONDS, clear_seconds: float = CLEAR_SECONDS
+    ) -> None:
         self.switch_seconds = switch_seconds
+        self.clear_seconds = clear_seconds
         self.shown: str | None = None
         self._pending: str | None = None  # meaningful only while _pending_since is set
         self._pending_since: float | None = None
@@ -122,7 +128,8 @@ class Recognizer:
             return self.shown
         if self._pending_since is None or cand != self._pending:
             self._pending, self._pending_since = cand, t
-        if t - self._pending_since >= self.switch_seconds:
+        needed = self.clear_seconds if cand is None else self.switch_seconds
+        if t - self._pending_since >= needed:
             self.shown, self._pending_since = cand, None
         return self.shown
 
@@ -160,7 +167,12 @@ class RecognizeStage:
                 hands = ctx.get("hands", {}).get(pid, [])
                 result[pid] = Recognized(None, None, highest_hand(hands))
             else:
+                # The score and hand are always the live ones: while a completed gesture
+                # is held through a dip, the number keeps falling with the hand
+                # instead of freezing and then jumping, and the skeleton follows the
+                # real hand. (score is None when no hand is in view.)
                 score, hand = scores[shown]
+                hand = hand or highest_hand(ctx.get("hands", {}).get(pid, []))
                 result[pid] = Recognized(shown, score, hand)
         for gone in [p for p in self._recognizers if p not in live]:
             del self._recognizers[gone]

@@ -38,7 +38,13 @@ MIN_VISIBILITY = 0.5
 MIN_UPPER_POINTS = 4
 UPPER_BODY = list(range(0, 17))  # nose, eyes, ears, mouth, shoulders, elbows, wrists
 SMOOTHING = 0.4  # weight of the new box; the rest comes from the previous box
-MISS_GRACE_SECONDS = 0.5  # keep showing a person this long after a missed frame
+MISS_GRACE_SECONDS = 0.25  # keep showing a person this long after a missed frame
+# A new id must be matched this many times to count as a real person. A track that
+# never got there is a stray detection and is dropped after GHOST_SECONDS, not 10 s.
+CONFIRM_HITS = 10
+ESTABLISHED_HITS = 30  # about a second of tracking: a real person, not a stray
+GHOST_SECONDS = 1.0
+DUPLICATE_OVERLAP = 0.6  # a new box covering this much of a tracked box is the same person
 
 # MediaPipe Pose landmark indices.
 NOSE = 0
@@ -104,6 +110,14 @@ def iou(a, b) -> float:
     return inter / union if union > 0 else 0.0
 
 
+def overlap_of_smaller(a, b) -> float:
+    """Intersection area divided by the smaller box's area (1.0 = one box inside the other)."""
+    ix0, iy0, ix1, iy1 = max(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3])
+    inter = max(0.0, ix1 - ix0) * max(0.0, iy1 - iy0)
+    smaller = min((a[2] - a[0]) * (a[3] - a[1]), (b[2] - b[0]) * (b[3] - b[1]))
+    return inter / smaller if smaller > 0 else 0.0
+
+
 def centre(box) -> tuple[float, float]:
     return (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
 
@@ -114,6 +128,7 @@ class _Track:
     box: tuple[float, float, float, float]  # smoothed
     landmarks: np.ndarray
     last_seen: float
+    hits: int = 1  # frames this id was matched to a detection
 
 
 @dataclass
@@ -128,8 +143,13 @@ class PersonTracker:
        pairs are matched first; each track and box is used at most once.
     4. Smooth each matched box with the previous one (SMOOTHING), so the box
        does not jitter.
-    5. Unmatched boxes get the lowest free id.
-    6. Return the people seen now, plus people missed for less than
+    5. Unmatched boxes: if one mostly overlaps a box already tracked this frame
+       it is a duplicate detection of the same person and is dropped. Otherwise
+       it takes over the id of someone who left and was tracked for a while (the
+       nearest one), or else gets the lowest free id.
+    6. A new id that is never matched again (fewer than CONFIRM_HITS frames)
+       is a stray detection and is released after GHOST_SECONDS.
+    7. Return the people seen now, plus people missed for less than
        MISS_GRACE_SECONDS (shown at their last position), so one missed frame
        does not make a person vanish.
     """
@@ -140,7 +160,11 @@ class PersonTracker:
 
     def update(self, t: float, detections: list[np.ndarray]) -> dict[str, Person]:
         limit = self.release_seconds
-        expired = [tid for tid, tr in self.tracks.items() if t - tr.last_seen > limit]
+        expired = [
+            tid
+            for tid, tr in self.tracks.items()
+            if t - tr.last_seen > (limit if tr.hits >= CONFIRM_HITS else GHOST_SECONDS)
+        ]
         for tid in expired:
             del self.tracks[tid]
 
@@ -161,16 +185,28 @@ class PersonTracker:
                 assigned[i] = tid
                 used.add(tid)
 
+        # Boxes already claimed this frame: matched detections first, then new ones.
+        claimed = [found[i][1] for i in assigned]
         for i, (landmarks, box) in enumerate(found):
             tid = assigned.get(i)
             if tid is not None:
-                old = self.tracks[tid].box
-                pairs_xy = zip(box, old, strict=True)
+                old = self.tracks[tid]
+                pairs_xy = zip(box, old.box, strict=True)
                 box = tuple(SMOOTHING * n + (1 - SMOOTHING) * o for n, o in pairs_xy)
-            else:
-                tid = self._new_id()
-                if tid is None:
-                    continue  # already tracking MAX_PEOPLE ids
+                self.tracks[tid] = _Track(tid, box, landmarks, t, old.hits + 1)
+                continue
+            if any(overlap_of_smaller(box, c) >= DUPLICATE_OVERLAP for c in claimed):
+                continue  # a second detection of someone already tracked
+            claimed.append(box)
+            back = self._returning(box, t, used)
+            if back is not None:  # someone who left has come back: they keep their id
+                used.add(back.id)
+                self.tracks[back.id] = _Track(back.id, box, landmarks, t, back.hits + 1)
+                continue
+            tid = self._new_id()
+            if tid is None:
+                claimed.pop()
+                continue  # already tracking MAX_PEOPLE ids
             self.tracks[tid] = _Track(tid, box, landmarks, t)
 
         return {
@@ -178,6 +214,24 @@ class PersonTracker:
             for tid, tr in self.tracks.items()
             if t - tr.last_seen <= MISS_GRACE_SECONDS
         }
+
+    def _returning(self, box, t: float, used: set[str]):
+        """The track of someone who has been out of view that this new box most likely is.
+
+        Ids are by position only, so this is a guess, not an identity: among people
+        who left (not seen for MISS_GRACE_SECONDS, not matched this frame), prefer
+        long-tracked ones (strays are not people) and then the nearest.
+        """
+        lost = [
+            tr
+            for tid, tr in self.tracks.items()
+            if tid not in used and t - tr.last_seen > MISS_GRACE_SECONDS and tr.hits >= CONFIRM_HITS
+        ]
+        if not lost:
+            return None
+        lost = [tr for tr in lost if tr.hits >= ESTABLISHED_HITS] or lost
+        cx, cy = centre(box)
+        return min(lost, key=lambda tr: float(np.hypot(*(np.subtract(centre(tr.box), (cx, cy))))))
 
     @property
     def live_ids(self) -> list[str]:

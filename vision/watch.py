@@ -60,7 +60,8 @@ def format_seat(
         if recognized.activity_id is None:
             lines.append("Recognised: no gesture")
         else:
-            lines.append(f"Recognised: {recognized.activity_id} {recognized.score:.2f}")
+            score = "--" if recognized.score is None else f"{recognized.score:.2f}"
+            lines.append(f"Recognised: {recognized.activity_id} {score}")
         if recognized.hand is not None:  # always shown
             from vision.gestures.hand_pose import describe
 

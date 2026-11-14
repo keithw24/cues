@@ -130,9 +130,12 @@ def test_recognizer_holds_gesture_through_a_one_frame_dip():
         r.update(i * 0.1, "thumbs_up")
     assert r.update(1.0, None) == "thumbs_up"  # one frame: no change
     assert r.update(1.1, "thumbs_up") == "thumbs_up"
-    for i in range(6):
+    for i in range(10):  # a 1 s dip is still held: the label must not blink off
         shown = r.update(1.2 + i * 0.1, None)
-    assert shown is None  # 0.5 s without a gesture: cleared
+    assert shown == "thumbs_up"
+    for i in range(10):
+        shown = r.update(2.2 + i * 0.1, None)
+    assert shown is None  # 1.5 s without the gesture: cleared
 
 
 # ---- 4. recorder uses the same model as the live service ------------------
