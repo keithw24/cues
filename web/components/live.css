@@ -33,13 +33,6 @@
   font-size: 15px;
   font-weight: 500;
 }
-.live-sim {
-  padding: 2px 8px;
-  border-radius: 999px;
-  box-shadow: inset 0 0 0 1px var(--live-hair);
-  color: var(--ws-page-faint);
-  font-size: 12px;
-}
 .live-big {
   margin: 10px 0 0;
   font-size: 64px;

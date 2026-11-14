@@ -57,39 +57,18 @@ test("the saved theme applies only for known values", () => {
   assert.equal(run(null), undefined);
 });
 
-test("the live mock defaults on and never touches Supabase", () => {
+test("/live defaults on and always shows what the camera reports", () => {
   assert.equal(isEnabled("web.live_view", {}), true);
   assert.equal(
     isEnabled("web.live_view", { CUES_FLAG_WEB_LIVE_VIEW: "0" }),
     false,
   );
-  assert.match(
-    read("../app/live/page.tsx"),
-    /if \(!isEnabled\("web\.live_view"\)\)/,
-  );
-  const mock = read("../components/live-mock.tsx");
-  assert.match(mock, /\bsimulated\n/);
-  assert.match(read("../components/live-screen.tsx"), /Simulated class/);
-  for (const file of ["live-mock.tsx", "live-screen.tsx"])
-    assert.doesNotMatch(
-      read(`../components/${file}`),
-      /@\/lib\/(supabase|dashboard-feed|teacher-review-feed|teacher-review-actions)/,
-    );
-});
-
-test("live data defaults off, so /live keeps the simulated mock", () => {
-  assert.equal(isEnabled("web.live_data", {}), false);
-  assert.equal(
-    isEnabled("web.live_data", { CUES_FLAG_WEB_LIVE_DATA: "1" }),
-    true,
-  );
   const page = read("../app/live/page.tsx");
-  assert.match(page, /const liveData = isEnabled\("web\.live_data"\)/);
-  assert.match(
-    page,
-    /liveData\s*\?\s*await import\("@\/components\/live-connected"\)/,
-  );
-  assert.match(page, /:\s*await import\("@\/components\/live-mock"\)/);
+  assert.match(page, /if \(!isEnabled\("web\.live_view"\)\)/);
+  assert.match(page, /await import\(\s*"@\/components\/live-connected"\s*\)/);
+  // No fixed, made-up class anywhere in the Live screen.
+  assert.doesNotMatch(page, /live-mock|web\.live_data/);
+  assert.throws(() => isEnabled("web.live_data", {}));
   // Decisions follow the dashboard and PRD §13: Support needed saves the
   // model review as confirmed and No support needed as dismissed, only when
   // the review action flag is on, keyed by the review and its seat.
@@ -156,4 +135,24 @@ test("the rail keeps only Teacher profile, Classroom and Live", () => {
     rail,
     /#seats-heading|#attention-panel|\/settings\/notifications/,
   );
+});
+
+test("people are labelled as the backend names them, never made-up names", () => {
+  assert.throws(() => isEnabled("web.simulated_names", {}));
+  for (const file of ["dashboard.tsx", "live-connected.tsx"]) {
+    const source = read(`../components/${file}`);
+    assert.doesNotMatch(source, /simulated-names|displayName\(/);
+    assert.match(
+      source,
+      /const seats = feed\.snapshot \? seatViews\(feed\.snapshot\) : \[\];/,
+    );
+  }
+});
+
+test("the workspace shows no simulated class or data labels", () => {
+  for (const file of ["dashboard.tsx", "live-connected.tsx", "live-screen.tsx"])
+    assert.doesNotMatch(
+      read(`../components/${file}`),
+      /simulated class|Simulated data|Simulated seat|Simulated class/,
+    );
 });

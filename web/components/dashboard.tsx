@@ -36,7 +36,6 @@ import {
   PersonRowContent,
   ReviewRowContent,
 } from "@/components/workspace-rows";
-import { displayName } from "@/lib/simulated-names";
 
 const INITIAL: FeedState = {
   snapshot: null,
@@ -158,9 +157,6 @@ function SeatDetails({
             </dd>
           </div>
         </dl>
-        {seat.is_simulated ? (
-          <p className="detail-simulation">Simulated seat · {seat.id}</p>
-        ) : null}
         <ProgressContext
           observation={seat.state}
           scope={seat.state ?? undefined}
@@ -185,7 +181,6 @@ export default function Dashboard({
   reviewsEnabled = false,
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
-  simulatedNamesEnabled = false,
   roomViewEnabled = false,
   themeToggleEnabled = false,
   liveViewEnabled = false,
@@ -199,7 +194,6 @@ export default function Dashboard({
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
   teacherLoginEnabled?: boolean;
-  simulatedNamesEnabled?: boolean;
   roomViewEnabled?: boolean;
   themeToggleEnabled?: boolean;
   liveViewEnabled?: boolean;
@@ -376,12 +370,9 @@ export default function Dashboard({
     if (selectedId || selectedReviewId) detailsHeading.current?.focus();
   }, [selectedId, selectedReviewId]);
 
-  const seats = feed.snapshot
-    ? seatViews(feed.snapshot).map((seat) => ({
-        ...seat,
-        display_name: displayName(seat, simulatedNamesEnabled),
-      }))
-    : [];
+  // People are labelled as the backend names them (seats.display_name,
+  // "Person 1", "Person 2"…): no made-up names.
+  const seats = feed.snapshot ? seatViews(feed.snapshot) : [];
   const reviewActivity = (id: string) =>
     activityLabel(
       id,
@@ -419,6 +410,10 @@ export default function Dashboard({
   const cameraReporting = seats.some((seat) =>
     isFresh(seat.state, observationOptions),
   );
+  // With no live connection we can't tell whether the camera is on.
+  const cameraOffMessage = observationOptions.connected
+    ? "The camera is off. People appear here when the station camera sees them."
+    : "Updates paused. Reconnecting to the station…";
   const peopleCount = feed.snapshot ? inView.length : "—";
   const workingCount = countStatus("in_progress");
   const completedCount = countStatus("done");
@@ -489,12 +484,6 @@ export default function Dashboard({
         </div>
       </details>
     );
-  const allSimulated =
-    seats.length > 0 && seats.every((seat) => seat.is_simulated);
-  const simulatedChip =
-    seats.length > 0 && seats.every((seat) => seat.is_simulated) ? (
-      <span className="status-chip">Simulated data</span>
-    ) : null;
   const roomPeople: RoomPerson[] = inView.map((seat) => {
     const presentation = observationPresentation(
       seat.state,
@@ -581,10 +570,7 @@ export default function Dashboard({
             <header className="room-header">
               <div>
                 <h1>your classroom</h1>
-                <p className="room-subtitle">
-                  {activity}
-                  {allSimulated ? " · simulated class" : null}
-                </p>
+                <p className="room-subtitle">{activity}</p>
               </div>
               <div className="room-actions">
                 {sessionLive ? null : activityPopover}
@@ -664,7 +650,6 @@ export default function Dashboard({
                 <strong>{activity}</strong>
               </div>
               {activityPopover}
-              {simulatedChip}
             </div>
           </>
         )}
@@ -709,7 +694,7 @@ export default function Dashboard({
                     ? "Loading the room…"
                     : cameraReporting
                       ? "No one is in view right now."
-                      : "The camera is off. People appear here when the station camera sees them."
+                      : cameraOffMessage
                 }
                 onSelect={(id, opener) => {
                   const seat = seats.find((item) => item.id === id);
@@ -772,7 +757,7 @@ export default function Dashboard({
                       <p className="strip-empty" role="status">
                         {cameraReporting
                           ? "No one is in view right now."
-                          : "The camera is off. People appear here when the station camera sees them."}
+                          : cameraOffMessage}
                       </p>
                     ) : (
                       <div className="seat-items">
@@ -1010,7 +995,7 @@ export default function Dashboard({
                     <p className="strip-empty" role="status">
                       {cameraReporting
                         ? "No one is in view right now."
-                        : "The camera is off. People appear here when the station camera sees them."}
+                        : cameraOffMessage}
                     </p>
                   ) : (
                     <div className="seat-items">

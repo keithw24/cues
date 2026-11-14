@@ -6,8 +6,8 @@ import "@/components/workspace.css";
 
 export const metadata = { title: "Cues · Live" };
 
-// The Live screen (web.live_view). With web.live_data on it reads Supabase;
-// otherwise it shows the simulated mock.
+// The Live screen (web.live_view): who the station camera sees right now,
+// their task status and the review queue, read from Supabase.
 export default async function LivePage() {
   if (!isEnabled("web.live_view"))
     return (
@@ -20,22 +20,16 @@ export default async function LivePage() {
         <Link href="/dashboard">Open classroom</Link>
       </main>
     );
-  const liveData = isEnabled("web.live_data");
-  const screen = liveData
-    ? await import("@/components/live-connected").then(
-        ({ default: LiveConnected }) => (
-          <LiveConnected
-            personObservationsEnabled={isEnabled("web.person_observations")}
-            reviewsEnabled={isEnabled("web.teacher_reviews")}
-            reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
-            teacherLoginEnabled={isEnabled("web.teacher_login")}
-            simulatedNamesEnabled={isEnabled("web.simulated_names")}
-          />
-        ),
-      )
-    : await import("@/components/live-mock").then(({ default: LiveMock }) => (
-        <LiveMock />
-      ));
+  const { default: LiveConnected } =
+    await import("@/components/live-connected");
+  const screen = (
+    <LiveConnected
+      personObservationsEnabled={isEnabled("web.person_observations")}
+      reviewsEnabled={isEnabled("web.teacher_reviews")}
+      reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
+      teacherLoginEnabled={isEnabled("web.teacher_login")}
+    />
+  );
   return (
     <div className={`dashboard-shell ${garamond.variable}`}>
       <WorkspaceSidebar
