@@ -40,22 +40,9 @@
   text-decoration: none;
 }
 .ln-brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 45%, #5a74d6, #2f48ad);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
-}
-.ln-brand-mark i {
-  width: 4px;
-  height: 9px;
-  margin-top: -2px;
-  border-radius: 4px;
-  background: #ffffff;
+  flex: none;
+  color: var(--ln-ink);
+  --cues-mark-accent: #425cc8;
 }
 .ln-nav nav {
   display: flex;

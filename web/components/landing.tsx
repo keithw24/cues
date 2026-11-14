@@ -12,6 +12,7 @@ import LandingHero from "@/components/landing-hero";
 import LandingPreview from "@/components/landing-preview";
 import LandingFaq from "@/components/landing-faq";
 import LandingFooter from "@/components/landing-footer";
+import CuesMark from "@/components/cues-mark";
 import "./landing.css";
 
 const garamond = EB_Garamond({
@@ -36,10 +37,7 @@ export default function Landing() {
     <div className={`landing ${garamond.variable}`}>
       <header className="ln-nav">
         <Link href="/" className="ln-brand" aria-label="Cues home">
-          <span className="ln-brand-mark" aria-hidden="true">
-            <i />
-            <i />
-          </span>
+          <CuesMark className="ln-brand-mark" />
           Cues
         </Link>
         <nav aria-label="Main">
