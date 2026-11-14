@@ -1342,6 +1342,70 @@ No service-role token was used to authorize those RPC calls; admin credentials
 were used only for fixture setup/cleanup. Full offline suite: 372 passed, 4 skipped.
 Frontend subscription/UI and real session authorization remain separate work.
 
+## Photon/Spectrum notification branch
+
+New Supabase review INSERT winners notify after successful persistence and typed
+validation, using an injected ReviewNotifier. Duplicate ON CONFLICT reuse never
+notifies, including another backend instance; resolution never notifies. The
+in-memory store and a recommendation without the action do not send. No LLM call
+or new agent tool/node is involved. Runtime injects the Spectrum adapter using
+existing root SPECTRUM_PROJECT_ID/SPECTRUM_PROJECT_SECRET, plus the explicit
+SPECTRUM_TEACHER_PHONE destination and optional SPECTRUM_SENDER_PHONE dedicated line.
+All remain backend-only. The existing cues/ Spectrum SDK project supplies the
+one-shot cues/src/notify.ts sender; no inbound listener or new transport service
+was added. Install that project's existing dependencies if absent.
+
+The teacher receives only “Cues: Seat <seat_id> may need attention. Open Cues to
+review.” No rationale, evidence, expression, images or intervention instructions
+are transmitted. Python passes only the message/review UUID over stdin and project
+credentials through subprocess environment. The subprocess is bounded to 25s;
+SDK errors/output are captured rather than exposing secrets. Acceptance requires
+a nonempty SDK send acknowledgement. This does not prove device delivery.
+
+Notification failure is logged with review UUID/error class, retaining the pending
+review and allowing terminal agent success/dashboard retrieval. No rollback or
+automatic retry occurs. Insert-winner suppression is an at-most-once attempt
+policy, not guaranteed delivery: a crash after commit/before sending or an uncertain
+provider response can lose a notification. No outbox or delivery-state schema was
+introduced. Review IDs are available to injected transports as idempotency context;
+the Spectrum SDK sender does not claim server-side idempotency support.
+
+Live synthetic hosted attempt: review b04b075c-093f-415f-8ade-6272a70234ca persisted
+and remained retrievable, but Spectrum adapter failed acknowledgement (one attempt,
+zero confirmed acceptances). Delivery is **not verified**. No retry was forced;
+only the synthetic probe row was removed by smoke cleanup. Root project credentials
+and destination were present; provider-side configuration/line/allowlist and send
+diagnostics remain to be checked. Stage-only sender diagnostics were added without
+printing SDK errors, secrets or phone numbers. The pending-review persistence and
+failure-isolation branch is verified; live Photon delivery remains unresolved.
+
+Offline tests cover new insert/duplicate reuse across stores, persistence failure,
+both teacher resolutions, notification failure retaining the review, minimal
+message contents, replaceable fake senders, bounded subprocess and secret exclusion.
+Full offline suite: **379 passed, 4 skipped**; lint and diff checks passed. TypeScript
+sender type-check passed. Used the repository's Spectrum skill and provider contract;
+no commit, merge or push.
+
+### Nested Spectrum env and direct delivery diagnosis
+
+notify.ts now loads cues/.env relative to its own module path using Node's
+loadEnvFile, independent of caller cwd. Spectrum receives the configured
+SPECTRUM_PROJECT_ID/projectSecret explicitly; teacher and optional sender routing
+are read from the same backend environment. SDK console output is suppressed;
+only credential-presence flags and redacted stage/error diagnostics are emitted.
+No credential values or phone numbers were printed.
+
+A direct test from the nested cues project on November 14, 2026 confirmed nested
+env loading and presence of project ID/secret and teacher destination. No explicit
+sender was configured. Initialization and teacher/space resolution completed;
+the send stage failed with the exact sanitized SDK error:
+`[spectrum-imessage] Target not allowed for this project`.
+No acknowledgement/delivery was verified. The teacher destination must be
+registered/allowlisted in this Spectrum project's users before retesting. No
+automatic retry was made. TypeScript checking passed. Review trigger semantics,
+persistence, duplicate suppression and architecture were unchanged; this direct
+send probe created no review rows.
+
 ## Citations
 
 These sources support allowing processing time, not treating a few seconds as
