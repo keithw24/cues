@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 from vision.app import create_app, mjpeg_parts
 from vision.camera import FakeCamera
 from vision.pipeline import Pipeline

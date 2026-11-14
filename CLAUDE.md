@@ -15,7 +15,7 @@ Only edit another owner's folder when the task needs it, and say so in the PR.
 
 ## Environment
 
-One shared Python environment for the whole repo, set up by Michelle: `pyproject.toml` and `uv.lock` at the root, Python 3.11 (`.python-version`). Run `uv sync` once. Add Python dependencies only to the root `pyproject.toml` with `uv add`; don't create per-folder Python projects. Secrets and settings go in the root `.env`; copy `.env.example`. The web app has its own `web/package.json`.
+One shared Python environment for the whole repo, set up by Michelle: `pyproject.toml` and `uv.lock` at the root, Python 3.11 (`.python-version`). Run `uv sync` once. Add Python dependencies only to the root `pyproject.toml` with `uv add`; don't create per-folder Python projects. Secrets go in the root `.env`; copy `.env.example`. The vision service reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from it. Optional vision settings, also in `.env` or the shell: `CUES_CAMERA_INDEX` (webcam number, default 0), `CUES_CAMERA=fake`, `CUES_STATION_ID` (default `S1`) and `CUES_SESSION_ID` (default: a new id on each start). The web app has its own `web/package.json`.
 
 ## Commands (vision)
 
@@ -40,7 +40,6 @@ uv run python -m vision.bench          # (after T2) laptop benchmark
 uv run python -m vision.events --demo  # (after T3) send one test event
 ```
 
-`CUES_CAMERA=fake` runs the service without a webcam.
 
 ## Workflow: one feature, one branch, one PR
 
