@@ -22,10 +22,12 @@ export type TeacherReview = Readonly<{
   evidence_used: readonly EvidenceSource[];
   status: "pending" | "confirmed" | "dismissed";
   resolved_at: string | null;
+  progress?: { trend: string; stalled_seconds: number } | null;
+  escalation_reason?: string | null;
 }>;
 
 export const REVIEW_COLUMNS =
-  "id,session_id,seat_id,activity_id,created_at,priority,decision,rationale,evidence_used,status,resolved_at";
+  "id,session_id,seat_id,activity_id,created_at,priority,decision,rationale,evidence_used,status,resolved_at,evaluation";
 export const evidenceLabels: Record<EvidenceSource, string> = {
   current_progress: "Current task progress",
   activity: "Activity requirements",
@@ -72,6 +74,11 @@ export function parseTeacherReviews(input: unknown): TeacherReview[] {
       )
     )
       throw new Error("Invalid review evidence");
+    const evaluation = row.evaluation as Record<string, unknown> | undefined;
+    const progress = evaluation?.progress as Record<string, unknown> | undefined;
+    const escalation = evaluation?.escalation as Record<string, unknown> | undefined;
+    const validProgress = progress && ['improving', 'stalled', 'completed', 'unknown'].includes(String(progress.trend)) &&
+      typeof progress.stalled_seconds === 'number' && Number.isFinite(progress.stalled_seconds) && progress.stalled_seconds >= 0;
     return {
       id,
       session_id,
@@ -88,6 +95,10 @@ export function parseTeacherReviews(input: unknown): TeacherReview[] {
       evidence_used: [...new Set(evidence)] as EvidenceSource[],
       status: row.status as TeacherReview["status"],
       resolved_at: row.resolved_at == null ? null : timestamp(row.resolved_at),
+      ...(row.evaluation == null ? {} : {
+        progress: validProgress ? { trend: String(progress.trend), stalled_seconds: progress.stalled_seconds as number } : null,
+        escalation_reason: typeof escalation?.reason === 'string' ? escalation.reason : null,
+      }),
     };
   });
 }

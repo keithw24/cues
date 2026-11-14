@@ -52,7 +52,7 @@ export function watchDashboard(
           .from("seat_state")
           .select(
             "seat_id,session_id,activity_id,status,task_score,updated_at" +
-              (personObservationsEnabled ? ",tracking_valid" : ""),
+              (personObservationsEnabled ? ",tracking_valid,expression_context" : ""),
           )
           .abortSignal(signal),
         client.from("activities").select("id,name").abortSignal(signal),
