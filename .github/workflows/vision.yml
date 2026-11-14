@@ -1,15 +1,22 @@
 name: vision
 
+# Only runs when vision code, the flag registry or this file changes.
+# Don't make this a required status check: PRs that skip it would wait forever.
 on:
   pull_request:
     paths:
       - "vision/**"
+      - "flags.json"
       - ".github/workflows/vision.yml"
   push:
     branches: [main]
     paths:
       - "vision/**"
+      - "flags.json"
       - ".github/workflows/vision.yml"
+
+permissions:
+  contents: read
 
 concurrency:
   group: vision-${{ github.ref }}

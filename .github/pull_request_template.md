@@ -1,14 +1,22 @@
+**Ticket:** <!-- e.g. T5, or "none (infrastructure)" -->
+**Stacked on:** <!-- #N, or "none" -->
+**Feature flag:** <!-- e.g. `vision.hands` (default false), or "none (infrastructure)" -->
+
+**Verify step:**
+<!-- Copy the ticket's Verify step word for word. Reviewers read it from here. -->
+
 ## What this delivers
 
-<!-- One or two sentences: the working capability that exists after this PR. Link the ticket (e.g. T1). -->
+<!-- One or two sentences: the working capability that exists after this PR. -->
 
 ## How it was verified
 
 - [ ] CI passes (lint, format, tests)
-- [ ] Manual check on a laptop (camera / hardware steps CI cannot run):
+- [ ] Test with the feature flag off (feature PRs)
+- [ ] Manual check (camera / Supabase / Photon steps CI cannot run). Run by: <!-- name -->
 
-<!-- Paste the exact command(s) you ran and what you saw. -->
+<!-- Paste the exact command(s) and what you saw. -->
 
 ## Files owned
 
-<!-- List the files this PR creates or edits. PRs in the same wave must not share files. -->
+<!-- List the files this PR creates or edits. PRs worked on at the same time must not share files, except flags.json (add your own entry only). -->
