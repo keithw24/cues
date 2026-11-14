@@ -1,0 +1,8 @@
+{
+  "vision.supabase_events": {
+    "description": "Send vision events and seat_state to Supabase. When off, they are written only to vision/logs/*.jsonl.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T3"
+  }
+}
