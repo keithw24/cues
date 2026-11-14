@@ -89,7 +89,8 @@ Remaining:
    their privately entered password. Grant only that user's S1 membership.
 2. Keith loads this change set from the `evan` branch on his station and restarts with the
    lifecycle/emission/task flags. Do not run a second S1 emitter on Evan's laptop.
-3. Enable the web flag with `CUES_STATION_ID=S1` and rebuild. Verify teacher login,
+3. Enable the web flag and rebuild. The dashboard uses the signed-in teacher's default
+   station (see "Default station per teacher" below); no station id is configured. Verify teacher login,
    a fresh station acknowledgement, Start/new UUID, task switch, End/idle and
    refresh in the actual dashboard. Check a second stale tab is rejected.
 4. Michelle's future live progress/routing consumer must observe session revision
@@ -100,3 +101,27 @@ Remaining:
 Evan requested a commit/push of the accumulated app work to `evan`. No merge to
 `main` is included. The live feature remains default off until
 teacher setup and Keith-side verification are complete.
+
+## Default station per teacher
+
+One teacher account has one persistent default station; a station has many sessions over
+time. After sign-in the dashboard calls `get_or_create_my_default_station()` (migration
+`20261114001100_default_station.sql`), which uses only `auth.uid()`:
+
+- an existing default is returned;
+- a teacher whose only assignment is one station (Keith → S1) gets that station as their default;
+- otherwise a new station (`S2`, `S3`, …) with four simulated person slots is created and
+  assigned to them, once, even if two tabs call at the same time.
+
+Session controls, the activity picker, seats and observations, and teacher reviews are all
+scoped to that station. Start Session still calls `start_station_activity`, which creates a
+new session owned by `auth.uid()`; it never creates a station. Pairing a station with a code
+adds a non-default assignment and does not change anyone's default.
+
+The vision laptop follows the same station without configuration: once the teacher is
+signed in, the dashboard sends the resolved station to the local vision service
+(`POST 127.0.0.1:8000/config`, flags `web.vision_station_config` / `vision.station_config`).
+Do not set `CUES_STATION_ID` in the root `.env` unless you mean to pin vision to one
+station: a pinned laptop refuses any other station. Each laptop needs
+`CUES_FLAG_VISION_SESSION_LIFECYCLE=1` to follow its own station's session.
+`CUES_STATION_OVERRIDE` in `web/.env.local` pins the dashboard to one station for dev/test only.

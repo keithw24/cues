@@ -12,7 +12,10 @@ import { activityLabel, groupReviewsBySeat } from "@/lib/teacher-reviews";
 import { ProgressContext } from "@/components/progress-context";
 import { TeacherReviewDetails } from "@/components/teacher-review-details";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
+import { resolveDefaultStation } from "@/lib/default-station";
+import { StationSignInRequired } from "@/lib/station-pairing";
 import { createDashboardClient } from "@/lib/supabase";
+import { startLocalVisionSync } from "@/lib/local-vision";
 import { Card } from "@/components/ui/card";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
 import { SessionControls } from "@/components/session-controls";
@@ -186,9 +189,12 @@ export default function Dashboard({
   roomViewEnabled = false,
   themeToggleEnabled = false,
   liveViewEnabled = false,
+  visionStationConfigEnabled = false,
 }: {
   personObservationsEnabled?: boolean;
   sessionControlsEnabled?: boolean;
+  /** Explicit dev/test override (CUES_STATION_OVERRIDE). Normally empty: a signed-in
+   * teacher's own default station is used. */
   stationId?: string;
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
@@ -197,6 +203,7 @@ export default function Dashboard({
   roomViewEnabled?: boolean;
   themeToggleEnabled?: boolean;
   liveViewEnabled?: boolean;
+  visionStationConfigEnabled?: boolean;
 }) {
   const [observationNow, setObservationNow] = useState<number | null>(null);
   useEffect(() => {
@@ -241,6 +248,80 @@ export default function Dashboard({
     }
   });
   const configurationError = client === null;
+  // The station this dashboard is about: the override, else the signed-in teacher's own
+  // default station (created on first sign-in). Empty while signed out or still loading.
+  const stationOverride = stationId.trim();
+  const resolvesStation =
+    !stationOverride && (sessionControlsEnabled || teacherLoginEnabled);
+  const [defaultStation, setDefaultStation] = useState<{
+    id: string | null;
+    message: string;
+  }>({ id: null, message: "Sign in to manage activities" });
+  const station = stationOverride || defaultStation.id || "";
+  // Tell this laptop's vision service the signed-in teacher's resolved station.
+  useEffect(() => {
+    if (!visionStationConfigEnabled || !client || !station) return;
+    return startLocalVisionSync(client, station);
+  }, [client, station, visionStationConfigEnabled]);
+  useEffect(() => {
+    if (!client || !resolvesStation) return;
+    let disposed = false;
+    let latest = 0;
+    const signedOut = { id: null, message: "Sign in to manage activities" };
+    const resolve = async (signedIn: boolean) => {
+      const mine = ++latest;
+      if (!signedIn) {
+        setDefaultStation(signedOut);
+        return;
+      }
+      try {
+        const found = await resolveDefaultStation(client);
+        if (!disposed && mine === latest)
+          setDefaultStation({ id: found.id, message: "" });
+      } catch (cause) {
+        if (disposed || mine !== latest) return;
+        setDefaultStation(
+          cause instanceof StationSignInRequired
+            ? signedOut
+            : {
+                id: null,
+                message:
+                  cause instanceof Error
+                    ? cause.message
+                    : "Your station could not be loaded.",
+              },
+        );
+      }
+    };
+    void client.auth.getSession().then(({ data }) => {
+      if (disposed) return;
+      if (data.session) setDefaultStation({ id: null, message: "Finding your station…" });
+      void resolve(Boolean(data.session));
+    });
+    const { data } = client.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+      // A different account: never keep the previous teacher's station on screen.
+      setDefaultStation(
+        session ? { id: null, message: "Finding your station…" } : signedOut,
+      );
+      // Defer: Supabase calls inside this callback can deadlock the auth lock.
+      setTimeout(() => void resolve(Boolean(session)), 0);
+    });
+    return () => {
+      disposed = true;
+      data.subscription.unsubscribe();
+    };
+  }, [client, resolvesStation]);
+  const shownStation = useRef(station);
+  useEffect(() => {
+    // Another station (account switch, sign-out): drop the old station's rows now.
+    if (shownStation.current === station) return;
+    shownStation.current = station;
+    queueMicrotask(() => {
+      setFeed(INITIAL);
+      setReviews(reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS);
+    });
+  }, [station, reviewsEnabled]);
   useEffect(() => {
     if (!client) return;
     const subscription = watchDashboard(
@@ -254,6 +335,7 @@ export default function Dashboard({
         else setFeed(state);
       },
       personObservationsEnabled,
+      station,
     );
     const offline = () => subscription.disconnect();
     const online = () => setAttempt((n) => n + 1);
@@ -264,7 +346,7 @@ export default function Dashboard({
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [attempt, client, personObservationsEnabled]);
+  }, [attempt, client, personObservationsEnabled, station]);
   useEffect(() => {
     if (!client) return;
     const subscription = watchTeacherReviews(
@@ -278,6 +360,7 @@ export default function Dashboard({
             ) ?? null,
         }),
       reviewsEnabled,
+      station,
     );
     const offline = () => subscription.disconnect();
     const online = () => setReviewAttempt((n) => n + 1);
@@ -288,7 +371,7 @@ export default function Dashboard({
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [client, reviewsEnabled, reviewAttempt]);
+  }, [client, reviewsEnabled, reviewAttempt, station]);
   useEffect(() => {
     if (selectedId || selectedReviewId) detailsHeading.current?.focus();
   }, [selectedId, selectedReviewId]);
@@ -386,7 +469,8 @@ export default function Dashboard({
       <section className="session-toolbar" aria-label="Session controls">
         <SessionControls
           client={client}
-          station={stationId}
+          station={station}
+          stationMessage={resolvesStation ? defaultStation.message : undefined}
           onActivity={setSessionActivity}
           teacherLoginEnabled={teacherLoginEnabled}
         />

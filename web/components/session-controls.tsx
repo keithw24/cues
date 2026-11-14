@@ -14,11 +14,14 @@ import {
 export function SessionControls({
   client,
   station,
+  stationMessage,
   onActivity,
   teacherLoginEnabled = false,
 }: {
   client: SupabaseClient;
   station: string;
+  /** Shown while the signed-in teacher's station is being found (or cannot be). */
+  stationMessage?: string;
   onActivity: (label: string) => void;
   teacherLoginEnabled?: boolean;
 }) {
@@ -216,7 +219,11 @@ export function SessionControls({
     }
   }
   if (!station)
-    return <span role="status">Session station is not configured.</span>;
+    return (
+      <span role="status">
+        {stationMessage || "Session station is not configured."}
+      </span>
+    );
   if (!user && teacherLoginEnabled)
     return (
       <Link className="primary-button session-login-link" href="/login">

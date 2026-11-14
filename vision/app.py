@@ -96,7 +96,10 @@ def create_app(pipeline: Pipeline | None = None) -> FastAPI:
 
     @app.get("/health")
     def health(request: Request) -> dict:
-        return request.app.state.pipeline.health()
+        from vision.station import STATION
+
+        # The station id is not sensitive; the dashboard shows which one is active.
+        return {**request.app.state.pipeline.health(), "station_id": STATION.get()}
 
     @app.get("/stream")
     def stream(request: Request) -> StreamingResponse:
