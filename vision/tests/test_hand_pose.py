@@ -67,3 +67,22 @@ def test_old_templates_are_marked_stale(tmp_path):
     t.add("target", [np.ones(63)])
     tpl.save(t, tmp_path)
     assert not tpl.load("thumbs_up", tmp_path).stale
+
+
+def test_turned_thumbs_up_stays_in_normal_range():
+    """Knuckles almost in front of the wrist used to blow the values up."""
+    from vision.gestures.normalize import is_reliable, normalize
+
+    pts = thumbs_up_back()
+    pts[9, :2] = pts[0, :2] + 0.0005  # middle knuckle right in front of the wrist
+    vector = normalize(pts, PERSONS_RIGHT)
+    assert is_reliable(vector)
+    assert abs(vector).max() < 4.0
+
+
+def test_unreliable_vectors_are_rejected():
+    from vision.gestures.normalize import is_reliable
+
+    assert not is_reliable(np.full(63, 9.0))
+    assert not is_reliable(np.full(63, np.nan))
+    assert is_reliable(np.zeros(63))

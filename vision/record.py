@@ -27,7 +27,7 @@ import numpy as np
 from vision.camera import standard_frame
 from vision.gestures import templates as tpl
 from vision.gestures.matcher import calibrate_rejection
-from vision.gestures.normalize import normalize
+from vision.gestures.normalize import is_reliable, normalize
 
 WINDOW = "Cues recorder (press q to cancel)"
 GREEN, RED, WHITE = (0, 200, 0), (0, 0, 230), (255, 255, 255)
@@ -89,7 +89,9 @@ class Recorder:
             result = self.detector.detect(self.make_image(rgb))
             hand = pick_hand(hands_from_result(result, AllHands()).get("any", []))
             if record and hand is not None and now >= next_sample:
-                vectors.append(normalize(hand.landmarks, hand.handedness))
+                vector = normalize(hand.landmarks, hand.handedness)
+                if is_reliable(vector):  # skip end-on hands and bad detections
+                    vectors.append(vector)
                 next_sample = now + 1.0 / fps
             if self.preview:
                 self.show(bgr, hand, f"{banner} {end - now:.0f}s", record, len(vectors))

@@ -21,10 +21,11 @@ import numpy as np
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
 LABELS = ("target", "rest")
 
-# Version of how examples are captured. 2 = frames centre-cropped to 4:3
-# (vision.camera.standard_frame). Files without a version were recorded with
-# the old stretched frames and no longer match live hands.
-FORMAT = 2
+# Version of how examples are captured and normalised. Examples from an older
+# version no longer match live hands and must be re-recorded.
+#   1 (no version): stretched frames.  2: frames centre-cropped to 4:3.
+#   3: hand size = largest palm distance (vision.gestures.normalize).
+FORMAT = 3
 
 
 @dataclass

@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 from vision import activities
 from vision.gestures import templates as tpl
 from vision.gestures.matcher import calibrate_rejection
-from vision.gestures.normalize import normalize
+from vision.gestures.normalize import is_reliable, normalize
 
 FLAG = "vision.gestures"
 SAMPLE_HZ = 10.0
@@ -57,7 +57,9 @@ def collect(ctx: dict, seconds: float, seat_id: str | None, sample_hz: float = S
     while time.monotonic() < end:
         hand = pick_hand(ctx.get("hands", {}), seat_id)
         if hand is not None:
-            vectors.append(normalize(hand.landmarks, hand.handedness))
+            vector = normalize(hand.landmarks, hand.handedness)
+            if is_reliable(vector):
+                vectors.append(vector)
         time.sleep(1.0 / sample_hz)
     return vectors
 
