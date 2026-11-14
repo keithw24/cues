@@ -109,7 +109,7 @@
   },
   "web.simulated_names": {
     "description": "Show made-up first names for simulated people instead of Person 1, Person 2 on the dashboard.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "dashboard-redesign"
   },
@@ -127,7 +127,7 @@
   },
   "web.landing_faq": {
     "description": "FAQ section and the full site footer on the landing page. When off, the landing page keeps its one-line footer.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "landing-faq"
   },
@@ -139,31 +139,31 @@
   },
   "web.landing_demo": {
     "description": "Landing hero shows a looping demo of the real dashboard (banner, People rows, review rows) with simulated students. When off, the hero keeps the older preview card.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "landing-demo"
   },
   "web.landing_motion": {
     "description": "Landing page sections fade in once as they scroll into view. When off, every section is visible from the start.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "landing-demo"
   },
   "web.room_view": {
     "description": "Dashboard main page as the room: people placed as the camera sees them, a 'who needs you next' card and a one-hour timeline, with the camera, People list and reviews in a side drawer. When off, the card layout stays.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "room-view"
   },
   "web.theme_toggle": {
     "description": "Light/dark switch on the landing page, log-in, sign-up and the dashboard. The choice is saved in the browser. When off, each page keeps its default: Night for the landing page and dashboard, white for log-in and sign-up.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "theme-toggle"
   },
   "web.live_view": {
     "description": "Live screen at /live: a big count, a card for the next review, a short feed and the class as a list. With web.live_data off it shows a simulated class and makes no Supabase reads. When off, /live shows an unavailable page and the rail has no Live link.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "live-view"
   },
