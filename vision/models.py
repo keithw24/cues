@@ -20,6 +20,10 @@ MODEL_URLS = {
         "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
         "hand_landmarker/float16/1/hand_landmarker.task"
     ),
+    "pose_landmarker_lite.task": (
+        "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
+        "pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+    ),
     "blaze_face_short_range.tflite": (
         "https://storage.googleapis.com/mediapipe-models/face_detector/"
         "blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
@@ -54,6 +58,31 @@ def hand_landmarker(num_hands: int = 4):
         num_hands=num_hands,
     )
     return HandLandmarker.create_from_options(options)
+
+
+def pose_landmarker(num_poses: int = 4, video: bool = True):
+    """MediaPipe Pose Landmarker (lite): 33 body points per person.
+
+    video=True uses VIDEO mode: MediaPipe follows each person from one frame to
+    the next instead of searching from scratch, so poses flicker much less.
+    Call detect_for_video(image, timestamp_ms) with increasing timestamps.
+    """
+    from mediapipe.tasks.python import BaseOptions
+    from mediapipe.tasks.python.vision import (
+        PoseLandmarker,
+        PoseLandmarkerOptions,
+        RunningMode,
+    )
+
+    options = PoseLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=str(model_path("pose_landmarker_lite.task"))),
+        running_mode=RunningMode.VIDEO if video else RunningMode.IMAGE,
+        num_poses=num_poses,
+        min_pose_detection_confidence=0.6,
+        min_pose_presence_confidence=0.6,
+        min_tracking_confidence=0.6,
+    )
+    return PoseLandmarker.create_from_options(options)
 
 
 def face_detector(min_confidence: float = 0.5):

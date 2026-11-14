@@ -1,7 +1,7 @@
 -- Synthetic demo data only. Safe to rerun; never reset existing seat progress.
 begin;
-insert into public.activities (id, name, check_type, keywords, config)
-values ('raise_hand', 'Raise your hand', 'raise_hand', array['raise your hand', 'raise hand'], '{}')
+insert into public.activities (id, name, check_type, keywords, no_progress_seconds, config)
+values ('raise_hand', 'Raise your hand', 'rule', array['raise your hand', 'raise hand'], 30, '{}')
 on conflict (id) do nothing;
 insert into public.stations (id, name) values ('S1', 'Demo station') on conflict (id) do nothing;
 insert into public.seats (id, station_id, side, display_name, is_simulated)

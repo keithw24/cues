@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-14T05:22:45.698501+00:00",
+  "title": "Design System: Cues",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Background",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.00)",
+          "oklch(26.4% 0.0000 0.00)",
+          "oklch(37.9% 0.0000 0.00)",
+          "oklch(49.3% 0.0000 0.00)",
+          "oklch(60.7% 0.0000 0.00)",
+          "oklch(72.1% 0.0000 0.00)",
+          "oklch(83.6% 0.0000 0.00)",
+          "oklch(95.0% 0.0000 0.00)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Foreground",
+        "tonalRamp": [
+          "oklch(15.0% 0.0398 265.75)",
+          "oklch(26.4% 0.0398 265.75)",
+          "oklch(37.9% 0.0398 265.75)",
+          "oklch(49.3% 0.0398 265.75)",
+          "oklch(60.7% 0.0398 265.75)",
+          "oklch(72.1% 0.0398 265.75)",
+          "oklch(83.6% 0.0398 265.75)",
+          "oklch(95.0% 0.0398 265.75)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "tonalRamp": [
+          "oklch(15.0% 0.0000 0.00)",
+          "oklch(26.4% 0.0000 0.00)",
+          "oklch(37.9% 0.0000 0.00)",
+          "oklch(49.3% 0.0000 0.00)",
+          "oklch(60.7% 0.0000 0.00)",
+          "oklch(72.1% 0.0000 0.00)",
+          "oklch(83.6% 0.0000 0.00)",
+          "oklch(95.0% 0.0000 0.00)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15.0% 0.0069 247.90)",
+          "oklch(26.4% 0.0069 247.90)",
+          "oklch(37.9% 0.0069 247.90)",
+          "oklch(49.3% 0.0069 247.90)",
+          "oklch(60.7% 0.0069 247.90)",
+          "oklch(72.1% 0.0069 247.90)",
+          "oklch(83.6% 0.0069 247.90)",
+          "oklch(95.0% 0.0069 247.90)"
+        ]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Muted Foreground",
+        "tonalRamp": [
+          "oklch(15.0% 0.0407 257.42)",
+          "oklch(26.4% 0.0407 257.42)",
+          "oklch(37.9% 0.0407 257.42)",
+          "oklch(49.3% 0.0407 257.42)",
+          "oklch(60.7% 0.0407 257.42)",
+          "oklch(72.1% 0.0407 257.42)",
+          "oklch(83.6% 0.0407 257.42)",
+          "oklch(95.0% 0.0407 257.42)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15.0% 0.0126 255.51)",
+          "oklch(26.4% 0.0126 255.51)",
+          "oklch(37.9% 0.0126 255.51)",
+          "oklch(49.3% 0.0126 255.51)",
+          "oklch(60.7% 0.0126 255.51)",
+          "oklch(72.1% 0.0126 255.51)",
+          "oklch(83.6% 0.0126 255.51)",
+          "oklch(95.0% 0.0126 255.51)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Accent",
+        "tonalRamp": [
+          "oklch(15.0% 0.0109 182.88)",
+          "oklch(26.4% 0.0109 182.88)",
+          "oklch(37.9% 0.0109 182.88)",
+          "oklch(49.3% 0.0109 182.88)",
+          "oklch(60.7% 0.0109 182.88)",
+          "oklch(72.1% 0.0109 182.88)",
+          "oklch(83.6% 0.0109 182.88)",
+          "oklch(95.0% 0.0109 182.88)"
+        ]
+      },
+      "accent-foreground": {
+        "role": "primary",
+        "displayName": "Accent Foreground",
+        "tonalRamp": [
+          "oklch(15.0% 0.0861 186.39)",
+          "oklch(26.4% 0.0861 186.39)",
+          "oklch(37.9% 0.0861 186.39)",
+          "oklch(49.3% 0.0861 186.39)",
+          "oklch(60.7% 0.0861 186.39)",
+          "oklch(72.1% 0.0861 186.39)",
+          "oklch(83.6% 0.0861 186.39)",
+          "oklch(95.0% 0.0861 186.39)"
+        ]
+      },
+      "ring": {
+        "role": "primary",
+        "displayName": "Ring",
+        "tonalRamp": [
+          "oklch(15.0% 0.0861 186.39)",
+          "oklch(26.4% 0.0861 186.39)",
+          "oklch(37.9% 0.0861 186.39)",
+          "oklch(49.3% 0.0861 186.39)",
+          "oklch(60.7% 0.0861 186.39)",
+          "oklch(72.1% 0.0861 186.39)",
+          "oklch(83.6% 0.0861 186.39)",
+          "oklch(95.0% 0.0861 186.39)"
+        ]
+      },
+      "review": {
+        "role": "secondary",
+        "displayName": "Review",
+        "tonalRamp": [
+          "oklch(15.0% 0.1590 29.50)",
+          "oklch(26.4% 0.1590 29.50)",
+          "oklch(37.9% 0.1590 29.50)",
+          "oklch(49.3% 0.1590 29.50)",
+          "oklch(60.7% 0.1590 29.50)",
+          "oklch(72.1% 0.1590 29.50)",
+          "oklch(83.6% 0.1590 29.50)",
+          "oklch(95.0% 0.1590 29.50)"
+        ]
+      },
+      "review-soft": {
+        "role": "secondary",
+        "displayName": "Review Soft",
+        "tonalRamp": [
+          "oklch(15.0% 0.0151 37.88)",
+          "oklch(26.4% 0.0151 37.88)",
+          "oklch(37.9% 0.0151 37.88)",
+          "oklch(49.3% 0.0151 37.88)",
+          "oklch(60.7% 0.0151 37.88)",
+          "oklch(72.1% 0.0151 37.88)",
+          "oklch(83.6% 0.0151 37.88)",
+          "oklch(95.0% 0.0151 37.88)"
+        ]
+      },
+      "review-border": {
+        "role": "secondary",
+        "displayName": "Review Border",
+        "tonalRamp": [
+          "oklch(15.0% 0.0446 31.89)",
+          "oklch(26.4% 0.0446 31.89)",
+          "oklch(37.9% 0.0446 31.89)",
+          "oklch(49.3% 0.0446 31.89)",
+          "oklch(60.7% 0.0446 31.89)",
+          "oklch(72.1% 0.0446 31.89)",
+          "oklch(83.6% 0.0446 31.89)",
+          "oklch(95.0% 0.0446 31.89)"
+        ]
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Hover",
+        "tonalRamp": [
+          "oklch(15.0% 0.0069 247.90)",
+          "oklch(26.4% 0.0069 247.90)",
+          "oklch(37.9% 0.0069 247.90)",
+          "oklch(49.3% 0.0069 247.90)",
+          "oklch(60.7% 0.0069 247.90)",
+          "oklch(72.1% 0.0069 247.90)",
+          "oklch(83.6% 0.0069 247.90)",
+          "oklch(95.0% 0.0069 247.90)"
+        ]
+      },
+      "review-hover": {
+        "role": "secondary",
+        "displayName": "Review Hover",
+        "tonalRamp": [
+          "oklch(15.0% 0.0264 41.11)",
+          "oklch(26.4% 0.0264 41.11)",
+          "oklch(37.9% 0.0264 41.11)",
+          "oklch(49.3% 0.0264 41.11)",
+          "oklch(60.7% 0.0264 41.11)",
+          "oklch(72.1% 0.0264 41.11)",
+          "oklch(83.6% 0.0264 41.11)",
+          "oklch(95.0% 0.0264 41.11)"
+        ]
+      },
+      "video-placeholder": {
+        "role": "neutral",
+        "displayName": "Video Placeholder"
+      },
+      "live": {
+        "role": "neutral",
+        "displayName": "Live",
+        "tonalRamp": [
+          "oklch(15.0% 0.0861 186.39)",
+          "oklch(26.4% 0.0861 186.39)",
+          "oklch(37.9% 0.0861 186.39)",
+          "oklch(49.3% 0.0861 186.39)",
+          "oklch(60.7% 0.0861 186.39)",
+          "oklch(72.1% 0.0861 186.39)",
+          "oklch(83.6% 0.0861 186.39)",
+          "oklch(95.0% 0.0861 186.39)"
+        ]
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "hover-feedback",
+        "value": "100ms ease",
+        "purpose": "Button background only; no transform or layout animation."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-desktop",
+        "value": "1050px"
+      },
+      {
+        "name": "stacked",
+        "value": "759px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Compact seat item",
+      "kind": "button",
+      "refersTo": "seat-item-review",
+      "description": "Review seat in the compact strip; preview selection does not imply a state change.",
+      "html": "<button class=\"ds-button ds-seat-item ds-needs-review ds-is-selected\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-seat-item-name\">Left seat</span><span class=\"ds-seat-item-status\">Needs Review</span><span class=\"ds-sim-badge\">SIM</span></button>",
+      "css": ".ds-button {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 6px;\n  min-height: 34px;\n  padding: 7px 11px;\n  border: 1px solid #dce4ee;\n  border-radius: 6px;\n  background: var(--paper);\n  color: var(--foreground);\n  font: inherit;\n  font-size: 13px;\n  font-weight: 500;\n  cursor: pointer;\n  transition: background-color 100ms ease;\n}.ds-heading {\n  font-size: 14px;\n  font-weight: 600;\n  letter-spacing: -0.015em;\n  margin: 0;\n}.ds-seat-item {\n  display: flex;\n  align-items: center;\n  justify-content: start;\n  flex-wrap: wrap;\n  gap: 5px 9px;\n  min-height: 50px;\n  padding: 10px 12px;\n  text-align: left;\n  border-color: var(--line);\n  font-weight: 400;\n}.ds-seat-item-name {\n  font-size: 12px;\n  font-weight: 500;\n}.ds-seat-item-status {\n  font-size: 12px;\n  color: var(--muted-foreground);\n}.ds-sim-badge {\n  margin-left: auto;\n  color: #64748b;\n  font-size: 9px;\n  letter-spacing: 0.03em;\n}.ds-seat-item.ds-needs-review {\n  background: var(--review-soft);\n  border-color: #f1cbc3;\n}.ds-seat-item.ds-needs-review .ds-seat-item-status {\n  color: var(--review);\n  font-weight: 600;\n}.ds-seat-item.ds-is-selected {\n  border-color: var(--ring);\n  outline: 1px solid var(--ring);\n  outline-offset: -1px;\n}.ds-seat-item{font-family:var(--font-courier-prime,monospace);font-size:14px;\n  --background: #fff;\n  --foreground: #0f172a;\n  --paper: #fff;\n  --muted: #f1f5f9;\n  --muted-foreground: #64748b;\n  --line: #e2e8f0;\n  --accent: #eef8f6;\n  --accent-foreground: #0f766e;\n  --ring: #0f766e;\n  --card: #fff;\n  --card-foreground: #0f172a;\n  --primary: #0f172a;\n  --primary-foreground: #fff;\n  --secondary: #f1f5f9;\n  --secondary-foreground: #0f172a;\n  --border: var(--line);\n  --input: #cbd5e1;\n  --destructive: #b53c2f;\n  --destructive-foreground: #fff;\n  --review: #b53c2f;\n  --review-soft: #fff2ee;\n  --radius: 8px;\n}.ds-button:focus-visible{outline:2px solid var(--ring,#0f766e);outline-offset:3px;}@media(hover:hover) and (pointer:fine){.ds-seat-item:hover{background:#f1f5f9;}.ds-seat-item.ds-needs-review:hover{background:#ffe9e1;}}@media(max-width:759px){.ds-seat-item{min-height:48px;}}"
+    },
+    {
+      "name": "Attention queue",
+      "kind": "custom",
+      "refersTo": "attention-panel",
+      "description": "Divided review list with concrete actions; simulated preview content.",
+      "html": "<section class=\"ds-attention-panel\"><header class=\"ds-panel-heading\"><h2 class=\"ds-heading\">Attention</h2><span class=\"ds-attention-count ds-has-items\">1</span></header><ul class=\"ds-attention-list\"><li><div class=\"ds-attention-item-heading\"><h3>Left seat</h3><span class=\"ds-review-label\">Needs Review</span></div><p>Review this seat\u2019s observation.</p><div class=\"ds-attention-actions\"><button class=\"ds-button\" type=\"button\">View details</button><button class=\"ds-button ds-text-button\" type=\"button\">Dismiss</button></div></li></ul></section>",
+      "css": ".ds-button {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 6px;\n  min-height: 34px;\n  padding: 7px 11px;\n  border: 1px solid #dce4ee;\n  border-radius: 6px;\n  background: var(--paper);\n  color: var(--foreground);\n  font: inherit;\n  font-size: 13px;\n  font-weight: 500;\n  cursor: pointer;\n  transition: background-color 100ms ease;\n}.ds-heading {\n  font-size: 14px;\n  font-weight: 600;\n  letter-spacing: -0.015em;\n  margin: 0;\n}.ds-attention-panel {\n  min-width: 0;\n  border: 1px solid var(--line);\n  border-radius: var(--radius);\n  background: var(--paper);\n}.ds-panel-heading {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  gap: 12px;\n  min-height: 46px;\n  padding: 12px 16px;\n  border-bottom: 1px solid var(--line);\n}.ds-attention-count {\n  color: var(--muted-foreground);\n  font-size: 12px;\n  font-variant-numeric: tabular-nums;\n}.ds-attention-count.ds-has-items {\n  color: var(--review);\n  font-weight: 600;\n}.ds-attention-list {\n  padding: 0;\n  margin: 0;\n  list-style: none;\n}.ds-attention-list li {\n  padding: 20px 16px;\n  border-bottom: 1px solid var(--line);\n}.ds-attention-item-heading {\n  display: flex;\n  align-items: start;\n  flex-wrap: wrap;\n  gap: 8px;\n}.ds-attention-item-heading h3 {\n  margin: 0;\n  font-size: 13px;\n  font-weight: 600;\n}.ds-review-label {\n  color: var(--review);\n  background: var(--review-soft);\n  border-radius: 4px;\n  padding: 2px 5px;\n  font-size: 10px;\n  font-weight: 500;\n}.ds-attention-list li > p {\n  color: var(--muted-foreground);\n  font-size: 13px;\n  line-height: 1.6;\n  margin: 10px 0 16px;\n  max-width: 42ch;\n}.ds-attention-actions {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}.ds-attention-actions > button {\n  min-height: 32px;\n  font-size: 12px;\n}.ds-text-button {\n  border-color: transparent;\n  background: transparent;\n  font-size: 12px;\n  font-weight: 400;\n  color: var(--muted-foreground);\n  padding: 5px 7px;\n  min-height: 30px;\n}.ds-attention-panel{font-family:var(--font-courier-prime,monospace);font-size:14px;\n  --background: #fff;\n  --foreground: #0f172a;\n  --paper: #fff;\n  --muted: #f1f5f9;\n  --muted-foreground: #64748b;\n  --line: #e2e8f0;\n  --accent: #eef8f6;\n  --accent-foreground: #0f766e;\n  --ring: #0f766e;\n  --card: #fff;\n  --card-foreground: #0f172a;\n  --primary: #0f172a;\n  --primary-foreground: #fff;\n  --secondary: #f1f5f9;\n  --secondary-foreground: #0f172a;\n  --border: var(--line);\n  --input: #cbd5e1;\n  --destructive: #b53c2f;\n  --destructive-foreground: #fff;\n  --review: #b53c2f;\n  --review-soft: #fff2ee;\n  --radius: 8px;\n}.ds-button:focus-visible{outline:2px solid var(--ring,#0f766e);outline-offset:3px;}@media(hover:hover) and (pointer:fine){.ds-button:hover{background:#f1f5f9;}.ds-text-button:hover{color:var(--foreground);}}@media(max-width:759px){.ds-attention-actions>.ds-button{min-height:40px;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Classroom Monitor",
+    "overview": "The user's operational brief establishes the layout; the latest admin screenshot references refine its white, navy, cool-gray, teal and coral palette. Cues is calm, compact and aligned: a neutral page, white surfaces, thin dividers, Courier Prime typography and restrained status color. The live classroom feed dominates; the attention list directs the teacher to seats needing review.\n\nA compact seat strip selects details in the right panel. Normal task states remain quiet. There is no hero, decorative imagery, large numeric summary, glass treatment or analytics chart.",
+    "keyCharacteristics": [
+      "Dominant local video beside a compact attention queue.",
+      "Neutral canvas, white surfaces and one-pixel boundaries.",
+      "Small Courier Prime labels and compact rectangular controls.",
+      "Strong emphasis reserved for Needs Review and selected-seat focus."
+    ],
+    "rules": [
+      {
+        "name": "The Review Emphasis Rule",
+        "body": "Needs Review receives the strongest task-state treatment; status text always accompanies color. Tracking loss remains a quiet observation state.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "**Do** keep video dominant and attention easy to scan.",
+      "**Do** use neutral white surfaces, thin borders and compact aligned spacing.",
+      "**Do** pair status color with text and reserve emphasis for Needs Review.",
+      "**Do** preserve local video privacy, SIM labels and honest unavailable states.",
+      "**Do** retain keyboard focus and focus restoration from details."
+    ],
+    "donts": [
+      "**Don't** restore glass, gradients, giant rounded tiles, heroes or oversized counts.",
+      "**Don't** add decorative charts, imagery or an icon to every label.",
+      "**Don't** imply dismissal resolves an alert, changes task state or applies support.",
+      "**Don't** claim WebRTC, connected session controls, history or agent assessments exist.",
+      "**Don't** style tracking loss as student failure or match scores as probabilities."
+    ]
+  }
+}

@@ -1,8 +1,56 @@
 {
+  "web.dashboard": {
+    "description": "Read-only teacher dashboard with simulated Supabase seats and realtime state updates.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "dashboard-foundation"
+  },
   "vision.supabase_events": {
     "description": "Send vision events and seat_state to Supabase. When off, they are written only to vision/logs/*.jsonl.",
     "default": false,
     "owner": "keith",
     "ticket": "T3"
+  },
+  "vision.hands": {
+    "description": "MediaPipe hand tracking, with each hand assigned to a seat.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T5"
+  },
+  "vision.faces": {
+    "description": "MediaPipe face detection and the face crop per seat.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T6"
+  },
+  "vision.gestures": {
+    "description": "Gesture match score per seat against the teacher's recorded examples.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T11"
+  },
+  "vision.expression": {
+    "description": "HSEmotion facial-expression context per seat (supporting evidence only).",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T10"
+  },
+  "vision.raise_hand": {
+    "description": "Raise-hand rule per seat: a wrist above that seat's face, held briefly.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T8"
+  },
+  "vision.task_status": {
+    "description": "Per-seat task status and events (attempt_success, attempt_miss, review_needed, no_progress, tracking_lost, expression_context).",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T12"
+  },
+  "vision.activity_sync": {
+    "description": "Read the current task from Supabase sessions.current_activity_id instead of CUES_TASK.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T7"
   }
 }

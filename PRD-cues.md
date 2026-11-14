@@ -1039,7 +1039,11 @@ have read-only access to simulated seats and their associated station, session,
 activity and seat state; events, alerts, interventions and support preferences
 remain server-only. Simulated demo state is publicly readable and must contain
 no real student data or private notes. Only `seat_state` is initially enabled for
-Postgres Changes. Authenticated teacher access and approval endpoints remain
+Postgres Changes. The read-only teacher seat overview is implemented in `web/`
+behind `web.dashboard` (default off), with initial reads and realtime state
+refreshes. The follow-up `20261114000200_align_demo_activity.sql` migration aligns
+the synthetic activity's check type and timeout with the shared contract.
+Authenticated teacher access and approval endpoints remain
 separate implementation work. See `supabase/README.md` for setup and verification.
 
 ## 18. Local FastAPI interfaces

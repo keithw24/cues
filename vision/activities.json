@@ -1,0 +1,37 @@
+[
+  {
+    "id": "thumbs_up",
+    "name": "Thumbs up",
+    "check_type": "gesture",
+    "keywords": [
+      "thumbs up",
+      "thumb"
+    ],
+    "success_threshold": 0.78,
+    "review_threshold": 0.58,
+    "no_progress_seconds": 30
+  },
+  {
+    "id": "raise_hand",
+    "name": "Raise your hand",
+    "check_type": "rule",
+    "keywords": [
+      "raise your hand",
+      "hand up"
+    ],
+    "success_threshold": 0.7,
+    "review_threshold": 0.4,
+    "no_progress_seconds": 30
+  },
+  {
+    "id": "custom_gesture_01",
+    "name": "Custom Gesture 1",
+    "check_type": "gesture",
+    "keywords": [
+      "gesture one"
+    ],
+    "success_threshold": 0.78,
+    "review_threshold": 0.58,
+    "no_progress_seconds": 30
+  }
+]

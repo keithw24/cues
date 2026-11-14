@@ -26,6 +26,29 @@ class Frame:
     index: int  # increases by 1 for every captured frame
 
 
+def standard_frame(image: np.ndarray, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
+    """Centre-crop to the target aspect ratio, then resize. Never stretches.
+
+    Cameras return different shapes (16:9, 4:3). Stretching a 16:9 frame to
+    4:3 changes a hand's proportions, so gestures recorded one way would not
+    match the other. Every frame the vision code uses goes through here.
+    """
+    h, w = image.shape[:2]
+    target = width / height
+    if abs(w / h - target) > 1e-3:
+        if w / h > target:  # too wide: crop the sides
+            new_w = int(round(h * target))
+            x0 = (w - new_w) // 2
+            image = image[:, x0 : x0 + new_w]
+        else:  # too tall: crop top and bottom
+            new_h = int(round(w / target))
+            y0 = (h - new_h) // 2
+            image = image[y0 : y0 + new_h, :]
+    if image.shape[1] != width or image.shape[0] != height:
+        image = cv2.resize(image, (width, height))
+    return image
+
+
 class Camera:
     """Base class: start(), stop(), latest(), is_open."""
 
@@ -103,9 +126,7 @@ class OpenCVCamera(Camera):
             if not ok:
                 time.sleep(0.01)
                 continue
-            if image.shape[1] != self.width or image.shape[0] != self.height:
-                image = cv2.resize(image, (self.width, self.height))
-            self._publish(image)
+            self._publish(standard_frame(image, self.width, self.height))
 
 
 class FakeCamera(Camera):

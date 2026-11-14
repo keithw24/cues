@@ -31,6 +31,8 @@ from dataclasses import asdict, dataclass
 import cv2
 import numpy as np
 
+from vision.camera import standard_frame
+
 FACE_HZ = 5.0
 EXPRESSION_HZ = 3.0
 SEATS = 2
@@ -90,7 +92,7 @@ def frames(args: argparse.Namespace) -> Iterator[np.ndarray]:
                     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                     continue
                 break
-            yield cv2.resize(image, (640, 480))
+            yield standard_frame(image)
     finally:
         cap.release()
 

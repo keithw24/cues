@@ -118,6 +118,10 @@ class Pipeline:
         if self._thread:
             self._thread.join(timeout=2)
         self.camera.stop()
+        for stage in self.stages:  # e.g. the status stage flushes its emitter
+            close = getattr(stage, "close", None)
+            if close is not None:
+                close()
 
     # ---- processing ------------------------------------------------------
     def step(self, frame: Frame) -> bytes:
