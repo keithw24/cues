@@ -83,3 +83,35 @@ test("with the demo on, the mock task and approval cards give way to the steps",
   assert.match(steps, /id="how"/);
   assert.match(steps, /id: "control"/);
 });
+
+test("the demo turns on with its override, stays labelled and stays offline", () => {
+  assert.equal(
+    isEnabled("web.landing_demo", { CUES_FLAG_WEB_LANDING_DEMO: "1" }),
+    true,
+  );
+  const demo = read("../components/landing-demo.tsx");
+  assert.match(demo, /Simulated students/);
+  assert.match(demo, /simulated students/);
+  // The demo's rows must not pull in a feed or Supabase either.
+  assert.doesNotMatch(
+    read("../components/workspace-rows.tsx"),
+    /@\/lib\/(supabase|dashboard-feed|teacher-review-feed)/,
+  );
+});
+
+test("scroll reveal defaults off; without it every section is visible", () => {
+  assert.equal(isEnabled("web.landing_motion", {}), false);
+  assert.equal(
+    isEnabled("web.landing_motion", { CUES_FLAG_WEB_LANDING_MOTION: "1" }),
+    true,
+  );
+  assert.match(
+    read("../components/landing.tsx"),
+    /\{motion \? <LandingReveal \/> : null\}/,
+  );
+  // Content is hidden only once the reveal script marks the page ready.
+  assert.match(
+    read("../components/landing.css"),
+    /\.landing\[data-reveal-ready\] \[data-reveal\] \{\s*opacity: 0;/,
+  );
+});

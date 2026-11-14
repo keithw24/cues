@@ -40,7 +40,7 @@ const review: Omit<Person, "name"> = {
 const frames: Frame[] = [
   {
     caption:
-      "You start a thumbs-up task. Cues watches each student’s place in the frame.",
+      "You start a thumbs-up task with four simulated students. Cues watches each one’s place in the frame.",
     people: [
       { name: "Maya", ...working },
       { name: "Leo", ...working },

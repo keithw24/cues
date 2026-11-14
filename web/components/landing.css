@@ -919,7 +919,7 @@ a.ln-button:active {
     opacity: 0;
     filter: blur(4px);
     translate: 0 12px;
-    transition-property: opacity, filter, translate;
+    transition-property: opacity, filter, translate, box-shadow;
     transition-duration: 300ms;
     transition-timing-function: ease-out;
     transition-delay: calc(var(--i, 0) * 100ms);
@@ -935,6 +935,10 @@ a.ln-button:active {
   opacity: 1;
   filter: none;
   translate: 0 0;
+}
+/* After the first reveal, hover responds at once instead of after the stagger. */
+.landing[data-reveal-ready] [data-reveal][data-settled] {
+  transition-delay: 0ms;
 }
 /* Cards lift a little under a pointer. */
 .ln-card,

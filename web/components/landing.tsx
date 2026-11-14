@@ -38,9 +38,10 @@ export default function Landing() {
   const start = isEnabled("web.teacher_signup") ? "/signup" : "/login";
   const faq = isEnabled("web.landing_faq");
   const demo = isEnabled("web.landing_demo");
+  const motion = isEnabled("web.landing_motion");
   return (
     <div className={`landing ${garamond.variable}`}>
-      <LandingReveal />
+      {motion ? <LandingReveal /> : null}
       <header className="ln-nav">
         <Link href="/" className="ln-brand" aria-label="Cues home">
           <CuesMark className="ln-brand-mark" />
@@ -181,7 +182,10 @@ export default function Landing() {
             <li data-reveal style={{ "--i": 4 } as CSSProperties}>
               <RiLock2Line />
               <strong>You stay in control</strong>
-              <span>Every change to a task waits for your approval.</span>
+              <span>
+                Every change to a task, instruction or support waits for your
+                approval.
+              </span>
             </li>
           </ul>
         </section>
