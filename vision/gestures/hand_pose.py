@@ -77,3 +77,20 @@ def describe(landmarks: np.ndarray, handedness: str) -> str:
     n = extended_fingers(landmarks)
     state = "open" if n >= MIN_EXTENDED else "closed"
     return f"{palm_side(landmarks, handedness)}, {state} ({n}/4 fingers)"
+
+
+OPEN_PALM_MIN = 0.5  # Gesture Recognizer Open_Palm score needed to call a hand open
+
+
+def open_palm_facing(hand) -> bool:
+    """True when a hand is an open palm facing the camera (the raise-hand pose).
+
+    Open: the Gesture Recognizer's Open_Palm score is at least OPEN_PALM_MIN
+    (finger counting is used when a hand has no recogniser scores). Facing:
+    palm_side() reads "palm".
+    """
+    if hand is None or palm_side(hand.landmarks, hand.handedness) != "palm":
+        return False
+    if hand.gestures:
+        return hand.gestures.get("Open_Palm", 0.0) >= OPEN_PALM_MIN
+    return is_open(hand.landmarks)

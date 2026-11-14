@@ -45,8 +45,10 @@ ID identifies the same child.
 Hands/faces are associated with tracked people. The overlay shows person/face
 labels, a selected hand skeleton and task score, threshold colors, and connecting
 lines. Gestures select the best-matching hand; raise-hand selects the highest hand.
-Debug overlay exposes additional local detail. All-task scores and recognize mode
-are local/display capabilities, not replacements for the assigned-task state feed.
+Debug overlay exposes additional local detail. Gesture detection always runs: every
+known gesture is checked and a completed one is shown green on the video. It is
+display-only, not a replacement for the assigned-task state feed. Raise-hand
+(task score and detection) requires an open palm facing the camera.
 
 ## Tasks and perception
 

@@ -173,11 +173,17 @@ def test_confidence_does_not_depend_on_distance_from_camera():
 
 
 def test_raise_stage_scores_each_person():
+    from vision.perception import Hand
+    from vision.tests.hands import PERSONS_RIGHT, open_palm
+
     ctx, _ = people_ctx(pose(0.2, wrist_up=True), pose(0.7))
+    left = next(pid for pid, p in ctx["people"].items() if p.box[0] < 0.5)
+    # The raised hand is an open palm facing the camera (required for raise_hand).
+    palm = Hand(open_palm(0.2, 0.25), PERSONS_RIGHT, left, {"Open_Palm": 0.95})
+    ctx["hands"] = {left: [palm]}
     stage = RaiseHandStage(tasks=CurrentTasks("raise_hand"), zones=PeopleGrouping())
     stage.process(Frame(np.zeros((480, 640, 3), np.uint8), 0.0, 1), ctx)
     scores = {pid: ctx["match"][pid].score for pid in ctx["person_ids"]}
-    left = next(pid for pid, p in ctx["people"].items() if p.box[0] < 0.5)
     right = next(pid for pid in scores if pid != left)
     assert scores[left] > 0.9 and scores[right] == 0.0
 

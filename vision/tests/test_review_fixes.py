@@ -263,11 +263,11 @@ def test_camera_reports_not_open_while_disconnected():
     assert cam.is_open is False
 
 
-def test_health_shows_mode_and_errors():
+def test_health_shows_errors_and_frame_age():
     from vision.camera import FakeCamera
     from vision.pipeline import Pipeline
 
     pipe = Pipeline(FakeCamera(), [])
     h = pipe.health()
-    assert h["mode"] in ("task", "recognize") and h["errors"] == 0
+    assert h["errors"] == 0
     assert "frame_age_seconds" in h

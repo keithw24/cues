@@ -1,5 +1,8 @@
 """Raise-hand rule: a 0-1 confidence that each person has raised a hand.
 
+The hand must also be an open palm facing the camera
+(vision.gestures.hand_pose.open_palm_facing); otherwise the score is 0.
+
 The score comes from the person's pose points (see raise_confidence). The
 status logic then requires the score to stay above the activity's thresholds,
 which acts as the hold time. The person's single displayed hand is their
@@ -10,6 +13,7 @@ from __future__ import annotations
 
 from vision import activities
 from vision.activities import TASKS
+from vision.gestures.hand_pose import open_palm_facing
 from vision.grouping import GROUPING
 from vision.perception import Match
 
@@ -83,6 +87,10 @@ class RaiseHandStage:
                 continue
             score, detail = raise_confidence(person)
             hand = highest_hand(hands.get(pid, []))
+            # A raised hand only counts as an open palm facing the camera, so a
+            # raised fist or thumbs-up never completes raise_hand.
+            if score > 0 and not open_palm_facing(hand):
+                score, detail = 0.0, f"{detail}; palm not open toward the camera"
             matches[pid] = Match(ACTIVITY_ID, score, detail=detail, hand=hand)
 
     def draw(self, image, ctx) -> None:
