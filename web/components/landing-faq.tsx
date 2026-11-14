@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { RiAddLine } from "@remixicon/react";
 
 // Answers stay within what the PRD promises: local video, no face
@@ -32,8 +33,14 @@ const questions = [
 export default function LandingFaq() {
   return (
     <section id="faq" className="ln-faq" aria-labelledby="faq-heading">
-      <h2 id="faq-heading">Questions teachers ask</h2>
-      <div className="ln-faq-list">
+      <h2 id="faq-heading" data-reveal style={{ "--i": 0 } as CSSProperties}>
+        Questions teachers ask
+      </h2>
+      <div
+        className="ln-faq-list"
+        data-reveal
+        style={{ "--i": 1 } as CSSProperties}
+      >
         {questions.map(({ q, a }) => (
           <details key={q}>
             <summary>

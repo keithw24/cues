@@ -1,0 +1,59 @@
+/* How it works: three steps in text; the demo above shows them live. */
+.ln-steps {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: clamp(72px, 12vw, 140px) 24px 0;
+  text-align: center;
+}
+.ln-steps h2 {
+  margin: 0;
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: clamp(34px, 5vw, 52px);
+  letter-spacing: -0.015em;
+  font-weight: 500;
+  line-height: 1.1;
+}
+.ln-steps ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px;
+  margin: 48px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.ln-step-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  color: #8fa3ff;
+}
+.ln-step-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.ln-steps h3 {
+  margin: 18px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.ln-steps p {
+  margin: 8px 0 0;
+  color: var(--ln-ink-soft);
+  font-size: 15px;
+  line-height: 1.6;
+}
+@media (max-width: 760px) {
+  .ln-steps {
+    padding-inline: 16px;
+  }
+  .ln-steps ol {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}

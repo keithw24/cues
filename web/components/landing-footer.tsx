@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CuesMark from "@/components/cues-mark";
 
 // Site footer, laid out like LionPlan's: brand and a line about Cues, three
 // link columns, then a plain disclaimer under a divider.
@@ -32,10 +33,7 @@ export default function LandingFooter({ start }: { start: string }) {
       <div className="ln-footer-top">
         <div className="ln-footer-brand">
           <Link href="/" className="ln-brand" aria-label="Cues home">
-            <span className="ln-brand-mark" aria-hidden="true">
-              <i />
-              <i />
-            </span>
+            <CuesMark className="ln-brand-mark" size={30} />
             Cues
           </Link>
           <p>

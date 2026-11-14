@@ -19,12 +19,18 @@
   padding: 16px;
 }
 .auth-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 0 4px;
   color: var(--auth-ink);
   font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.02em;
   text-decoration: none;
+}
+.auth-wordmark svg {
+  --cues-mark-accent: var(--auth-blue);
 }
 .auth-switch {
   display: inline-flex;

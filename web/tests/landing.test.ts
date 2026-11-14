@@ -56,3 +56,30 @@ test("FAQ and site footer default off; the landing keeps its short footer", () =
   assert.match(landing, /\{faq \? <LandingFaq \/> : null\}/);
   assert.match(landing, /<footer className="ln-footer">/);
 });
+
+test("the dashboard demo defaults off; the hero keeps the older preview", () => {
+  assert.equal(isEnabled("web.landing_demo", {}), false);
+  const landing = read("../components/landing.tsx");
+  assert.match(
+    landing,
+    /preview=\{demo \? <LandingDemo \/> : <LandingPreview \/>\}/,
+  );
+  // The demo reuses the dashboard's own rows and never touches Supabase.
+  const demo = read("../components/landing-demo.tsx");
+  assert.match(demo, /from "@\/components\/workspace-rows"/);
+  assert.doesNotMatch(
+    demo,
+    /@\/lib\/(supabase|dashboard-feed|teacher-review-feed)/,
+  );
+});
+
+test("with the demo on, the mock task and approval cards give way to the steps", () => {
+  const landing = read("../components/landing.tsx");
+  assert.match(landing, /\{demo \? \(\s*<LandingSteps \/>\s*\) : \(/);
+  // The flag-off page keeps both original sections and their anchors.
+  assert.match(landing, /id="how"\s+className="ln-section"/);
+  assert.match(landing, /id="control"/);
+  const steps = read("../components/landing-steps.tsx");
+  assert.match(steps, /id="how"/);
+  assert.match(steps, /id: "control"/);
+});

@@ -13,6 +13,7 @@ import TypedHeading from "@/components/typed-heading";
 import { countryCodes, normalizeAlertPhone } from "@/lib/alert-phone";
 import { createDashboardClient } from "@/lib/supabase";
 import { syncSignupProfile } from "@/lib/teacher-profile";
+import CuesMark from "@/components/cues-mark";
 import "./auth.css";
 
 const Companion = dynamic(() => import("@/components/login-companion"), {
@@ -192,6 +193,7 @@ export default function TeacherLogin({
           </button>
         ) : (
           <Link className="auth-wordmark" href="/">
+            <CuesMark size={24} />
             Cues
           </Link>
         )}
