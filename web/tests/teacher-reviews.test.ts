@@ -607,10 +607,55 @@ test("a read that fails after sign-out cannot replace the sign-in message", asyn
   h.fail();
   void h.feed.refresh();
   await settled();
+  const signedOutAt = h.observed.length;
   h.signOut();
   release();
   await debounce();
   assert.equal(h.observed.at(-1)?.reviews, null);
   assert.equal(h.observed.at(-1)?.error, SIGN_IN_TO_SEE_REVIEWS);
+  // The stale failure never flashes the load error after sign-out.
+  assert.ok(
+    h.observed
+      .slice(signedOutAt)
+      .every((state) => !/could not be loaded/.test(state.error ?? "")),
+  );
+  h.feed.dispose();
+});
+test("teacher A's in-flight read and realtime rows never reach teacher B", async () => {
+  const OTHER = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const otherSession = "00000000-0000-4000-8000-000000000002";
+  const otherRow = {
+    ...row,
+    id: "66666666-6666-4666-8666-666666666666",
+    session_id: otherSession,
+  };
+  const h = harness(true, false, [row, otherRow], {
+    ownedSessions: { [TEACHER]: [row.session_id], [OTHER]: [otherSession] },
+  });
+  await settled();
+  // Hold A's next review read, then switch to B before it returns.
+  const release = h.holdNextRead();
+  void h.feed.refresh();
+  await settled();
+  const switchedAt = h.observed.length;
+  h.signIn(OTHER);
+  // A realtime row for A's session arrives mid-switch.
+  h.change({
+    eventType: "INSERT",
+    new: { ...row, id: "77777777-7777-4777-8777-777777777777" },
+  });
+  release();
+  await debounce();
+  const after = h.observed.slice(switchedAt);
+  assert.ok(
+    after.every(
+      (state) =>
+        !state.reviews?.some((review) => review.session_id === row.session_id),
+    ),
+  );
+  assert.deepEqual(
+    h.observed.at(-1)?.reviews?.map((review) => review.id),
+    [otherRow.id],
+  );
   h.feed.dispose();
 });
