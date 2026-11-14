@@ -7,8 +7,8 @@ Cues helps a special-education teacher see which students need help. A local cam
 | Area | Folder | Owner |
 |---|---|---|
 | Vision service (camera, MediaPipe, HSEmotion, task events) | `vision/` | Keith |
-| Frontend, app backend, station page, Supabase schema | `web/` (current frontend scaffold; app backend placement not yet established) | Evan |
-| Agent / routing, rules engine, Deep Agent, LLM integration, Photon | planned; no `agent/` directory yet | Michelle |
+| Frontend, app backend, station page, Supabase schema | `web/` dashboard and Supabase product integration | Evan |
+| Agent / routing, rules engine, Deep Agent, LLM integration, Photon | `agent/` | Michelle |
 | Shared: CI, this file, feature flags | `.github/`, `CLAUDE.md`, `flags.json`, `.claude/agents/` | everyone |
 
 Only edit another owner's folder when the task needs it, and say so in the PR.
@@ -43,10 +43,10 @@ uv run python -m vision.events --demo  # (after T3) send one test event
 
 ## Workflow: personal branches and scoped PRs
 
-`TEAM_WORKFLOW.md` defines the current branches and ownership: `keith` for CV, `evan` for frontend/app backend, `michelle` for agent/routing, and `main` for integration.
+`notes/archive/TEAM_WORKFLOW.md` defines the current branches and ownership: `keith` for CV, `evan` for frontend/app backend, `michelle` for agent/routing, and `main` for integration.
 
 1. Work on your personal branch and keep each change scoped to one task.
-2. Follow `TEAM_WORKFLOW.md` for synchronizing with `main` and resolving conflicts on your branch before integration.
+2. Follow `notes/archive/TEAM_WORKFLOW.md` for synchronizing with `main` and resolving conflicts on your branch before integration.
 3. Fill in the PR template:
    - the ticket ID, and its Verify step copied word for word (the ticket list is not in the repo, so the PR body is where reviewers read it);
    - what it delivers, and how it was verified;
