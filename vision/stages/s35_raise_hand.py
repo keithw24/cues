@@ -16,6 +16,7 @@ from vision.activities import TASKS
 from vision.gestures.hand_pose import open_palm_facing
 from vision.grouping import GROUPING
 from vision.perception import Match
+from vision.session_sync import frame_activity
 
 FLAG = "vision.raise_hand"
 ACTIVITY_ID = "raise_hand"
@@ -77,7 +78,7 @@ class RaiseHandStage:
         hands = ctx.get("hands", {})
         matches = ctx.setdefault("match", {})
         for pid in self.zones.ids(ctx):
-            if self.tasks.for_seat(pid) != ACTIVITY_ID:
+            if frame_activity(self.tasks, pid, ctx) != ACTIVITY_ID:
                 if getattr(matches.get(pid), "activity_id", None) == ACTIVITY_ID:
                     del matches[pid]  # task changed: drop the old raise-hand result
                 continue

@@ -1,13 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import {
-  attentionKey,
-  needsReview,
-  parseSnapshot,
-  seatViews,
-  statuses,
-} from "../lib/dashboard.ts";
+import { parseSnapshot, seatViews, statuses } from "../lib/dashboard.ts";
 import { isEnabled } from "../lib/flags.ts";
 
 const states = JSON.parse(
@@ -93,24 +87,69 @@ test("dashboard defaults off, server override wins, invalid and unknown flags fa
   assert.throws(() => isEnabled("web.unknown", {}));
 });
 
-test("dismissal applies only to a specific observation and never clears the seat status", () => {
-  const seat = seatViews(
-    parseSnapshot({
-      ...input,
-      states: [{ ...states[0], seat_id: "S1-L", status: "review" }],
-    }),
-  )[0];
-  const dismissed = new Set([attentionKey(seat)]);
-  assert.equal(needsReview(seat), true);
-  assert.equal(dismissed.has(attentionKey(seat)), true);
-  const next = {
-    ...seat,
-    state: { ...seat.state!, updated_at: "2026-11-14T23:59:59Z" },
-  };
-  assert.equal(dismissed.has(attentionKey(next)), false);
-  assert.equal(needsReview(next), true);
+test("teacher review transport defaults off independently of the seat dashboard", () => {
+  assert.equal(isEnabled("web.teacher_reviews", {}), false);
   assert.equal(
-    needsReview({ ...next, state: { ...next.state, status: "tracking_lost" } }),
+    isEnabled("web.teacher_reviews", { CUES_FLAG_WEB_TEACHER_REVIEWS: "1" }),
+    true,
+  );
+});
+
+test("review actions stay disabled independently of review reads", () => {
+  assert.equal(
+    isEnabled("web.teacher_review_actions", {
+      CUES_FLAG_WEB_TEACHER_REVIEWS: "1",
+    }),
+    false,
+  );
+  assert.equal(
+    isEnabled("web.teacher_review_actions", {
+      CUES_FLAG_WEB_TEACHER_REVIEW_ACTIONS: "1",
+    }),
+    true,
+  );
+});
+
+test("person observations replace legacy seats per station without counting empty person metadata", () => {
+  const input = {
+    seats: [
+      {
+        id: "S1-L",
+        station_id: "S1",
+        side: "left",
+        display_name: "Left seat",
+        is_simulated: true,
+      },
+      ...[1, 2, 3, 4].map((n) => ({
+        id: `S1-P${n}`,
+        station_id: "S1",
+        side: null,
+        display_name: `Person ${n}`,
+        is_simulated: true,
+      })),
+    ],
+    states: [{ ...states[0], seat_id: "S1-P1" }],
+    activities: [{ id: "raise_hand", name: "Raise hand" }],
+    stations: [{ id: "S1", name: "Demo station" }],
+  };
+  assert.deepEqual(
+    seatViews(parseSnapshot(input)).map((seat) => seat.id),
+    ["S1-P1"],
+  );
+  assert.deepEqual(
+    seatViews(parseSnapshot({ ...input, states: [] })).map((seat) => seat.id),
+    ["S1-L"],
+  );
+});
+
+test("teacher login defaults off independently of classroom access", () => {
+  assert.equal(isEnabled("web.teacher_login", {}), false);
+  assert.equal(
+    isEnabled("web.teacher_login", { CUES_FLAG_WEB_TEACHER_LOGIN: "1" }),
+    true,
+  );
+  assert.equal(
+    isEnabled("web.dashboard", { CUES_FLAG_WEB_TEACHER_LOGIN: "1" }),
     false,
   );
 });

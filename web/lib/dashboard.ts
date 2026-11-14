@@ -46,6 +46,7 @@ export type SeatState = {
   activity_id: string | null;
   status: SeatStatus;
   task_score: number | null;
+  tracking_valid?: boolean | null;
   updated_at: string;
 };
 export type Activity = { id: string; name: string };
@@ -79,12 +80,15 @@ function rows<T>(
   return value.map((row) => parse(record(row)));
 }
 
-export function parseSnapshot(input: {
-  seats: unknown;
-  states: unknown;
-  activities: unknown;
-  stations: unknown;
-}): Snapshot {
+export function parseSnapshot(
+  input: {
+    seats: unknown;
+    states: unknown;
+    activities: unknown;
+    stations: unknown;
+  },
+  readTracking = false,
+): Snapshot {
   return {
     seats: rows(input.seats, (r) => {
       if (typeof r.is_simulated !== "boolean")
@@ -101,6 +105,12 @@ export function parseSnapshot(input: {
       const status = text(r.status);
       if (!Object.hasOwn(statuses, status))
         throw new Error("Unknown seat status");
+      if (
+        readTracking &&
+        r.tracking_valid != null &&
+        typeof r.tracking_valid !== "boolean"
+      )
+        throw new Error("Invalid tracking validity");
       const score = r.task_score;
       if (
         score !== null &&
@@ -119,6 +129,12 @@ export function parseSnapshot(input: {
         activity_id: nullableText(r.activity_id),
         status: status as SeatStatus,
         task_score: score,
+        ...(readTracking
+          ? {
+              tracking_valid:
+                typeof r.tracking_valid === "boolean" ? r.tracking_valid : null,
+            }
+          : {}),
         updated_at: updated,
       };
     }),
@@ -138,7 +154,20 @@ export function seatViews(snapshot: Snapshot): SeatView[] {
   const activities = new Map(snapshot.activities.map((a) => [a.id, a.name]));
   const order = (side: string | null) =>
     side === "left" ? 0 : side === "right" ? 1 : 2;
+  const personStations = new Set(
+    snapshot.seats
+      .filter((seat) => states.has(seat.id) && /^.+-P\d+$/.test(seat.id))
+      .map((seat) => seat.station_id),
+  );
   return snapshot.seats
+    .filter((seat) => {
+      const person = /^.+-P\d+$/.test(seat.id);
+      // Person metadata alone is not an observation. Retire legacy fixed seats
+      // for a station once its person pipeline supplies actual state rows.
+      return person
+        ? states.has(seat.id)
+        : !personStations.has(seat.station_id);
+    })
     .map((seat) => {
       const state = states.get(seat.id) ?? null;
       return {
@@ -157,9 +186,6 @@ export function seatViews(snapshot: Snapshot): SeatView[] {
     );
 }
 
-/** Observation-scoped UI dismissal never changes the stored seat state. */
+/** Seat presentation only; attention items come exclusively from teacher_reviews. */
 export const needsReview = (seat: SeatView) =>
   seat.state?.status === "review" || seat.state?.status === "needs_help";
-
-export const attentionKey = (seat: SeatView) =>
-  JSON.stringify([seat.id, seat.state?.updated_at, seat.state?.status]);

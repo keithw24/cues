@@ -687,7 +687,10 @@ seats (
 sessions (
   id uuid primary key,
   started_at timestamptz,
-  current_activity_id text
+  current_activity_id text,
+  station_id text,          -- lifecycle migration 003: one active session per station
+  ended_at timestamptz,     -- null while active
+  revision integer         -- compare-and-set for teacher actions
 );
 
 seat_state (
@@ -695,6 +698,7 @@ seat_state (
   session_id uuid,
   activity_id text,
   status text,
+  tracking_valid boolean,
   task_score real,
   tracking_valid boolean,
   expression_context jsonb,

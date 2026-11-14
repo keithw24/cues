@@ -1,9 +1,27 @@
 {
+  "web.teacher_login": {
+    "description": "Teacher sign-in with an animated Cues companion; uses existing Supabase teacher accounts.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "teacher-login-redesign"
+  },
+  "web.teacher_signup": {
+    "description": "Teacher sign-up at /signup with the Cues companion; creates a Supabase account.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "teacher-signup"
+  },
   "web.dashboard": {
     "description": "Read-only teacher dashboard with simulated Supabase seats and realtime state updates.",
     "default": false,
     "owner": "evan",
     "ticket": "dashboard-foundation"
+  },
+  "web.landing": {
+    "description": "Public landing page at /; the teacher dashboard moves to /dashboard.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "landing-page"
   },
   "vision.supabase_events": {
     "description": "Send vision events and seat_state to Supabase. When off, they are written only to vision/logs/*.jsonl.",
@@ -53,16 +71,34 @@
     "owner": "keith",
     "ticket": "T7"
   },
-  "vision.all_scores": {
-    "description": "Display-only readout of every task's score for every person (overlay and vision.watch). Not sent to Supabase.",
+  "web.teacher_reviews": {
+    "description": "Read-only pending TeacherReview queue via Supabase; requires Michelle-side persistence, RLS and Realtime publication.",
     "default": false,
-    "owner": "keith",
-    "ticket": "all-gestures-readout"
+    "owner": "evan",
+    "ticket": "teacher-review-queue"
   },
-  "vision.custom_gestures": {
-    "description": "Dashboard API to create teacher-recorded gestures (/gestures). Definitions and examples stay in vision/templates/ on this laptop.",
+  "web.teacher_review_actions": {
+    "description": "Persistent review transitions; enable only after authorized Supabase RPC deployment",
+    "default": false,
+    "owner": "evan",
+    "ticket": "teacher-review-actions"
+  },
+  "web.session_controls": {
+    "description": "Authenticated station session lifecycle and activity controls",
+    "default": false,
+    "owner": "evan",
+    "ticket": "session-controls"
+  },
+  "web.person_observations": {
+    "description": "Read tracking_valid and show fresh, invalid, lost and paused person observations",
+    "default": false,
+    "owner": "evan",
+    "ticket": "person-observations"
+  },
+  "vision.session_lifecycle": {
+    "description": "Follow teacher-managed station sessions, pin frame IDs and pause task processing on session end or sync loss",
     "default": false,
     "owner": "keith",
-    "ticket": "custom-gestures"
+    "ticket": "session-controls"
   }
 }

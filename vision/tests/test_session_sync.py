@@ -1,0 +1,257 @@
+"""Station lifecycle: authoritative IDs, frame isolation and fail-closed task checks."""
+
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from uuid import uuid4
+
+import numpy as np
+import pytest
+from pydantic import ValidationError
+
+from shared.contracts import Session
+from vision.activities import CurrentTasks
+from vision.camera import Frame
+from vision.perception import Match
+from vision.session_sync import StationSessionState, StationSessionSync, frame_activity
+from vision.stages.s00_session import SessionStage
+from vision.stages.s50_status import StatusStage
+from vision.tests.test_perception import SeatZones
+from vision.tests.test_status import RecordingEmitter
+
+
+def session(**changes):
+    return Session.model_validate(
+        dict(
+            id=uuid4(),
+            station_id="S1",
+            current_activity_id="thumbs_up",
+            started_at=datetime.now(UTC),
+            ended_at=None,
+            revision=0,
+        )
+        | changes
+    )
+
+
+class Query:
+    def __init__(self, client):
+        self.client = client
+        self.active = False
+
+    def select(self, *_):
+        return self
+
+    def eq(self, *_):
+        return self
+
+    def is_(self, *_):
+        self.active = True
+        return self
+
+    def order(self, *_, **__):
+        return self
+
+    def limit(self, *_):
+        return self
+
+    def execute(self):
+        if self.client.fail_read:
+            raise ConnectionError("private transport detail")
+        rows = self.client.rows
+        if self.active:
+            rows = [s for s in rows if s["ended_at"] is None]
+        return SimpleNamespace(data=rows)
+
+
+class Client:
+    def __init__(self, rows):
+        self.rows = rows
+        self.calls = []
+        self.fail_read = self.fail_ack = False
+
+    def table(self, _):
+        return Query(self)
+
+    def rpc(self, name, args):
+        if self.fail_ack:
+            raise ConnectionError("private transport detail")
+        self.calls.append((name, args))
+        return SimpleNamespace(execute=lambda: None)
+
+
+def test_lease_pauses_old_frames_expiry_and_end():
+    clock = [10.0]
+    state = StationSessionState(lambda: clock[0])
+    s = session()
+    state.confirm(s)
+    assert state.for_frame(9.9) is None
+    assert state.for_frame(10) == s
+    clock[0] = 12
+    state.confirm(s)  # heartbeat does not discard frames for the same configuration
+    assert state.for_frame(11) == s
+    clock[0] = 15.1
+    assert state.for_frame(15.1) is None
+    state.confirm(s.model_copy(update={"ended_at": datetime.now(UTC), "revision": 1}))
+    assert state.for_frame(16) is None
+    state.confirm(None)
+    assert state.for_frame(16) is None
+
+
+def test_sync_acknowledges_shared_identity_and_ended_session():
+    s = session()
+    client = Client([s.model_dump(mode="json")])
+    state = StationSessionState(lambda: 10)
+    sync = StationSessionSync(client, "S1", state)
+    assert sync.check_once() == s
+    assert state.for_frame(10) == s
+    name, args = client.calls[-1]
+    assert name == "report_station_session"
+    assert args["p_session_id"] == str(s.id) and args["p_revision"] == 0
+    assert args["p_status"] == "ready"
+    client.rows[0].update(ended_at=datetime.now(UTC).isoformat(), revision=1)
+    sync.check_once()
+    assert state.for_frame(11) is None
+    assert client.calls[-1][1]["p_status"] == "idle"
+    assert client.calls[-1][1]["p_activity_id"] is None
+    assert client.calls[-1][1]["p_session_id"] == str(s.id)
+
+
+@pytest.mark.parametrize("failure", ["fail_read", "fail_ack", "unknown", "ambiguous"])
+def test_sync_failures_never_keep_processing(failure, caplog):
+    s = session()
+    client = Client([s.model_dump(mode="json")])
+    state = StationSessionState(lambda: 10)
+    state.confirm(s)
+    sync = StationSessionSync(client, "S1", state)
+    if failure == "unknown":
+        client.rows[0]["current_activity_id"] = "not_a_task"
+        assert sync.check_once() is None
+        assert client.calls[-1][1]["p_error"] == "unsupported_activity"
+    else:
+        if failure == "ambiguous":
+            client.rows.append(session().model_dump(mode="json"))
+        else:
+            setattr(client, failure, True)
+        with pytest.raises(ValueError if failure == "ambiguous" else ConnectionError):
+            sync.check_once()
+    assert state.for_frame(11) is None
+    assert "private transport detail" not in caplog.text
+
+
+def test_frames_pin_session_and_reset_completed_task_for_new_revision_and_uuid():
+    clock = [10.0]
+    state = StationSessionState(lambda: clock[0])
+    s = session()
+    state.confirm(s)
+    pin = SessionStage(state)
+    emitter = RecordingEmitter()
+    tasks = CurrentTasks("raise_hand")  # local task must not override teacher session
+    status = StatusStage(emitter=emitter, tasks=tasks, zones=SeatZones())
+    image = np.zeros((480, 640, 3), np.uint8)
+
+    def process(t, change_after_pin=None):
+        clock[0] = t
+        state.confirm(s)
+        frame = Frame(image, t, int(t * 10))
+        ctx = {"hands": {"S1-L": []}, "faces": {"S1-L": object()}}
+        pin.process(frame, ctx)
+        if change_after_pin:
+            state.confirm(change_after_pin)
+        assert frame_activity(tasks, "S1-L", ctx) == "thumbs_up"
+        ctx["match"] = {"S1-L": Match("thumbs_up", 0.9)}
+        status.process(frame, ctx)
+        return ctx
+
+    for i in range(20):
+        ctx = process(10 + i / 10)
+    assert ctx["status"]["S1-L"] == "done"
+    assert {row["session_id"] for row in emitter.states} == {str(s.id)}
+    assert emitter.events[0]["payload"]["session_revision"] == 0
+    s = s.model_copy(update={"revision": 1})
+    assert process(12)["status"]["S1-L"] == "in_progress"
+    assert emitter.states[-1]["session_revision"] == 1
+    new_session = session()
+    process(12.1, change_after_pin=new_session)
+    assert emitter.states[-1]["session_id"] == str(s.id)  # immutable per-frame scope
+    state.confirm(s.model_copy(update={"ended_at": datetime.now(UTC), "revision": 2}))
+    ctx = {}
+    pin.process(Frame(image, 12.2, 123), ctx)
+    counts = len(emitter.states), len(emitter.events)
+    status.process(Frame(image, 12.2, 123), ctx)
+    assert ctx["status"] == {} and ctx["match"] == {}
+    assert counts == (len(emitter.states), len(emitter.events))
+    s = new_session
+    assert process(13)["status"]["S1-L"] == "in_progress"
+    assert emitter.states[-1]["session_id"] == str(s.id)
+
+
+def test_paused_task_stages_do_not_evaluate_or_initialize_emitter():
+    from vision.stages.s30_gestures import GesturesStage
+    from vision.stages.s35_raise_hand import RaiseHandStage
+
+    ctx = {"session_managed": True, "session": None, "hands": {"S1-L": [object()]}}
+    frame = Frame(np.zeros((2, 2, 3), np.uint8), 0, 0)
+    for stage in [
+        GesturesStage(zones=SeatZones()),
+        RaiseHandStage(zones=SeatZones()),
+        StatusStage(zones=SeatZones()),
+    ]:
+        stage.process(frame, ctx)
+    assert ctx["match"] == {} and ctx["status"] == {}
+
+
+def test_session_and_revision_contracts_are_strict():
+    for revision in [-1, 1.5, True, "1"]:
+        with pytest.raises(ValidationError):
+            session(revision=revision)
+    with pytest.raises(ValidationError):
+        session(started_at=datetime(2026, 1, 1))
+    with pytest.raises(ValidationError):
+        session(extra_field="no")
+
+
+def test_flag_off_keeps_local_tasks_and_legacy_writer_shape(monkeypatch):
+    from vision.activity_sync import sync_from_env
+    from vision.events import SupabaseSink
+    from vision.tests.test_integration_parts import FakeClient
+
+    monkeypatch.setenv("CUES_FLAG_VISION_SESSION_LIFECYCLE", "0")
+    monkeypatch.setenv("CUES_FLAG_VISION_ACTIVITY_SYNC", "0")
+    assert sync_from_env() is None
+    assert frame_activity(CurrentTasks("raise_hand"), "S1-L", {}) == "raise_hand"
+    client = FakeClient()
+    sink = SupabaseSink(client)
+    sink.write_seat_state({"seat_id": "S1-L", "session_revision": None})
+    assert "session_revision" not in client.store["seat_state"][-1]
+    sink.write_seat_state({"seat_id": "S1-L", "session_revision": 0})
+    assert client.store["seat_state"][-1]["session_revision"] == 0
+
+
+def test_lifecycle_without_credentials_stays_paused(monkeypatch):
+    from vision import supabase_client
+    from vision.activity_sync import sync_from_env
+
+    monkeypatch.setenv("CUES_FLAG_VISION_SESSION_LIFECYCLE", "1")
+    monkeypatch.setattr(supabase_client, "get_client", lambda: None)
+    assert sync_from_env() is None
+
+
+def test_session_stage_is_loaded_first_only_when_enabled(monkeypatch):
+    from vision import flags
+    from vision.pipeline import discover_stages
+
+    for name in flags.load_registry():
+        if name.startswith("vision."):
+            monkeypatch.setenv(flags.env_name(name), "0")
+    assert "session" not in [stage.name for stage in discover_stages()]
+    monkeypatch.setenv("CUES_FLAG_VISION_SESSION_LIFECYCLE", "1")
+    assert discover_stages()[0].name == "session"
+
+
+def test_stopping_sync_cannot_reactivate_a_late_response():
+    s = session()
+    state = StationSessionState(lambda: 10)
+    sync = StationSessionSync(Client([s.model_dump(mode="json")]), "S1", state)
+    sync.stop()
+    assert sync.check_once() is None
+    assert state.for_frame(11) is None
