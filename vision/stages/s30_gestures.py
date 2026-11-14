@@ -109,7 +109,9 @@ class GesturesStage:
         hands = ctx.get("hands", {})
         result: dict[str, Match] = {}
         for seat in self.zones.ids(ctx):
-            activity_id = self.tasks.for_seat(seat)
+            activity_id = frame_activity(self.tasks, seat, ctx)
+            if activity_id is None:  # session paused or ended: no task to score
+                continue
             activity = activities.get(activity_id)
             if activity.check_type != "gesture":
                 continue
