@@ -3,16 +3,35 @@
 Cues uses local vision and structured task progress to help teachers notice when
 a student may need attention. Built by Keith, Michelle, and Evan for HackPrinceton 2026.
 
-```text
-Teacher activity selection → sessions.current_activity_id
-Logitech camera → local MediaPipe + HSEmotion → Supabase seat_state
-→ ProgressEvaluator → ProgressHistoryStore → EscalationEvaluator
-→ EvaluationRouter → ContextEnricher → Deep Agent
-→ request_teacher_review() → Supabase teacher_reviews
-├─ teacher dashboard
-└─ Photon/Spectrum iMessage
-→ teacher: Needs attention / Dismiss → resolve_teacher_review RPC
-```
+```mermaid
+flowchart TD
+    A[Teacher selects activity] --> B[sessions.current_activity_id]
+
+    C[Logitech camera] --> D[Local MediaPipe + HSEmotion]
+    B --> D
+
+    D --> E[Supabase seat_state]
+    E --> F[ProgressEvaluator]
+    F --> G[ProgressHistoryStore]
+    G --> H[EscalationEvaluator]
+    H --> I[EvaluationRouter]
+    I --> J[ContextEnricher]
+    J --> K[Deep Agent]
+
+    K --> L[request_teacher_review()]
+    L --> M[Supabase teacher_reviews]
+
+    M --> N[Teacher dashboard]
+    M --> O[Photon / Spectrum iMessage]
+
+    N --> P{Teacher review}
+    O --> P
+
+    P -->|Needs attention| Q[confirmed]
+    P -->|Dismiss| R[dismissed]
+
+    Q --> S[resolve_teacher_review RPC]
+    R --> S
 
 The continuous agent worker polls structured state and selects information/action
 tools adaptively. Groq `openai/gpt-oss-20b` is the current demo model; the core
