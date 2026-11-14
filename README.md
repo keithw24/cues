@@ -2,7 +2,7 @@
 
 Cues is an AI classroom support system that uses local computer vision and an agentic workflow to surface when a student may need teacher assistance.
 
-Built by a three-person team for HackPrinceton Fall 2026. [PRD-cues.md](PRD-cues.md) defines the MVP; this checkout contains the vision service foundation, model benchmark, event emitter, and Next.js scaffold. The complete support workflow below is the MVP target, not yet an end-to-end implementation.
+Built by a three-person team for HackPrinceton Fall 2026. [PRD-cues.md](PRD-cues.md) defines the MVP; this checkout contains the vision service foundation, model benchmark, event emitter, and a read-only teacher seat dashboard behind a feature flag. The complete support workflow below is the MVP target, not yet an end-to-end implementation.
 
 ## What Cues does
 
@@ -53,7 +53,7 @@ Perception runs on the station laptop. Only structured events are synced; rules 
 | Path | Contents / ownership |
 |---|---|
 | `vision/` | Local FastAPI camera/pipeline foundation, model loaders, benchmark, event emitter, and tests — Keith |
-| `web/` | Next.js App Router scaffold — Evan owns frontend, app backend, and Supabase product integration |
+| `web/` | Next.js teacher seat dashboard — Evan owns frontend, app backend, and Supabase product integration |
 | `shared/` | Canonical Pydantic contracts, synthetic JSON fixtures, and contract tests |
 | `PRD-cues.md` | Product requirements, architecture, shared event schema, and team responsibilities |
 | `pyproject.toml`, `uv.lock`, `.python-version` | Shared Python environment |
@@ -103,7 +103,12 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000` (currently the starter page). `npm run lint` and `npm run build` are also available in `web/`. Follow [web/AGENTS.md](web/AGENTS.md) before editing frontend code.
+Configure `web/.env.local` with the project URL, publishable key and
+`CUES_FLAG_WEB_DASHBOARD=1` to view the simulated seat dashboard at
+`http://localhost:3000`. With the flag off, the page shows a static Cues fallback.
+See [web/README.md](web/README.md) for setup, realtime behavior and verification;
+`npm run lint`, `npm test` and `npm run build` are available in `web/`.
+Follow [web/AGENTS.md](web/AGENTS.md) before editing frontend code.
 
 ## Environment variables
 

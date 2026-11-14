@@ -1,0 +1,361 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-14T03:03:09.319Z",
+  "title": "Design System: Cues",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Cream Canvas",
+        "tonalRamp": [
+          "oklch(15% 0.0079 106.55)",
+          "oklch(26.4% 0.0079 106.55)",
+          "oklch(37.9% 0.0079 106.55)",
+          "oklch(49.3% 0.0079 106.55)",
+          "oklch(60.7% 0.0079 106.55)",
+          "oklch(72.1% 0.0079 106.55)",
+          "oklch(83.6% 0.0079 106.55)",
+          "oklch(95% 0.0079 106.55)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Green Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0363 173.10)",
+          "oklch(26.4% 0.0363 173.10)",
+          "oklch(37.9% 0.0363 173.10)",
+          "oklch(49.3% 0.0363 173.10)",
+          "oklch(60.7% 0.0363 173.10)",
+          "oklch(72.1% 0.0363 173.10)",
+          "oklch(83.6% 0.0363 173.10)",
+          "oklch(95% 0.0363 173.10)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "tonalRamp": [
+          "oklch(15% 0.0067 97.35)",
+          "oklch(26.4% 0.0067 97.35)",
+          "oklch(37.9% 0.0067 97.35)",
+          "oklch(49.3% 0.0067 97.35)",
+          "oklch(60.7% 0.0067 97.35)",
+          "oklch(72.1% 0.0067 97.35)",
+          "oklch(83.6% 0.0067 97.35)",
+          "oklch(95% 0.0067 97.35)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Quiet Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0250 166.71)",
+          "oklch(26.4% 0.0250 166.71)",
+          "oklch(37.9% 0.0250 166.71)",
+          "oklch(49.3% 0.0250 166.71)",
+          "oklch(60.7% 0.0250 166.71)",
+          "oklch(72.1% 0.0250 166.71)",
+          "oklch(83.6% 0.0250 166.71)",
+          "oklch(95% 0.0250 166.71)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Pencil Line",
+        "tonalRamp": [
+          "oklch(15% 0.0161 130.43)",
+          "oklch(26.4% 0.0161 130.43)",
+          "oklch(37.9% 0.0161 130.43)",
+          "oklch(49.3% 0.0161 130.43)",
+          "oklch(60.7% 0.0161 130.43)",
+          "oklch(72.1% 0.0161 130.43)",
+          "oklch(83.6% 0.0161 130.43)",
+          "oklch(95% 0.0161 130.43)"
+        ]
+      },
+      "green": {
+        "role": "primary",
+        "displayName": "Classroom Green",
+        "tonalRamp": [
+          "oklch(15% 0.0724 163.27)",
+          "oklch(26.4% 0.0724 163.27)",
+          "oklch(37.9% 0.0724 163.27)",
+          "oklch(49.3% 0.0724 163.27)",
+          "oklch(60.7% 0.0724 163.27)",
+          "oklch(72.1% 0.0724 163.27)",
+          "oklch(83.6% 0.0724 163.27)",
+          "oklch(95% 0.0724 163.27)"
+        ]
+      },
+      "soft-green": {
+        "role": "primary",
+        "displayName": "Soft Leaf",
+        "tonalRamp": [
+          "oklch(15% 0.0225 126.23)",
+          "oklch(26.4% 0.0225 126.23)",
+          "oklch(37.9% 0.0225 126.23)",
+          "oklch(49.3% 0.0225 126.23)",
+          "oklch(60.7% 0.0225 126.23)",
+          "oklch(72.1% 0.0225 126.23)",
+          "oklch(83.6% 0.0225 126.23)",
+          "oklch(95% 0.0225 126.23)"
+        ]
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "Review Amber",
+        "tonalRamp": [
+          "oklch(15% 0.0904 69.37)",
+          "oklch(26.4% 0.0904 69.37)",
+          "oklch(37.9% 0.0904 69.37)",
+          "oklch(49.3% 0.0904 69.37)",
+          "oklch(60.7% 0.0904 69.37)",
+          "oklch(72.1% 0.0904 69.37)",
+          "oklch(83.6% 0.0904 69.37)",
+          "oklch(95% 0.0904 69.37)"
+        ]
+      },
+      "active": {
+        "role": "secondary",
+        "displayName": "Observation Blue",
+        "tonalRamp": [
+          "oklch(15% 0.0687 230.23)",
+          "oklch(26.4% 0.0687 230.23)",
+          "oklch(37.9% 0.0687 230.23)",
+          "oklch(49.3% 0.0687 230.23)",
+          "oklch(60.7% 0.0687 230.23)",
+          "oklch(72.1% 0.0687 230.23)",
+          "oklch(83.6% 0.0687 230.23)",
+          "oklch(95% 0.0687 230.23)"
+        ]
+      },
+      "done-surface": {
+        "role": "secondary",
+        "displayName": "Completion Paper",
+        "tonalRamp": [
+          "oklch(15% 0.0180 123.97)",
+          "oklch(26.4% 0.0180 123.97)",
+          "oklch(37.9% 0.0180 123.97)",
+          "oklch(49.3% 0.0180 123.97)",
+          "oklch(60.7% 0.0180 123.97)",
+          "oklch(72.1% 0.0180 123.97)",
+          "oklch(83.6% 0.0180 123.97)",
+          "oklch(95% 0.0180 123.97)"
+        ]
+      },
+      "review-surface": {
+        "role": "secondary",
+        "displayName": "Review Paper",
+        "tonalRamp": [
+          "oklch(15% 0.0228 84.59)",
+          "oklch(26.4% 0.0228 84.59)",
+          "oklch(37.9% 0.0228 84.59)",
+          "oklch(49.3% 0.0228 84.59)",
+          "oklch(60.7% 0.0228 84.59)",
+          "oklch(72.1% 0.0228 84.59)",
+          "oklch(83.6% 0.0228 84.59)",
+          "oklch(95% 0.0228 84.59)"
+        ]
+      },
+      "neutral-status": {
+        "role": "neutral",
+        "displayName": "Sage Marker",
+        "tonalRamp": [
+          "oklch(15% 0.0391 132.27)",
+          "oklch(26.4% 0.0391 132.27)",
+          "oklch(37.9% 0.0391 132.27)",
+          "oklch(49.3% 0.0391 132.27)",
+          "oklch(60.7% 0.0391 132.27)",
+          "oklch(72.1% 0.0391 132.27)",
+          "oklch(83.6% 0.0391 132.27)",
+          "oklch(95% 0.0391 132.27)"
+        ]
+      },
+      "connection-pending": {
+        "role": "neutral",
+        "displayName": "Pending Marker",
+        "tonalRamp": [
+          "oklch(15% 0.0358 89.19)",
+          "oklch(26.4% 0.0358 89.19)",
+          "oklch(37.9% 0.0358 89.19)",
+          "oklch(49.3% 0.0358 89.19)",
+          "oklch(60.7% 0.0358 89.19)",
+          "oklch(72.1% 0.0358 89.19)",
+          "oklch(83.6% 0.0358 89.19)",
+          "oklch(95% 0.0358 89.19)"
+        ]
+      },
+      "simulation-surface": {
+        "role": "neutral",
+        "displayName": "Simulation Paper",
+        "tonalRamp": [
+          "oklch(15% 0.0123 121.70)",
+          "oklch(26.4% 0.0123 121.70)",
+          "oklch(37.9% 0.0123 121.70)",
+          "oklch(49.3% 0.0123 121.70)",
+          "oklch(60.7% 0.0123 121.70)",
+          "oklch(72.1% 0.0123 121.70)",
+          "oklch(83.6% 0.0123 121.70)",
+          "oklch(95% 0.0123 121.70)"
+        ]
+      },
+      "wordmark-period": {
+        "role": "primary",
+        "displayName": "Wordmark Leaf",
+        "tonalRamp": [
+          "oklch(15% 0.0896 132.96)",
+          "oklch(26.4% 0.0896 132.96)",
+          "oklch(37.9% 0.0896 132.96)",
+          "oklch(49.3% 0.0896 132.96)",
+          "oklch(60.7% 0.0896 132.96)",
+          "oklch(72.1% 0.0896 132.96)",
+          "oklch(83.6% 0.0896 132.96)",
+          "oklch(95% 0.0896 132.96)"
+        ]
+      },
+      "selection": {
+        "role": "neutral",
+        "displayName": "Selection Leaf",
+        "tonalRamp": [
+          "oklch(15% 0.0527 127.58)",
+          "oklch(26.4% 0.0527 127.58)",
+          "oklch(37.9% 0.0527 127.58)",
+          "oklch(49.3% 0.0527 127.58)",
+          "oklch(60.7% 0.0527 127.58)",
+          "oklch(72.1% 0.0527 127.58)",
+          "oklch(83.6% 0.0527 127.58)",
+          "oklch(95% 0.0527 127.58)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Page title",
+        "purpose": "Responsive page heading."
+      },
+      "headline": {
+        "displayName": "Task status",
+        "purpose": "The strongest text within a seat card."
+      },
+      "title": {
+        "displayName": "Seat identity",
+        "purpose": "Seat names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Page support copy."
+      },
+      "detail": {
+        "displayName": "Task explanation",
+        "purpose": "Supporting state context."
+      },
+      "label": {
+        "displayName": "Metadata",
+        "purpose": "Connection health and fact labels."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "button-hover",
+        "value": "background-color 150ms ease-out",
+        "purpose": "Outlined control hover fill; removed under reduced motion."
+      },
+      {
+        "name": "loading",
+        "value": "loading 1.3s ease-out infinite alternate; width:56px → 100px",
+        "purpose": "Short loading line; animation removed under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stacked-dashboard",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Outlined button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Reconnect and check-again controls.",
+      "html": "<button class=\"ds-button\">Reconnect</button>",
+      "css": ".ds-button { font:inherit; cursor:pointer; border:1px solid var(--green); border-radius:8px; background:transparent; color:var(--foreground); padding:10px 18px; min-height:44px; transition:background-color 150ms ease-out; } .ds-button:hover { background:var(--soft-green); } .ds-button:focus-visible { outline:3px solid var(--green); outline-offset:5px; } .ds-button:disabled { opacity:.55; cursor:wait; } @media (prefers-reduced-motion:reduce) { .ds-button { transition:none; } }"
+    },
+    {
+      "name": "Simulation chip",
+      "kind": "chip",
+      "refersTo": "simulation-chip",
+      "description": "Noninteractive simulated-seat provenance label.",
+      "html": "<span class=\"ds-sim\">SIM<span class=\"ds-sr\"> · Simulated seat</span></span>",
+      "css": ".ds-sim { display:inline-block; color:var(--muted); background:#edf0e7; font-family:var(--font-geist-sans),sans-serif; font-size:10px; letter-spacing:.06em; border-radius:4px; padding:5px 7px; } .ds-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }"
+    },
+    {
+      "name": "Seat card",
+      "kind": "card",
+      "refersTo": "seat-card",
+      "description": "Status-led observation with supporting activity, match score and timestamp.",
+      "html": "<article class=\"ds-seat\"><div class=\"ds-seat-heading\"><h3>Left seat</h3><span class=\"ds-sim\">SIM</span></div><p class=\"ds-status\"><span class=\"ds-dot\"></span>In progress</p><p class=\"ds-detail\">The activity is underway.</p><dl class=\"ds-facts\"><div><dt>Current activity</dt><dd>Thumbs up</dd></div><div><dt>Match score</dt><dd>0.62</dd></div></dl><div class=\"ds-seat-footer\"><span>S1-L</span><span>Updated 2:00:00 PM</span></div></article>",
+      "css": ".ds-seat { color:var(--foreground); font-family:var(--font-geist-sans),sans-serif; border:1px solid var(--line); border-radius:14px; padding:28px; background:var(--paper); max-width:520px; } .ds-seat-heading { display:flex; align-items:start; justify-content:space-between; gap:14px; margin-bottom:36px; } .ds-seat-heading h3 { font-size:23px; font-weight:500; letter-spacing:-.02em; line-height:1.3; margin:0; overflow-wrap:anywhere; } .ds-sim { color:var(--muted); background:#edf0e7; font-size:10px; letter-spacing:.06em; border-radius:4px; padding:5px 7px; } .ds-status { display:flex; align-items:center; gap:10px; font-size:27px; font-weight:500; letter-spacing:-.025em; line-height:1.3; margin:0 0 8px; } .ds-dot { width:11px; height:11px; background:#427790; border-radius:50%; flex-shrink:0; } .ds-detail { margin:0; font-size:13px; line-height:1.7; color:var(--muted); min-height:44px; max-width:46ch; } .ds-facts { display:flex; justify-content:space-between; gap:24px; padding:28px 0; margin:16px 0 0; border-top:1px solid var(--line); } .ds-facts dt { font-size:12px; color:var(--muted); margin-bottom:8px; } .ds-facts dd { margin:0; font-size:15px; font-weight:500; font-variant-numeric:tabular-nums; } .ds-facts div:last-child { text-align:right; } .ds-seat-footer { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:11px; color:var(--muted); border-top:1px solid var(--line); padding-top:16px; font-variant-numeric:tabular-nums; } @media (max-width:760px) { .ds-seat { padding:24px; } .ds-seat-heading { margin-bottom:28px; } }"
+    },
+    {
+      "name": "Home wordmark",
+      "kind": "nav",
+      "description": "The dashboard’s single home link.",
+      "html": "<a class=\"ds-wordmark\" href=\"/\" aria-label=\"Cues home\"><span class=\"ds-brand\" aria-hidden=\"true\"><i></i><i></i><i></i></span>Cues<span class=\"ds-period\">.</span></a>",
+      "css": ".ds-wordmark { display:inline-flex; align-items:center; font-family:var(--font-geist-sans),sans-serif; font-size:32px; font-weight:700; letter-spacing:-.04em; text-decoration:none; color:var(--foreground); } .ds-wordmark:focus-visible { outline:3px solid var(--green); outline-offset:5px; } .ds-brand { display:inline-flex; align-items:end; gap:3px; margin-right:10px; height:23px; } .ds-brand i { width:5px; height:15px; background:var(--green); border-radius:3px; } .ds-brand i:nth-child(2) { height:23px; } .ds-brand i:nth-child(3) { height:19px; } .ds-period { color:#5b7b43; }"
+    },
+    {
+      "name": "Live connection indicator",
+      "kind": "custom",
+      "description": "Page-level connection health, separate from task state.",
+      "html": "<div class=\"ds-connection\" role=\"status\"><span aria-hidden=\"true\"></span>Live updates connected</div>",
+      "css": ".ds-connection { display:inline-flex; align-items:center; gap:8px; flex-shrink:0; font-family:var(--font-geist-sans),sans-serif; color:var(--green); font-size:12px; padding-bottom:6px; } .ds-connection > span { width:7px; height:7px; border-radius:50%; background:var(--green); }"
+    },
+    {
+      "name": "Connection notice",
+      "kind": "custom",
+      "refersTo": "notice",
+      "description": "A flat paper notice explains interrupted updates.",
+      "html": "<div class=\"ds-notice\" role=\"alert\"><div><h2>Live updates are paused.</h2><p>Showing the last loaded state. Recent changes may be missing.</p></div><button class=\"ds-reconnect\">Reconnect</button></div>",
+      "css": ".ds-notice { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:22px; background:#fcf4e4; border-radius:12px; color:var(--foreground); font-family:var(--font-geist-sans),sans-serif; } .ds-notice h2 { margin:0 0 8px; font-size:18px; font-weight:500; } .ds-notice p { margin:0; font-size:14px; line-height:1.7; color:var(--muted); max-width:65ch; } .ds-reconnect { font:inherit; cursor:pointer; border:1px solid var(--green); border-radius:8px; background:transparent; color:var(--foreground); padding:10px 18px; min-height:44px; flex-shrink:0; transition:background-color 150ms ease-out; } .ds-reconnect:hover { background:var(--soft-green); } .ds-reconnect:focus-visible { outline:3px solid var(--green); outline-offset:5px; } .ds-reconnect:disabled { opacity:.55; cursor:wait; } @media (max-width:760px) { .ds-notice { align-items:start; flex-direction:column; } } @media (prefers-reduced-motion:reduce) { .ds-reconnect { transition:none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Classroom Noticeboard",
+    "overview": "Warm paper, green ink and generous space give structured observations a familiar classroom setting. Status labels lead each seat card; small facts and timestamps support the teacher’s quick scan. The visual tone is calm, practical and attentive.\n\nThe system uses restrained borders and flat surfaces. Its identity comes from the cream canvas, compact three-stroke wordmark and carefully stepped typography. Connection health stays in the page heading, separate from each seat’s task status.",
+    "keyCharacteristics": [
+      "Warm paper surfaces and green ink.",
+      "Status-led cards with text alongside every status dot.",
+      "Flat containers with restrained borders.",
+      "Quiet metadata and clear simulation labels."
+    ],
+    "rules": [
+      {
+        "name": "The Separate Signals Rule",
+        "body": "Connection health belongs in its own labeled indicator. It must not recolor a seat as though the student’s task state changed.",
+        "section": "colors"
+      },
+      {
+        "name": "The Flat Paper Rule",
+        "body": "Preserve tonal surfaces and fine borders as the default grouping language.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** pair every task-state color with a readable label.",
+      "**Do** keep connection health separate from task status.",
+      "**Do** preserve SIM provenance labels and quiet timestamps.",
+      "**Do** retain visible keyboard focus and the reduced-motion fallback.",
+      "**Do** use flat paper surfaces, fine borders and space to group content."
+    ],
+    "donts": [
+      "**Don't** style tracking loss as student failure.",
+      "**Don't** use color alone to communicate status.",
+      "**Don't** turn the simulation badge into an action control.",
+      "**Don't** add shadows or filled action variants while claiming they are part of this extracted system."
+    ]
+  }
+}

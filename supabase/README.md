@@ -2,7 +2,7 @@
 
 `migrations/20261114000100_initial_schema.sql` implements PRD §17.3 without changing
 the shared table/event fields. Apply it once in a new Supabase project's SQL
-Editor, then run `seed.sql`. The seed uses only simulated data and can be rerun
+Editor, apply subsequent migrations in filename order, then run `seed.sql`. The seed uses only simulated data and can be rerun
 without resetting existing rows. Do not reapply the migration to an existing schema.
 
 All nine tables have Row Level Security enabled. The publishable key can read
@@ -50,5 +50,6 @@ Verified against the hosted `cues` project on November 13, 2026:
 - A Postgres Changes subscription using the publishable key received a real
   `seat_state` UPDATE after changing a simulated row's timestamp in the SQL Editor.
 
-The dashboard itself remains the Next.js scaffold; this verification tests the
-database API and realtime delivery, not a dashboard card.
+The database verification above predates the teacher dashboard implementation.
+The dashboard now reads simulated state when `web.dashboard` is enabled; see
+`../web/README.md` for app setup and its separate acceptance checks.
