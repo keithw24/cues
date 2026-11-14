@@ -7,55 +7,18 @@ import {
   LiveClass,
   LiveFeed,
   LiveHero,
-  type LiveStatus,
-  type LiveStudent,
 } from "@/components/live-screen";
 import { resolutionLabels, reviewPrompt } from "@/lib/teacher-reviews";
+import type { LiveStatus } from "@/lib/live-class";
+import {
+  MOCK_FEED,
+  MOCK_LABELS,
+  MOCK_STUDENTS,
+  mockSummary,
+} from "@/lib/live-mock-data";
 
 // A design mock of the Live screen with a simulated class. Nothing here reads
-// or writes Supabase; it exists so the layout can be judged in the real app.
-type Student = Omit<LiveStudent, "label" | "details"> & { note: string };
-
-const START_STUDENTS: Student[] = [
-  {
-    id: "P1",
-    name: "Maya",
-    status: "finished",
-    tries: 1,
-    note: "Finished at 9:38",
-  },
-  {
-    id: "P2",
-    name: "Leo",
-    status: "needs",
-    tries: 3,
-    note: "3 tries, no finish yet",
-  },
-  {
-    id: "P3",
-    name: "Ava",
-    status: "finished",
-    tries: 2,
-    note: "Finished at 9:42",
-  },
-  {
-    id: "P4",
-    name: "Noah",
-    status: "working",
-    tries: 1,
-    note: "Started at 9:40",
-  },
-];
-
-const LABELS: Record<LiveStatus, string> = {
-  finished: "Finished",
-  needs: "Needs you",
-  working: "Working",
-  ready: "Ready",
-  checking: resolutionLabels.confirmed,
-  quiet: "In view",
-};
-
+// or writes Supabase; the data lives in lib/live-mock-data.ts.
 // Minutes after 9:00 → a clock label.
 const clock = (minutes: number) => {
   const total = 9 * 60 + Math.round(minutes);
@@ -64,26 +27,15 @@ const clock = (minutes: number) => {
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")}`;
 };
 
-const FEED = [
-  { id: "f5", text: "Leo flagged · 3 tries", time: "9:43" },
-  { id: "f4", text: "Ava finished", time: "9:42" },
-  { id: "f3", text: "Noah started", time: "9:40" },
-  { id: "f2", text: "Maya finished", time: "9:38" },
-  { id: "f1", text: "Raise your hand started", time: "9:31" },
-];
-
 export default function LiveMock() {
-  const [students, setStudents] = useState(START_STUDENTS);
+  const [students, setStudents] = useState([...MOCK_STUDENTS]);
   // The teacher decides on the model's review, as on the dashboard:
   // Support needed (confirmed) or No support needed (dismissed).
   const [card, setCard] = useState<"ask" | "confirmed" | "dismissed" | "done">(
     "ask",
   );
 
-  const needs = students.filter((s) => s.status === "needs").length;
-  const working = students.filter(
-    (s) => s.status === "working" || s.status === "checking",
-  ).length;
+  const { finished, total, needs, working } = mockSummary(students);
   const setLeo = (status: LiveStatus, note: string) =>
     setStudents((list) =>
       list.map((s) => (s.id === "P2" ? { ...s, status, note } : s)),
@@ -95,8 +47,8 @@ export default function LiveMock() {
         <LiveHero
           activity="Raise your hand"
           simulated
-          count={students.filter((s) => s.status === "finished").length}
-          total={students.length}
+          count={finished}
+          total={total}
           noun="finished"
           summary={
             <>
@@ -179,13 +131,17 @@ export default function LiveMock() {
           )}
         </LiveCard>
 
-        <LiveFeed title="This lesson" items={FEED} empty="Nothing yet." />
+        <LiveFeed
+          title="This lesson"
+          items={[...MOCK_FEED]}
+          empty="Nothing yet."
+        />
       </div>
 
       <LiveClass
         students={students.map((student) => ({
           ...student,
-          label: LABELS[student.status],
+          label: MOCK_LABELS[student.status],
           details: [
             student.note,
             `Raise your hand · position ${student.id.slice(1)} from the left`,

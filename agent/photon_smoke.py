@@ -63,7 +63,7 @@ def main():
             diagnostic = json.loads(line)
         except ValueError:
             continue
-        if isinstance(diagnostic, dict) and diagnostic.get('cuesNotification') is True:
+        if isinstance(diagnostic, dict) and diagnostic.get("cuesNotification") is True:
             print(json.dumps(diagnostic))
     if result.returncode or not result.stdout.strip().endswith('{"accepted":true}'):
         raise SystemExit("Spectrum did not acknowledge the profile-phone test message.")

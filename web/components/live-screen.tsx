@@ -8,8 +8,8 @@ import "./live.css";
 // The Live screen's pieces, shared by the simulated mock and the connected
 // view: one big number, a card for whoever needs you, a short feed, and the
 // class as a list with status pills.
-export type LiveStatus =
-  "finished" | "needs" | "working" | "ready" | "checking" | "quiet";
+import type { LiveStatus } from "@/lib/live-class";
+export type { LiveStatus };
 export type LiveStudent = {
   id: string;
   name: string;

@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { seatViews, type Snapshot } from "@/lib/dashboard";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
 import { nextUp } from "@/lib/next-up";
+import {
+  liveCounts,
+  livePeople,
+  waitingCount,
+  type LiveDecision,
+} from "@/lib/live-class";
 import {
   inCameraView,
   isFresh,
@@ -35,7 +41,6 @@ import {
   LiveCard,
   LiveClass,
   LiveHero,
-  type LiveStatus,
   type LiveStudent,
 } from "@/components/live-screen";
 
@@ -45,6 +50,8 @@ import {
 // and review times from the backend.
 type Finish = { seatId: string; at: number };
 type Live = { feed: FeedState; finishes: Finish[] };
+// The feed shows the newest few; keep a bounded history for a long session.
+const MAX_FINISHES = 50;
 
 const INITIAL_FEED: FeedState = {
   snapshot: null,
@@ -123,7 +130,7 @@ export default function LiveConnected({
               ? [
                   ...previous.finishes,
                   ...newFinishes(previous.feed.snapshot, state.snapshot),
-                ]
+                ].slice(-MAX_FINISHES)
               : previous.finishes;
           return {
             feed: { ...state, snapshot },
@@ -170,19 +177,18 @@ export default function LiveConnected({
   // through the review action when that is enabled. Decisions are keyed by the review and
   // its seat, never by a display name. A task-progress flag without a review
   // has no model call to decide on, so it gets no buttons.
-  type Decision = "confirmed" | "dismissed";
-  const [decisions, setDecisions] = useState<
-    {
-      reviewId: string;
-      seatId: string;
-      decision: Decision;
-      saved: boolean;
-      at: number;
-    }[]
-  >([]);
+  type Decision = LiveDecision["decision"];
+  const [decisions, setDecisions] = useState<LiveDecision[]>([]);
   const [shown, setShown] = useState<string | null>(null);
   const [saving, setSaving] = useState<Decision | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  // A failed save belongs to its review, so it never shows under the next.
+  const [actionError, setActionError] = useState<{
+    reviewId: string;
+    message: string;
+  } | null>(null);
+  // A synchronous lock, as in TeacherReviewActions, so a double click can't
+  // decide the same review twice.
+  const deciding = useRef(false);
 
   const { feed, finishes } = live;
   const options: ObservationOptions = {
@@ -202,8 +208,6 @@ export default function LiveConnected({
     activityLabel(id, feed.snapshot?.activities.find((a) => a.id === id)?.name);
   const inView = seats.filter((seat) => inCameraView(seat.state, options));
   const cameraReporting = seats.some((seat) => isFresh(seat.state, options));
-  const decidedSeat = (seatId: string) =>
-    decisions.findLast((item) => item.seatId === seatId);
   const queue = (reviews.reviews ?? []).filter(
     (review) => !decisions.some((item) => item.reviewId === review.id),
   );
@@ -228,42 +232,19 @@ export default function LiveConnected({
     cameraReporting,
   });
 
-  const statusOf = (seat: (typeof seats)[number]): [LiveStatus, string] => {
-    const presentation = observationPresentation(seat.state, options);
-    if (groups.some((group) => group.seat_id === seat.id))
-      return ["needs", "Review waiting"];
-    if (decidedSeat(seat.id)?.decision === "confirmed")
-      return ["checking", resolutionLabels.confirmed];
-    if (presentation.needsReview) return ["needs", "Needs you"];
-    if (presentation.currentStatus === "done") return ["finished", "Finished"];
-    if (presentation.currentStatus === "in_progress")
-      return ["working", "Working"];
-    if (presentation.currentStatus === "idle") return ["ready", "Ready"];
-    return ["quiet", presentation.label];
-  };
-  const students: LiveStudent[] = inView.map((seat, index) => {
-    const [status, label] = statusOf(seat);
-    return {
-      id: seat.id,
-      name: seat.display_name,
-      status,
-      label,
-      details: [
-        observationPresentation(seat.state, options).detail,
-        `${seat.activity} · position ${index + 1} from the left`,
-      ],
-    };
-  });
-
-  const doneNow = students.filter((s) => s.status === "finished").length;
-  const working = students.filter(
-    (s) => s.status === "working" || s.status === "checking",
-  ).length;
-  // Everyone still waiting on your answer.
-  const waiting = new Set([
-    ...groups.map((group) => nameOf(group.seat_id)),
-    ...flagged.map((seat) => seat.display_name),
-  ]).size;
+  // The class list and its counts come from lib/live-class (tested): live
+  // state wins over the teacher's marker, and everything is keyed by id.
+  const students: LiveStudent[] = livePeople(
+    seats,
+    options,
+    new Set(groups.map((group) => group.seat_id)),
+    decisions,
+  );
+  const { finished: doneNow, working } = liveCounts(students);
+  const waiting = waitingCount(
+    groups.map((group) => group.seat_id),
+    flagged.map((seat) => seat.id),
+  );
   const counts = new Map<string, number>();
   for (const seat of inView)
     counts.set(seat.activity, (counts.get(seat.activity) ?? 0) + 1);
@@ -307,34 +288,43 @@ export default function LiveConnected({
   const leadGroup = groups[0];
   const lead = leadGroup?.reviews[0];
   const decide = async (decision: Decision) => {
-    if (!lead) return;
+    if (!lead || deciding.current) return;
+    if (decisions.some((item) => item.reviewId === lead.id)) return;
+    deciding.current = true;
     setActionError(null);
     let saved = false;
-    if (reviewActionsEnabled && client) {
-      setSaving(decision);
-      try {
-        await resolveTeacherReview(client, lead, decision);
-        saved = true;
-      } catch (error) {
-        setActionError(
-          error instanceof Error ? error.message : "Could not save.",
-        );
-        setSaving(null);
-        return;
+    try {
+      if (reviewActionsEnabled && client) {
+        setSaving(decision);
+        try {
+          await resolveTeacherReview(client, lead, decision);
+          saved = true;
+        } catch (error) {
+          setActionError({
+            reviewId: lead.id,
+            message: error instanceof Error ? error.message : "Could not save.",
+          });
+          return;
+        }
       }
+      const seatStatus =
+        seats.find((seat) => seat.id === lead.seat_id)?.state?.status ?? null;
+      setDecisions((list) => [
+        ...list,
+        {
+          reviewId: lead.id,
+          seatId: lead.seat_id,
+          decision,
+          saved,
+          at: Date.now(),
+          statusAtDecision: seatStatus,
+        },
+      ]);
+      setShown(lead.id);
+    } finally {
+      deciding.current = false;
       setSaving(null);
     }
-    setDecisions((list) => [
-      ...list,
-      {
-        reviewId: lead.id,
-        seatId: lead.seat_id,
-        decision,
-        saved,
-        at: Date.now(),
-      },
-    ]);
-    setShown(lead.id);
   };
   const last = decisions.find((item) => item.reviewId === shown);
 
@@ -357,7 +347,8 @@ export default function LiveConnected({
         <p className="live-card-note">
           {last.saved
             ? "Saved to the review queue."
-            : "Not saved: review actions are off here, so this is noted on this screen only."}
+            : "Not saved: review actions are off here, so this is noted on this screen only."}{" "}
+          Cues doesn’t change the task or support on its own.
         </p>
         <div className="live-card-actions">
           <button
@@ -420,9 +411,9 @@ export default function LiveConnected({
             {saving === "dismissed" ? "Saving…" : resolutionLabels.dismissed}
           </button>
         </div>
-        {actionError ? (
+        {actionError?.reviewId === lead.id ? (
           <p className="live-card-error" role="alert">
-            {actionError}
+            {actionError.message}
           </p>
         ) : null}
       </>

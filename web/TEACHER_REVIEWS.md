@@ -116,7 +116,7 @@ fixtures, not deployed table writes. The preview was restored to the flag-off bu
 
 ## Persistent action adapter (supersedes read-only action notes above)
 
-The frontend now provides **Needs attention** → confirmed and **Dismiss** → dismissed,
+The frontend now provides **Support needed** → confirmed and **No support needed** → dismissed,
 behind the additional default-off `web.teacher_review_actions` flag
 (`CUES_FLAG_WEB_TEACHER_REVIEW_ACTIONS=1`). The review feed must also be enabled.
 The old visit-local dismissal path remains removed. Neither localStorage nor seat

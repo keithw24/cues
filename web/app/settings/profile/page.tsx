@@ -14,6 +14,7 @@ export default async function ProfilePage() {
     <div className="dashboard-shell">
       <WorkspaceSidebar
         accountEnabled={isEnabled("web.teacher_login")}
+        themeToggle={isEnabled("web.theme_toggle")}
         liveView={isEnabled("web.live_view")}
       />
       <main id="main-content" className="dashboard-main settings-main">
