@@ -6,7 +6,7 @@ the same frames, times each one, and prints:
   * per-model latency (mean and 95th percentile) and the fps it could reach alone;
   * "all together": the fps if every model ran on every frame;
   * "PRD schedule": the fps with the planned rates (hands every frame,
-    faces ~5 Hz, expression ~3 Hz for each of 2 seats).
+    faces ~5 Hz, expression ~3 Hz for each of 2 people).
 
 Usage (from the repo root):
 
@@ -179,7 +179,7 @@ def print_report(report: dict) -> None:
     print(f"\nMeasured fps, all models on every frame: {report['measured_loop_fps']}")
     print(
         f"Estimated fps with the PRD schedule (faces {FACE_HZ:g} Hz, expression "
-        f"{EXPRESSION_HZ:g} Hz x {SEATS} seats): {report['prd_schedule_fps_estimate']}"
+        f"{EXPRESSION_HZ:g} Hz x {SEATS} people): {report['prd_schedule_fps_estimate']}"
     )
     verdict = "OK" if report["prd_schedule_fps_estimate"] >= 5 else "TOO SLOW"
     print(f"Target >= 5 fps end to end: {verdict}")

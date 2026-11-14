@@ -15,7 +15,9 @@ Everything vision measures per child stays the same (gesture match score,
 raise-hand, expression context, status, events). Only the way the frame is
 divided into children changes.
 
-The fixed-seat mode stays as a fallback (`CUES_GROUPING=seats`).
+**Update (Keith): the fixed-seat mode has been removed.** Vision now only
+reports people (`S1-P1`...). `CUES_GROUPING` is ignored. The dashboard needs
+to handle person ids for cards to appear (see Evan's section).
 
 ## What changes in the shared contract
 

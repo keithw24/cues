@@ -60,37 +60,15 @@ class JsonlSink:
         self._append("seat_state.jsonl", row)
 
 
-# Columns of the Supabase seat_state table (supabase/migrations). The shared
-# SeatState contract also has `tracking_valid`, which the table does not have
-# yet; sending it would make every write fail. Remove this filter once the
-# table has every contract field.
-SEAT_STATE_COLUMNS = frozenset(
-    {
-        "seat_id",
-        "session_id",
-        "activity_id",
-        "status",
-        "task_score",
-        "expression_context",
-        "updated_at",
-    }
-)
-
-
 class SupabaseSink:
     def __init__(self, client) -> None:
         self.client = client
-        self._warned: set[str] = set()
 
     def write_event(self, row: dict[str, Any]) -> None:
         self.client.table("events").insert(row).execute()
 
     def write_seat_state(self, row: dict[str, Any]) -> None:
-        extra = set(row) - SEAT_STATE_COLUMNS
-        if extra - self._warned:
-            log.warning("seat_state table has no column(s) %s; not sent", sorted(extra))
-            self._warned |= extra
-        row = {k: v for k, v in row.items() if k in SEAT_STATE_COLUMNS}
+        """Upsert the complete SeatState row, including tracking_valid."""
         self.client.table("seat_state").upsert(row, on_conflict="seat_id").execute()
 
 

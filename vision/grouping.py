@@ -1,9 +1,7 @@
-"""The grouping the running service uses: people (default) or fixed seats.
+"""The grouping the running service uses: one id per tracked person.
 
-Stages import GROUPING from here. It is either a vision.people.PeopleGrouping
-(CUES_GROUPING=people, the default) or the fixed left/right vision.seats.ZONES
-(CUES_GROUPING=seats). Both have the same methods: ids(), hand_owner(),
-face_owner(), anchor() and color().
+Stages import GROUPING from here. It is a vision.people.PeopleGrouping with
+ids(), hand_owner(), face_owner(), anchor() and color().
 """
 
 from __future__ import annotations

@@ -1,7 +1,6 @@
 """People mode: find each person, box them, and keep their id between frames.
 
-In people mode (CUES_GROUPING=people, the default) vision does not split the
-frame into fixed seats. Instead:
+Vision groups everything by person (there is no fixed-seat mode):
 
 1. MediaPipe Pose Landmarker finds up to MAX_PEOPLE people. Each person comes
    with 33 body points (nose, shoulders, wrists, ...) and a visibility value
@@ -224,7 +223,7 @@ class PeopleGrouping:
                 return pid
         return self._inside_box(cx, cy, ctx)
 
-    def anchor(self, seat_id: str, ctx, w: int, h: int, row: int) -> tuple[int, int] | None:
+    def anchor(self, seat_id: str, ctx, w: int, h: int, row: int = 0) -> tuple[int, int] | None:
         """Where to draw text for this person: inside the top of their box."""
         person = ctx.get("people", {}).get(seat_id)
         if person is None:
@@ -243,13 +242,6 @@ class PeopleGrouping:
         return None
 
 
-def grouping_from_env():
-    """CUES_GROUPING=people (default) or seats (the fixed left/right fallback)."""
-    from vision.seats import ZONES
-
-    mode = os.environ.get("CUES_GROUPING", "people").lower()
-    if mode == "seats":
-        return ZONES
-    if mode != "people":
-        raise ValueError("CUES_GROUPING must be 'people' or 'seats'")
+def grouping_from_env() -> PeopleGrouping:
+    """The service always groups by person (the fixed-seat mode was removed)."""
     return PeopleGrouping(os.environ.get("CUES_STATION_ID", "S1"))

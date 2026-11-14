@@ -13,7 +13,6 @@ from vision.gestures import templates as tpl
 from vision.gestures.matcher import Matcher, calibrate_rejection
 from vision.gestures.normalize import normalize
 from vision.perception import Face, Hand, Match
-from vision.seats import SeatZones
 from vision.stages.s10_hands import hands_from_result
 from vision.stages.s20_faces import faces_from_result
 from vision.stages.s30_gestures import GesturesStage, MatcherCache
@@ -21,6 +20,29 @@ from vision.stages.s40_expression import LABELS, ExpressionStage, RollingAverage
 from vision.watch import format_seat
 
 RNG = np.random.default_rng(0)
+
+
+class SeatZones:
+    """Test double for the grouping interface: two people, left and right halves.
+
+    Detections within 0.05 of the middle belong to nobody.
+    """
+
+    mode = "people"
+
+    def ids(self, ctx=None):
+        return ["S1-L", "S1-R"]
+
+    def assign(self, x):
+        if abs(x - 0.5) < 0.05 or not 0 <= x <= 1:
+            return None
+        return "S1-L" if x < 0.5 else "S1-R"
+
+    def hand_owner(self, points, ctx=None):
+        return self.assign(float(points[0, 0]))
+
+    def face_owner(self, cx, cy, box=None, ctx=None):
+        return self.assign(cx)
 
 
 def hand_points(offset=(0.25, 0.5), scale=0.1, shape_seed=1):
@@ -41,25 +63,6 @@ def mp_hand_result(hands):
         ],
         handedness=[[NS(category_name=side)] for _, side in hands],
     )
-
-
-# ---- seats ---------------------------------------------------------------
-def test_seat_assignment_and_dead_band():
-    z = SeatZones()
-    assert z.assign(0.2) == "S1-L"
-    assert z.assign(0.8) == "S1-R"
-    assert z.assign(0.52) is None
-    assert z.assign(1.2) is None
-
-
-def test_seat_swap_and_divider():
-    z = SeatZones()
-    z.swap()
-    assert z.assign(0.2) == "S1-R"
-    z.set_divider(0.3)
-    assert z.assign(0.4) == "S1-L"
-    with pytest.raises(ValueError):
-        z.set_divider(0.95)
 
 
 # ---- normalisation -------------------------------------------------------
@@ -303,16 +306,6 @@ def test_real_models_run_on_a_blank_frame(monkeypatch):
     assert set(ctx["expression"]["S1-L"]) == set(LABELS)
 
 
-def test_recording_keeps_hands_in_the_middle_of_the_frame():
-    from vision.record import pick_hand, recording_zones
-
-    result = mp_hand_result([(hand_points((0.5, 0.5)), "Right")])
-    assert hands_from_result(result, SeatZones()) == {}  # the service drops it
-    by_seat = hands_from_result(result, recording_zones(None))
-    assert pick_hand(by_seat, None) is not None  # the recorder keeps it
-    assert recording_zones("S1-L").dead_band > 0  # --seat uses the normal zones
-
-
 class FakeCap:
     def read(self):
         return True, np.zeros((480, 640, 3), np.uint8)
@@ -327,10 +320,10 @@ class FakeHandDetector:
 
 
 def test_recorder_collects_poses_without_preview():
-    from vision.record import Recorder, recording_zones
+    from vision.record import Recorder
 
     hand = (hand_points((0.5, 0.5)), "Right")
-    rec = Recorder(FakeCap(), FakeHandDetector([hand]), recording_zones(None), None, False)
+    rec = Recorder(FakeCap(), FakeHandDetector([hand]), False)
     vectors, frames = rec.run(0.35, "test", record=True, fps=10)
     assert frames > 0
     assert 3 <= len(vectors) <= 5  # about 10 per second, not every frame
@@ -338,10 +331,10 @@ def test_recorder_collects_poses_without_preview():
 
 
 def test_recorder_countdown_collects_nothing():
-    from vision.record import Recorder, recording_zones
+    from vision.record import Recorder
 
     hand = (hand_points((0.5, 0.5)), "Right")
-    rec = Recorder(FakeCap(), FakeHandDetector([hand]), recording_zones(None), None, False)
+    rec = Recorder(FakeCap(), FakeHandDetector([hand]), False)
     vectors, _ = rec.run(0.1, "Get ready")
     assert vectors == []
 
@@ -357,61 +350,23 @@ def test_standard_frame_crops_instead_of_stretching():
     assert standard_frame(np.zeros((480, 640, 3), np.uint8)).shape == (480, 640, 3)
 
 
-# ---- raise-hand rule -----------------------------------------------------
-def raise_ctx(wrist_y):
-    """One hand in S1-L with its wrist at normalised height wrist_y; face top at y=200px."""
-    pts = hand_points((0.2, wrist_y))
-    face = Face((100, 200, 220, 340), np.zeros((140, 120, 3), np.uint8), "S1-L")
-    return {"hands": {"S1-L": [Hand(pts, "Right", "S1-L")]}, "faces": {"S1-L": face}}
+def test_recorder_keeps_a_hand_in_the_middle_of_the_frame():
+    from vision.record import AllHands, pick_hand
+
+    result = mp_hand_result([(hand_points((0.5, 0.5)), "Right")])
+    assert pick_hand(hands_from_result(result, AllHands()).get("any", [])) is not None
 
 
-def raise_frame(t):
-    return Frame(np.zeros((480, 640, 3), np.uint8), t, 1)
-
-
-def test_raise_hand_needs_wrist_above_face_for_the_hold_time():
-    from vision.stages.s35_raise_hand import RaiseHandStage
-
-    stage = RaiseHandStage(tasks=CurrentTasks("raise_hand"), zones=SeatZones(), hold_seconds=0.5)
-    ctx = raise_ctx(wrist_y=0.2)  # 0.2 * 480 = 96 px, above the face top at 200 px
-    stage.process(raise_frame(10.0), ctx)
-    assert ctx["match"]["S1-L"].score == 0.0  # raised, but not held yet
-    stage.process(raise_frame(10.6), ctx)
-    assert ctx["match"]["S1-L"].score == 1.0  # held for 0.6 s
-
-
-def test_raise_hand_resets_when_hand_drops():
-    from vision.stages.s35_raise_hand import RaiseHandStage
-
-    stage = RaiseHandStage(tasks=CurrentTasks("raise_hand"), zones=SeatZones(), hold_seconds=0.5)
-    stage.process(raise_frame(0.0), raise_ctx(0.2))
-    low = raise_ctx(0.8)  # wrist at 384 px, below the face top
-    stage.process(raise_frame(0.3), low)
-    assert low["match"]["S1-L"].score == 0.0
-    again = raise_ctx(0.2)
-    stage.process(raise_frame(0.6), again)
-    assert again["match"]["S1-L"].score == 0.0  # hold timer restarted at 0.6 s
-
-
-def test_raise_hand_without_face_cannot_judge():
-    from vision.stages.s35_raise_hand import RaiseHandStage
-
-    stage = RaiseHandStage(tasks=CurrentTasks("raise_hand"), zones=SeatZones())
-    ctx = raise_ctx(0.2)
-    ctx["faces"] = {}
-    stage.process(raise_frame(0.0), ctx)
-    assert ctx["match"]["S1-L"].score is None
-    assert "no face" in ctx["match"]["S1-L"].reason
-
-
-def test_raise_hand_ignores_seats_with_other_tasks():
-    from vision.stages.s35_raise_hand import RaiseHandStage
-
-    tasks = CurrentTasks("raise_hand")
-    stage = RaiseHandStage(tasks=tasks, zones=SeatZones())
-    ctx = raise_ctx(0.2)
-    stage.process(raise_frame(0.0), ctx)
-    assert "S1-L" in ctx["match"]
-    tasks.set_class_task("thumbs_up")
-    stage.process(raise_frame(0.1), ctx)
-    assert "S1-L" not in ctx["match"]  # stale raise-hand result removed
+def test_gesture_match_keeps_the_best_hand_only(tmp_path):
+    target = normalize(hand_points(shape_seed=1))
+    t = tpl.Templates("thumbs_up")
+    t.add("target", [target + RNG.normal(0, 0.02, 63) for _ in range(4)])
+    tpl.save(t, tmp_path)
+    stage = GesturesStage(
+        tasks=CurrentTasks("thumbs_up"), zones=SeatZones(), cache=MatcherCache(tmp_path)
+    )
+    good = Hand(hand_points((0.2, 0.5), shape_seed=1), "Right", "S1-L")
+    other = Hand(hand_points((0.3, 0.5), shape_seed=2), "Right", "S1-L")
+    ctx = {"hands": {"S1-L": [other, good]}}
+    stage.process(None, ctx)
+    assert ctx["match"]["S1-L"].hand is good

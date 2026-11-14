@@ -10,8 +10,8 @@ import cv2
 import numpy as np
 
 from vision.grouping import GROUPING
+from vision.people import person_color as seat_color
 from vision.perception import Hand
-from vision.stages.s00_seats import seat_color
 
 FLAG = "vision.hands"
 
@@ -64,13 +64,9 @@ class HandsStage:
     def draw(self, image, ctx) -> None:
         from vision import overlay
 
+        if not overlay.debug():
+            return  # the normal overlay (s90_overlay) draws one hand per person
         h, w = image.shape[:2]
-        if self.zones.mode == "people" and not overlay.debug():
-            for seat, hands in ctx.get("hands", {}).items():  # small dots only
-                for hand in hands:
-                    for x, y, _ in hand.landmarks[[0, 4, 8, 12, 16, 20]]:
-                        cv2.circle(image, (int(x * w), int(y * h)), 3, seat_color(seat), -1)
-            return
         for seat, hands in ctx.get("hands", {}).items():
             color = seat_color(seat)
             for hand in hands:

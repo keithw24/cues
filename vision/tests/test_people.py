@@ -122,14 +122,9 @@ def test_detections_outside_everyone_are_ignored():
     assert PeopleGrouping().hand_owner(hand, ctx) is None
 
 
-def test_grouping_mode_from_env(monkeypatch):
-    monkeypatch.setenv("CUES_GROUPING", "seats")
-    assert grouping_from_env().mode == "seats"
-    monkeypatch.setenv("CUES_GROUPING", "people")
+def test_grouping_is_always_people(monkeypatch):
+    monkeypatch.setenv("CUES_GROUPING", "seats")  # old setting: ignored
     assert grouping_from_env().mode == "people"
-    monkeypatch.setenv("CUES_GROUPING", "rows")
-    with pytest.raises(ValueError):
-        grouping_from_env()
 
 
 # ---- raise-hand confidence -------------------------------------------------
@@ -194,3 +189,60 @@ def test_person_label_is_two_short_lines():
         "done  attempt_success  neutral",
     ]
     assert person_label("S1-P2", {}) == ["P2"]
+
+
+# ---- overlay ---------------------------------------------------------------
+def overlay_ctx(with_face=True):
+    from vision.perception import Face, Hand, Match
+    from vision.tests.test_perception import hand_points
+
+    ctx, _ = people_ctx(pose(0.3, wrist_up=True))
+    hand = Hand(hand_points((0.35, 0.3), scale=0.08), "Right", "S1-P1")
+    ctx["hands"] = {"S1-P1": [hand]}
+    ctx["match"] = {"S1-P1": Match("raise_hand", 0.82, hand=hand)}
+    ctx["expression"] = {"S1-P1": {"neutral": 0.61, "happiness": 0.3}}
+    if with_face:
+        ctx["faces"] = {
+            "S1-P1": Face((150, 150, 230, 240), np.zeros((90, 80, 3), np.uint8), "S1-P1")
+        }
+    return ctx
+
+
+def test_overlay_draws_face_and_hand_without_error():
+    from vision.stages.s90_overlay import OverlayStage
+
+    stage = OverlayStage(grouping=PeopleGrouping())
+    for with_face in (True, False):
+        ctx = overlay_ctx(with_face)
+        stage.process(Frame(np.zeros((480, 640, 3), np.uint8), 1.0, 1), ctx)
+        img = np.zeros((480, 640, 3), np.uint8)
+        stage.draw(img, ctx)
+        assert img.any()
+
+
+def test_overlay_face_box_is_smoothed_and_kept_briefly():
+    from vision.perception import Face
+    from vision.stages.s90_overlay import OverlayStage
+
+    stage = OverlayStage(grouping=PeopleGrouping())
+    blank = np.zeros((480, 640, 3), np.uint8)
+    face = lambda x: {"S1-P1": Face((x, 100, x + 80, 190), blank[:1, :1], "S1-P1")}  # noqa: E731
+    ctx = {"faces": face(100)}
+    stage.process(Frame(blank, 0.0, 1), ctx)
+    ctx = {"faces": face(140)}
+    stage.process(Frame(blank, 0.1, 2), ctx)
+    assert 100 < ctx["overlay_faces"]["S1-P1"][0] < 140  # moved part of the way
+    ctx = {"faces": {}}
+    stage.process(Frame(blank, 0.4, 3), ctx)
+    assert "S1-P1" in ctx["overlay_faces"]  # missed briefly: still shown
+    stage.process(Frame(blank, 1.0, 4), ctx)
+    assert "S1-P1" not in ctx["overlay_faces"]
+
+
+def test_score_colour_follows_task_thresholds():
+    from vision.stages.s90_overlay import GREEN, GREY, ORANGE, score_color
+
+    assert score_color("raise_hand", 0.9) == GREEN
+    assert score_color("raise_hand", 0.5) == ORANGE
+    assert score_color("raise_hand", 0.1) == GREY
+    assert score_color("raise_hand", None) == GREY

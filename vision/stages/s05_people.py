@@ -5,8 +5,7 @@ Writes:
     ctx["person_ids"] -> every live id, including people out of view for less
                          than RELEASE_SECONDS (so status can report tracking_lost)
 
-In seats mode (CUES_GROUPING=seats) this stage does nothing. It has no feature
-flag: switching CUES_GROUPING is how people mode is turned off.
+This stage has no feature flag: every other stage depends on it.
 """
 
 from __future__ import annotations
@@ -64,7 +63,7 @@ class PeopleStage:
 
     @property
     def active(self) -> bool:
-        return getattr(self.grouping, "mode", "") == "people"
+        return True
 
     @property
     def detector(self):
@@ -89,8 +88,10 @@ class PeopleStage:
         ctx["person_ids"] = self.tracker.live_ids
 
     def draw(self, image, ctx) -> None:
-        """One box and a two-line label per person; see vision/overlay.py."""
-        if not self.active:
+        """Debug overlay only: the pose box and label. The normal overlay is s90_overlay."""
+        from vision import overlay
+
+        if not overlay.debug():
             return
         h, w = image.shape[:2]
         font = cv2.FONT_HERSHEY_SIMPLEX

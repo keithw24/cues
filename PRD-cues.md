@@ -212,21 +212,31 @@ The station laptop runs a Python vision service responsible for webcam capture, 
 - Target a smooth enough frame rate for interaction rather than maximum throughput.
 - The vision service owns webcam access to avoid multiple processes competing for the device.
 
-### 6.2 Seat assignment
+### 6.2 Person tracking (replaces fixed seat zones)
 
-MVP priority:
+*Changed during the build (Keith). The fixed left/right seat zones were removed. Dashboard and schema changes this needs are Evan's to make; see §15.1 and §17.5.*
 
-1. **One student / one active zone must work reliably.**
-2. Two fixed seat zones are supported as an extension of the same pipeline.
+One camera follows up to four people. Vision does not split the frame into fixed halves.
 
-For two-seat operation:
+1. MediaPipe Pose Landmarker (video mode) finds each person and their body points.
+2. A tracker keeps one id per person across frames: `S1-P1`, `S1-P2`, … (`<station>-P<n>`). The id is based on position only. There is no face recognition and nothing about who the child is is stored.
+3. Each MediaPipe hand is assigned to the person whose pose wrist is nearest. Each face is assigned to the person whose pose nose is inside it.
+4. Each person counts **one hand**: for gesture tasks, the hand that best matches the gesture; for raise-hand, the highest hand.
+5. A person out of view for 3 s gets `tracking_lost`. After 10 s their id is released and may be reused, so a child who leaves and returns can get a new id.
 
-- divide the image into configurable left and right zones;
-- assign detected hands/faces by center point;
-- include a small dead band near the divider to reduce cross-seat misassignment;
-- provide a simple “swap seats” control.
+The previous `seat_id` field keeps its name in every contract and table, but now holds a person id.
 
-No face recognition is used.
+### 6.3 Station video overlay
+
+The live camera picture stays on the station laptop. The vision service serves it at `http://127.0.0.1:8000/stream`; the dashboard's "Live classroom" panel shows it only on that laptop, loaded directly from the local service, never through Supabase or the cloud.
+
+The overlay draws, for each person, in that person's colour:
+
+- a box around the face, labelled with the id and the strongest expression probability, e.g. `P1  neutral 0.61` (model output, not an emotional state);
+- that person's one hand: the full hand skeleton and a box around it, labelled with the task score, e.g. `raise_hand 0.82`, coloured green (at or above the success threshold), orange (review band) or grey (below);
+- a thin line from the hand's wrist to the face box, showing whose hand it is.
+
+If a face is not visible, only the hand box is drawn, labelled with the id (`P1  raise_hand 0.82`). No body box is drawn. Detailed per-stage drawings are available for debugging only.
 
 ---
 
@@ -328,17 +338,15 @@ Some tasks do not need a learned gesture matcher.
 
 ### Raise hand
 
-A simple geometric rule may use hand and face position:
+The raise-hand check gives a **confidence from 0 to 1** per person, from their pose points:
 
 ```text
-wrist_y < face_top_y
+height     = (shoulder line y − higher wrist y) / shoulder width
+geometry   = clamp(height / 1.5, 0, 1)      # shoulder level = 0, top of head ≈ 1
+confidence = geometry × min(visibility of wrist and shoulders)
 ```
 
-or another robust coordinate comparison determined during testing.
-
-The output is primarily boolean.
-
-This task does not use the same scoring threshold as the nearest-neighbor gesture matcher.
+Measuring in shoulder widths makes the score the same near and far from the camera. Low MediaPipe visibility lowers the score. The `raise_hand` activity uses success threshold 0.7 and review threshold 0.4; holding the score above the threshold for 1 s is the hold time.
 
 ---
 
@@ -819,6 +827,8 @@ Built with Next.js + Tailwind.
 
 ### 15.1 Seat/student card
 
+*With person tracking (§6.2) there is one card per tracked person id (`S1-P1`, `S1-P2`, …), labelled "Person 1", "Person 2". Cards appear and disappear as people enter and leave; there is no fixed two-card layout. A per-person task override is lost if that person's id changes. These changes are Evan's to implement.*
+
 Each card displays:
 
 - pseudonym or station label;
@@ -1045,6 +1055,23 @@ refreshes. The follow-up `20261114000200_align_demo_activity.sql` migration alig
 the synthetic activity's check type and timeout with the shared contract.
 Authenticated teacher access and approval endpoints remain
 separate implementation work. See `supabase/README.md` for setup and verification.
+
+### 17.5 What vision writes and how it is used
+
+*Added during the build (Keith). Full field-level detail: `notes/vision-data.md`.*
+
+Vision writes two kinds of data to Supabase, both validated against `shared/contracts.py`:
+
+| Data | Table | When | Read by |
+|---|---|---|---|
+| `Event` | `events` (insert) | on each status change and expression episode | Michelle's rules engine |
+| `SeatState` | `seat_state` (upsert on `seat_id`) | on each status change, otherwise once per second per person | Evan's dashboard cards; Michelle's progress evaluator |
+
+Vision reads one value: `sessions.current_activity_id` for its session, once per second, to know the class-wide task the teacher picked.
+
+`seat_state` is the primary input to the progress pipeline (vision → `seat_state` → ProgressEvaluator → EscalationEvaluator → EvaluationRouter → Deep Agent). Each row carries `tracking_valid` (person seen in this frame; low score vs tracking failure) and an `expression_context` with `duration_seconds` (how long it has persisted). Events are informational for audit and debugging; vision makes no review or agent decision.
+
+`seat_id` holds a person id (`S1-P1`…). Known gaps, owned by Evan: add a `tracking_valid boolean` column to `seat_state` (vision sends it; until then live `seat_state` writes fail); `seats` rows exist only for `S1-L` / `S1-R`, so the dashboard does not yet show person cards; `activities` contains only `raise_hand`.
 
 ## 18. Local FastAPI interfaces
 
@@ -1300,17 +1327,16 @@ Exact package names should be confirmed during implementation.
 
 ## 22. Key technical risks
 
-### R1 — Two-person seat assignment
+### R1 — Person tracking
 
-**Risk:** hands/faces cross the divider.
+**Risk:** ids swap when two children cross or overlap; partly visible children (cut off at the chest, behind someone) are missed or merged; a child who leaves and returns gets a new id.
 
 **Mitigation:**
 
-- one-person mode must work first;
-- dead band around divider;
-- stable seat framing;
-- configurable divider;
-- swap seats control.
+- pose in video mode, upper-body boxes, smoothing and a 0.5 s grace period;
+- position-only ids, released after 10 s out of view;
+- `tracking_lost` never counts as a failure;
+- stable camera framing with heads and shoulders visible.
 
 ### R2 — Gesture-template overfitting
 
