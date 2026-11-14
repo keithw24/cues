@@ -319,20 +319,6 @@ export function SessionControls({
       <WorkspaceIcon name="refresh" />
     </button>
   );
-  const signOutButton = (
-    <button
-      type="button"
-      className="session-quiet"
-      disabled={busy}
-      onClick={() =>
-        void client.auth.signOut().then(({ error }) => {
-          if (error) setError("Could not sign out. Try again.");
-        })
-      }
-    >
-      Sign out
-    </button>
-  );
   // The session could not load (for example, this account is not assigned to
   // the camera): say so plainly instead of showing controls that can't act.
   if (!snapshot && loadError && controlState === "refresh")
@@ -347,7 +333,6 @@ export function SessionControls({
             Classroom camera
           </Link>
           {refreshButton}
-          {signOutButton}
         </div>
       </div>
     );
@@ -408,7 +393,6 @@ export function SessionControls({
           </button>
         ) : null}
         {refreshButton}
-        {signOutButton}
       </div>
       {snapshot ? (
         <div className="session-meta">

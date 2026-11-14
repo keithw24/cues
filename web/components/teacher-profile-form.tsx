@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { countryCodes, normalizeAlertPhone } from "@/lib/alert-phone";
 import { createDashboardClient } from "@/lib/supabase";
@@ -32,7 +31,6 @@ export default function TeacherProfileForm() {
       return null;
     }
   });
-  const [email, setEmail] = useState<string | null>(null);
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [name, setName] = useState("");
   const [countryCode, setCountryCode] = useState("1");
@@ -53,7 +51,6 @@ export default function TeacherProfileForm() {
         setState("signed-out");
         return;
       }
-      setEmail(data.user.email ?? null);
       try {
         // Also moves a number left in sign-up metadata into the profile.
         const loaded = await syncSignupProfile(client!);
@@ -109,108 +106,101 @@ export default function TeacherProfileForm() {
 
   if (!client)
     return (
-      <div className="integration-details">
+      <div className="settings-panel integration-details">
         <p>Teacher accounts aren’t configured in this environment.</p>
       </div>
     );
   if (state === "loading")
     return (
-      <div className="integration-details" role="status">
+      <div className="settings-panel integration-details" role="status">
         <p>Loading your profile…</p>
       </div>
     );
-  if (state === "signed-out")
-    return (
-      <div className="integration-details">
-        <p>Sign in to manage your profile.</p>
-        <Link className="quiet-link" href="/login">
-          Teacher sign in
-        </Link>
-      </div>
-    );
+  // Signed out: the Account card above offers Sign in.
+  if (state === "signed-out") return null;
   if (state === "error")
     return (
-      <div className="integration-details">
+      <div className="settings-panel integration-details">
         <p role="alert">{message}</p>
       </div>
     );
   return (
-    <><form className="integration-details profile-form" onSubmit={save}>
-      <dl>
-        <div>
-          <dt>Email</dt>
-          <dd>{email ?? "Unavailable"}</dd>
-        </div>
-      </dl>
-      <label className="profile-field">
-        <span>Display name</span>
-        <input
-          name="display_name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          autoComplete="name"
-          maxLength={80}
-          placeholder="Ms. Rivera"
-        />
-      </label>
-      <fieldset className="profile-field">
-        <legend>Mobile number for alerts</legend>
-        <div className="profile-phone">
-          <label className="sr-only" htmlFor="profile-country">
-            Country code
-          </label>
-          <select
-            id="profile-country"
-            value={countryCode}
-            onChange={(event) => setCountryCode(event.target.value)}
-            autoComplete="tel-country-code"
-          >
-            {countryCodes.map((country) => (
-              <option key={country.code} value={country.code}>
-                +{country.code} {country.label}
-              </option>
-            ))}
-          </select>
-          <label className="sr-only" htmlFor="profile-phone">
-            Mobile number
-          </label>
+    <>
+      <form className="integration-details profile-form" onSubmit={save}>
+        <label className="profile-field">
+          <span>Display name</span>
           <input
-            id="profile-phone"
-            type="tel"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            autoComplete="tel-national"
-            inputMode="tel"
-            maxLength={20}
-            aria-invalid={phoneInvalid || undefined}
-            aria-describedby="profile-phone-hint"
+            name="display_name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="name"
+            maxLength={80}
+            placeholder="Ms. Rivera"
           />
-        </div>
-        <p id="profile-phone-hint" className="integration-note">
-          {phoneInvalid
-            ? "Check the number and its country code."
-            : "Optional. Alerts carry only the seat and task, never images."}
-        </p>
-      </fieldset>
-      <button
-        className="primary-button"
-        type="submit"
-        disabled={state === "saving" || phoneInvalid}
-      >
-        {state === "saving" ? "Saving…" : "Save profile"}
-      </button>
-      {message ? (
-        <p role="status" aria-live="polite">
-          {message}
-        </p>
-      ) : null}
-      {profile?.phone_number ? (
-        <p className="integration-note">Saved as {profile.phone_number}</p>
-      ) : null}
-    </form>
-    <DemoNotifications client={client} phone={profile?.phone_number ?? null}
-      phoneDirty={normalizedPhone !== (profile?.phone_number ?? null) || phoneInvalid}
-      profileSaving={state === "saving"} />
+        </label>
+        <fieldset className="profile-field">
+          <legend>Mobile number for alerts</legend>
+          <div className="profile-phone">
+            <label className="sr-only" htmlFor="profile-country">
+              Country code
+            </label>
+            <select
+              id="profile-country"
+              value={countryCode}
+              onChange={(event) => setCountryCode(event.target.value)}
+              autoComplete="tel-country-code"
+            >
+              {countryCodes.map((country) => (
+                <option key={country.code} value={country.code}>
+                  +{country.code} {country.label}
+                </option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor="profile-phone">
+              Mobile number
+            </label>
+            <input
+              id="profile-phone"
+              type="tel"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              autoComplete="tel-national"
+              inputMode="tel"
+              maxLength={20}
+              aria-invalid={phoneInvalid || undefined}
+              aria-describedby="profile-phone-hint"
+            />
+          </div>
+          <p id="profile-phone-hint" className="integration-note">
+            {phoneInvalid
+              ? "Check the number and its country code."
+              : "Optional. Alerts carry only the seat and task, never images."}
+          </p>
+        </fieldset>
+        <button
+          className="primary-button"
+          type="submit"
+          disabled={state === "saving" || phoneInvalid}
+        >
+          {state === "saving" ? "Saving…" : "Save profile"}
+        </button>
+        {message ? (
+          <p role="status" aria-live="polite">
+            {message}
+          </p>
+        ) : null}
+        {profile?.phone_number ? (
+          <p className="integration-note">Saved as {profile.phone_number}</p>
+        ) : null}
+      </form>
+      <DemoNotifications
+        client={client}
+        phone={profile?.phone_number ?? null}
+        phoneDirty={
+          normalizedPhone !== (profile?.phone_number ?? null) || phoneInvalid
+        }
+        profileSaving={state === "saving"}
+      />
     </>
   );
 }

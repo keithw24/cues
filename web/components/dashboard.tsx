@@ -601,9 +601,6 @@ export default function Dashboard({
               <span className="ws-grain" aria-hidden="true" />
               <header className="page-intro">
                 <div>
-                  <p className="page-breadcrumb">
-                    Workspace <span>/</span> Classroom
-                  </p>
                   <h1>your classroom</h1>
                   <p>A clear view of who’s ready and who needs a hand.</p>
                 </div>

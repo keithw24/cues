@@ -31,9 +31,9 @@ export function WorkspaceSidebar({
       </Link>
       {accountEnabled ? (
         <Link
-          href="/login"
+          href="/settings/profile"
           className="mobile-account"
-          aria-label="Teacher account"
+          aria-label="Your profile"
         >
           <WorkspaceIcon name="account" />
         </Link>
@@ -69,12 +69,12 @@ export function WorkspaceSidebar({
           </span>
         </div>
         {accountEnabled ? (
-          <Link className="sidebar-account" href="/login">
+          <Link className="sidebar-account" href="/settings/profile">
             <span className="account-monogram">
               <WorkspaceIcon name="account" />
             </span>
             <span className="nav-label">
-              Teacher account<small>Sign in or manage access</small>
+              Your account<small>Profile, email and sign out</small>
             </span>
           </Link>
         ) : (

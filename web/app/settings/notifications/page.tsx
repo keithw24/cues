@@ -16,9 +16,6 @@ export default function NotificationsPage() {
         liveView={isEnabled("web.live_view")}
       />
       <main id="main-content" className="dashboard-main settings-main">
-        <div className="page-breadcrumb">
-          Workspace <span>/</span> Notifications
-        </div>
         <header className="page-intro">
           <h1>notifications</h1>
           <p>Stay close to your classroom, wherever you are.</p>

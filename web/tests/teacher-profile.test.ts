@@ -49,8 +49,14 @@ function mock({
   return { client, upserts, metadataUpdates };
 }
 
-test("teacher profile is off by default", () => {
-  assert.equal(isEnabled("web.teacher_profile", {}), false);
+test("teacher profile is on by default, and =0 turns it off", () => {
+  // Migration 006 (teacher_profiles) is deployed and teachers have saved
+  // profiles through this form.
+  assert.equal(isEnabled("web.teacher_profile", {}), true);
+  assert.equal(
+    isEnabled("web.teacher_profile", { CUES_FLAG_WEB_TEACHER_PROFILE: "0" }),
+    false,
+  );
 });
 
 test("profile input keeps E.164 numbers and rejects others", () => {
