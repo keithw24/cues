@@ -137,6 +137,15 @@ class OverlayStage:
                     text += f"{match.activity_id} {score}"
                     fill = score_color(match.activity_id, match.score)
                 labels.append((text.strip() or short_id(pid), hx0, hy0, fill))
+                extra = ctx.get("all_scores", {}).get(pid)
+                if extra:  # all-gestures readout (vision.all_scores), under the hand box
+                    others = {
+                        a: v for a, v in extra.items() if match is None or a != match.activity_id
+                    }
+                    if others:
+                        from vision.stages.s45_all_scores import format_scores
+
+                        labels.append((format_scores(others), hx0, hy1 + 22, (210, 210, 210)))
 
         for text, x, y, fill in labels:
             label(image, text, x, y, fill)

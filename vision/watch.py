@@ -33,10 +33,13 @@ PERCEPTION_FLAGS = (
     "vision.raise_hand",
     "vision.expression",
     "vision.task_status",
+    "vision.all_scores",
 )
 
 
-def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False) -> str:
+def format_seat(
+    seat, task, match, expression, top: int = 3, debug: bool = False, all_scores=None
+) -> str:
     lines = [f"Seat: {seat}", f"Task: {task}"]
     if match is None:
         lines.append("Match score: -- (no hand detected)")
@@ -46,6 +49,10 @@ def format_seat(seat, task, match, expression, top: int = 3, debug: bool = False
         lines.append(f"Match score: {match.score:.2f}")
         if debug and match.detail:
             lines.append(f"  ({match.detail})")
+    if all_scores:
+        from vision.stages.s45_all_scores import format_scores
+
+        lines.append(f"All gestures: {format_scores(all_scores)}")
     if not expression:
         lines.append("Expression: -- (no face detected)")
     else:
@@ -64,7 +71,8 @@ def format_snapshot(ctx, seat_ids, tasks, top: int = 3, debug: bool = False) -> 
             task = f"{task}  [{status}]"
         match = ctx.get("match", {}).get(seat)
         expression = ctx.get("expression", {}).get(seat)
-        blocks.append(format_seat(seat, task, match, expression, top, debug))
+        all_scores = ctx.get("all_scores", {}).get(seat)
+        blocks.append(format_seat(seat, task, match, expression, top, debug, all_scores))
     events = ctx.get("events", [])
     if events:
         blocks.append("Recent events:\n" + "\n".join(f"  {e}" for e in events[-8:]))

@@ -246,3 +246,55 @@ def test_score_colour_follows_task_thresholds():
     assert score_color("raise_hand", 0.5) == ORANGE
     assert score_color("raise_hand", 0.1) == GREY
     assert score_color("raise_hand", None) == GREY
+
+
+# ---- all-gestures readout --------------------------------------------------
+def test_all_scores_reports_every_task_at_once(tmp_path):
+    from vision.gestures import templates as tpl
+    from vision.gestures.normalize import normalize
+    from vision.perception import Hand
+    from vision.stages.s30_gestures import MatcherCache
+    from vision.stages.s45_all_scores import AllScoresStage
+    from vision.tests.test_perception import hand_points
+
+    target = normalize(hand_points(shape_seed=1))
+    t = tpl.Templates("thumbs_up")
+    t.add("target", [target + np.random.default_rng(1).normal(0, 0.02, 63) for _ in range(4)])
+    tpl.save(t, tmp_path)
+    ctx, _ = people_ctx(pose(0.3, wrist_up=True))
+    ctx["hands"] = {"S1-P1": [Hand(hand_points((0.3, 0.3), shape_seed=1), "Right", "S1-P1")]}
+    AllScoresStage(grouping=PeopleGrouping(), cache=MatcherCache(tmp_path)).process(None, ctx)
+    scores = ctx["all_scores"]["S1-P1"]
+    assert scores["raise_hand"] > 0.9  # hand raised (pose)
+    assert scores["thumbs_up"] > 0.58  # and a thumbs-up, scored at the same time
+    assert scores["custom_gesture_01"] is None  # no examples recorded
+
+
+def test_all_scores_does_not_touch_the_assigned_task():
+    from vision.perception import Match
+    from vision.stages.s45_all_scores import AllScoresStage
+
+    ctx, _ = people_ctx(pose(0.3, wrist_up=True))
+    assigned = Match("thumbs_up", 0.2)
+    ctx["match"] = {"S1-P1": assigned}
+    AllScoresStage(grouping=PeopleGrouping()).process(None, ctx)
+    assert ctx["match"] == {"S1-P1": assigned}
+    assert "status" not in ctx
+
+
+def test_all_scores_text_in_watch_and_format():
+    from vision.perception import Match
+    from vision.stages.s45_all_scores import format_scores
+    from vision.watch import format_seat
+
+    scores = {"raise_hand": 0.91, "thumbs_up": 0.12, "custom_gesture_01": None}
+    assert format_scores(scores) == "raise_hand 0.91   thumbs_up 0.12   custom_gesture_01 --"
+    text = format_seat("S1-P1", "thumbs_up", Match("thumbs_up", 0.12), None, all_scores=scores)
+    assert "All gestures: raise_hand 0.91" in text
+
+
+def test_all_scores_stage_is_skipped_when_flag_is_off(monkeypatch):
+    from vision.pipeline import discover_stages
+
+    monkeypatch.delenv("CUES_FLAG_VISION_ALL_SCORES", raising=False)
+    assert "all_scores" not in [s.name for s in discover_stages()]

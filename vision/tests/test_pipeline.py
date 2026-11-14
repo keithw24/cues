@@ -75,14 +75,19 @@ def test_rate_meter():
     assert m.rate(now=101.0) == pytest.approx(10.0)
 
 
+STAGE_FLAGS = (
+    "HANDS", "FACES", "GESTURES", "RAISE_HAND", "EXPRESSION", "TASK_STATUS", "ALL_SCORES",
+)  # fmt: skip
+
+
 def test_discover_stages_with_perception_flags_off(monkeypatch):
-    for name in ("HANDS", "FACES", "GESTURES", "RAISE_HAND", "EXPRESSION", "TASK_STATUS"):
+    for name in STAGE_FLAGS:
         monkeypatch.delenv(f"CUES_FLAG_VISION_{name}", raising=False)
     assert [s.name for s in discover_stages()] == ["people", "overlay"]
 
 
 def test_discover_stages_with_perception_flags_on(monkeypatch):
-    for name in ("HANDS", "FACES", "GESTURES", "RAISE_HAND", "EXPRESSION", "TASK_STATUS"):
+    for name in STAGE_FLAGS:
         monkeypatch.setenv(f"CUES_FLAG_VISION_{name}", "1")
     names = [s.name for s in discover_stages()]
     assert names == [
@@ -92,6 +97,7 @@ def test_discover_stages_with_perception_flags_on(monkeypatch):
         "gestures",
         "raise_hand",
         "expression",
+        "all_scores",
         "status",
         "overlay",
     ]
