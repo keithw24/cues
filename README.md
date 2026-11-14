@@ -32,6 +32,7 @@ flowchart TD
 
     Q --> S["resolve_teacher_review RPC"]
     R --> S
+```
 
 The continuous agent worker polls structured state and selects information/action
 tools adaptively. Groq `openai/gpt-oss-20b` is the current demo model; the core
