@@ -2,6 +2,26 @@ import os
 
 import pytest
 
+# vision.supabase_client loads the developer's root .env into os.environ when it is
+# imported. Tests must not depend on a laptop's own settings (flags, session id) or
+# reach its real Supabase project, so anything that import adds is removed again.
+_before = set(os.environ)
+import vision.supabase_client  # noqa: E402,F401
+
+for _key in set(os.environ) - _before:
+    del os.environ[_key]
+
+
+@pytest.fixture(autouse=True)
+def _isolated_gesture_catalog(tmp_path, monkeypatch):
+    """Ignore gestures a teacher created on this laptop (vision/templates/)."""
+    from vision import activities
+
+    monkeypatch.setattr(activities, "CUSTOM_FILE", tmp_path / "custom.catalog.json")
+    activities.load_activities.cache_clear()
+    yield
+    activities.load_activities.cache_clear()
+
 
 def pytest_collection_modifyitems(config, items):
     """Skip tests marked `hardware` unless CUES_HARDWARE=1.

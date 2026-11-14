@@ -255,3 +255,62 @@ def test_new_built_in_gestures_are_recognized(cache, label, expected):
 
     ctx = run(st, ctx_fn, 0.0, 1.0)
     assert ctx["recognized"]["S1-P1"].activity_id == expected
+
+
+def test_green_label_keeps_its_completed_score_through_a_hand_dropout(cache):
+    from types import SimpleNamespace
+
+    st = RecognizeStage(grouping=PeopleGrouping(), cache=cache, gesture_ids=("thumbs_up",))
+    ctx = ctx_with(raised=False, thumb=True)
+    hand = ctx["hands"]["S1-P1"][0]
+    hand.gestures = {"Thumb_Up": 0.9}
+    for t in (0.0, 0.3, 0.6, 0.9):  # held long enough to show
+        st.process(SimpleNamespace(timestamp=t), ctx)
+    assert ctx["recognized"]["S1-P1"].activity_id == "thumbs_up"
+    shown = ctx["recognized"]["S1-P1"]
+    ctx["hands"]["S1-P1"] = []  # the hand is lost for 0.8 s
+    for t in (1.0, 1.4, 1.7):
+        st.process(SimpleNamespace(timestamp=t), ctx)
+    kept = ctx["recognized"]["S1-P1"]
+    assert kept.activity_id == "thumbs_up"
+    assert shown.score == 0.9
+    assert kept.score is None  # no hand in view: no score is made up for it
+    assert kept.hand is None  # and no stale skeleton is drawn for a hand that is gone
+
+
+def test_held_label_follows_the_live_hand_not_the_old_one(cache):
+    from types import SimpleNamespace
+
+    st = RecognizeStage(grouping=PeopleGrouping(), cache=cache, gesture_ids=("thumbs_up",))
+    ctx = ctx_with(raised=False, thumb=True)
+    first = ctx["hands"]["S1-P1"][0]
+    first.gestures = {"Thumb_Up": 0.9}
+    for t in (0.0, 0.3, 0.6, 0.9):
+        st.process(SimpleNamespace(timestamp=t), ctx)
+    moved = ctx_with(raised=False, thumb=False)["hands"]["S1-P1"][0]  # a different pose
+    moved.gestures = {"Thumb_Up": 0.05}
+    ctx["hands"]["S1-P1"] = [moved]  # the hand is now doing something else
+    st.process(SimpleNamespace(timestamp=1.1), ctx)
+    held = ctx["recognized"]["S1-P1"]
+    assert held.activity_id == "thumbs_up"
+    assert held.score == pytest.approx(0.05)  # the live score, not the frozen 0.9
+    assert held.hand is moved  # the skeleton follows the real hand
+
+
+def test_held_gesture_score_falls_with_the_hand_instead_of_freezing(cache):
+    from types import SimpleNamespace
+
+    st = RecognizeStage(grouping=PeopleGrouping(), cache=cache, gesture_ids=("thumbs_up",))
+    ctx = ctx_with(raised=False, thumb=True)
+    hand = ctx["hands"]["S1-P1"][0]
+    for t in (0.0, 0.3, 0.6, 0.9):
+        hand.gestures = {"Thumb_Up": 0.9}
+        st.process(SimpleNamespace(timestamp=t), ctx)
+    seen = []
+    for i, live in enumerate((0.8, 0.6, 0.45, 0.3, 0.1)):  # the gesture fades over 0.5 s
+        hand.gestures = {"Thumb_Up": live}
+        st.process(SimpleNamespace(timestamp=1.0 + i * 0.1), ctx)
+        r = ctx["recognized"]["S1-P1"]
+        assert r.activity_id == "thumbs_up"  # still held (inside 1.5 s)
+        seen.append(r.score)
+    assert seen == pytest.approx([0.8, 0.6, 0.45, 0.3, 0.1])  # every step visible, no plateau
