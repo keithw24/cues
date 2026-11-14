@@ -25,8 +25,14 @@ export const DISABLED_REVIEWS: ReviewFeedState = {
   error: null,
 };
 let subscriptionId = 0;
+export const SIGN_IN_TO_SEE_REVIEWS =
+  "Sign in as a teacher to see reviews for your sessions.";
 
-/** Read-only Supabase feed; queue and selected details share this snapshot. */
+/**
+ * Read-only Supabase feed; queue and selected details share this snapshot.
+ * Reviews are readable only by the signed-in teacher who owns their session
+ * (migration 006), so reads are scoped to that teacher's sessions.
+ */
 export function watchTeacherReviews(
   client: SupabaseClient,
   notify: (state: ReviewFeedState) => void,
@@ -42,7 +48,11 @@ export function watchTeacherReviews(
   let queued = false;
   let revision = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // Sessions the signed-in teacher owns, as of the last read.
+  let owned = new Set<string>();
   const abort = new AbortController();
+  const signal = () =>
+    AbortSignal.any([abort.signal, AbortSignal.timeout(12000)]);
   const publish = (patch: Partial<ReviewFeedState>) => {
     if (disposed) return;
     state = { ...state, ...patch };
@@ -58,19 +68,39 @@ export function watchTeacherReviews(
     const startedAtRevision = revision;
     publish({ loading: true });
     try {
-      const { data, error } = await client
-        .from("teacher_reviews")
-        .select(REVIEW_COLUMNS)
-        .eq("status", "pending")
-        .abortSignal(
-          AbortSignal.any([abort.signal, AbortSignal.timeout(12000)]),
-        );
-      if (error) throw new Error("Review read failed");
+      const { data: auth } = await client.auth.getSession();
+      const teacherId = auth.session?.user.id;
+      if (!teacherId) {
+        owned = new Set();
+        publish({ reviews: null, error: SIGN_IN_TO_SEE_REVIEWS });
+        return;
+      }
+      const sessions = await client
+        .from("sessions")
+        .select("id")
+        .eq("teacher_id", teacherId)
+        .abortSignal(signal());
+      if (sessions.error) throw new Error("Session read failed");
+      const ids = (sessions.data ?? [])
+        .map((session: { id?: unknown }) => session.id)
+        .filter((id): id is string => typeof id === "string");
+      let data: unknown[] = [];
+      if (ids.length > 0) {
+        const read = await client
+          .from("teacher_reviews")
+          .select(REVIEW_COLUMNS)
+          .eq("status", "pending")
+          .in("session_id", ids)
+          .abortSignal(signal());
+        if (read.error) throw new Error("Review read failed");
+        data = read.data ?? [];
+      }
       // A read started before a row event/reconnect must not undo newer state.
       if (startedAtRevision !== revision) {
         queued = true;
         return;
       }
+      owned = new Set(ids);
       publish({
         reviews: pendingReviews(parseTeacherReviews(data)),
         error: null,
@@ -106,6 +136,8 @@ export function watchTeacherReviews(
           payload.eventType === "INSERT" || payload.eventType === "UPDATE"
         ) {
           const [review] = parseTeacherReviews([payload.new]);
+          // Only reviews on this teacher's sessions belong in the queue.
+          if (!owned.has(review.session_id)) throw new Error("Not owned");
           // Upsert by identity rather than append: duplicate events are harmless.
           const remaining = (state.reviews ?? []).filter(
             (row) => row.id !== review.id,
@@ -130,6 +162,18 @@ export function watchTeacherReviews(
     } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status))
       publish({ connection: "disconnected" });
   });
+  // Signing in or out changes which reviews are readable; reload for the new teacher.
+  const { data: authWatch } = client.auth.onAuthStateChange((event) => {
+    if (disposed || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")
+      return;
+    revision++;
+    if (event === "SIGNED_OUT") {
+      owned = new Set();
+      publish({ reviews: null, error: SIGN_IN_TO_SEE_REVIEWS });
+    }
+    // Defer: Supabase calls inside this callback can deadlock the auth lock.
+    setTimeout(() => void refresh(), 0);
+  });
   void refresh();
   return {
     refresh,
@@ -140,6 +184,7 @@ export function watchTeacherReviews(
       disposed = true;
       clearTimeout(timer);
       abort.abort();
+      authWatch.subscription.unsubscribe();
       void client.removeChannel(channel);
     },
   };

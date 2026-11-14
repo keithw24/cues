@@ -10,6 +10,7 @@ import {
   activityLabel,
 } from "../lib/teacher-reviews.ts";
 import {
+  SIGN_IN_TO_SEE_REVIEWS,
   watchTeacherReviews,
   type ReviewFeedState,
 } from "../lib/teacher-review-feed.ts";
@@ -45,12 +46,19 @@ const debounce = () => new Promise<void>((resolve) => setTimeout(resolve, 130));
 
 type Change = { eventType: string; new?: unknown; old?: unknown };
 
+const TEACHER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
 function harness(
   enabled = true,
   initialFailure = false,
   initialRows: unknown = [row],
+  { signedIn = true, ownedSessions = [row.session_id] } = {},
 ) {
   let rows: unknown = initialRows;
+  let teacher: string | null = signedIn ? TEACHER : null;
+  let authChange: (event: string) => void = () => {};
+  let authUnsubscribed = false;
+  const reviewFilters: unknown[] = [];
   let nextReadGate: Promise<void> | undefined;
   let fail = initialFailure;
   let reads = 0;
@@ -76,7 +84,42 @@ function harness(
       channels++;
       return channel;
     },
+    auth: {
+      getSession: async () => ({
+        data: { session: teacher ? { user: { id: teacher } } : null },
+      }),
+      onAuthStateChange(callback: (event: string) => void) {
+        authChange = callback;
+        return {
+          data: {
+            subscription: {
+              unsubscribe() {
+                authUnsubscribed = true;
+              },
+            },
+          },
+        };
+      },
+    },
     from(table: string) {
+      if (table === "sessions")
+        return {
+          select(columns: string) {
+            assert.equal(columns, "id");
+            return {
+              eq(column: string, value: string) {
+                assert.equal(column, "teacher_id");
+                assert.equal(value, teacher);
+                return {
+                  abortSignal: async () => ({
+                    data: ownedSessions.map((id) => ({ id })),
+                    error: null,
+                  }),
+                };
+              },
+            };
+          },
+        };
       assert.equal(table, "teacher_reviews");
       return {
         select(columns: string) {
@@ -86,18 +129,23 @@ function harness(
               assert.equal(column, "status");
               assert.equal(value, "pending");
               return {
-                abortSignal: async (signal: AbortSignal) => {
-                  reads++;
-                  signals.push(signal);
-                  const data = structuredClone(rows);
-                  const gate = nextReadGate;
-                  nextReadGate = undefined;
-                  await gate;
+                in(scope: string, ids: string[]) {
+                  reviewFilters.push({ [scope]: ids });
                   return {
-                    data,
-                    error: fail
-                      ? { message: "private database internals" }
-                      : null,
+                    abortSignal: async (signal: AbortSignal) => {
+                      reads++;
+                      signals.push(signal);
+                      const data = structuredClone(rows);
+                      const gate = nextReadGate;
+                      nextReadGate = undefined;
+                      await gate;
+                      return {
+                        data,
+                        error: fail
+                          ? { message: "private database internals" }
+                          : null,
+                      };
+                    },
                   };
                 },
               };
@@ -139,6 +187,16 @@ function harness(
     removed: () => removed,
     filter: () => filter,
     signals,
+    reviewFilters,
+    signIn(id = TEACHER) {
+      teacher = id;
+      authChange("SIGNED_IN");
+    },
+    signOut() {
+      teacher = null;
+      authChange("SIGNED_OUT");
+    },
+    authUnsubscribed: () => authUnsubscribed,
   };
 }
 
@@ -444,6 +502,53 @@ test("reconnect replaces the snapshot with missed changes and never appends dupl
   h.rows([]);
   h.status("SUBSCRIBED");
   await settled();
+  assert.deepEqual(h.observed.at(-1)?.reviews, []);
+  h.feed.dispose();
+});
+
+test("reviews are read only for sessions the signed-in teacher owns", async () => {
+  const h = harness();
+  await settled();
+  assert.deepEqual(h.reviewFilters.at(-1), { session_id: [row.session_id] });
+  assert.equal(h.observed.at(-1)?.reviews?.length, 1);
+  assert.equal(h.observed.at(-1)?.error, null);
+  h.feed.dispose();
+  assert.equal(h.authUnsubscribed(), true);
+});
+test("signed out, the queue asks the teacher to sign in instead of failing", async () => {
+  const h = harness(true, false, [row], { signedIn: false });
+  await settled();
+  assert.equal(h.reads(), 0);
+  assert.equal(h.observed.at(-1)?.reviews, null);
+  assert.equal(h.observed.at(-1)?.error, SIGN_IN_TO_SEE_REVIEWS);
+  h.signIn();
+  await debounce();
+  assert.equal(h.observed.at(-1)?.reviews?.length, 1);
+  assert.equal(h.observed.at(-1)?.error, null);
+  h.signOut();
+  assert.equal(h.observed.at(-1)?.reviews, null);
+  assert.equal(h.observed.at(-1)?.error, SIGN_IN_TO_SEE_REVIEWS);
+  h.feed.dispose();
+});
+test("a teacher with no sessions sees an empty queue without querying reviews", async () => {
+  const h = harness(true, false, [row], { ownedSessions: [] });
+  await settled();
+  assert.equal(h.reads(), 0);
+  assert.deepEqual(h.observed.at(-1)?.reviews, []);
+  assert.equal(h.observed.at(-1)?.error, null);
+  h.feed.dispose();
+});
+test("realtime rows from another teacher's session never enter the queue", async () => {
+  const h = harness(true, false, []);
+  await settled();
+  h.change({
+    eventType: "INSERT",
+    new: {
+      ...row,
+      id: "44444444-4444-4444-8444-444444444444",
+      session_id: "00000000-0000-4000-8000-000000000099",
+    },
+  });
   assert.deepEqual(h.observed.at(-1)?.reviews, []);
   h.feed.dispose();
 });
