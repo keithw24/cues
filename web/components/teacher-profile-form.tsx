@@ -44,17 +44,12 @@ export default function TeacherProfileForm() {
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
-    async function load() {
-      const { data } = await client!.auth.getUser();
-      if (cancelled) return;
-      if (!data.user) {
-        setState("signed-out");
-        return;
-      }
+    let loadedFor: string | null = null;
+    async function load(userId: string) {
       try {
         // Also moves a number left in sign-up metadata into the profile.
         const loaded = await syncSignupProfile(client!);
-        if (cancelled) return;
+        if (cancelled || loadedFor !== userId) return;
         setProfile(loaded);
         setName(loaded.display_name ?? "");
         const parts = splitPhone(loaded.phone_number);
@@ -62,15 +57,34 @@ export default function TeacherProfileForm() {
         setPhone(parts.number);
         setState("ready");
       } catch {
-        if (!cancelled) {
+        if (!cancelled && loadedFor === userId) {
           setMessage("Your profile could not be loaded. Refresh to try again.");
           setState("error");
         }
       }
     }
-    void load();
+    // Follow the session, so signing out from the Account card clears the
+    // previous teacher's name and number at once.
+    const { data } = client.auth.onAuthStateChange((_event, session) => {
+      const userId = session?.user.id ?? null;
+      if (userId === loadedFor) return;
+      loadedFor = userId;
+      setProfile(null);
+      setName("");
+      setCountryCode("1");
+      setPhone("");
+      setMessage(null);
+      if (!userId) {
+        setState("signed-out");
+        return;
+      }
+      setState("loading");
+      // Defer: Supabase calls inside this callback would wait on the auth lock.
+      setTimeout(() => void load(userId), 0);
+    });
     return () => {
       cancelled = true;
+      data.subscription.unsubscribe();
     };
   }, [client]);
 
@@ -181,7 +195,7 @@ export default function TeacherProfileForm() {
           <p id="profile-phone-hint" className="profile-hint">
             {phoneInvalid
               ? "Check the number and its country code."
-              : "Optional. Alerts carry only the seat and task, never images."}
+              : "Optional. Alerts name only the seat, never images or camera data."}
           </p>
         </fieldset>
         <div className="profile-actions">

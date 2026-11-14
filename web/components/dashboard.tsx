@@ -697,7 +697,6 @@ export default function Dashboard({
                   {selectedReviewId ? (
                     <TeacherReviewDetails
                       review={selectedReview}
-                      observationOptions={observationOptions}
                       seats={seats}
                       activities={feed.snapshot?.activities ?? []}
                       stale={
@@ -934,7 +933,6 @@ export default function Dashboard({
                 {selectedReviewId ? (
                   <TeacherReviewDetails
                     review={selectedReview}
-                    observationOptions={observationOptions}
                     seats={seats}
                     activities={feed.snapshot?.activities ?? []}
                     stale={

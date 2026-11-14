@@ -144,7 +144,7 @@
     "ticket": "landing-demo"
   },
   "web.room_view": {
-    "description": "Dashboard main page as the room: people placed as the camera sees them, a 'who needs you next' card and a one-hour timeline, with the camera, People list and reviews in a side drawer. When off, the card layout stays.",
+    "description": "Dashboard main page as the room: people placed as the camera sees them, a 'who needs you next' card and a one-hour timeline, with the camera and reviews in a side drawer. When off, the card layout stays.",
     "default": true,
     "owner": "evan",
     "ticket": "room-view"

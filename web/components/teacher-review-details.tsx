@@ -1,4 +1,3 @@
-import type { ObservationOptions } from "@/lib/observation-presentation";
 import type { SeatState } from "@/lib/dashboard";
 import type { ReactNode, RefObject } from "react";
 import { activityLabel, type TeacherReview } from "@/lib/teacher-reviews";
@@ -6,6 +5,17 @@ import { activityLabel, type TeacherReview } from "@/lib/teacher-reviews";
 // One review, as a teacher needs it: who, which task, when, and the decision
 // (the actions passed in as children). The model's internals (decision code,
 // stall seconds, escalation reason, evidence list) stay out of the way.
+// Time of day, plus the date when the review is from an earlier day.
+function reviewTime(at: string) {
+  const date = new Date(at);
+  const today = new Date().toDateString() === date.toDateString();
+  return new Intl.DateTimeFormat(undefined, {
+    ...(today ? {} : { month: "short", day: "numeric" }),
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function TeacherReviewDetails({
   review,
   seats,
@@ -15,7 +25,6 @@ export function TeacherReviewDetails({
   headingRef,
   children,
 }: {
-  observationOptions?: ObservationOptions;
   review?: TeacherReview;
   seats: readonly {
     id: string;
@@ -63,10 +72,7 @@ export function TeacherReviewDetails({
               )}{" "}
               ·{" "}
               <time dateTime={review.created_at}>
-                {new Intl.DateTimeFormat(undefined, {
-                  hour: "numeric",
-                  minute: "2-digit",
-                }).format(new Date(review.created_at))}
+                {reviewTime(review.created_at)}
               </time>
               {review.priority === "elevated" ? " · Urgent" : ""}
             </p>
