@@ -156,11 +156,20 @@ class Emitter:
                     log.exception("fallback write failed")
 
 
+def _current_station() -> str:
+    """The service creates its emitter only once a station is set. The one-off
+    `python -m vision.events --demo` check falls back to S1 (or CUES_STATION_ID)."""
+    from vision.station import LEGACY_STATION, STATION
+
+    return STATION.get() or LEGACY_STATION
+
+
 def emitter_from_env() -> Emitter:
     """Supabase when the `vision.supabase_events` flag is on and keys are set;
     otherwise local JSONL. JSONL is always the fallback.
 
-    CUES_STATION_ID (default S1) sets the station. CUES_SESSION_ID is required
+    The station is vision.station.STATION (the dashboard's station, or the
+    CUES_STATION_ID dev override). CUES_SESSION_ID is required
     when writing to Supabase: a random id would put this run's rows under a
     session the dashboard is not showing. Offline (JSONL only) a new id is used.
     """
@@ -180,7 +189,8 @@ def emitter_from_env() -> Emitter:
         sink,
         fallback=local if client is not None else None,
         session_id=session_id or str(uuid.uuid4()),
-        station_id=os.environ.get("CUES_STATION_ID", "S1"),
+        # StatusStage sets the dashboard's station before anything is written.
+        station_id=_current_station(),
     )
     where = "Supabase" if client is not None else f"{LOG_DIR} (local only)"
     log.info("events go to %s, session %s", where, emitter.session_id)

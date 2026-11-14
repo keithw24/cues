@@ -35,10 +35,21 @@ log = logging.getLogger(__name__)
 
 
 class ActivitySync:
-    def __init__(self, client, session_id: str, tasks=TASKS, poll_seconds: float = POLL_SECONDS):
+    def __init__(
+        self,
+        client,
+        session_id: str,
+        tasks=TASKS,
+        poll_seconds: float = POLL_SECONDS,
+        station=None,
+    ):
+        from vision import station as station_module
+
         self.client = client
         self.session_id = session_id
         self.tasks = tasks
+        self.station = station or station_module.STATION
+        self._generation = self.station.generation
         self.poll_seconds = poll_seconds
         self.last_seen: str | None = None
         self._stop = threading.Event()
@@ -46,14 +57,30 @@ class ActivitySync:
 
     def check_once(self) -> str | None:
         """Read the session's current activity and apply it. Returns the id applied."""
+        station_id, generation = self.station.snapshot()
+        if generation != self._generation:
+            self._generation = generation
+            self.last_seen = None  # TASKS was reset for the new station; apply again
+        if station_id is None:
+            return None  # no teacher station yet
         rows = (
             self.client.table("sessions")
-            .select("current_activity_id")
+            .select("current_activity_id,station_id")
             .eq("id", self.session_id)
             .limit(1)
             .execute()
             .data
         )
+        row_station = rows[0].get("station_id") if rows else None
+        if row_station is not None and row_station != station_id:
+            # CUES_SESSION_ID belongs to another teacher's station: never follow it.
+            log.warning(
+                "session %s belongs to station %s, not %s; ignored",
+                self.session_id,
+                row_station,
+                station_id,
+            )
+            return None
         activity_id = rows[0].get("current_activity_id") if rows else None
         if not activity_id or activity_id == self.last_seen:
             return None
@@ -98,7 +125,7 @@ def sync_from_env():
         if client is None:
             log.warning("session lifecycle enabled without station credentials; tasks stay paused")
             return None
-        return StationSessionSync(client, os.environ.get("CUES_STATION_ID", "S1"))
+        return StationSessionSync(client)  # follows vision.station.STATION
     if not flags.enabled("vision.activity_sync"):
         return None
     client = get_client()

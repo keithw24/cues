@@ -42,7 +42,7 @@ Root `.env` (backend only; never commit credentials):
 | `SUPABASE_SERVICE_ROLE_KEY` | Required privileged server credential |
 | `GROQ_API_KEY` | Required demo model key |
 | `CUES_SESSION_ID` | Required existing session UUID |
-| `CUES_STATION_ID` | Optional station, default S1 |
+| `CUES_STATION_ID` | Dev/test override only. Normally unset: the signed-in teacher's dashboard sends its station to vision |
 | `CUES_CAMERA_INDEX` | Optional camera index, default 0; USB often 1 |
 | `CUES_CAMERA` | Optional `fake` for camera-free startup |
 
