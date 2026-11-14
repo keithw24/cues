@@ -75,8 +75,17 @@ def test_rate_meter():
     assert m.rate(now=101.0) == pytest.approx(10.0)
 
 
-def test_discover_stages_finds_none_yet():
-    assert discover_stages() == []
+def test_discover_stages_with_perception_flags_off(monkeypatch):
+    for name in ("HANDS", "FACES", "GESTURES", "EXPRESSION"):
+        monkeypatch.delenv(f"CUES_FLAG_VISION_{name}", raising=False)
+    assert [s.name for s in discover_stages()] == ["seats"]
+
+
+def test_discover_stages_with_perception_flags_on(monkeypatch):
+    for name in ("HANDS", "FACES", "GESTURES", "EXPRESSION"):
+        monkeypatch.setenv(f"CUES_FLAG_VISION_{name}", "1")
+    names = [s.name for s in discover_stages()]
+    assert names == ["seats", "hands", "faces", "gestures", "expression"]
 
 
 def test_pipeline_runs_with_fake_camera():
