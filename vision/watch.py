@@ -14,7 +14,9 @@ Output per seat:
       happiness: 0.21
       sadness: 0.04
 
-No events are sent: this only shows perception results.
+With vision.task_status on (it is, with --all-on), status changes are sent as
+events to vision/logs/*.jsonl, or to Supabase when vision.supabase_events is on,
+and the most recent ones are printed under "Recent events".
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ PERCEPTION_FLAGS = (
     "vision.gestures",
     "vision.raise_hand",
     "vision.expression",
+    "vision.task_status",
 )
 
 
@@ -55,9 +58,15 @@ def format_snapshot(ctx, seat_ids, tasks, top: int = 3, debug: bool = False) -> 
     blocks = []
     for seat in seat_ids:
         task = tasks.for_seat(seat)
+        status = ctx.get("status", {}).get(seat)
+        if status:
+            task = f"{task}  [{status}]"
         match = ctx.get("match", {}).get(seat)
         expression = ctx.get("expression", {}).get(seat)
         blocks.append(format_seat(seat, task, match, expression, top, debug))
+    events = ctx.get("events", [])
+    if events:
+        blocks.append("Recent events:\n" + "\n".join(f"  {e}" for e in events[-8:]))
     return "\n\n".join(blocks)
 
 

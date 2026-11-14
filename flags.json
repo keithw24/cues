@@ -34,5 +34,11 @@
     "default": false,
     "owner": "keith",
     "ticket": "T8"
+  },
+  "vision.task_status": {
+    "description": "Per-seat task status and events (attempt_success, attempt_miss, review_needed, no_progress, tracking_lost, expression_context).",
+    "default": false,
+    "owner": "keith",
+    "ticket": "T12"
   }
 }
