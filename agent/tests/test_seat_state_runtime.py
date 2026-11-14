@@ -154,9 +154,7 @@ class FakeSource:
 
 def test_one_bad_seat_does_not_corrupt_another(caplog):
     target = pipeline()
-    runtime = SeatStateRuntime(
-        FakeSource([{"seat_id": "bad"}, snapshot(0, seat="good")]), target
-    )
+    runtime = SeatStateRuntime(FakeSource([{"seat_id": "bad"}, snapshot(0, seat="good")]), target)
     results = runtime.run_once()
     assert [result.snapshot.seat_id for result in results] == ["good"]
     assert "SeatState processing failed for seat bad" in caplog.text

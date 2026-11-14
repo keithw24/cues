@@ -101,9 +101,7 @@ def test_explicit_offline_ignores_config_and_does_not_construct_client(tmp_path,
     client_factory[1].assert_not_called()
 
 
-def test_continuous_runtime_reuses_persistent_client_for_seat_state(
-    tmp_path, client_factory
-):
+def test_continuous_runtime_reuses_persistent_client_for_seat_state(tmp_path, client_factory):
     configure(tmp_path)
     client = client_factory[0]
     result = runtime.create_seat_state_runtime(
