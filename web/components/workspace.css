@@ -1704,6 +1704,56 @@ body .dashboard-shell.ws-demo {
   font-variant-numeric: tabular-nums;
 }
 
+/* Room header: session controls sit beside "Camera and details" instead of
+   taking a row of their own (the toolbar rule makes them full width). */
+.dashboard-shell .room-actions {
+  justify-content: flex-end;
+}
+.dashboard-shell .room-actions .session-toolbar {
+  flex: 0 1 auto;
+}
+
+/* "Who needs you next" matches the room and timeline panels: a quiet panel
+   on Night, a white card in light mode. Page tokens flip with the theme. */
+.dashboard-shell:not(.ws-demo) .next-up {
+  --ring: var(--ws-night-accent);
+  background: rgb(255 255 255 / 0.03);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  color: var(--ws-page-ink);
+}
+.dashboard-shell:not(.ws-demo) .next-up h2,
+.dashboard-shell:not(.ws-demo) .next-up-detail,
+.dashboard-shell:not(.ws-demo) .next-up-calm {
+  color: var(--ws-page-soft);
+}
+.dashboard-shell:not(.ws-demo) .next-up-then,
+.dashboard-shell:not(.ws-demo) .next-up-summary {
+  color: var(--ws-page-faint);
+}
+.dashboard-shell:not(.ws-demo) .next-up-flag {
+  color: #f3a383;
+}
+.dashboard-shell:not(.ws-demo) .next-up-open {
+  background: var(--ws-night-accent);
+  color: #0b1a4d;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up {
+  background: #ffffff;
+  box-shadow: var(--ws-card);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up-flag {
+  color: var(--ws-review);
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up-open {
+  color: #ffffff;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell:not(.ws-demo) .next-up-open:not(:disabled):hover {
+    background: var(--ws-night-accent);
+    filter: brightness(1.08);
+  }
+}
+
 /* ---- Theme switch in the rail ---- */
 .dashboard-shell .rail-theme-toggle {
   display: grid;

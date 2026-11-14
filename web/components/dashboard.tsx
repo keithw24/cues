@@ -487,10 +487,6 @@ export default function Dashboard({
         accountEnabled={teacherLoginEnabled}
         themeToggle={themeToggleEnabled}
         liveView={liveViewEnabled}
-        onReviews={() => {
-          setSelectedId(null);
-          setSelectedReviewId(null);
-        }}
       />
       <main id="main-content" className="dashboard-main">
         {roomViewEnabled ? (
