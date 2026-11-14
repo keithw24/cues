@@ -2,8 +2,14 @@
 
 Runs only when CUES_MODE=recognize. For each person, on every frame:
 
-1. Score every gesture in vision.mode.RECOGNIZE_SET: gesture tasks against
-   their recorded examples (best hand), raise_hand from the pose.
+1. Score every gesture in vision.mode.RECOGNIZE_SET, with hand-shape rules so
+   the two gestures cannot both be true:
+   * raise_hand: the pose-based raise confidence, but only if the raised hand
+     is an open palm facing the camera (vision.gestures.hand_pose). A raised
+     thumbs-up or fist scores 0.
+   * gesture tasks (thumbs_up): the best hand against the recorded examples,
+     counting only hands whose palm is NOT facing the camera (back of the
+     hand, or seen edge-on, as a thumbs-up usually is).
 2. The candidate is the gesture with the highest score, if that score is at
    or above that gesture's own success threshold; otherwise "no gesture".
 3. Hysteresis: a new candidate must stay the candidate for SWITCH_SECONDS
@@ -19,6 +25,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from vision import activities, mode
+from vision.gestures.hand_pose import is_open, palm_side
 from vision.gestures.normalize import normalize
 from vision.grouping import GROUPING
 from vision.perception import Hand
@@ -44,17 +51,29 @@ def score_gestures(pid: str, ctx: dict, cache: MatcherCache, gesture_ids) -> dic
         activity = activities.get(aid)
         if activity.check_type == "gesture":
             matcher, _ = cache.get(aid)
-            if matcher is None or not hands:
-                out[aid] = (None, None)
+            # A thumbs-up shows the back or the edge of the hand, never the palm.
+            usable = [h for h in hands if palm_side(h.landmarks, h.handedness) != "palm"]
+            if matcher is None or not usable:
+                out[aid] = (None if matcher is None else 0.0, None)
                 continue
-            best = max(
-                ((matcher.score(normalize(h.landmarks, h.handedness)), h) for h in hands),
+            out[aid] = max(
+                ((matcher.score(normalize(h.landmarks, h.handedness)), h) for h in usable),
                 key=lambda item: item[0],
             )
-            out[aid] = best
         elif aid == "raise_hand":
-            score = raise_confidence(person)[0] if person is not None else None
-            out[aid] = (score, highest_hand(hands))
+            hand = highest_hand(hands)
+            if person is None:
+                out[aid] = (None, hand)
+                continue
+            score = raise_confidence(person)[0]
+            # Raised hand only counts as an open palm facing the camera.
+            if (
+                hand is None
+                or palm_side(hand.landmarks, hand.handedness) != "palm"
+                or not (is_open(hand.landmarks))
+            ):
+                score = 0.0
+            out[aid] = (score, hand)
     return out
 
 

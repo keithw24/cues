@@ -137,7 +137,9 @@ class OverlayStage:
                 fill = GREY
                 if recognized is not None:  # recognise mode: the gesture being done
                     if recognized.activity_id is None:
-                        text += "no gesture"
+                        from vision.gestures.hand_pose import palm_side
+
+                        text += f"no gesture ({palm_side(hand.landmarks, hand.handedness)})"
                     else:
                         text += f"{recognized.activity_id} {recognized.score:.2f}"
                         fill = GREEN

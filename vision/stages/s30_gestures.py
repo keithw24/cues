@@ -34,8 +34,16 @@ class MatcherCache:
         cached = self._cache.get(activity_id)
         if cached and cached[0] == mtime:
             return cached[1], cached[2]
+        templates = tpl.load(activity_id, self.directory)
+        if templates.stale:
+            reason = (
+                "examples are out of date: re-record "
+                f"(python -m vision.record {activity_id} target)"
+            )
+            self._cache[activity_id] = (mtime, None, reason)
+            return None, reason
         try:
-            matcher, reason = Matcher.from_templates(tpl.load(activity_id, self.directory)), ""
+            matcher, reason = Matcher.from_templates(templates), ""
         except ValueError:
             matcher = None
             reason = f"no examples recorded (python -m vision.record {activity_id} target)"

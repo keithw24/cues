@@ -61,6 +61,11 @@ def format_seat(
             lines.append("Recognised: no gesture")
         else:
             lines.append(f"Recognised: {recognized.activity_id} {recognized.score:.2f}")
+        if debug and recognized.hand is not None:
+            from vision.gestures.hand_pose import describe
+
+            hand = recognized.hand
+            lines.append(f"  (hand: {describe(hand.landmarks, hand.handedness)})")
     if all_scores:
         from vision.stages.s45_all_scores import format_scores
 

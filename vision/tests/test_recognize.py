@@ -11,8 +11,8 @@ from vision.people import PeopleGrouping
 from vision.perception import Hand, Match
 from vision.stages.s30_gestures import MatcherCache
 from vision.stages.s46_recognize import Recognizer, RecognizeStage, candidate
+from vision.tests.hands import PERSONS_RIGHT, open_palm, thumbs_up_back
 from vision.tests.test_people import people_ctx, pose
-from vision.tests.test_perception import hand_points
 
 IMG = np.zeros((4, 4, 3), np.uint8)
 
@@ -20,7 +20,7 @@ IMG = np.zeros((4, 4, 3), np.uint8)
 @pytest.fixture
 def cache(tmp_path):
     rng = np.random.default_rng(3)
-    target = normalize(hand_points(shape_seed=1))
+    target = normalize(thumbs_up_back(), PERSONS_RIGHT)
     t = tpl.Templates("thumbs_up")
     t.add("target", [target + rng.normal(0, 0.003, 63) for _ in range(6)])
     tpl.save(t, tmp_path)
@@ -28,9 +28,14 @@ def cache(tmp_path):
 
 
 def ctx_with(raised: bool, thumb: bool):
+    """A person with their hand raised or not, showing a thumbs-up or an open palm."""
     ctx, _ = people_ctx(pose(0.3, wrist_up=raised))
-    shape = 1 if thumb else 2
-    ctx["hands"] = {"S1-P1": [Hand(hand_points((0.3, 0.6), shape_seed=shape), "Right", "S1-P1")]}
+    pts = (
+        thumbs_up_back(cy=0.15 if raised else 0.6)
+        if thumb
+        else open_palm(cy=0.25 if raised else 0.6)
+    )
+    ctx["hands"] = {"S1-P1": [Hand(pts, PERSONS_RIGHT, "S1-P1")]}
     return ctx
 
 
@@ -72,7 +77,7 @@ def test_recognizes_thumbs_up_then_switches_to_raise_hand(cache):
 
 
 def test_nothing_recognized_for_a_resting_hand(cache):
-    ctx = run(stage(cache), lambda: ctx_with(raised=False, thumb=False), 0.0, 1.0)
+    ctx = run(stage(cache), lambda: ctx_with(raised=False, thumb=False), 0.0, 1.0)  # palm, low
     rec = ctx["recognized"]["S1-P1"]
     assert rec.activity_id is None and rec.hand is not None  # hand still shown
 
@@ -123,3 +128,29 @@ def test_overlay_and_watch_show_the_recognized_gesture(cache):
     assert "Recognised: raise_hand 0.88" in text
     none = format_seat("S1-P1", "thumbs_up", None, None, recognized=Recognized(None, None, None))
     assert "Recognised: no gesture" in none
+
+
+# ---- hand-shape rules ------------------------------------------------------
+def test_raised_thumbs_up_is_not_a_raised_hand(cache):
+    ctx = run(stage(cache), lambda: ctx_with(raised=True, thumb=True), 0.0, 1.0)
+    assert ctx["recognized"]["S1-P1"].activity_id == "thumbs_up"
+
+
+def test_raised_open_palm_is_a_raised_hand_not_a_thumbs_up(cache):
+    ctx = run(stage(cache), lambda: ctx_with(raised=True, thumb=False), 0.0, 1.0)
+    assert ctx["recognized"]["S1-P1"].activity_id == "raise_hand"
+
+
+def test_scores_respect_hand_side(cache):
+    from vision.stages.s46_recognize import score_gestures
+
+    scores = score_gestures(
+        "S1-P1", ctx_with(raised=True, thumb=True), cache, ("thumbs_up", "raise_hand")
+    )
+    assert scores["raise_hand"][0] == 0.0  # raised, but not an open palm
+    assert scores["thumbs_up"][0] > 0.78
+    scores = score_gestures(
+        "S1-P1", ctx_with(raised=True, thumb=False), cache, ("thumbs_up", "raise_hand")
+    )
+    assert scores["thumbs_up"][0] == 0.0  # palm facing the camera: not a thumbs-up
+    assert scores["raise_hand"][0] > 0.7

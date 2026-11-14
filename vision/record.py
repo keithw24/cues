@@ -156,6 +156,10 @@ def main(argv: list[str] | None = None) -> None:
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     templates = tpl.load(activity.id)
+    if templates.stale:
+        print(f"Existing {activity.id} examples were recorded with older code and no longer")
+        print("match live hands. They will be replaced by this recording.")
+        templates = tpl.Templates(activity.id)
     rec = Recorder(cap, detector, not args.no_preview)
     if rec.preview:
         print("A camera window opens: check your hand is in view and drawn in green.")

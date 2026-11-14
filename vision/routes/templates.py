@@ -89,6 +89,8 @@ def record(body: RecordRequest, request: Request) -> dict:
     if not vectors:
         raise HTTPException(status_code=422, detail="no hand seen; nothing recorded")
     templates = tpl.load(activity.id)
+    if templates.stale:  # recorded with older code: start again
+        templates = tpl.Templates(activity.id)
     templates.add(body.label, vectors)
     tpl.save(templates)
     return {"captured": len(vectors), **summary(templates)}
