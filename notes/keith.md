@@ -1,131 +1,161 @@
-# Keith — Vision (CV / local perception)
+# Keith — vision / local perception
 
-Branch: `keith`. Folder: `vision/`. Status as of Nov 14, ~04:10 UTC.
+Consolidated implementation status: November 14, 2026. Keith owns `vision/`;
+Michelle owns downstream progress/routing and Evan owns dashboard/app integration.
+This summary replaces superseded fixed-seat and milestone plans.
 
-## What vision does
+## Implemented architecture
 
-Vision is one Python service on the station laptop. It reads the camera, works
-out what each child is doing, and turns that into structured events for the
-rest of Cues. Camera frames never leave the laptop; only numbers and labels do.
-Vision does **not** decide when to alert the teacher. That is Michelle's rules
-engine.
-
+```mermaid
+flowchart TD
+    A[Logitech C930e] --> B[Local camera and pipeline]
+    B --> C[MediaPipe Pose: person tracking]
+    C --> D[Hands and faces assigned to people]
+    D --> E[Gesture or raise-hand task score]
+    D --> F[Local HSEmotion: smoothed expression context]
+    E --> G[SeatTracker / StatusStage]
+    F --> G
+    H[Supabase sessions.current_activity_id] --> I[ActivitySync]
+    I --> G
+    G --> J[Shared Event and SeatState contracts]
+    J --> K[Background emitter]
+    K --> L[Supabase events / seat_state]
+    K --> M[Local fallback files]
+    L --> N[Michelle continuous progress / agent pipeline]
+    B --> O[Local overlay /stream]
 ```
-camera -> seat zones -> MediaPipe hands -> normalise -> gesture match -> match score
-camera -> seat zones -> MediaPipe faces -> face crop -> HSEmotion -> expression context
-                                             (milestone 2) -> status per seat -> events
-```
 
-## What works now (on `keith`)
+Vision publishes observations and low-level status. Teacher-review decisions
+belong to Michelle's pipeline. Camera frames, face crops and landmarks stay local;
+cloud publication contains structured state only. No face recognition is used.
 
-| Piece | What it does | File |
+## Camera, people and overlay
+
+The station uses a Logitech C930e. Capture requests 1280×720; processing uses
+960×540, preserving the wide 16:9 view. Set CUES_CAMERA_INDEX to select the camera
+(default 0; USB is often 1). CUES_CAMERA=fake supports camera-free service checks.
+
+MediaPipe Pose tracks up to four people as station-prefixed IDs such as S1-P1.
+Fixed left/right seats and their divider/swap routes are removed; CUES_GROUPING
+does not select a fixed-seat fallback. Tracks are released after ten seconds
+unseen, and the lowest available number can be reused. IDs describe temporary
+tracks, not persistent student identity. Consumers must not assume that a reused
+ID identifies the same child.
+
+Hands/faces are associated with tracked people. The overlay shows person/face
+labels, a selected hand skeleton and task score, threshold colors, and connecting
+lines. Gestures select the best-matching hand; raise-hand selects the highest hand.
+Debug overlay exposes additional local detail. Gesture detection always runs: every
+known gesture is checked and a completed one is shown green on the video. It is
+display-only, not a replacement for the assigned-task state feed. Raise-hand
+(task score and detection) requires an open palm facing the camera.
+Built-in gestures (MediaPipe Gesture Recognizer, no recording): `thumbs_up`
+(Thumb_Up) and `open_palm` (Open_Palm, success 0.7 / review 0.5). When a raised
+open palm completes both, `raise_hand` wins over `open_palm`.
+
+## Tasks and perception
+
+| Task | Implementation | Success / review |
 |---|---|---|
-| Camera | Reads the webcam; crops every frame to 640x480 (4:3) without stretching | `camera.py` |
-| Pipeline + service | Runs stages on each frame; `/stream` (live video with overlays), `/health` (fps, flags) | `pipeline.py`, `app.py` |
-| Seats | Left half = `S1-L`, right half = `S1-R`; ignores detections near the middle line; `POST /seats/swap`, `POST /seats/divider` | `seats.py`, `routes/seats.py` |
-| Hands | MediaPipe hand points (21 per hand), assigned to a seat by wrist | `stages/s10_hands.py` |
-| Faces | Largest face per seat and a padded crop. Location only, no face recognition | `stages/s20_faces.py` |
-| Gestures | Hand points -> 63-number shape vector -> compared with recorded examples -> match score 0..1 | `gestures/`, `stages/s30_gestures.py` |
-| Recorder | Records target / rest examples from the webcam, with a preview window | `record.py` |
-| Expression | HSEmotion's 8 native probabilities per seat, averaged over 2 s. Supporting context only | `stages/s40_expression.py` |
-| Tasks | `thumbs_up`, `raise_hand`, `custom_gesture_01`, each with its own thresholds | `activities.json`, `activities.py` |
-| Printout | Per-seat summary once a second (below) | `watch.py` |
-| Event emitter | Validates and writes `shared.contracts` `Event` / `SeatState` to local JSONL, or Supabase when the flag is on | `events.py` |
-| Flags | Each feature can be switched off with `CUES_FLAG_*` | `flags.py`, `flags.json` |
+| thumbs_up | MediaPipe Gesture Recognizer Thumb_Up; no recordings required | 0.70 / 0.50 |
+| raise_hand | Pose wrist height above shoulders, scaled by shoulder width and landmark visibility | 0.70 / 0.40 |
+| custom_gesture_01 | Normalized landmark template matching | 0.78 / 0.58 |
 
-Example output of `uv run python -m vision.watch --all-on`:
+Configuration lives in vision/activities.json. Custom gesture scores are match
+scores, not calibrated probabilities. Templates remain local; current geometry
+uses aspect correction and template format 4, so incompatible old custom recordings
+must be replaced. Do not record thumbs_up merely to enable the built-in recognizer.
 
-```
-Seat: S1-L
-Task: thumbs_up
-Match score: 0.81
-Expression:
-  neutral: 0.61
-  happiness: 0.21
-  sadness: 0.04
-```
+HSEmotion runs locally with its eight native classes, smoothing over two seconds.
+Published expression_context is null unless anger/fear/sadness qualifies at
+probability ≥0.5 for at least five seconds. Qualifying context includes label,
+probability, duration_seconds and supporting_only=true. It never changes task
+status or independently triggers review; it is not a diagnosis or internal-state claim.
 
-## Feature flags (all off by default)
+## State, events and current activity
 
-`vision.hands`, `vision.faces`, `vision.gestures`, `vision.expression`,
-`vision.supabase_events`. Turn on with e.g. `CUES_FLAG_VISION_HANDS=1` in `.env`.
-`vision.watch --all-on` turns on the four perception flags for that run.
+StatusStage and SeatTracker implement idle, in_progress, review, done, needs_help
+and tracking_lost. Vision emits attempt_success, attempt_miss, review_needed,
+no_progress, tracking_lost and expression_context events through the canonical
+shared models. These low-level events do not directly request teacher review.
+Vision's activity timeout is separate from Michelle's rolling-progress policy.
 
-## What the rest of the team can rely on
+SeatState is the primary integration feed. It is upserted on seat_id when status
+or tracking validity changes and otherwise about once per second. updated_at is
+the frame observation time converted to UTC, rather than the network send time.
+Rows include session/activity identity, status, tracking_valid, task_score and
+optional qualifying expression context.
 
-- **Events** match `shared/contracts.py` exactly (Michelle wired `vision/events.py`
-  to the shared models). Types vision will emit: `attempt_success`,
-  `attempt_miss`, `review_needed`, `no_progress`, `tracking_lost`,
-  `expression_context` (always `supporting_only: true`, with `duration_seconds`).
-- **Seat ids** are `S1-L` and `S1-R` (station from `CUES_STATION_ID`).
-- **Expression** is never sent as a "struggling" signal by itself.
-- **Nothing visual leaves the laptop**: no frames, crops or landmark dumps go to
-  Supabase. Gesture examples stay in `vision/templates/` (git-ignored).
+tracking_valid=true means the current person/face/hand observation is usable;
+false clears task_score to null, including initial missed frames before the
+tracking_lost status delay. Missing tracking must never become a low score or
+student failure. Local vision timers pause during tracking loss.
 
-## Not done yet (milestone 2)
+With vision.activity_sync enabled, ActivitySync reads the configured session's
+current_activity_id once per second and updates the class task. Unknown local
+activity IDs are ignored with a warning. CUES_TASK supplies the local initial
+task (default thumbs_up); programmatic per-person overrides also exist.
 
-- Raise-hand rule (wrist above that seat's face).
-- Per-seat status logic: idle -> in_progress -> done / review / needs_help /
-  tracking_lost, using each task's thresholds and `no_progress_seconds`.
-- Emitting those as events (printed as `EVENT ...` first, then via the emitter
-  to Supabase). This is integration step 1: CV -> Supabase.
-- Reading the current task from the app (`sessions` / overrides in Supabase)
-  instead of `CUES_TASK`.
-- A `POST /templates/record` endpoint for Evan's gesture-recording UI
-  (recording is a command-line tool for now).
+The emitter queues writes on a background thread. With vision.supabase_events
+and backend credentials, it sends events and complete SeatState upserts to
+Supabase. Otherwise, or after failed cloud writes, events append to
+vision/logs/events.jsonl and state replaces the latest per-person snapshot in
+vision/logs/seat_state.json. Live expression snapshots are not accumulated there
+as a per-frame history.
 
-## Open issues / to verify on hardware
+## Service and recording API
 
-- Live thumbs-up scores after the framing + calibration fix need checking on
-  the real camera (re-record examples first; old ones were made before the fix).
-- The service ignores hands near the middle line, which is right for two
-  children but awkward for one person testing. A one-seat mode may be needed.
-- Calibration (`SCALE`, `REST_CAP` in `gestures/matcher.py`) may need tuning
-  with real hands.
+FastAPI entrypoint: vision.app:app. Implemented local endpoints include /health
+and /stream, plus gesture-flag-gated template endpoints:
+- POST /templates/record with activity_id, label target/rest, seconds and optional seat_id.
+- GET /templates/{activity_id}.
+- DELETE /templates/{activity_id}.
 
-## How to run (from the repo root, in Terminal for camera access)
+Recording uses the running pipeline's observations. No detected hand yields a
+clean recording error. Built-in gestures do not require custom templates.
+
+## Running and flags
+
+Use the shared Python 3.11 uv environment. Complete stack setup is in STARTUP.md.
 
 ```bash
-uv run python -m vision.record thumbs_up target --takes 3   # record examples
-uv run python -m vision.record thumbs_up rest --takes 2
-uv run python -m vision.watch --all-on --debug              # per-seat printout
-uv run uvicorn vision.app:app                               # then open localhost:8000/stream
-uv run pytest vision                                        # tests (hardware tests skipped)
+./scripts/dev.sh
+uv run uvicorn vision.app:app --host 127.0.0.1 --port 8000
+uv run python -m vision.watch --all-on --debug
+uv run python -m vision.watch --all-on --task custom_gesture_01
+CUES_CAMERA=fake uv run python -m vision.watch --all-on --seconds 5
+uv run python -m vision.record custom_gesture_01 target --takes 3
+uv run python -m vision.record custom_gesture_01 rest --takes 2
+uv run pytest vision
 ```
 
-## Update (~04:10 UTC): people mode and integration pieces
+Registry flags default off: vision.hands, faces, gestures, expression, raise_hand,
+task_status, activity_sync, supabase_events and all_scores. Set the corresponding
+CUES_FLAG_VISION_* environment variable to 1. watch --all-on enables its perception,
+status and display flags; it does not automatically enable cloud publication or
+activity sync. Cloud publishing requires SUPABASE_URL,
+SUPABASE_SERVICE_ROLE_KEY and CUES_SESSION_ID; CUES_STATION_ID defaults to S1.
+Keep credentials backend-only and the video stream local.
 
-- **People mode is the default** (`CUES_GROUPING=people`): up to 4 people are
-  boxed and tracked as `S1-P1`... Fixed seats remain with `CUES_GROUPING=seats`.
-  See `notes/proposal-person-tracking.md` (needs Evan's and Michelle's review).
-- **Status + events are built**: `attempt_success`, `attempt_miss`,
-  `review_needed`, `no_progress`, `tracking_lost`, `expression_context` per
-  person (flag `vision.task_status`).
-- **Current task from the app**: with flag `vision.activity_sync`, vision reads
-  `sessions.current_activity_id` for `CUES_SESSION_ID` once a second.
-- **Recording endpoint** (flag `vision.gestures`): `POST /templates/record`
-  `{activity_id, label: "target"|"rest", seconds, seat_id}`, plus
-  `GET` / `DELETE /templates/{activity_id}`. Records from the running service.
+## Verified integration and remaining work
 
-## Needs from Evan
+Migration 005 added nullable seat_state.tracking_valid with no default to hosted
+Supabase. The real SupabaseSink upsert/read check persisted true with a score and
+false with null score, with updated_at advancing. The synthetic probe was removed.
+Unknown historical tracking remains null.
 
-- **`seat_state` has no `tracking_valid` column**, but the shared `SeatState`
-  contract has it. Vision currently drops that field before writing to
-  Supabase, so writes do not fail. Please add
-  `alter table public.seat_state add column tracking_valid boolean;` and tell
-  me, so I can remove the filter (`SEAT_STATE_COLUMNS` in `vision/events.py`).
-- **Supabase keys** for the station laptop (`SUPABASE_URL`,
-  `SUPABASE_SERVICE_ROLE_KEY` in the root `.env`) and a `sessions` row id for
-  `CUES_SESSION_ID`, so the CV -> Supabase step can be tested for real.
+Michelle's continuous SeatState consumer is implemented. A hosted scripted smoke
+consumed synthetic observations, detected a stall, persisted a pending teacher
+review and received one Spectrum acknowledgement; probe rows were cleaned up.
+That validates integration mechanics, not camera accuracy or live-model judgment.
+Latest recorded full offline suite: 449 passed, 4 skipped (hardware/credential gated).
 
-## Update: people only, new overlay
+Remaining checks and handoff:
+- Benchmark pose/perception throughput and gesture/raise-hand accuracy on the actual camera.
+- Re-record incompatible custom templates and validate thresholds with real demonstrations.
+- Align Supabase activities with vision's three tasks; worker catalog refresh requires restart.
+- Provision person IDs for dashboard cards/read policies; legacy S1-L/S1-R rows do not cover S1-P*.
+- Account for track ID reuse and possible swaps when people cross; persistent student preferences cannot assume stable identity.
+- Complete a real camera-to-dashboard/teacher demo acceptance pass. Synthetic smoke does not establish that result.
 
-- **Seats mode is removed.** Vision only reports people (`S1-P1`...). The
-  dashboard must handle person ids (see `notes/proposal-person-tracking.md`).
-- **Overlay:** per person, a face box labelled `P1  neutral 0.61`, one hand
-  (skeleton + box labelled with the task score, coloured green / orange / grey
-  against the task thresholds) and a line from the hand to the face. No face
-  visible: only the hand box, labelled `P1  ...`. `--debug` shows every stage's
-  detail instead.
-- **One hand per person:** the best-matching hand for gestures, the highest
-  hand for raise-hand.
+No new vision behavior or hardware verification is implied by this documentation update.

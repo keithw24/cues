@@ -5,31 +5,31 @@
 - Read the product/architecture source of truth, [PRD-cues.md](PRD-cues.md), before implementing product behavior. The requested `prd.md` is named `PRD-cues.md` in this repository; do not create a duplicate.
 - `pyproject.toml` and `uv.lock` define the shared Python environment; `web/package.json` and `web/package-lock.json` define frontend dependencies.
 - Inspect existing code before assuming paths, commands, or capabilities. Code establishes what is implemented; the PRD defines intended behavior. Surface discrepancies rather than silently rewriting architecture.
-- Read `TEAM_WORKFLOW.md` for team branches, ownership, and shared contract decisions. It takes precedence over older branch/ownership guidance. Consult `CLAUDE.md` for feature flags and pre-merge review; follow `web/AGENTS.md` for frontend edits.
+- Read `notes/archive/TEAM_WORKFLOW.md` for team branches, ownership, and shared contract decisions. It takes precedence over older branch/ownership guidance. Consult `CLAUDE.md` for feature flags and pre-merge review; follow `web/AGENTS.md` for frontend edits.
 - Agreed contracts: UUID session/alert IDs; all 12 PRD event types; retain `SeatState.session_id`/`updated_at` and `Alert.created_at`/`resolved_at`; expression `label`/`probability`; `Activity.id` with `activity_id` on references. The `shared/contracts.py` Pydantic definitions are authoritative; JSON examples are illustrative. Import these models rather than maintaining independent Python definitions. The vision emitter imports these shared models; do not introduce component-specific copies.
 
 ## 2. Current architecture
 
-MVP target:
+Implemented backend flow (frontend gaps are documented in PRODUCT.md):
 
 ```text
-Camera → local MediaPipe + HSEmotion → structured events → Supabase
-→ FastAPI / rules → LangChain Deep Agent → Configurable LLM provider
-→ teacher dashboard / Photon
+Camera → local vision → Supabase seat_state → ProgressEvaluator
+→ EscalationEvaluator → EvaluationRouter → ContextEnricher → Deep Agent
+→ teacher_reviews → dashboard handoff / Photon-Spectrum → teacher resolution RPC
 ```
 
 - Camera frames stay local. The LLM never receives images/video; only structured state leaves the perception boundary.
 - HSEmotion is supporting context only, never independent evidence of task struggle.
 - Teacher approval is required before changing a task, instruction, or support intervention. Notifications do not require approval.
-- Current checkout: vision service foundation at `vision/app.py`, model loaders/benchmark, event emitter, and Next.js scaffold. No `agent/` or `backend/` directory exists yet; do not describe the full workflow as implemented.
+- Current checkout implements local vision, a continuous agent worker, persistent teacher reviews, Spectrum notifications and a Next.js dashboard. Frontend review/RPC wiring and person-ID visibility remain gaps.
 
-- LLM provider/model selection is undecided; Groq and SpaceXSI are under consideration. Do not hardcode a provider, model ID, or provider SDK into routing, contracts, or tools. Keep future integration configurable. The existing `langchain-groq` dependency is provisional, not a provider decision.
+- Groq openai/gpt-oss-20b is the demo model. Keep core routing, contracts and tools provider-independent through injected models.
 
 ## 3. Explicitly out of scope
 
 Do not reintroduce any of these unless explicitly requested: ESP32, Arduino, LEDs, physical help buttons, YOLO, MobileNet, object-state recognition, Amazon Bedrock, whole-classroom tracking, face recognition, automatic diagnosis, or emotion-based behavioral scoring.
 
-Voice commands **are** in the MVP: push-to-talk, deterministic mapping to known tasks, with task buttons as fallback. Do not send commands to an unrestricted LLM. Teacher transcription may use hosted speech services; do not claim all audio stays on-device.
+Voice/push-to-talk is optional future work; dashboard activity selection uses sessions.current_activity_id.
 
 ## 4. Dependency management
 
@@ -59,7 +59,7 @@ git branch --show-current
 ```
 
 - Preserve other developers' changes. Do not delete unrelated files, reset their work, force push, merge without an explicit request, or modify another component unnecessarily.
-- Keep changes and commits scoped to the assigned task. Follow the personal-branch workflow in `TEAM_WORKFLOW.md` and `.github/pull_request_template.md`; identify cross-owner changes in the PR.
+- Keep changes and commits scoped to the assigned task. Follow the personal-branch workflow in `notes/archive/TEAM_WORKFLOW.md` and `.github/pull_request_template.md`; identify cross-owner changes in the PR.
 - `main` is the integration branch. Keith works on `keith`, Evan on `evan`, and Michelle on `michelle`. A branch name does not imply a same-named directory exists.
 
 ## 7. Code ownership / boundaries
@@ -70,8 +70,8 @@ Inspect the actual tree before adding or assuming directories. Integration is sh
 |---|---|
 | Vision — Keith (`vision/`) | Webcam input, MediaPipe, normalized landmarks, local gesture templates, nearest-neighbor match score, HSEmotion, tracking state, structured perception events. Keep agent logic out. |
 | App backend — Evan | App-facing APIs, Supabase schema/integration, realtime product state, and app support for teacher decisions. Current local vision FastAPI service remains in Keith’s `vision/`; no separate app backend directory exists yet. |
-| Agent / routing — Michelle (planned) | Event routing, rules, alert cooldowns, Deep Agents, LLM integration, tools, intervention decisions, Photon, agent approval workflow. Operates on structured state, never camera frames. |
-| Frontend — Evan (`web/`) | Teacher dashboard, station UI, realtime display, task selection, voice controls, alert approval/dismissal, gesture recording controls. Currently a scaffold. |
+| Agent / routing — Michelle | Event routing, rules, alert cooldowns, Deep Agents, LLM integration, tools, intervention decisions, Photon, agent approval workflow. Operates on structured state, never camera frames. |
+| Frontend — Evan (`web/`) | Teacher dashboard, station UI, realtime display, task selection, voice controls, alert approval/dismissal, gesture recording controls. Current dashboard integration; persistent review UI wiring remains a gap. |
 
 Event/table changes affect shared contracts in PRD §17. Update affected components and the PRD together and record Keith, Evan, and Michelle's sign-off in the PR, per `CLAUDE.md`.
 
@@ -90,7 +90,7 @@ record_teacher_decision
 apply_approved_intervention
 ```
 
-The agent chooses which tools to call; it need not call all tools for every event. Rules invoke it only for meaningful events with seat/reason cooldowns. Restrict interventions to the approved menu; apply them only after teacher approval and log decisions/actions. Fall back to a deterministic rule-based alert on LLM failure or timeout.
+The agent chooses which tools to call; it need not call all tools for every event. Rules invoke it only for meaningful events with seat/reason cooldowns. Restrict interventions to the approved menu; apply them only after teacher approval and log decisions/actions. Provider failures are isolated and surfaced; do not fabricate a fallback review.
 
 Photon messages contain minimal structured information: no images, raw camera data, expression labels, diagnoses, or unnecessary personal details.
 
@@ -114,7 +114,7 @@ Photon messages contain minimal structured information: no images, raw camera da
 - Never upload student camera frames, face crops, recordings, or raw camera data to Supabase, any LLM provider, LangChain, Photon, or other cloud APIs.
 - Use only simulated student data during the hackathon. Identify seats by position, not biometric identity.
 - Preserve `.gitignore` protections for local templates, captures, weights, logs, and secrets. The documented developer-recorded built-in `thumbs_up.json` exception contains no student data; do not generalize it to student templates.
-- Root `.env.example` defines `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`, and `PHOTON_API_KEY`. Do not commit `.env` or expose privileged/API keys in `NEXT_PUBLIC_*`.
+- See STARTUP.md for the env split: backend Supabase/Groq in root .env, browser-safe configuration in web/.env.local, and backend-only Spectrum project credentials/destination in cues/.env. Never expose secrets in NEXT_PUBLIC_*.
 - Current vision client loads the root `.env` and reads `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. Station/session/camera settings may also be set there or in the shell; do not introduce a second credentials convention.
 
 ## 12. Verification and feature flags
@@ -129,6 +129,6 @@ uv run ruff format --check vision shared
 
 Hardware tests are skipped by default; `CUES_HARDWARE=1 uv run pytest vision` opts in. Record manual camera/model/Supabase/Photon verification still needed. Frontend has `npm run lint` and `npm run build` inside `web/`; inspect scripts before assuming other checks.
 
-Follow `CLAUDE.md` for feature flags: add needed entries to `flags.json`, default new features off until verified, and verify the flag-off fallback. Infrastructure needs no flag. The vision helper (`vision/flags.py`) and vision module gating exist; the vision event emitter sends to Supabase only when `vision.supabase_events` is on and credentials are set. The `agent/` and `web/` helpers are not yet implemented, so in those areas registry entries alone do not disable code.
+Follow `CLAUDE.md` for feature flags: add needed entries to `flags.json`, default new features off until verified, and verify the flag-off fallback. Infrastructure needs no flag. The vision helper (`vision/flags.py`) and vision module gating exist; the vision event emitter sends to Supabase only when `vision.supabase_events` is on and credentials are set. The web flag helper is implemented; the agent worker is explicitly started through its runtime entrypoint.
 
 Before a requested merge, follow the pre-merge review procedure in `CLAUDE.md` and require passing applicable CI, resolved blocking findings, and explicit team authorization to merge. Keep unrelated refactors out of the task.

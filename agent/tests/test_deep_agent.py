@@ -697,3 +697,29 @@ def test_temporal_instructions_use_deterministic_durations_not_timestamp_arithme
     assert "exact deterministic stalled_seconds" in SYSTEM_PROMPT
     assert 'qualitative wording such as "repeated prolonged stalls"' in SYSTEM_PROMPT
     assert "do not establish continuous stalling between them" in SYSTEM_PROMPT
+
+
+@pytest.mark.parametrize("operation", ["confirm_needs_attention", "dismiss_review"])
+def test_teacher_resolution_runs_outside_the_agent_and_tools(monkeypatch, operation):
+    model = ToolModel(responses=[review_call()])
+    agent = create_cues_deep_agent(model, ProgressHistoryStore())
+    result = agent.run(context())
+    assert len(model.seen) == 1
+
+    def unexpected_call(*args, **kwargs):
+        pytest.fail("teacher resolution must not invoke the agent, model or tools")
+
+    monkeypatch.setattr(ToolModel, "_generate", unexpected_call)
+    monkeypatch.setattr(agent, "build", unexpected_call)
+    monkeypatch.setattr(agent.history, "get_recent_progress_history", unexpected_call)
+    monkeypatch.setattr(agent.prompt_history, "get_prompt_history", unexpected_call)
+    monkeypatch.setattr(agent.reviews, "request_teacher_review", unexpected_call)
+    resolved = getattr(agent.reviews, operation)(result.pending_review.id)
+
+    assert resolved.assessment == result.assessment
+    assert resolved.evaluation == result.pending_review.evaluation
+    assert resolved.status == (
+        "confirmed" if operation == "confirm_needs_attention" else "dismissed"
+    )
+    assert len(model.seen) == 1
+    assert agent.reviews.get_pending_reviews() == []

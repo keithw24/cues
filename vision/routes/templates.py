@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 from vision import activities
 from vision.gestures import templates as tpl
 from vision.gestures.matcher import calibrate_rejection
-from vision.gestures.normalize import normalize
+from vision.gestures.normalize import is_reliable, normalize
 
 FLAG = "vision.gestures"
 SAMPLE_HZ = 10.0
@@ -57,7 +57,9 @@ def collect(ctx: dict, seconds: float, seat_id: str | None, sample_hz: float = S
     while time.monotonic() < end:
         hand = pick_hand(ctx.get("hands", {}), seat_id)
         if hand is not None:
-            vectors.append(normalize(hand.landmarks, hand.handedness))
+            vector = normalize(hand.landmarks, hand.handedness)
+            if is_reliable(vector):
+                vectors.append(vector)
         time.sleep(1.0 / sample_hz)
     return vectors
 
@@ -79,6 +81,10 @@ def gesture_activity(activity_id: str):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     if activity.check_type != "gesture":
         raise HTTPException(status_code=422, detail=f"{activity_id} is not a gesture task")
+    if activity.builtin:
+        raise HTTPException(
+            status_code=422, detail=f"{activity_id} is built in ({activity.builtin}); no recording"
+        )
     return activity
 
 
@@ -89,6 +95,8 @@ def record(body: RecordRequest, request: Request) -> dict:
     if not vectors:
         raise HTTPException(status_code=422, detail="no hand seen; nothing recorded")
     templates = tpl.load(activity.id)
+    if templates.stale:  # recorded with older code: start again
+        templates = tpl.Templates(activity.id)
     templates.add(body.label, vectors)
     tpl.save(templates)
     return {"captured": len(vectors), **summary(templates)}

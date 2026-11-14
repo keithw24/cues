@@ -222,8 +222,8 @@ The local feed loads MJPEG directly from `http://127.0.0.1:8000/stream` on the s
 - **Do** show only observed counts and backend-supplied reviews, with honest loading, empty, error and unavailable states.
 
 ### Don't:
-- **Don't** restore superseded Courier Prime, DM Sans italics, lavender mesh tiles or pill navigation as the current visual system.
-- **Don't** use teacher or student portraits, avatar builders or biometric identity to represent the login companion.
-- **Don't** infer task failure from tracking loss, expression output or a color treatment.
-- **Don't** send camera frames through cloud services or describe the local MJPEG connection as WebRTC.
-- **Don't** imply deployed write permissions, available progress history or Photon delivery from a polished surface.
+- **Don't** restore glass, gradients, giant rounded tiles, heroes or oversized counts.
+- **Don't** add decorative charts, imagery or an icon to every label.
+- **Don't** imply dismissal resolves an alert, changes task state or applies support.
+- **Don't** imply that backend history/agent assessments are already wired into the current detail panels. MJPEG is the intentional local demo transport; WebRTC is not required.
+- **Don't** style tracking loss as student failure or match scores as probabilities.

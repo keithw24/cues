@@ -12,7 +12,7 @@ A seat with nothing detected is simply missing from the dict.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -22,6 +22,9 @@ class Hand:
     landmarks: np.ndarray  # (21, 3) MediaPipe normalised x, y, z
     handedness: str  # "Left" or "Right", as MediaPipe reports it
     seat_id: str
+    # MediaPipe Gesture Recognizer scores for this hand, e.g. {"Thumb_Up": 0.91,
+    # "Open_Palm": 0.02, ...}. Empty when hands come from the plain landmarker.
+    gestures: dict[str, float] = field(default_factory=dict)
 
     @property
     def wrist(self) -> tuple[float, float]:

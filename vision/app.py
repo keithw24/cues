@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import os
 import pkgutil
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
@@ -81,6 +82,17 @@ def create_app(pipeline: Pipeline | None = None) -> FastAPI:
             p.stop()
 
     app = FastAPI(title="Cues vision", lifespan=lifespan)
+    # Let the local dashboard call the gesture APIs from the browser. Only the
+    # dashboard's own origin(s); the service still listens on this laptop only.
+    from fastapi.middleware.cors import CORSMiddleware
+
+    origins = os.environ.get("CUES_DASHBOARD_ORIGINS", "http://localhost:3000")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[o.strip() for o in origins.split(",") if o.strip()],
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=["Content-Type"],
+    )
 
     @app.get("/health")
     def health(request: Request) -> dict:

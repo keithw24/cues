@@ -104,6 +104,10 @@ def sync_from_env():
     client = get_client()
     session_id = os.environ.get("CUES_SESSION_ID")
     if client is None or not session_id:
-        log.warning("vision.activity_sync is on but Supabase keys or CUES_SESSION_ID are missing")
-        return None
+        # Fail loudly: otherwise the teacher's task buttons silently do nothing.
+        raise RuntimeError(
+            "vision.activity_sync is on but SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY or "
+            "CUES_SESSION_ID is missing from .env. Set them, or turn the flag off."
+        )
+    log.info("current task follows session %s", session_id)
     return ActivitySync(client, session_id)
