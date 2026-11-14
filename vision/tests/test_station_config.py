@@ -468,3 +468,10 @@ def test_people_stage_ids_follow_the_station():
     current.set("S2")
     stage._follow_station(ctx)
     assert ctx["station_id"] == "S2" and stage.tracker.station_id == "S2"
+
+
+def test_signout_clears_unpinned_station_and_pauses_writes(api, unconfigured):
+    assert api.post("/config", json={"station_id": "S2"}).status_code == 200
+    assert api.post("/config", json={"station_id": None}).status_code == 200
+    assert unconfigured.get() is None
+    assert api.get("/health").json()["station_id"] is None

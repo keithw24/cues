@@ -41,7 +41,7 @@ Root `.env` (backend only; never commit credentials):
 | `SUPABASE_URL` | Required project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Required privileged server credential |
 | `GROQ_API_KEY` | Required demo model key |
-| `CUES_SESSION_ID` | Required existing session UUID |
+| `CUES_SESSION_ID` | Optional legacy/smoke session UUID; not used by managed startup |
 | `CUES_STATION_ID` | Dev/test override only. Normally unset: the signed-in teacher's dashboard sends its station to vision |
 | `CUES_CAMERA_INDEX` | Optional camera index, default 0; USB often 1 |
 | `CUES_CAMERA` | Optional `fake` for camera-free startup |
@@ -167,3 +167,21 @@ fails closed while preserving pending reviews. Static test mode is unchanged.
   Unrelated or unidentified listeners are left running with a clear error.
 - Photon env missing: save `cues/.env`, check required names and install nested dependencies.
 - Unknown activity: align catalog with vision and restart worker.
+
+### Dynamic station runtime
+
+Both launch modes enable `vision.session_lifecycle` by default; an explicit flag
+value still overrides it. Managed startup requires backend Supabase/Groq credentials,
+not `CUES_SESSION_ID`. That variable is only for explicit legacy/smoke commands.
+Leave root `CUES_STATION_ID` and web `CUES_STATION_OVERRIDE` unset for normal demos.
+
+Apply reviewed migration 011 before using default-station onboarding. This change
+does not deploy it or modify hosted teacher memberships. Existing sole memberships
+are retained; users with multiple memberships need their intended default verified.
+
+The worker reads the local vision `/config` assignment, then only that station's
+active session, matching activity/revision and seat IDs. Missing vision/station or
+an ended session pauses consumption. Task revision changes reset progress/router
+state. Dashboard and connected Live feeds pause until station resolution succeeds.
+Vision handoff failures appear in session controls; signing out clears an unpinned
+vision assignment. Photon continues to resolve the review session's owner.

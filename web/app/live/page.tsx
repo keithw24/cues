@@ -20,16 +20,23 @@ export default async function LivePage() {
         <Link href="/dashboard">Open classroom</Link>
       </main>
     );
-  const { default: LiveConnected } =
-    await import("@/components/live-connected");
-  const screen = (
-    <LiveConnected
-      personObservationsEnabled={isEnabled("web.person_observations")}
-      reviewsEnabled={isEnabled("web.teacher_reviews")}
-      reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
-      teacherLoginEnabled={isEnabled("web.teacher_login")}
-    />
-  );
+  const liveData = isEnabled("web.live_data");
+  const screen = liveData
+    ? await import("@/components/live-connected").then(
+        ({ default: LiveConnected }) => (
+          <LiveConnected
+            visionStationConfigEnabled={isEnabled("web.vision_station_config")}
+            personObservationsEnabled={isEnabled("web.person_observations")}
+            reviewsEnabled={isEnabled("web.teacher_reviews")}
+            reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
+            teacherLoginEnabled={isEnabled("web.teacher_login")}
+            simulatedNamesEnabled={isEnabled("web.simulated_names")}
+          />
+        ),
+      )
+    : await import("@/components/live-mock").then(({ default: LiveMock }) => (
+        <LiveMock />
+      ));
   return (
     <div className={`dashboard-shell ${garamond.variable}`}>
       <WorkspaceSidebar

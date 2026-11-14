@@ -38,10 +38,10 @@ export function watchTeacherReviews(
   client: SupabaseClient,
   notify: (state: ReviewFeedState) => void,
   enabled: boolean,
-  station = "",
+  station?: string,
 ) {
-  const scoped = station.trim();
-  if (!enabled) {
+  const scoped = station?.trim() ?? "";
+  if (!enabled || (station !== undefined && !scoped)) {
     notify(DISABLED_REVIEWS);
     return { refresh: async () => {}, disconnect() {}, dispose() {} };
   }

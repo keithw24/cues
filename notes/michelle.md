@@ -432,3 +432,13 @@ The 2/5/4/6 preset is demonstration-only.
   This classroom question-answer guidance is not a universal maximum for physical
   tasks or learners who need longer response times.
 
+
+### Station-isolation integration
+
+Live agent composition injects a local `/config` station provider. The source filters
+by active station session, current activity/revision and station seat IDs; unconfigured
+vision returns no observations. Revision changes reset completion and routing suppression.
+Both startup profiles default lifecycle on without requiring a legacy session UUID.
+Dashboard/connected Live pause unresolved feeds. Local handoff failures are surfaced,
+and sign-out clears unpinned vision state. Session-owner Photon routing is unchanged.
+Migration 011 and hosted teacher defaults require separate deployment verification.

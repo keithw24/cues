@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { seatViews, type Snapshot } from "@/lib/dashboard";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
+import { resolveDefaultStation } from "@/lib/default-station";
+import { startLocalVisionSync } from "@/lib/local-vision";
 import { nextUp } from "@/lib/next-up";
 import {
   liveCounts,
@@ -79,11 +81,15 @@ export default function LiveConnected({
   reviewsEnabled = false,
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
+  simulatedNamesEnabled = false,
+  visionStationConfigEnabled = false,
 }: {
   personObservationsEnabled?: boolean;
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
   teacherLoginEnabled?: boolean;
+  simulatedNamesEnabled?: boolean;
+  visionStationConfigEnabled?: boolean;
 }) {
   // Clock values are set after mount, so the server and first render agree.
   const [openedAt, setOpenedAt] = useState<number | null>(null);
@@ -110,6 +116,25 @@ export default function LiveConnected({
       return null;
     }
   });
+  const [station, setStation] = useState("");
+  useEffect(() => {
+    if (!client) return;
+    let disposed = false;
+    let generation = 0;
+    const {data} = client.auth.onAuthStateChange((_event, session) => {
+      const current = ++generation;
+      setStation("");
+      if (session) setTimeout(() => {
+        if (!disposed && current === generation) void resolveDefaultStation(client).then(found => {
+          if (!disposed && current === generation) setStation(found.id);
+        }).catch(() => {});
+      }, 0);
+    });
+    return () => {disposed = true; generation++; data.subscription.unsubscribe();};
+  }, [client]);
+  useEffect(() => {
+    if (visionStationConfigEnabled && client && station) return startLocalVisionSync(client, station);
+  }, [client, station, visionStationConfigEnabled]);
   const [live, setLive] = useState<Live>({
     feed: INITIAL_FEED,
     finishes: [],
@@ -121,7 +146,7 @@ export default function LiveConnected({
       client,
       (state) =>
         setLive((previous) => {
-          const snapshot = state.snapshot ?? previous.feed.snapshot;
+          const snapshot = station ? state.snapshot ?? previous.feed.snapshot : null;
           const finishes =
             state.snapshot && state.snapshot !== previous.feed.snapshot
               ? [
@@ -135,6 +160,7 @@ export default function LiveConnected({
           };
         }),
       personObservationsEnabled,
+      station,
     );
     const offline = () => subscription.disconnect();
     const online = () => setAttempt((n) => n + 1);
@@ -145,7 +171,7 @@ export default function LiveConnected({
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [attempt, client, personObservationsEnabled]);
+  }, [attempt, client, personObservationsEnabled, station]);
 
   const [reviews, setReviews] = useState<ReviewFeedState>(
     reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS,
@@ -157,6 +183,7 @@ export default function LiveConnected({
       client,
       setReviews,
       reviewsEnabled,
+      station,
     );
     const offline = () => subscription.disconnect();
     const online = () => setReviewAttempt((n) => n + 1);
@@ -167,7 +194,7 @@ export default function LiveConnected({
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [client, reviewsEnabled, reviewAttempt]);
+  }, [client, reviewsEnabled, reviewAttempt, station]);
 
   // The teacher's decision on a model review, as on the dashboard (PRD §13):
   // Support needed saves it as confirmed, No support needed as dismissed,

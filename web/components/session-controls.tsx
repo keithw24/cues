@@ -353,6 +353,7 @@ export function SessionControls({
     );
   return (
     <div className="session-controls" aria-busy={busy}>
+      {stationMessage ? <p role="status">{stationMessage}</p> : null}
       <div className="session-row">
         <label className="sr-only" htmlFor="session-activity">
           Activity

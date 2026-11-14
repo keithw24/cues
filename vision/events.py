@@ -179,7 +179,7 @@ def emitter_from_env() -> Emitter:
     local = JsonlSink()
     client = get_client() if flags.enabled("vision.supabase_events") else None
     session_id = os.environ.get("CUES_SESSION_ID")
-    if client is not None and not session_id:
+    if client is not None and not session_id and not flags.enabled("vision.session_lifecycle"):
         raise RuntimeError(
             "vision.supabase_events is on but CUES_SESSION_ID is not set. Put the dashboard's "
             "sessions row id in .env (CUES_SESSION_ID=...), or turn the flag off."

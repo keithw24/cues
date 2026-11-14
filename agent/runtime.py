@@ -163,7 +163,9 @@ def create_seat_state_runtime(
                 "Continuous SeatState runtime requires backend Supabase configuration "
                 "or an explicitly injected source."
             )
-        source = SupabaseSeatStateSource(agent.reviews.client)
+        from agent.seat_state_runtime import local_station
+
+        source = SupabaseSeatStateSource(agent.reviews.client, station_provider=local_station)
     pipeline = SeatStatePipeline(
         activities,
         agent,
