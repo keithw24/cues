@@ -1,6 +1,8 @@
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
 
 .env
 .env.*
@@ -10,3 +12,28 @@ web/node_modules/
 web/.next/
 
 .DS_Store
+
+# Vision: local-only data (never synced or committed)
+# Gesture templates stay on the laptop; thumbs_up.json is the built-in,
+# developer-recorded template and contains no student data.
+vision/templates/*
+!vision/templates/thumbs_up.json
+vision/logs/
+vision/models/
+vision/captures/
+*.onnx
+*.task
+*.tflite
+
+# Camera frames and recordings must never be committed
+vision/**/*.jpg
+vision/**/*.jpeg
+vision/**/*.png
+vision/**/*.mp4
+vision/**/*.avi
+# Synthetic test images (no real students) are allowed here
+!vision/tests/fixtures/**
+
+# Logs anywhere
+*.log
+logs/

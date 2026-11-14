@@ -15,3 +15,28 @@ dependencies = [
     "supabase>=2.34.1",
     "uvicorn>=0.54.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "httpx>=0.27",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["vision/tests"]
+markers = [
+    "hardware: needs a real camera or downloaded model weights; skipped in CI",
+]
+addopts = "-ra --strict-markers -p pytester"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
