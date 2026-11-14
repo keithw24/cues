@@ -318,6 +318,16 @@ recursion limit bounds a misbehaving run; no timed cooldown is introduced.
 
 ### Why this is a Deep Agent
 
+The agent can now gather context with information tools, reason over returned
+results, and conditionally call its first action tool, request_teacher_review.
+That explicit action creates only a pending review. Future teacher approval will
+add the human-in-the-loop step before instructional changes; no approval backend
+or notification is implemented. The information → reasoning → action sequence is
+verified in the actual graph offline and demonstrated live. Successful action now
+terminates with its stored assessment and pending review; another LLM turn adds no
+value. Some live scenarios still recommend review without selecting the action.
+Assessment alone is not action execution.
+
 The agent now exposes two information tools and can choose no tool, progress
 history, prompt history, or both. Later steps can depend on earlier tool results;
 there is no fixed sequence. Offline graph tests exercise both tools sequentially
@@ -334,16 +344,13 @@ adaptive tool use supplements the scripted mechanics tests; it does not guarante
 consistent model behavior across runs. Details and transient failures are recorded
 in the live context-fix entry below.
 
-This is not a single prompt → response call. The real create_deep_agent graph lets
-the injected model choose whether current context suffices or whether historical
-context would materially improve its assessment. It can choose to call the one
-custom domain tool, get_recent_progress_history, or finish directly. A tool result
-returns into the message context for the next model step in the same run. The
-sequence is adaptive rather than a hard-coded history-then-assessment pipeline.
-Future tools can make later steps conditional on earlier results. A future
-request_teacher_review workflow will introduce human-in-the-loop approval;
-it is not implemented here. Subagents are intentionally not added without a
-real delegation need, and no planning middleware was added for this narrow task.
+The real create_deep_agent graph lets the injected model choose whether current
+context suffices or whether either history tool would materially improve its
+assessment. Information-tool results return into the same run for subsequent
+reasoning; the model can then conditionally select request_teacher_review.
+This information → reasoning → terminal action path is adaptive, with no fixed
+tool sequence. Human approval remains future work before instructional changes.
+No subagent or planning workflow is introduced for this narrow task.
 
 The history wrapper binds session/seat/activity IDs to the current request;
 only a bounded limit is exposed as a tool argument. It calls the existing store
@@ -704,6 +711,260 @@ budget, both-tools sequential execution, and tool-specific duplicate reuse. Full
 suite: 213 passed, 3 skipped. Ruff lint and formatting passed. Prior notes/citations are
 preserved. No provider-specific core configuration, new provider, subagent, integration,
 commit, merge, or push.
+
+## Empty-history evidence semantics and one-shot repair
+
+The remaining live bug confused “tool called” with “evidence obtained”: a model
+could receive [] and still cite that source in evidence_used. The strict validator
+continues to reject empty, failed, or unqueried history. Added explicit system
+instructions that calling a tool does not make it evidence, only nonempty usable
+information may be cited, and missing data must not become unsupported claims.
+Neither assessment decision is forced by an empty result.
+
+`EvidenceValidationError` now identifies only an otherwise schema-valid assessment
+with unavailable history labels. A small after_model middleware validates output
+inside the existing graph. On the first such error it records a run-state repair
+flag, clears structured_response, sends a correction message naming the validation
+issue and actually available source labels, and jumps back to the same model node.
+The model must reconsider rationale and evidence_used and return one corrected
+structured assessment; application code never strips labels or selects a decision.
+A second invalid claim raises; malformed schema, provider errors, and unrelated
+failures are not given this repair. A repair response without structured output
+also fails rather than continuing a tool/retry loop.
+
+This is not a new graph invocation. Model/tool counters, messages, and duplicate
+query reuse remain in the same run. Hook ordering matters: the existing model
+counter updates before the repair jump, so correction cannot evade the four-call
+limit. If no model budget remains, the next attempt raises the installed model-limit
+error; no budget is increased or reset. The repair message requests no new tools.
+The three-domain-attempt cap, history bounds, 500-character rationale cap, and
+20-second Groq timeout/up-to-two transport retries remain unchanged. No factory API
+or shared contract changed. Live logging adds evidence_repair_attempted.
+
+Six additional offline cases cover empty progress/prompt source correction,
+validated repaired output, second-invalid-output failure with no infinite retry,
+repair refused when model budget is exhausted, repair fitting exactly within four
+calls, and valid nonempty history finishing without repair. Existing strict
+standalone validation tests remain. Full offline suite: 219 passed, 3 skipped;
+Ruff lint/formatting passed.
+
+Live rerun used the existing six scenarios and Groq openai/gpt-oss-20b, with no
+forced calls or weakened validators/coverage checks:
+
+| Scenario | Tools | Validated decision | Repair |
+|---|---|---|---|
+| Sufficient current context | Neither | continue_monitoring | No |
+| Ambiguous stall | Progress | teacher_review_warranted | No |
+| Repeated stalls | Progress | teacher_review_warranted | No |
+| Prompt-support pattern | Neither | continue_monitoring | No |
+| Mixed ambiguous | Neither | continue_monitoring | No |
+| Empty histories | Progress (returned []) | continue_monitoring | No |
+
+The empty-history result explicitly acknowledged absent prior data and returned
+`evidence_used=["current_progress"]`. This resolves the targeted live failure in
+this observed pass without needing correction; one-shot repair mechanics are
+verified offline, not claimed as demonstrated by this live run. The full smoke
+script still exited 1 because prompt history was not exercised anywhere in this
+pass; that coverage gate remains strict. All six returned schema/evidence-valid
+assessments, but coverage and reasoning quality are separate requirements.
+
+Model-quality limitations remain: unqueried prompt data was sometimes described
+as unavailable despite records existing in storage, and “brief stall”/lack-of-
+recovery language overstates the available context. Label validation cannot prove
+rationale faithfulness. No automatic semantic decision override, new tool, provider,
+integration, commit, merge, or push was added. Existing Deep Agent documentation,
+architecture, prior observed results, and citations were preserved.
+
+## First action tool — request_teacher_review
+
+Implemented `agent/teacher_review.py` and registered the third custom domain tool
+in the existing Deep Agent. Progress and prompt history remain information tools;
+request_teacher_review is the explicit model-selected action. Returning an
+assessment of teacher_review_warranted by itself creates nothing; there is no
+hard-coded assessment-to-action mapping.
+
+Model-facing signature: `request_teacher_review(rationale: str,
+evidence_used: list[str]) -> str` (JSON review). The wrapper validates the existing
+AgentAssessment schema, fixes decision to teacher_review_warranted as the meaning
+of this explicit action, and checks evidence availability against actual tool
+results before writing. Empty/unqueried history cannot justify a review evidence
+label. Session, seat, activity, observation, priority and progress come from the
+trusted evaluation request, never model arguments. Semantic correctness of a
+rationale is still not guaranteed by source/schema validation.
+
+Internal frozen Pydantic TeacherReview fields:
+
+- id: application-generated UUID, unique per stored review.
+- created_at: aware application timestamp (injectable clock for deterministic tests).
+- evaluation: existing AgentEvaluationRequest, preserving session_id, seat_id,
+  activity_id, observed_at, trusted escalation priority/reason, and progress.
+- assessment: existing typed AgentAssessment, providing concise teacher-facing
+  rationale, review recommendation, and constrained evidence labels.
+- status: literal pending; approved/dismissed values are not accepted.
+
+No separate suggestion/recommendation schema or speculative student fields were
+added. The unchanged AgentAssessment moved to internal agent/assessment.py to
+avoid a circular dependency between the agent and review storage; deep_agent.py
+still re-exports it for existing callers. Shared contracts are unchanged.
+
+`TeacherReviewStore(capacity=100, clock=...)` holds at most 100 pending reviews
+(configurable 1–1000), with no external storage. `request_teacher_review(evaluation,
+assessment)` creates or returns the first review for an identical complete evaluation
+request, including across agent runs sharing the store. Requests with different
+observed_at or escalation context are distinct evaluations, not episode-level
+deduplication. A lock protects check-and-create from simultaneous duplicate calls.
+Full stores reject new requests rather than evict pending work; duplicates still
+return their original review when full. `get_pending_reviews()` returns detached
+copies in insertion/creation order. No approve/dismiss, notification, instruction,
+intervention, or dashboard API exists. All returned reviews remain pending.
+
+Factory adds optional `reviews=TeacherReviewStore()`; otherwise the agent instance
+owns a fresh store accessible as agent.reviews. Pass the same store to multiple
+agent instances when cross-run deduplication/pending retrieval is needed. In-memory
+state disappears on restart. An already created review survives a later model/run
+failure or a differently worded final assessment; action execution and final text
+are separate, without rollback or delivery guarantees. Final assessment is not
+teacher approval. No Photon or Supabase call occurs.
+
+All three tools share the existing three-domain-attempt budget. The four-model-call
+budget, bounded retrieval, query reuse, rationale cap, evidence validator/one-shot
+repair, and live Groq timeout/retries remain. Action output is not a new evidence
+source. System instructions explain the explicit pending-review action and human
+control; no forced sequence or auto-approval was introduced.
+
+Ten additional offline tests cover pending fields/identity and typed JSON output,
+unique IDs, capacity, duplicate reuse when full and within a graph run, detached
+retrieval, rejecting approval states/ineligible inputs, no review from assessment
+alone, real history → action → final-model flow, shared action/tool budgets, and
+unavailable-evidence rejection before creation. Full offline suite: 229 passed,
+3 skipped; lint and formatting passed.
+
+Optional live Groq smoke adds review_action using repeated synthetic stalled
+history and a conditional review question (no forced tool_choice). It logs all
+information/action calls, review_action_called, stored review JSON, and final
+assessment/evidence. Run: `uv run python -m agent.live_groq_smoke --scenario review_action`.
+Actual observed run with openai/gpt-oss-20b: no tools selected, no pending review,
+continue_monitoring, evidence_used=[current_progress]. Rationale asserted no evidence
+of prompting/independence issues without retrieving history. Thus live action use
+remains unexercised, and the unchanged information-tool coverage gate exited 1;
+this was not weakened into a passing result. The offline actual-graph test proves
+execution plumbing, not reliable autonomous live action choice. No repeat was
+forced to obtain a preferred outcome. Prior notes/research/citations preserved;
+no commit, merge, or push.
+
+## Targeted live information-to-action evaluation
+
+Added `prolonged_review_action` to the optional Groq smoke script. Run with
+`uv run python -m agent.live_groq_smoke --scenario prolonged_review_action`.
+The synthetic current episode has a 30-second stall and trusted elevated
+`prolonged_stalled_progress` eligibility. Prior summaries show 25-, 30-, and
+35-second stalls at separate timestamps; available prompt outcomes are
+`prompted_correct`, `prompted_correct`, `no_response`. The question requests an
+assessment and conditional pending review without prescribing tools or sequence.
+Core agent configuration, routing, budgets, and offline tests are unchanged.
+
+Observed with `openai/gpt-oss-20b` on November 14, 2026: the first attempt ended
+in `APIConnectionError` before tool use. One unchanged retry after verifying
+connectivity selected `get_recent_progress_history` → `request_teacher_review`.
+The history returned all three recorded stalls; prompt history was not retrieved
+and was not claimed as evidence. The action used
+`evidence_used=[current_progress, recent_progress_history]` and the rationale:
+“Prolonged stall with increasing stalled seconds over 3 minutes suggests persistent
+difficulty; teacher review may help adjust support.” The repeated stall pattern
+is supported, but “3 minutes” overstates the actual two-minute span from the
+earliest returned observation to the current episode. This remains a live-model
+factual precision limitation, not something the evidence-source validator proves.
+
+The action created review `66b99951-d73b-438c-be12-1eecfc426213`, status `pending`,
+created at `2026-11-14T05:30:01.349218Z`. Its stored assessment was
+`teacher_review_warranted`. The complete stored evaluation matched trusted app
+state: session `00000000-0000-0000-0000-000000000001`, seat `SIM-A`, activity
+`raise_hand`, priority `elevated`. The model supplied rationale/evidence only;
+identifiers, priority and status came from application state. The script now logs
+`created_review_context_verified` by comparing every created review's evaluation
+and pending status with the bound request. No notification, approval, dashboard
+write, or instructional change occurred. This local store is ephemeral.
+
+This live Deep Agent demonstrated **information gathering → reasoning over tool
+results → conditional action-tool use**. However, after the successful action,
+the run raised `ModelCallLimitExceededError` at the unchanged four-call budget.
+There was no validated final assessment (`decision`/`rationale` remained null in
+the report); the stored action assessment must not be presented as a final run
+assessment. The pending action survived that later failure as designed. Thus the
+information-to-action path succeeded, while complete run termination remains
+unreliable. The smoke command honestly exited 1; its unchanged coverage gate
+also requires error-free runs exercising both information tools. No guardrail
+was weakened or additional retry used to obtain a preferred decision.
+
+Verification: full offline suite **229 passed, 3 skipped**; existing tests unchanged.
+The live fixture and notes are the only files edited for this targeted step.
+
+## Terminal review action and temporal wording reliability
+
+Successful `request_teacher_review` is now terminal. The action is registered
+with the installed LangChain `return_direct=True` option and returns its JSON
+plus a trusted typed `TeacherReview` artifact. Terminal middleware copies that
+review's **stored** assessment and pending review into final graph state; it does
+not generate a new rationale. An action-only batch exits directly. If a model
+batches information and action calls together, a before-model guard terminates
+before another LLM call or model-limit check. Already scheduled tools in that
+batch may complete; duplicate review actions still reuse the same stored review.
+Failed actions do not produce a terminal success. The four-model-call and
+three-domain-attempt limits, bounded histories, evidence validation/repair,
+500-character rationale cap, and Groq 20-second timeout/two retries are unchanged.
+
+`agent.run(context) -> AgentRunResult(assessment, pending_review=None)` exposes
+the typed final assessment and optional pending review together. The graph also
+returns `structured_response` and `pending_review` directly. Existing
+`agent.assess(context)` remains compatible and returns only the assessment.
+Monitoring or a review recommendation without the action creates no review.
+An existing review's original assessment is preserved when an identical request
+is reused. No LLM turn is needed to restate a decision already validated and
+stored by the action. This supersedes the previous post-action reasoning flow;
+earlier live results above are historical, not current terminal semantics.
+
+Temporal instructions now prohibit timestamp-derived elapsed-span arithmetic,
+summing durations or converting them into invented spans. Timestamps establish
+ordering. The agent should quote exact deterministic `stalled_seconds` values or
+use wording such as “repeated prolonged stalls”; separate snapshots do not prove
+continuous stalling between them. No shared/history schema or additional duration
+field was needed. This is prompt guidance, not a claim that schema validation can
+prove every numerical or educational statement true.
+
+Live rerun on November 14, 2026 with `openai/gpt-oss-20b`:
+
+| Scenario | Selected tools, in order | Result |
+|---|---|---|
+| `prolonged_review_action` | None | Valid `teacher_review_warranted`, evidence `current_progress`; no action and no pending review. It quoted the supplied 30 seconds without deriving a time span, but introduced an unsupported claim about “typical thresholds for independent progress.” |
+| `prompt_support_pattern` | `get_prompt_history` → `request_teacher_review` | Successful terminal result, `teacher_review_warranted`, evidence `prompt_history`, `current_progress`; pending review returned with the exact stored assessment and no post-action model turn. |
+
+The second scenario created pending review
+`36b73c5b-ed6c-453f-b12a-01765e5e4cd0` at `2026-11-14T05:35:53.581976Z`.
+Trusted evaluation context matched session `00000000-0000-0000-0000-000000000001`,
+seat `SIM-A`, activity `raise_hand`, priority `normal`. Its final/stored rationale:
+“Student achieved independent correct only once, then required prompting for
+subsequent attempts while progress stalled, indicating a need to review support
+levels for this task.” No unsupported time-span claim or model-budget exhaustion
+occurred. The smoke script checks final review/assessment equality with stored
+state and logs `post_action_model_turn=false` and
+`created_review_context_verified=true`. No notification, approval or instruction
+change occurred; reviews remain in an ephemeral local store.
+
+Command: `uv run python -m agent.live_groq_smoke --scenario prolonged_review_action --scenario prompt_support_pattern`.
+The terminal fix was demonstrated live in the prompt-history scenario, but the
+requested prolonged-stall scenario did **not** select the action. Autonomous
+action selection remains variable. The unchanged suite coverage gate exited 1
+because progress history was not selected across these two runs; it was not
+weakened into a pass. No repeat was forced to obtain a preferred choice. The live
+information → reasoning → terminal action path is demonstrated, while reliable
+tool selection and factual quality still require evaluation.
+
+Offline verification: **235 passed, 3 skipped** across the full suite. Tests
+cover no post-action model call, typed pending-review return, original stored
+assessment preservation, duplicate actions (including parallel calls), mixed
+information/action batches at the model limit, unchanged default budgets, empty
+review on monitoring, and explicit temporal instructions. Lint and formatting
+passed. These tests prove mechanics and prompt content, not live-model compliance.
 
 ## Citations
 

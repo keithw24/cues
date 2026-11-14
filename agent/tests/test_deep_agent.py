@@ -81,6 +81,7 @@ def test_direct_assessment_and_serialized_context():
     assert set(model.offered[0]) == {
         "get_recent_progress_history",
         "get_prompt_history",
+        "request_teacher_review",
         "AgentAssessment",
     }
 
@@ -118,6 +119,7 @@ def test_history_tool_result_reenters_same_run_and_is_scoped():
         assert set(offered) == {
             "get_recent_progress_history",
             "get_prompt_history",
+            "request_teacher_review",
             "AgentAssessment",
         }
 
@@ -423,3 +425,275 @@ def test_both_tools_feed_same_run_and_prompt_cache_is_separate(monkeypatch):
     assert "stalled" in outputs[0].content
     assert outputs[1].content == outputs[2].content
     assert "independent_correct" in outputs[1].content
+
+
+def evidence_assessment(label):
+    message = assessment()
+    message.tool_calls[0]["args"]["evidence_used"] = [label]
+    return message
+
+
+@pytest.mark.parametrize(
+    "tool,label",
+    [
+        ("get_recent_progress_history", "recent_progress_history"),
+        ("get_prompt_history", "prompt_history"),
+    ],
+)
+def test_empty_source_gets_one_same_run_repair(tool, label):
+    model = ToolModel(
+        responses=[
+            AIMessage(content="", tool_calls=[dict(name=tool, id="h", args={})]),
+            evidence_assessment(label),
+            assessment(),
+        ]
+    )
+    result = create_cues_deep_agent(model, ProgressHistoryStore()).assess(context())
+    assert result.evidence_used == ["current_progress"]
+    assert len(model.seen) == 3
+    correction = model.seen[-1][-1].content
+    assert "single correction" in correction
+    assert (
+        label in correction
+        and "Available evidence sources: activity, current_progress" in correction
+    )
+    assert any(isinstance(m, ToolMessage) and m.content == "[]" for m in model.seen[-1])
+
+
+def test_second_invalid_evidence_fails_without_retry_loop():
+    from agent.deep_agent import EvidenceValidationError
+
+    model = ToolModel(
+        responses=[
+            evidence_assessment("prompt_history"),
+            evidence_assessment("prompt_history"),
+            assessment(),
+        ]
+    )
+    with pytest.raises(EvidenceValidationError):
+        create_cues_deep_agent(model, ProgressHistoryStore()).assess(context())
+    assert len(model.seen) == 2
+
+
+def test_repair_uses_remaining_model_budget():
+    from langchain.agents.middleware.model_call_limit import ModelCallLimitExceededError
+
+    from agent.deep_agent import AgentBudgets
+
+    model = ToolModel(
+        responses=[history_call(), evidence_assessment("recent_progress_history"), assessment()]
+    )
+    with pytest.raises(ModelCallLimitExceededError):
+        create_cues_deep_agent(
+            model, ProgressHistoryStore(), budgets=AgentBudgets(max_model_steps=2)
+        ).assess(context())
+    assert len(model.seen) == 2
+
+
+def test_repair_fits_exactly_in_default_four_model_calls():
+    prompt_call = AIMessage(
+        content="", tool_calls=[dict(name="get_prompt_history", id="p", args={})]
+    )
+    model = ToolModel(
+        responses=[history_call(), prompt_call, evidence_assessment("prompt_history"), assessment()]
+    )
+    result = create_cues_deep_agent(model, ProgressHistoryStore()).assess(context())
+    assert result.evidence_used == ["current_progress"]
+    assert len(model.seen) == 4
+
+
+def test_nonempty_evidence_needs_no_repair():
+    current = context()
+    store = ProgressHistoryStore()
+    store.record(
+        SeatState(
+            session_id=current.request.session_id,
+            seat_id="A",
+            activity_id="task",
+            status="in_progress",
+            updated_at=current.request.observed_at,
+        ),
+        ProgressState("stalled", 10),
+    )
+    model = ToolModel(responses=[history_call(), evidence_assessment("recent_progress_history")])
+    result = create_cues_deep_agent(model, store).assess(current)
+    assert result.evidence_used == ["recent_progress_history"]
+    assert len(model.seen) == 2
+
+
+def review_call(evidence=None):
+    return AIMessage(
+        content="",
+        tool_calls=[
+            dict(
+                name="request_teacher_review",
+                id="review",
+                args=dict(
+                    rationale="Repeated observed stalls merit teacher review.",
+                    evidence_used=evidence or ["current_progress"],
+                ),
+            )
+        ],
+    )
+
+
+def test_assessment_without_action_creates_no_review():
+    from agent.teacher_review import TeacherReviewStore
+
+    reviews = TeacherReviewStore()
+    final = assessment()
+    final.tool_calls[0]["args"]["decision"] = "teacher_review_warranted"
+    create_cues_deep_agent(
+        ToolModel(responses=[final]), ProgressHistoryStore(), reviews=reviews
+    ).assess(context())
+    assert reviews.get_pending_reviews() == []
+
+
+def test_information_then_review_action_same_run():
+    from agent.teacher_review import TeacherReviewStore
+
+    current = context()
+    store = ProgressHistoryStore()
+    store.record(
+        SeatState(
+            session_id=current.request.session_id,
+            seat_id="A",
+            activity_id="task",
+            status="in_progress",
+            updated_at=current.request.observed_at,
+        ),
+        ProgressState("stalled", 10),
+    )
+    reviews = TeacherReviewStore()
+    model = ToolModel(responses=[history_call(), review_call(["recent_progress_history"])])
+    result = create_cues_deep_agent(model, store, reviews=reviews).run(current)
+    assert result.assessment.decision == "teacher_review_warranted"
+    pending = reviews.get_pending_reviews()
+    assert len(pending) == 1
+    assert pending[0].evaluation == current.request
+    assert pending[0].status == "pending"
+    assert pending[0].assessment.evidence_used == ["recent_progress_history"]
+    assert result.pending_review == pending[0]
+    assert result.assessment == pending[0].assessment
+    assert result.assessment.rationale == "Repeated observed stalls merit teacher review."
+    assert len(model.seen) == 2
+    assert not any(
+        isinstance(m, ToolMessage) and m.name == "request_teacher_review"
+        for messages in model.seen
+        for m in messages
+    )
+
+
+def test_action_counts_toward_shared_budget():
+    from langchain.agents.middleware.tool_call_limit import ToolCallLimitExceededError
+
+    from agent.deep_agent import AgentBudgets
+    from agent.teacher_review import TeacherReviewStore
+
+    reviews = TeacherReviewStore()
+    model = ToolModel(responses=[history_call(), review_call(), assessment()])
+    with pytest.raises(ToolCallLimitExceededError):
+        create_cues_deep_agent(
+            model,
+            ProgressHistoryStore(),
+            reviews=reviews,
+            budgets=AgentBudgets(max_domain_tool_calls=1),
+        ).assess(context())
+    assert reviews.get_pending_reviews() == []
+
+
+def test_action_rejects_unavailable_evidence_before_write():
+    from agent.deep_agent import EvidenceValidationError
+    from agent.teacher_review import TeacherReviewStore
+
+    reviews = TeacherReviewStore()
+    model = ToolModel(responses=[review_call(["prompt_history"]), assessment()])
+    with pytest.raises(EvidenceValidationError):
+        create_cues_deep_agent(model, ProgressHistoryStore(), reviews=reviews).assess(context())
+    assert reviews.get_pending_reviews() == []
+
+
+def test_repeated_review_action_is_idempotent():
+    from agent.teacher_review import TeacherReviewStore
+
+    reviews = TeacherReviewStore()
+    first = review_call()
+    second = review_call()
+    second.tool_calls[0]["id"] = "review_again"
+    model = ToolModel(responses=[first, second, assessment()])
+    create_cues_deep_agent(model, ProgressHistoryStore(), reviews=reviews).assess(context())
+    assert len(reviews.get_pending_reviews()) == 1
+    assert len(model.seen) == 1  # Neither the second action nor final model turn executes.
+
+
+def test_parallel_duplicate_actions_return_one_pending_review():
+    from agent.teacher_review import TeacherReviewStore
+
+    reviews = TeacherReviewStore()
+    first = review_call()
+    second = review_call().tool_calls[0]
+    second["id"] = "duplicate"
+    first.tool_calls.append(second)
+    model = ToolModel(responses=[first])
+    result = create_cues_deep_agent(model, ProgressHistoryStore(), reviews=reviews).run(context())
+    assert result.pending_review == reviews.get_pending_reviews()[0]
+    assert len(reviews.get_pending_reviews()) == 1
+    assert len(model.seen) == 1
+
+
+def test_terminal_duplicate_preserves_the_original_stored_assessment():
+    from agent.teacher_review import TeacherReviewStore
+
+    current = context()
+    reviews = TeacherReviewStore()
+    original = reviews.request_teacher_review(
+        current.request,
+        AgentAssessment(
+            decision="teacher_review_warranted",
+            rationale="Original observed stall warrants review.",
+            evidence_used=["current_progress"],
+        ),
+    )
+    model = ToolModel(responses=[review_call()])
+    result = create_cues_deep_agent(model, ProgressHistoryStore(), reviews=reviews).run(current)
+    assert result.pending_review == original
+    assert result.assessment == original.assessment
+    assert len(model.seen) == 1
+    assert len(reviews.get_pending_reviews()) == 1
+
+
+@pytest.mark.parametrize("mixed_batch", [False, True])
+def test_terminal_review_at_model_budget_without_post_action_loop(mixed_batch):
+    from agent.deep_agent import AgentBudgets
+
+    action = review_call()
+    if mixed_batch:
+        action.tool_calls.extend(history_call().tool_calls)
+    model = ToolModel(responses=[action, assessment()])
+    agent = create_cues_deep_agent(
+        model, ProgressHistoryStore(), budgets=AgentBudgets(max_model_steps=1)
+    )
+    result = agent.run(context())
+    assert result.assessment == result.pending_review.assessment
+    assert result.pending_review.status == "pending"
+    assert len(model.seen) == 1
+    assert len(agent.reviews.get_pending_reviews()) == 1
+
+
+def test_monitoring_run_returns_no_pending_review():
+    result = create_cues_deep_agent(
+        ToolModel(responses=[assessment()]), ProgressHistoryStore()
+    ).run(context())
+    assert result.pending_review is None
+    assert result.assessment.decision == "continue_monitoring"
+
+
+def test_temporal_instructions_use_deterministic_durations_not_timestamp_arithmetic():
+    from agent.deep_agent import SYSTEM_PROMPT
+
+    assert "Do not calculate elapsed spans, totals or converted durations from timestamps" in (
+        SYSTEM_PROMPT
+    )
+    assert "exact deterministic stalled_seconds" in SYSTEM_PROMPT
+    assert 'qualitative wording such as "repeated prolonged stalls"' in SYSTEM_PROMPT
+    assert "do not establish continuous stalling between them" in SYSTEM_PROMPT
