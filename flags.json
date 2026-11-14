@@ -100,5 +100,11 @@
     "default": false,
     "owner": "keith",
     "ticket": "session-controls"
+  },
+  "web.simulated_names": {
+    "description": "Show made-up first names for simulated people instead of Person 1, Person 2 on the dashboard.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "dashboard-redesign"
   }
 }
