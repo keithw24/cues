@@ -126,6 +126,11 @@ function SeatDetails({
               )}
             </dd>
           </div>
+          <div><dt>Person / activity ID</dt><dd>{seat.id} / {seat.state?.activity_id ?? "None"}</dd></div>
+          <div><dt>Tracking valid</dt><dd>{seat.state?.tracking_valid == null ? "Unknown" : seat.state.tracking_valid ? "Yes" : "Tracking unavailable"}</dd></div>
+          <div><dt>Supporting expression context</dt><dd>{seat.state?.expression_context
+            ? `${seat.state.expression_context.label}: ${seat.state.expression_context.probability.toFixed(2)} (model output only)`
+            : "Unavailable"}</dd></div>
         </dl>
         {seat.is_simulated ? (
           <p className="detail-simulation">Simulated seat · {seat.id}</p>
@@ -197,7 +202,7 @@ export default function Dashboard({
   const [client] = useState(() => {
     try {
       return createDashboardClient(
-        sessionControlsEnabled || teacherLoginEnabled,
+        sessionControlsEnabled || teacherLoginEnabled || reviewActionsEnabled,
       );
     } catch {
       return null;

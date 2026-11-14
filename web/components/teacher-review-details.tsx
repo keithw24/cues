@@ -76,6 +76,10 @@ export function TeacherReviewDetails({
                     : "Decision unavailable"}
                 </dd>
               </div>
+              <div><dt>Status</dt><dd>{review.status}</dd></div>
+              <div><dt>Evaluated progress</dt><dd>{review.progress?.trend ?? "Unavailable"}</dd></div>
+              <div><dt>Stall at evaluation</dt><dd>{review.progress ? `${review.progress.stalled_seconds} seconds` : "Unavailable"}</dd></div>
+              <div><dt>Escalation reason</dt><dd>{review.escalation_reason ?? "Unavailable"}</dd></div>
               <div>
                 <dt>Priority</dt>
                 <dd>{priorityLabels[review.priority]}</dd>
@@ -125,13 +129,13 @@ export function TeacherReviewDetails({
                 <p>No evidence summary provided.</p>
               )}
             </section>
-            <ProgressContext
+            {!review.progress ? <ProgressContext
               observation={
                 seats.find((seat) => seat.id === review.seat_id)?.state
               }
               scope={review}
               observationOptions={observationOptions}
-            />
+            /> : null}
             {children}
           </>
         )}

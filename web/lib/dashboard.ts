@@ -47,6 +47,12 @@ export type SeatState = {
   status: SeatStatus;
   task_score: number | null;
   tracking_valid?: boolean | null;
+  expression_context?: {
+    label: string;
+    probability: number;
+    duration_seconds?: number | null;
+    supporting_only: true;
+  } | null;
   updated_at: string;
 };
 export type Activity = { id: string; name: string };
@@ -112,6 +118,16 @@ export function parseSnapshot(
       )
         throw new Error("Invalid tracking validity");
       const score = r.task_score;
+      const expression = r.expression_context;
+      if (readTracking && expression != null) {
+        const e = record(expression);
+        if (!['anger', 'contempt', 'disgust', 'fear', 'happiness', 'neutral', 'sadness', 'surprise'].includes(String(e.label)) ||
+            typeof e.probability !== 'number' || !Number.isFinite(e.probability) ||
+            e.probability < 0 || e.probability > 1 || e.supporting_only !== true ||
+            (e.duration_seconds != null && (typeof e.duration_seconds !== 'number' ||
+             !Number.isFinite(e.duration_seconds) || e.duration_seconds < 0)))
+          throw new Error('Invalid expression context');
+      }
       if (
         score !== null &&
         (typeof score !== "number" ||
@@ -133,6 +149,7 @@ export function parseSnapshot(
           ? {
               tracking_valid:
                 typeof r.tracking_valid === "boolean" ? r.tracking_valid : null,
+              expression_context: (expression ?? null) as SeatState['expression_context'],
             }
           : {}),
         updated_at: updated,

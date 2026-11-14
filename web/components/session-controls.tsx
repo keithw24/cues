@@ -290,14 +290,14 @@ export function SessionControls({
         }
         onClick={() => void act(selection)}
       >
-        {busy ? "Updating…" : "Start activity"}
+        {busy ? "Updating…" : snapshot?.session ? "Change activity" : "Start Session"}
       </button>
       <button
         type="button"
         disabled={busy || !snapshot?.session || refreshRequired}
         onClick={() => void act(null)}
       >
-        End session
+        End Session
       </button>
       <button
         type="button"
@@ -321,6 +321,14 @@ export function SessionControls({
         <span className="session-sync-status" role="status">
           {stationSyncLabel(snapshot, now)}
         </span>
+      ) : null}
+      {snapshot ? (
+        <details className="session-sync-status">
+          <summary>Session status · {station} · {snapshot.session ? "Active" : "Inactive"}</summary>
+          <p>Session: {snapshot.session?.id ?? "None"}</p>
+          <p>Activity: {snapshot.session?.current_activity_id ?? "None"}</p>
+          <p>Owner: {snapshot.session?.teacher_id ?? "Unowned / unavailable"}</p>
+        </details>
       ) : null}
       {sessionOwnership(snapshot?.session ?? null, user) === "unowned" ? (
         <p className="session-sync-status" role="status">
