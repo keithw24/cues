@@ -63,7 +63,7 @@ export default function Landing() {
             <h2 id="how-heading">Simple tasks, watched for you</h2>
             <p>
               Pick a task from the list or record your own gesture. One camera
-              follows each seat by where it sits in the frame, and Cues keeps
+              follows each student by their place in the frame, and Cues keeps
               track of who has finished, who is still going and who keeps
               trying.
             </p>
@@ -90,9 +90,9 @@ export default function Landing() {
           <div className="ln-section-copy">
             <h2 id="control-heading">You decide what changes</h2>
             <p>
-              When a pattern matters, Cues suggests support from your approved
-              list and says why. Nothing about a student’s task or instructions
-              changes until you approve it.
+              When a pattern matters, Cues flags who may need you and says why.
+              Nothing about a student’s task, instructions or support changes
+              until you approve it.
             </p>
           </div>
           <div className="ln-card">
@@ -123,7 +123,7 @@ export default function Landing() {
         >
           <h2 id="privacy-heading">The camera stays in the classroom</h2>
           <p>
-            Video is processed on the station laptop. Only short task events,
+            Video stays on the station laptop. Only structured status updates,
             such as “Seat 1 finished thumbs up”, leave it.
           </p>
           <ul className="ln-facts">
