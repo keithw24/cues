@@ -8,7 +8,7 @@ This file defines how the 3-person Cues team builds independently and integrates
 |---|---|---|
 | Keith | `keith` | Computer vision / local perception |
 | Evan | `evan` | Frontend + app backend / Supabase UI |
-| Michelle | `michelle` | Rules engine + Deep Agent + Groq + Photon |
+| Michelle | `michelle` | Rules engine + Deep Agent + LLM integration + Photon |
 
 `main` is the shared integration branch.
 
@@ -100,7 +100,7 @@ Rules engine
   ↓
 Deep Agent
   ↓
-Groq / GPT-OSS
+Configurable LLM provider
   ↓
 Tool actions
   ├── Supabase alert
@@ -113,7 +113,7 @@ Owns:
 - event routing
 - alert cooldowns
 - Deep Agents
-- Groq integration
+- provider-neutral LLM integration
 - agent tools
 - support-preference retrieval
 - intervention selection
@@ -121,6 +121,8 @@ Owns:
 - Photon
 - approval workflow
 - deterministic fallback when the LLM is unavailable
+
+LLM provider and model selection is undecided; Groq and SpaceXSI are under consideration. Keep provider integration configurable and separate from routing and tool logic.
 
 Michelle's code receives **structured state only**.
 
@@ -137,7 +139,7 @@ flowchart LR
     C --> D[Supabase Realtime]
     D --> E[Teacher Dashboard]
     D --> F[Rules + Deep Agent]
-    F --> G[Groq / GPT-OSS 20B]
+    F --> G[Configurable LLM provider]
     F --> H[Photon Alert]
 ```
 
@@ -247,11 +249,11 @@ Example:
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
   "seat_id": "S1-L",
-  "reason": "repeated_misses",
+  "reason": "stalled_progress",
   "priority": "high",
   "suggestion": "Demonstrate the gesture again",
   "evidence": {
-    "attempts": 3,
+    "stalled_seconds": 30,
     "expression_signal": true
   },
   "status": "pending",
@@ -330,9 +332,9 @@ Develop with fake events.
 Example:
 
 ```text
-attempt_miss
-attempt_miss
-attempt_miss
+timestamped task observations
+→ rolling progress window
+→ sustained stall
 ```
 
 should be enough to test:
@@ -466,7 +468,7 @@ Commit both lockfiles when dependencies change.
 - No YOLO / MobileNet object-state pipeline in the MVP.
 - No Amazon Bedrock dependency.
 - Student camera frames stay local.
-- Groq / the LLM receives structured state only.
+- The LLM receives structured state only.
 - Expression is supporting evidence only.
 - Teacher approval is required before instructional changes.
 - Voice task commands remain part of the MVP.
@@ -496,3 +498,13 @@ fake events → rules → Deep Agent → structured alert
 ```
 
 Once all three work independently, begin shared integration using the order in Section 6.
+
+## Rolling progress evaluation
+
+The primary automatic routing trigger is sustained lack of progress, not a miss count. Keith supplies fresh task observations; Evan owns app state; Michelle evaluates the rolling window. `SeatState.tracking_valid` explicitly reports task tracking usability; unknown is not valid. For evaluator input, `updated_at` is the task observation time; expression-only/app updates must not masquerade as fresh task samples.
+
+The in-memory evaluator compares earlier/later half-window means (initial window 6 seconds, minimum increase 0.10), sampling at most once per second. These are tunable demo settings, not validated cutoffs. Improving progress resets the stall timer. Incomplete valid history yields unknown. Boolean rule tasks use valid observed time without completion rather than an invented score. Activity.no_progress_seconds determines the stall timeout.
+
+Expression only modifies urgency after task progress qualifies; it never triggers evaluation alone or shortens the timeout in this version. Tracking loss, unknown validity, or gaps over two seconds clear history and reset timing. Completion stops evaluation immediately; discard late agent results for completed tasks. Restarting the same activity requires explicit reset. Evaluate once per stall episode, re-arming after improvement/reset; later routing also enforces seat/reason cooldowns. Evaluation does not itself create an alert.
+
+Verify with timestamped improving, stalled, expression-only, tracking-loss/recovery, and completion sequences before agent integration. Keep all 12 event types as log vocabulary. Calibrate window, minimum increase, observation cadence, and activity timeouts with actual CV outputs.

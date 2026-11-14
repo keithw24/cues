@@ -92,7 +92,7 @@ The product does not attempt to determine a student's diagnosis, intent, or inte
 
 9. **Agentic support workflow**
    - LangChain Deep Agents runs on the FastAPI backend.
-   - The agent uses **Groq + `openai/gpt-oss-20b`** for inference.
+   - The agent uses a configurable LLM provider and model. Selection is undecided; Groq and SpaceXSI are under consideration.
    - The agent chooses which available tools to call based on the current situation.
    - It retrieves task state, recent attempts, support preferences, and current contextual signals before deciding what action is appropriate.
    - Instructional changes always require teacher approval.
@@ -115,7 +115,7 @@ The product does not attempt to determine a student's diagnosis, intent, or inte
 - No attempt to infer diagnoses, intent, attention, or internal emotional state.
 - No emotion-based behavioral scoring.
 - No automatic instructional changes without teacher approval.
-- No raw video or images sent to Supabase, Groq, LangChain, Photon, or any other cloud service.
+- No raw video or images sent to Supabase, any LLM provider, LangChain, Photon, or any other cloud service.
 - No raw camera frames sent to the LLM.
 - No training of large models from scratch.
 - No complex multi-step physical tasks.
@@ -135,18 +135,19 @@ The product does not attempt to determine a student's diagnosis, intent, or inte
 | Facial-expression context | `hsemotion-onnx` with `enet_b0_8_best_vgaf` |
 | Realtime data | Supabase Postgres + Realtime |
 | Agent orchestration | LangChain Deep Agents |
-| LLM inference | Groq + `openai/gpt-oss-20b` |
+| LLM inference | Configurable provider and model (TBD) |
 | Physical hardware | Logitech camera |
 | Teacher messaging | Photon |
 | Agent / API backend | FastAPI (Python) |
 
-The LLM provider should remain configurable through environment variables so it can be replaced without changing agent logic.
+LLM provider and model selection is undecided; Groq and SpaceXSI are under consideration. Keep the provider/model configurable through environment variables so they can be replaced without changing agent logic. These settings are placeholders for future integration; no provider is implemented yet.
 
 Example:
 
 ```env
-LLM_PROVIDER=groq
-LLM_MODEL=openai/gpt-oss-20b
+LLM_PROVIDER=
+LLM_MODEL=
+LLM_API_KEY=
 ```
 
 ---
@@ -162,7 +163,7 @@ flowchart LR
     C --> D[Supabase Realtime]
     D --> E[Teacher Dashboard]
     D --> F[FastAPI + Deep Agent]
-    F --> G[Groq / GPT-OSS 20B]
+    F --> G[Configurable LLM provider]
     F --> H[Photon Alert]
 ```
 
@@ -401,7 +402,7 @@ Instead:
 Example:
 
 ```text
-3 valid failed attempts
+sustained stalled task progress
 +
 sustained sadness/anger/fear signal
 =
@@ -505,10 +506,10 @@ Its purpose is to decide **when the AI agent should be invoked**, not to perform
 
 ### Example triggers
 
-- repeated valid task misses;
+- sustained stalled task progress;
 - no progress for the activity-specific timeout;
 - teacher manually requests agent help;
-- repeated misses combined with a sustained expression signal;
+- stalled progress with supporting sustained expression context;
 - a previously flagged situation changes substantially.
 
 ### Alert cooldown
@@ -550,8 +551,7 @@ expression evidence
 
 - LangChain Deep Agents
 - FastAPI
-- Groq
-- `openai/gpt-oss-20b`
+- Configurable LLM provider and model (TBD; Groq and SpaceXSI are under consideration)
 
 ### 12.2 Agent objective
 
@@ -711,7 +711,7 @@ Example:
 
 ```text
 Cues: Station B may need assistance with “Custom Gesture 1.”
-Repeated unsuccessful attempts detected.
+Task progress has remained stalled.
 Open the dashboard to review the suggested support.
 ```
 
@@ -1070,7 +1070,7 @@ Responsibilities:
 - alert cooldowns;
 - rules engine;
 - Deep Agents;
-- Groq integration;
+- provider-neutral LLM integration;
 - agent tools;
 - tool-choice logic;
 - agent guardrails;
@@ -1105,7 +1105,7 @@ This is a product build plan, not a demo script.
 - create Supabase project;
 - freeze the first event schema;
 - verify camera access;
-- verify Groq API access;
+- verify API access for the selected LLM provider;
 - verify Photon access;
 - verify voice transcription option.
 
@@ -1119,7 +1119,7 @@ This is a product build plan, not a demo script.
 
 **Agent**
 
-- FastAPI + Groq smoke test + fake agent tools.
+- FastAPI + selected-provider LLM smoke test + fake agent tools.
 
 ### Phase 2 — independent vertical components
 
@@ -1194,9 +1194,9 @@ Feature additions stop if they endanger the core end-to-end loop.
 
 - Logitech webcam is available.
 - Demo laptop can run MediaPipe + HSEmotion concurrently at acceptable interactive speed.
-- Internet is available for Supabase, Groq, Photon, and potentially browser speech recognition.
+- Internet is available for Supabase, the selected LLM provider, Photon, and potentially browser speech recognition.
 - A phone hotspot is available as a fallback.
-- Groq free-tier limits are sufficient for event-driven agent calls.
+- The selected provider must support event-driven agent calls within available rate limits.
 - Photon sponsor access is available.
 - The teacher voice interface has button fallback.
 - Only structured state reaches the agent.
@@ -1217,7 +1217,6 @@ uvicorn
 supabase
 langchain
 deepagents
-langchain-groq
 ```
 
 Frontend:
@@ -1279,7 +1278,7 @@ Exact package names should be confirmed during implementation.
 
 - agent only receives compact structured state;
 - no image/video input;
-- use Groq with a small fast model;
+- select a provider/model with suitable latency and tool support;
 - constrain actions to a fixed toolset;
 - deterministic fallback on timeout.
 
@@ -1308,7 +1307,7 @@ Exact package names should be confirmed during implementation.
 
 ### R7 — Venue Wi-Fi
 
-**Risk:** Supabase, Groq, Photon, or speech transcription fails.
+**Risk:** Supabase, the selected LLM provider, Photon, or speech transcription fails.
 
 **Mitigation:**
 
@@ -1396,7 +1395,7 @@ The product is considered functionally successful when:
 9. voice or buttons can select a known activity;
 10. the rules engine invokes the agent only for meaningful situations;
 11. the Deep Agent chooses among real tools rather than returning only free-form chat;
-12. Groq provides the LLM inference without receiving camera frames;
+12. the configured LLM provider supplies inference without receiving camera frames;
 13. the agent can create a structured teacher alert;
 14. Photon can notify the teacher of that alert;
 15. the teacher can approve or dismiss the proposed support;
@@ -1430,7 +1429,7 @@ Only attempt these after the complete core loop works.
 6. What expression probability and duration settings produce stable contextual signals without excessive noise?
 7. What exact Photon API/SDK workflow is available to the team?
 8. Which browser speech-recognition implementation is most reliable at the venue?
-9. What Groq request timeout should trigger the deterministic fallback?
+9. What LLM request timeout should trigger the deterministic fallback?
 10. Which intervention options should be included in the final approved menu?
 
 ---
@@ -1440,3 +1439,13 @@ Only attempt these after the complete core loop works.
 The central design principle of Cues is:
 
 > **Use local perception to notice simple observable signals, use AI to reason about context and route attention, and keep the teacher in control of every meaningful instructional decision.**
+
+## Rolling progress evaluation
+
+The primary automatic routing trigger is sustained lack of progress, not a miss count. Keith supplies fresh task observations; Evan owns app state; Michelle evaluates the rolling window. `SeatState.tracking_valid` explicitly reports task tracking usability; unknown is not valid. For evaluator input, `updated_at` is the task observation time; expression-only/app updates must not masquerade as fresh task samples.
+
+The in-memory evaluator compares earlier/later half-window means (initial window 6 seconds, minimum increase 0.10), sampling at most once per second. These are tunable demo settings, not validated cutoffs. Improving progress resets the stall timer. Incomplete valid history yields unknown. Boolean rule tasks use valid observed time without completion rather than an invented score. Activity.no_progress_seconds determines the stall timeout.
+
+Expression only modifies urgency after task progress qualifies; it never triggers evaluation alone or shortens the timeout in this version. Tracking loss, unknown validity, or gaps over two seconds clear history and reset timing. Completion stops evaluation immediately; discard late agent results for completed tasks. Restarting the same activity requires explicit reset. Evaluate once per stall episode, re-arming after improvement/reset; later routing also enforces seat/reason cooldowns. Evaluation does not itself create an alert.
+
+Verify with timestamped improving, stalled, expression-only, tracking-loss/recovery, and completion sequences before agent integration. Keep all 12 event types as log vocabulary. Calibrate window, minimum increase, observation cadence, and activity timeouts with actual CV outputs.
