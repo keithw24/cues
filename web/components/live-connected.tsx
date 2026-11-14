@@ -81,14 +81,12 @@ export default function LiveConnected({
   reviewsEnabled = false,
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
-  simulatedNamesEnabled = false,
   visionStationConfigEnabled = false,
 }: {
   personObservationsEnabled?: boolean;
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
   teacherLoginEnabled?: boolean;
-  simulatedNamesEnabled?: boolean;
   visionStationConfigEnabled?: boolean;
 }) {
   // Clock values are set after mount, so the server and first render agree.

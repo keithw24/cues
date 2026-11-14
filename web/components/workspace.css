@@ -2140,3 +2140,43 @@ body .dashboard-shell.ws-demo {
     translate: none;
   }
 }
+
+/* The Account row's one action (Sign out / Sign in): a quiet pill. */
+.dashboard-shell .settings-row .settings-row-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-control);
+  color: var(--ws-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition-property: scale, background-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .settings-row button.settings-row-action:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .settings-row-error {
+  color: #f3a383;
+  font-size: 13px;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .settings-row-error {
+  color: var(--ws-review);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .settings-row .settings-row-action:hover {
+    background: var(--ws-pill-hover);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell .settings-row button.settings-row-action:not(:disabled):active {
+    scale: 1;
+  }
+}

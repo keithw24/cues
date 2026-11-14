@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -49,8 +50,32 @@ function mock({
   return { client, upserts, metadataUpdates };
 }
 
-test("teacher profile is off by default", () => {
-  assert.equal(isEnabled("web.teacher_profile", {}), false);
+test("teacher profile is on by default, and =0 turns it off", () => {
+  // Migration 006 (teacher_profiles) is deployed and teachers have saved
+  // profiles through this form.
+  assert.equal(isEnabled("web.teacher_profile", {}), true);
+  assert.equal(
+    isEnabled("web.teacher_profile", { CUES_FLAG_WEB_TEACHER_PROFILE: "0" }),
+    false,
+  );
+});
+
+test("with web.teacher_profile off, the profile page skips the form and shows a fallback row", () => {
+  const page = readFileSync(
+    new URL("../app/settings/profile/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    page,
+    /isEnabled\("web\.teacher_profile"\) && isEnabled\("web\.teacher_login"\)/,
+  );
+  assert.match(
+    page,
+    /enabled\s*\?\s*await import\("@\/components\/teacher-profile-form"\)/,
+  );
+  assert.match(page, /Not turned on in this environment yet\./);
+  assert.match(page, /<ProfileAccount \/>/);
+  assert.match(page, /Classroom camera/);
 });
 
 test("profile input keeps E.164 numbers and rejects others", () => {
@@ -116,4 +141,15 @@ test("a saved profile number is never overwritten by sign-up metadata", async ()
   assert.equal(profile.phone_number, "+16095551234");
   assert.equal(upserts.length, 0);
   assert.equal(metadataUpdates.length, 1);
+});
+
+test("the profile form follows sign-out and clears the previous teacher", () => {
+  const form = readFileSync(
+    new URL("../components/teacher-profile-form.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(form, /onAuthStateChange/);
+  assert.match(form, /setPhone\(""\)/);
+  assert.match(form, /setState\("signed-out"\)/);
+  assert.match(form, /subscription\.unsubscribe\(\)/);
 });

@@ -1,35 +1,130 @@
+/* Profile cards: same surface as the Account and camera rows above them. */
 .profile-form {
   display: grid;
-  gap: 18px;
-  max-width: 480px;
+  gap: 16px;
+}
+.dashboard-shell .profile-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dashboard-shell .profile-card-head h2 {
+  margin: 0;
+  color: var(--ws-page-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+.dashboard-shell .profile-form p {
+  max-width: none;
+  margin: 0;
+  color: var(--ws-page-soft);
+  font-size: 14px;
+  line-height: 1.5;
 }
 .profile-field {
   display: grid;
   gap: 6px;
+  min-width: 0;
   border: 0;
   margin: 0;
   padding: 0;
 }
-.profile-field > span,
-.profile-field > legend {
-  font-weight: 600;
+.dashboard-shell .profile-field > span,
+.dashboard-shell .profile-field > legend {
+  margin-bottom: 0;
   padding: 0;
+  color: var(--ws-page-ink);
+  font-size: 14px;
+  font-weight: 600;
 }
-.profile-field input,
-.profile-field select {
-  font: inherit;
+.dashboard-shell .profile-field input,
+.dashboard-shell .profile-field select {
+  width: 100%;
+  min-width: 0;
   min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid currentColor;
-  border-radius: 8px;
+  padding: 0 12px;
+  /* Half the ink keeps the field edge at about 3:1 against the card. */
+  border: 1px solid color-mix(in oklab, var(--ws-page-ink) 50%, transparent);
+  border-radius: 10px;
   background: transparent;
-  color: inherit;
+  color: var(--ws-page-ink);
+  font: inherit;
+  font-size: 14px;
+}
+.dashboard-shell .profile-field input:disabled {
+  opacity: 0.6;
 }
 .profile-phone {
   display: grid;
   grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
   gap: 8px;
 }
-.profile-form .primary-button {
-  justify-self: start;
+.profile-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.dashboard-shell .profile-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ws-page-ink);
+  font-size: 14px;
+}
+.dashboard-shell .profile-check input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--ws-blue);
+}
+.dashboard-shell .profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.dashboard-shell .profile-actions button {
+  min-height: 40px;
+  font-size: 14px;
+}
+.dashboard-shell .profile-actions p:empty {
+  display: none;
+}
+
+/* Notification status: one pill, colored by state. */
+.dashboard-shell .profile-status {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  color: var(--ws-page-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+:root[data-theme="light"]
+  .dashboard-shell:not(.ws-demo)
+  .profile-status.is-not-enabled {
+  background: var(--ws-surface);
+  color: var(--ws-ink-soft);
+}
+.dashboard-shell .profile-status.is-enabled {
+  background: var(--ws-done-soft);
+  color: var(--ws-done);
+}
+.dashboard-shell .profile-status.is-activating {
+  background: var(--ws-blue-soft);
+  color: var(--ws-blue-deep);
+}
+.dashboard-shell .profile-status.is-activation-failed {
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+}
+
+@media (max-width: 520px) {
+  .profile-pair,
+  .profile-phone {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

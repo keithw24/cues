@@ -127,10 +127,19 @@ test("the rail links to /live only when the live view is on", () => {
 
 test("the rail keeps only Teacher profile, Classroom and Live", () => {
   const rail = read("../components/workspace-sidebar.tsx");
-  const links = [...rail.matchAll(/<Link\s+href="([^"]+)"/g)]
-    .map((m) => m[1])
-    .filter((href) => !["/", "/login"].includes(href));
-  assert.deepEqual(links, ["/settings/profile", "/dashboard", "/live"]);
+  const links = new Set(
+    [...rail.matchAll(/<Link\s+href="([^"]+)"/g)]
+      .map((m) => m[1])
+      .filter((href) => href !== "/"),
+  );
+  // The account buttons open the profile (email and sign out live there);
+  // nothing in the rail sends a signed-in teacher to the sign-in page.
+  assert.deepEqual([...links].sort(), [
+    "/dashboard",
+    "/live",
+    "/settings/profile",
+  ]);
+  assert.doesNotMatch(rail, /href="\/login"/);
   assert.doesNotMatch(
     rail,
     /#seats-heading|#attention-panel|\/settings\/notifications/,
