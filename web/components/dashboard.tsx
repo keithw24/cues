@@ -154,9 +154,6 @@ function SeatDetails({
             </dd>
           </div>
         </dl>
-        {seat.is_simulated ? (
-          <p className="detail-simulation">Simulated seat · {seat.id}</p>
-        ) : null}
         <ProgressContext
           observation={seat.state}
           scope={seat.state ?? undefined}
@@ -399,12 +396,6 @@ export default function Dashboard({
         </div>
       </details>
     );
-  const allSimulated =
-    seats.length > 0 && seats.every((seat) => seat.is_simulated);
-  const simulatedChip =
-    seats.length > 0 && seats.every((seat) => seat.is_simulated) ? (
-      <span className="status-chip">Simulated data</span>
-    ) : null;
   const roomPeople: RoomPerson[] = inView.map((seat) => {
     const presentation = observationPresentation(
       seat.state,
@@ -491,10 +482,7 @@ export default function Dashboard({
             <header className="room-header">
               <div>
                 <h1>your classroom</h1>
-                <p className="room-subtitle">
-                  {activity}
-                  {allSimulated ? " · simulated class" : null}
-                </p>
+                <p className="room-subtitle">{activity}</p>
               </div>
               <div className="room-actions">
                 {sessionLive ? null : activityPopover}
@@ -574,7 +562,6 @@ export default function Dashboard({
                 <strong>{activity}</strong>
               </div>
               {activityPopover}
-              {simulatedChip}
             </div>
           </>
         )}

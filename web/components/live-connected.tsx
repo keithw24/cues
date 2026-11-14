@@ -243,8 +243,6 @@ export default function LiveConnected({
     counts.set(seat.activity, (counts.get(seat.activity) ?? 0) + 1);
   const activity =
     [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Live";
-  const simulated =
-    seats.length > 0 && seats.every((seat) => seat.is_simulated);
 
   const start = openedAt ?? 0;
 
@@ -467,7 +465,6 @@ export default function LiveConnected({
       <div className="live-main-col">
         <LiveHero
           activity={activity}
-          simulated={simulated}
           count={feed.snapshot ? doneNow : "—"}
           total={inView.length || null}
           noun="finished"

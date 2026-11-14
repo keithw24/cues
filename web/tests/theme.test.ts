@@ -148,3 +148,11 @@ test("people are labelled as the backend names them, never made-up names", () =>
     );
   }
 });
+
+test("the workspace shows no simulated class or data labels", () => {
+  for (const file of ["dashboard.tsx", "live-connected.tsx", "live-screen.tsx"])
+    assert.doesNotMatch(
+      read(`../components/${file}`),
+      /simulated class|Simulated data|Simulated seat|Simulated class/,
+    );
+});
