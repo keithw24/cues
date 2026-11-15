@@ -41,6 +41,26 @@ Never print the connection URL, enable shell tracing, or run a remote db reset.
 The earlier duplicate-history warnings in historical notes are superseded by
 this reconciliation. Fresh projects should apply the current unique sorted chain.
 
+## Review lifecycle (migration 013, local only)
+
+`20261114001300_review_lifecycle.sql`:
+
+- **Reviews close with their session.** When a session's `ended_at` is set, its pending
+  reviews become `expired` (a trigger, so it covers every way a session can end). A review
+  that arrives after its session ended is closed on arrival. `expired` is not `dismissed`:
+  the dashboard shows dismissed as the teacher's own "No support needed", and nobody decided
+  that. Teachers still resolve reviews only as confirmed or dismissed
+  (`resolve_teacher_review` is unchanged); `expired` cannot be reopened or changed.
+- **One open review per person.** A partial unique index allows one pending review per
+  session, seat and activity. The agent reuses the open one for later evaluations (no new
+  row, no second notification) and opens a new one only after it is resolved.
+- **One-time cleanup when applied:** pending reviews in sessions that already ended become
+  `expired`, and in running sessions the newer duplicates of an open review become `expired`
+  (the oldest stays open). Teachers' own confirmed/dismissed decisions are never changed.
+
+Local tests: `supabase/tests/test_review_lifecycle.py` (needs PostgreSQL, see below).
+Not deployed.
+
 ## Default station per teacher (migration 011, local only)
 
 `20261114001100_default_station.sql` adds `station_teachers.is_default` (at most one

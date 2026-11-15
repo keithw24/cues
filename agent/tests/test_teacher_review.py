@@ -192,3 +192,22 @@ def test_invalid_resolution_clock_leaves_review_pending():
         store.confirm_needs_attention(review.id)
     assert store.get_review(review.id) == review
     assert store.get_pending_reviews() == [review]
+
+
+def test_one_open_review_per_person_in_the_local_store():
+    from datetime import timedelta
+
+    store = TeacherReviewStore()
+    first = store.request_teacher_review(request(), assessment())
+    again = store.request_teacher_review(
+        replace(request(), observed_at=NOW + timedelta(seconds=30)), assessment()
+    )
+    assert again.id == first.id and len(store.get_pending_reviews()) == 1
+    assert (
+        store.request_teacher_review(replace(request(), seat_id="B"), assessment()).id != first.id
+    )
+    store.dismiss_review(first.id)
+    reopened = store.request_teacher_review(
+        replace(request(), observed_at=NOW + timedelta(seconds=60)), assessment()
+    )
+    assert reopened.id != first.id

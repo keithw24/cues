@@ -659,3 +659,12 @@ test("teacher A's in-flight read and realtime rows never reach teacher B", async
   );
   h.feed.dispose();
 });
+
+test("a review closed automatically when its session ended is valid but never in the queue", () => {
+  const closed = parseTeacherReviews([
+    { ...row, status: "expired", resolved_at: "2026-11-14T13:00:00Z" },
+  ]);
+  assert.equal(closed[0].status, "expired");
+  assert.deepEqual(pendingReviews(closed), []); // nothing "waiting" for an ended session
+  assert.throws(() => parseTeacherReviews([{ ...row, status: "archived" }]));
+});

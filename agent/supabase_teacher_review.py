@@ -110,19 +110,58 @@ class SupabaseTeacherReviewStore:
         except (KeyError, TypeError, ValueError):
             raise TeacherReviewPersistenceError("Supabase returned invalid review data") from None
 
+    def _open_review(self, evaluation: AgentEvaluationRequest) -> TeacherReview | None:
+        """The one open (pending) review for this person, activity and session, if any."""
+        rows = self._execute(
+            self.client.table("teacher_reviews")
+            .select("*")
+            .match(
+                {
+                    "session_id": str(evaluation.session_id),
+                    "seat_id": evaluation.seat_id,
+                    "activity_id": evaluation.activity_id,
+                    "status": "pending",
+                }
+            )
+            .limit(1)  # the database allows at most one open review per person
+        )
+        return self._decode(rows[0]) if rows else None
+
     def request_teacher_review(
         self, evaluation: AgentEvaluationRequest, assessment: AgentAssessment
     ) -> TeacherReview:
         assessment = validate_review_request(evaluation, assessment)
+        # One open review per person: a new evaluation reuses it. It creates nothing and
+        # sends no second notification. A new review opens only after it is resolved.
+        open_review = self._open_review(evaluation)
+        if open_review is not None:
+            return open_review
         review = TeacherReview(
             id=uuid4(), created_at=self._clock(), evaluation=evaluation, assessment=assessment
         )
         row = review_to_row(review)
-        rows = self._execute(
-            self.client.table("teacher_reviews").upsert(
-                row, on_conflict="evaluation", ignore_duplicates=True
+        try:
+            data = (
+                self.client.table("teacher_reviews")
+                .upsert(row, on_conflict="evaluation", ignore_duplicates=True)
+                .execute()
+                .data
             )
-        )
+        except APIError as error:
+            if error.code == "23505":  # another process opened one between the check and now
+                open_review = self._open_review(evaluation)
+                if open_review is not None:
+                    return open_review
+            raise TeacherReviewPersistenceError(
+                "Supabase teacher-review operation failed"
+            ) from None
+        except HTTPError:
+            raise TeacherReviewPersistenceError(
+                "Supabase teacher-review operation failed"
+            ) from None
+        if not isinstance(data, list):
+            raise TeacherReviewPersistenceError("Supabase returned no review representation")
+        rows = data
         created = bool(rows)
         if not rows:
             rows = self._execute(

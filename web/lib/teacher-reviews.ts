@@ -20,7 +20,8 @@ export type TeacherReview = Readonly<{
   decision?: AssessmentDecision | null;
   rationale: string;
   evidence_used: readonly EvidenceSource[];
-  status: "pending" | "confirmed" | "dismissed";
+  /** "expired": closed automatically when its session ended; no teacher decision. */
+  status: "pending" | "confirmed" | "dismissed" | "expired";
   resolved_at: string | null;
   progress?: { trend: string; stalled_seconds: number } | null;
   escalation_reason?: string | null;
@@ -63,7 +64,11 @@ export function parseTeacherReviews(input: unknown): TeacherReview[] {
     ids.add(id);
     if (row.priority !== "normal" && row.priority !== "elevated")
       throw new Error("Invalid review priority");
-    if (!["pending", "confirmed", "dismissed"].includes(String(row.status)))
+    if (
+      !["pending", "confirmed", "dismissed", "expired"].includes(
+        String(row.status),
+      )
+    )
       throw new Error("Invalid review status");
     const evidence = row.evidence_used ?? [];
     if (
