@@ -8,7 +8,14 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
+from dotenv import dotenv_values
+
 from agent.teacher_review import TeacherReview
+
+
+class NotificationUnavailable(RuntimeError):
+    """A send that could not happen, with a fixed reason that is safe to log
+    (no phone number, secret or provider payload)."""
 
 
 class ReviewNotifier(Protocol):
@@ -34,25 +41,70 @@ class PhotonNotifier:
         )
 
 
-def spectrum_notifier(config: dict, root: Path, client=None) -> ReviewNotifier | None:
+def _is_spectrum_setting(name: str) -> bool:
+    return name.startswith("SPECTRUM_") or name == "CUES_USE_STATIC_TEACHER_PHONE"
+
+
+def spectrum_env(environ=None) -> dict:
+    """The nonempty Spectrum settings in a process environment."""
+    environ = os.environ if environ is None else environ
+    return {k: v for k, v in environ.items() if _is_spectrum_setting(k) and v.strip()}
+
+
+def current_spectrum_config(
+    startup: dict, reread_env: Path | None = None, pinned: dict | None = None
+) -> dict:
+    """The startup config, with reread_env (normally cues/.env) read again so a
+    long-running worker picks up Photon credentials saved after it started.
+    pinned holds the values that outrank that file (the process environment as
+    it was at startup); it is a snapshot, so later shell changes don't leak in."""
+    config = dict(startup)
+    if reread_env is not None and reread_env.is_file():
+        config.update(
+            {
+                k: v
+                for k, v in dotenv_values(reread_env).items()
+                if _is_spectrum_setting(k) and v is not None and v.strip()
+            }
+        )
+    config.update(pinned or {})
+    return config
+
+
+def spectrum_notifier(
+    startup_config: dict,
+    root: Path,
+    client=None,
+    *,
+    reread_env: Path | None = None,
+    pinned: dict | None = None,
+) -> ReviewNotifier:
+    """Always returns a notifier. Credentials are checked on each send, not at
+    startup, so missing configuration fails loudly per review instead of
+    silently disabling notifications until the worker restarts. Without
+    reread_env the notifier uses startup_config exactly as given."""
     names = ("SPECTRUM_PROJECT_ID", "SPECTRUM_PROJECT_SECRET")
-    if not any(config.get(name) for name in names):
-        return None
-    mode = str(config.get("CUES_USE_STATIC_TEACHER_PHONE", "0"))
-    if mode not in ("0", "1"):
-        raise ValueError("CUES_USE_STATIC_TEACHER_PHONE must be 0 or 1")
 
     class SpectrumNotifier:
         def notify_pending_review(self, review: TeacherReview) -> None:
             if review.status != "pending":
                 raise ValueError("only pending reviews may notify")
+            config = current_spectrum_config(startup_config, reread_env, pinned)
             if not all(config.get(name) for name in names):
-                raise RuntimeError("Spectrum project credentials are required")
+                raise NotificationUnavailable(
+                    "Spectrum project credentials are missing: set SPECTRUM_PROJECT_ID "
+                    "and SPECTRUM_PROJECT_SECRET in cues/.env"
+                )
+            mode = str(config.get("CUES_USE_STATIC_TEACHER_PHONE", "0"))
+            if mode not in ("0", "1"):
+                raise NotificationUnavailable("CUES_USE_STATIC_TEACHER_PHONE must be 0 or 1")
             if mode == "1":
                 phone = config.get("SPECTRUM_TEACHER_PHONE")
             else:
                 if client is None:
-                    raise RuntimeError("Dynamic teacher routing requires a backend client")
+                    raise NotificationUnavailable(
+                        "Dynamic teacher routing requires a backend client"
+                    )
                 try:
                     sessions = (
                         client.table("sessions")
@@ -63,7 +115,7 @@ def spectrum_notifier(config: dict, root: Path, client=None) -> ReviewNotifier |
                     )
                     owner = sessions[0].get("teacher_id") if sessions else None
                     if not owner:
-                        raise RuntimeError("Session has no teacher owner")
+                        raise NotificationUnavailable("Session has no teacher owner")
                     from agent.notification_activation import send_to_teacher
 
                     status = send_to_teacher(
@@ -82,11 +134,13 @@ def spectrum_notifier(config: dict, root: Path, client=None) -> ReviewNotifier |
                 except RuntimeError:
                     raise
                 except Exception:
-                    raise RuntimeError("Teacher destination lookup failed") from None
+                    raise NotificationUnavailable("Teacher destination lookup failed") from None
             import re
 
             if not isinstance(phone, str) or not re.fullmatch(r"\+[1-9][0-9]{7,14}", phone):
-                raise RuntimeError("Teacher profile/static destination requires an E.164 phone")
+                raise NotificationUnavailable(
+                    "Teacher profile/static destination requires an E.164 phone"
+                )
             env = dict(os.environ)
             for credential in ("PHOTON_TOKEN", "DASHBOARD_TOKEN"):
                 env.pop(credential, None)
@@ -116,6 +170,8 @@ def spectrum_notifier(config: dict, root: Path, client=None) -> ReviewNotifier |
                 timeout=25,
             )
             if result.returncode or not result.stdout.strip().endswith('{"accepted":true}'):
-                raise RuntimeError("Spectrum did not acknowledge notification acceptance")
+                raise NotificationUnavailable(
+                    "Spectrum did not acknowledge notification acceptance"
+                )
 
     return SpectrumNotifier()

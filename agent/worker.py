@@ -66,19 +66,17 @@ def main():
     if flags.enabled("agent.live_progress"):
         options["publish_progress"] = True
 
-    from dotenv import dotenv_values
+    from agent.notifications import current_spectrum_config, spectrum_env
 
-    if not all(
-        os.environ.get(name) or dotenv_values(REPO_ROOT / "cues/.env").get(name)
-        for name in ("SPECTRUM_PROJECT_ID", "SPECTRUM_PROJECT_SECRET")
-    ):
-        logging.warning("Spectrum configuration missing/incomplete; notifications disabled")
-
-        class DisabledNotifier:
-            def notify_pending_review(self, review):
-                logging.warning("Pending review persisted; Spectrum notification unavailable")
-
-        options["notifier"] = DisabledNotifier()
+    spectrum = current_spectrum_config({}, REPO_ROOT / "cues/.env", spectrum_env())
+    if not all(spectrum.get(n) for n in ("SPECTRUM_PROJECT_ID", "SPECTRUM_PROJECT_SECRET")):
+        # Not fatal: cues/.env is read again on every send, so saving it later is enough.
+        logging.warning(
+            "Teacher text alerts: cues/.env has no SPECTRUM_PROJECT_ID/SECRET yet; "
+            "alerts fail until it is saved (no restart needed)"
+        )
+    else:
+        logging.info("Teacher text alerts: on")
     create_seat_state_runtime(model, activities, **options).run_forever()
 
 

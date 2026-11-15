@@ -8,7 +8,7 @@ from dotenv import dotenv_values
 from langchain_core.language_models import BaseChatModel
 
 from agent.deep_agent import AgentBudgets, CuesDeepAgent, create_cues_deep_agent
-from agent.notifications import ReviewNotifier, spectrum_notifier
+from agent.notifications import ReviewNotifier, spectrum_env, spectrum_notifier
 from agent.progress_history import ProgressHistoryStore
 from agent.prompt_history import PromptHistoryStore
 from agent.seat_state_runtime import (
@@ -95,10 +95,14 @@ def review_store_from_env(
         ) from None
     log.info("Teacher review storage: Supabase")
     if notifier is None:
-        notifier = spectrum_notifier(config, REPO_ROOT, client=client)
-    if notifier is None and config.get("PHOTON_API_KEY"):
-        log.warning(
-            "Photon key is configured but no Photon sender is injected; notifications disabled"
+        # Default discovery re-reads cues/.env on each send (credentials saved after
+        # startup work without a restart). An explicit env_file is used as given.
+        notifier = spectrum_notifier(
+            config,
+            REPO_ROOT,
+            client=client,
+            reread_env=REPO_ROOT / "cues/.env" if env_file is None else None,
+            pinned=spectrum_env() if env_file is None else None,
         )
     return SupabaseTeacherReviewStore(client, notifier=notifier)
 
