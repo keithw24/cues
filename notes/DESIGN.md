@@ -117,7 +117,7 @@ Corners are concentric: an outer radius equals the inner radius plus the padding
 - Under `prefers-reduced-motion: reduce`, movement and blur are removed.
 - The theme toggle turns transitions off for the swap so colors change at once.
 - After a switch (not on page load) the theme icon cross-fades in: scale 0.25→1, blur 4px→0, 300ms; opacity only under reduced motion.
-- The landing page's Get Started arrow leans 2px toward its target on hover (real pointers only).
+- On the landing page, a button's arrow leans 2px toward its target on hover (real pointers only, with `web.landing_motion`).
 - Headings use `text-wrap: balance` and paragraphs `text-wrap: pretty` site-wide.
 - Header controls are a matched pair everywhere: a 40px round theme switch beside a pill (Get Started on the landing page, Sign up / Log in on the sign-in pages).
 - Landing copy is Title Case with small words (a, the, or, for, to, by…) in lower case.

@@ -45,7 +45,10 @@ export default function Landing() {
   const motion = isEnabled("web.landing_motion");
   const needs = isEnabled("web.landing_needs");
   return (
-    <div className={`landing ${garamond.variable}`}>
+    <div
+      className={`landing ${garamond.variable}`}
+      data-motion={motion || undefined}
+    >
       {themeToggle ? <LandingThemeDefault /> : null}
       {motion ? (
         <>
@@ -142,7 +145,7 @@ export default function Landing() {
                 <div className="ln-approval">
                   <p className="ln-seat-meta">Seat 2 · Raise hand</p>
                   <p className="ln-approval-title">
-                    Break the Task Into Two Steps
+                    Break the Task into Two Steps
                   </p>
                   <p className="ln-approval-why">
                     <RiLightbulbLine />
