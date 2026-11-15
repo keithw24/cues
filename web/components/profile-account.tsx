@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { forgetCompanionCounts } from "@/lib/companion";
+import { forgetMarked } from "@/lib/classroom-view";
 import { useEffect, useRef, useState } from "react";
 import { createDashboardClient } from "@/lib/supabase";
 
@@ -46,6 +47,7 @@ export default function ProfileAccount() {
     // The next teacher in this tab starts with no remembered queue.
     try {
       forgetCompanionCounts(window.sessionStorage);
+      forgetMarked(window.sessionStorage);
     } catch {}
   }
 

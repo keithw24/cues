@@ -105,6 +105,70 @@ export function reviewQueue<T extends { id: string }>({
   return { flagged: extra, count: askedSeatIds.length + extra.length };
 }
 
+/** Raw camera statuses that keep a person flagged (or may hide a flag: vision
+ * restores Needs Review when a lost person comes back). */
+const STILL_FLAGGED = new Set(["review", "needs_help", "tracking_lost"]);
+
+/**
+ * Flagged people who left the waiting count without a reason the teacher
+ * would recognise: not marked reviewed, no request now, and the camera has not
+ * moved them on (their last status still reads flagged or lost, or their row
+ * went stale). While any remain, the companion rests instead of "eating" a
+ * queue nobody cleared. `status` is the seat's raw status, or undefined when
+ * the seat is no longer listed (another classroom), which counts as resolved.
+ */
+export function unexplainedDrops(
+  before: readonly string[],
+  now: ReadonlySet<string>,
+  {
+    marked,
+    asked,
+    status,
+  }: {
+    marked: ReadonlySet<string>;
+    asked: ReadonlySet<string>;
+    status: (id: string) => string | undefined;
+  },
+): string[] {
+  return before.filter((id) => {
+    if (now.has(id) || marked.has(id) || asked.has(id)) return false;
+    const raw = status(id);
+    return raw !== undefined && STILL_FLAGGED.has(raw);
+  });
+}
+
+/** Where this tab keeps the people marked reviewed, per classroom, so the
+ * classroom and To review pages agree until the camera resets them. */
+export const MARKED_KEY = "cues-marked-reviewed";
+
+export function readMarked(storage: Storage, station: string): string[] {
+  try {
+    const value: unknown = JSON.parse(storage.getItem(`${MARKED_KEY}:${station}`) ?? "[]");
+    return Array.isArray(value) ? value.filter((id) => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeMarked(
+  storage: Storage,
+  station: string,
+  ids: Iterable<string>,
+): void {
+  const list = [...ids];
+  const key = `${MARKED_KEY}:${station}`;
+  if (list.length) storage.setItem(key, JSON.stringify(list));
+  else storage.removeItem(key);
+}
+
+/** Forget every classroom's marks in this tab (on sign-out). */
+export function forgetMarked(storage: Storage): void {
+  for (let i = storage.length - 1; i >= 0; i--) {
+    const key = storage.key(i);
+    if (key?.startsWith(MARKED_KEY)) storage.removeItem(key);
+  }
+}
+
 /** Names for a short sentence: "Keith", "Keith and Evan", "Keith, Evan and Eric",
  * "Keith, Evan and 2 more". */
 export function nameList(names: readonly string[]): string {
