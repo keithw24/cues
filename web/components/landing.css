@@ -62,16 +62,6 @@
   height: 40px;
   padding: 0 18px;
 }
-.ln-nav nav a:not(.ln-button) {
-  padding: 6px 12px;
-  border-radius: 8px;
-  color: var(--ln-ink-soft);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  text-decoration: none;
-  transition: color 150ms ease-out;
-}
 
 /* Buttons */
 .ln-button {
@@ -132,9 +122,6 @@ a.ln-button:active {
   color: var(--ln-ink);
 }
 @media (hover: hover) {
-  .ln-nav nav a:not(.ln-button):hover {
-    color: var(--ln-ink);
-  }
   .ln-button-light:hover {
     background: #eef1fb;
   }
@@ -1050,10 +1037,7 @@ a.ln-button:active {
 }
 
 @media (max-width: 760px) {
-  .ln-nav nav a:not(.ln-button) {
-    display: none;
-  }
-  .ln-section {
+    .ln-section {
     grid-template-columns: 1fr;
     padding-inline: 16px;
   }
@@ -1131,7 +1115,7 @@ a.ln-button:active {
 }
 @media (hover: hover) {
   .ln-theme-toggle:hover {
-    background: rgb(255 255 255 / 0.08);
+    background: rgb(255 255 255 / 0.12);
     color: var(--ln-ink);
   }
 }
@@ -1238,10 +1222,7 @@ a.ln-button:active {
   :root[data-theme="light"] .ln-cta .ln-button-ghost:hover {
     background: var(--ln-surface);
   }
-  :root[data-theme="light"] .ln-theme-toggle:hover {
-    background: rgb(11 26 77 / 0.06);
   }
-}
 
 /* Light theme: the switch sits on white like the sign-in page's. */
 :root[data-theme="light"] .landing .ln-theme-toggle {
