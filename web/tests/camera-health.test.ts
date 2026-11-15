@@ -143,3 +143,11 @@ test("a hosted page that can't read the laptop shows only the station's rows, ne
   });
   assert.equal(refused.problem, OTHER_CAMERA);
 });
+
+test("the health strip never reads the clock during render", async () => {
+  const { readFileSync } = await import("node:fs");
+  const strip = readFileSync(new URL("../components/camera-health-strip.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(strip, /useState\(\s*\(\)\s*=>\s*Date\.now\(\)/);
+  // Before the first poll the clock is 0, which never counts as fresh.
+  assert.equal(updatesFresh([new Date().toISOString()], 0), false);
+});

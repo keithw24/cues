@@ -33,7 +33,8 @@ export function CameraHealthStrip({
   hostedOrigin?: string;
 }) {
   const [vision, setVision] = useState<LocalVisionReading | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  // The clock starts on the first poll (in the effect), never during render.
+  const [now, setNow] = useState(0);
   // Known only in the browser; until then the strip reads "Checking".
   const [localReadable, setLocalReadable] = useState<boolean | null>(null);
   useEffect(() => {
