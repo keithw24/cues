@@ -1,5 +1,6 @@
 "use client";
 
+import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import { useEffect, useRef, useState } from "react";
 import { seatViews, type Snapshot } from "@/lib/dashboard";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
@@ -430,6 +431,15 @@ export default function LiveConnected({
             {saving === "dismissed" ? "Saving…" : resolutionLabels.dismissed}
           </button>
         </div>
+        {reviewActionsEnabled && client ? (
+          <MarkReviewedButton
+            key={lead.seat_id}
+            variant="live"
+            client={client}
+            sessionId={lead.session_id}
+            seatId={lead.seat_id}
+          />
+        ) : null}
         {actionError?.reviewId === lead.id ? (
           <p className="live-card-error" role="alert">
             {actionError.message}
@@ -455,6 +465,20 @@ export default function LiveConnected({
           No review from Cues yet. A review appears here when the agent requests
           one.
         </p>
+        {reviewActionsEnabled && client
+          ? flagged.map((seat) =>
+              seat.state?.session_id ? (
+                <MarkReviewedButton
+                  key={seat.id}
+                  variant="live"
+                  client={client}
+                  sessionId={seat.state.session_id}
+                  seatId={seat.id}
+                  label={`Mark ${seat.display_name} as reviewed`}
+                />
+              ) : null,
+            )
+          : null}
       </>
     );
   else

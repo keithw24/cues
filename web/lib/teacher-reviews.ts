@@ -20,8 +20,9 @@ export type TeacherReview = Readonly<{
   decision?: AssessmentDecision | null;
   rationale: string;
   evidence_used: readonly EvidenceSource[];
-  /** "expired": closed automatically when its session ended; no teacher decision. */
-  status: "pending" | "confirmed" | "dismissed" | "expired";
+  /** "expired": closed automatically (its session ended, or the task was completed).
+   * "reviewed": the teacher marked the child as reviewed. Neither is a decision on the review. */
+  status: "pending" | "confirmed" | "dismissed" | "expired" | "reviewed";
   resolved_at: string | null;
   progress?: { trend: string; stalled_seconds: number } | null;
   escalation_reason?: string | null;
@@ -65,7 +66,7 @@ export function parseTeacherReviews(input: unknown): TeacherReview[] {
     if (row.priority !== "normal" && row.priority !== "elevated")
       throw new Error("Invalid review priority");
     if (
-      !["pending", "confirmed", "dismissed", "expired"].includes(
+      !["pending", "confirmed", "dismissed", "expired", "reviewed"].includes(
         String(row.status),
       )
     )

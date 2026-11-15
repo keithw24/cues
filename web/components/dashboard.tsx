@@ -17,6 +17,7 @@ import { createDashboardClient } from "@/lib/supabase";
 import { startLocalVisionSync } from "@/lib/local-vision";
 import { Card } from "@/components/ui/card";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
+import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import {
@@ -70,8 +71,11 @@ function SeatDetails({
   close,
   headingRef,
   observationOptions,
+  actions,
 }: {
   observationOptions?: ObservationOptions;
+  /** Shown while this person needs review (for example "Mark as reviewed"). */
+  actions?: React.ReactNode;
   seat: SeatView;
   close: () => void;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
@@ -102,6 +106,7 @@ function SeatDetails({
           {presentation.label}
         </p>
         <p className="detail-description">{seat.activity}</p>
+        {presentation.needsReview ? actions : null}
       </div>
     </section>
   );
@@ -397,6 +402,30 @@ export default function Dashboard({
       else attentionHeading.current?.focus();
     });
   };
+  // "Mark as reviewed": close this person's review requests here at once (every page reads
+  // the same table, so they leave the others too) and let vision reset them to working.
+  const markReviewedButton = (sessionId: string | null, seatId: string) =>
+    reviewActionsEnabled && client && sessionId ? (
+      <MarkReviewedButton
+        key={seatId}
+        client={client}
+        sessionId={sessionId}
+        seatId={seatId}
+        onMarked={(marked) =>
+          setReviews((state) => {
+            const closed = (state.reviews ?? []).filter(
+              (item) => item.seat_id === marked,
+            );
+            for (const item of closed) resolvedReviewIds.current.add(item.id);
+            return {
+              ...state,
+              reviews:
+                state.reviews?.filter((item) => item.seat_id !== marked) ?? null,
+            };
+          })
+        }
+      />
+    ) : null;
   const closeDetails = () => {
     setSelectedId(null);
     const opener = detailOpener.current;
@@ -725,6 +754,12 @@ export default function Dashboard({
                           }}
                         />
                       ) : null}
+                      {selectedReview
+                        ? markReviewedButton(
+                            selectedReview.session_id,
+                            selectedReview.seat_id,
+                          )
+                        : null}
                     </TeacherReviewDetails>
                   ) : selected ? (
                     <SeatDetails
@@ -732,6 +767,10 @@ export default function Dashboard({
                       observationOptions={observationOptions}
                       close={() => closeInDrawer(closeDetails)}
                       headingRef={detailsHeading}
+                      actions={markReviewedButton(
+                        selected.state?.session_id ?? null,
+                        selected.id,
+                      )}
                     />
                   ) : (
                     <section aria-labelledby="attention-heading">
@@ -961,6 +1000,12 @@ export default function Dashboard({
                         }}
                       />
                     ) : null}
+                    {selectedReview
+                      ? markReviewedButton(
+                          selectedReview.session_id,
+                          selectedReview.seat_id,
+                        )
+                      : null}
                   </TeacherReviewDetails>
                 ) : selected ? (
                   <SeatDetails
@@ -968,6 +1013,10 @@ export default function Dashboard({
                     observationOptions={observationOptions}
                     close={closeDetails}
                     headingRef={detailsHeading}
+                    actions={markReviewedButton(
+                      selected.state?.session_id ?? null,
+                      selected.id,
+                    )}
                   />
                 ) : (
                   <section aria-labelledby="attention-heading">
