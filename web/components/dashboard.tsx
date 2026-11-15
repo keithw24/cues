@@ -629,7 +629,7 @@ export default function Dashboard({
                     className={`ws-pill review-link${waitingCount ? " has-items" : ""}`}
                     href="/review"
                   >
-                    To review
+                    TO REVIEW
                     {waitingCount ? (
                       <span className="ws-count">{waitingCount}</span>
                     ) : null}

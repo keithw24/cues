@@ -164,7 +164,7 @@ export default function LandingDemo() {
               <span
                 className={`ws-pill review-link${frame.review ? " has-items" : ""}`}
               >
-                To review
+                TO REVIEW
                 {frame.review ? <span className="ws-count">1</span> : null}
               </span>
             </header>
