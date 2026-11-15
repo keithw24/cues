@@ -30,7 +30,7 @@ test("each new request is a hop; a smaller but non-empty queue changes nothing",
 test("clearing the queue eats the last count, then green, then rest", () => {
   assert.deepEqual(companionStep(2, 0), { kind: "eat", eaten: 2 });
   assert.deepEqual(companionStep(0, 0), { kind: "none" });
-  assert.ok(EAT_MS > 0 && EAT_MS <= 1000, "the eat is short");
+  assert.ok(EAT_MS >= 1200 && EAT_MS <= 2000, "the eat is unhurried but under 2s");
   assert.ok(DONE_MS >= 1500 && DONE_MS <= 3000, "green lasts about 2s");
   // A request arriving mid-eat is a hop: the component cancels the eat timers.
   assert.deepEqual(companionStep(0, 1), { kind: "hop" });
