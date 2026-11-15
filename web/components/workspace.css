@@ -1441,10 +1441,12 @@ body .dashboard-shell.ws-demo {
     }
   }
 
-  .dashboard-shell .row-more {
+  /* An opened request or person glides in: header and details together. */
+  .dashboard-shell .row-more,
+  .dashboard-shell .panel-person {
     transition:
-      opacity 200ms ease-out,
-      translate 200ms ease-out;
+      opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      translate 200ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   @starting-style {
     .dashboard-shell .row-more,

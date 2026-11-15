@@ -28,7 +28,7 @@ const done: Omit<Person, "name"> = {
   tone: "done",
 };
 const review: Omit<Person, "name"> = {
-  status: "Attention",
+  status: "Check in",
   tone: "review",
 };
 
