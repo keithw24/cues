@@ -435,13 +435,25 @@
 .dashboard-shell .hero-controls .health-row {
   display: contents;
 }
-.dashboard-shell .hero-controls #health-pills,
-.dashboard-shell .hero-controls .health-problem {
-  flex-basis: 100%;
+.dashboard-shell .hero-controls .health-pills,
+.dashboard-shell .hero-controls .health-problem-line {
+  flex: 0 0 100%;
 }
 .dashboard-shell .hero-controls .health-problem {
-  max-width: max-content;
   margin-top: -4px;
+}
+/* A long session error wraps inside its own item instead of pushing the
+   camera button away from refresh. */
+.dashboard-shell .hero-controls > .session-controls {
+  min-width: 0;
+  max-width: 100%;
+}
+/* Leave room for the camera button (44px + 12px gap) so it stays on the row. */
+.dashboard-shell .hero-controls > .session-controls:has(+ .health-strip) {
+  max-width: calc(100% - 56px);
+}
+.dashboard-shell .ws-hero > .hero-controls + .station-busy {
+  margin-top: -12px;
 }
 .dashboard-shell .health-more {
   position: relative;
@@ -456,7 +468,7 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  box-shadow: 0 0 0 2px var(--ws-pill);
+  box-shadow: 0 0 0 2px var(--ws-panel-solid);
 }
 .dashboard-shell .health-dot {
   flex: none;

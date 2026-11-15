@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 import {
   OTHER_CAMERA,
@@ -75,7 +75,7 @@ function useCameraHealth({
     conflict,
     localReadable: localReadable ?? undefined,
   });
-  return { health, summary: healthSummary(health, inView) };
+  return { health, summary: healthSummary(health) };
 }
 
 /** The four checks, each a label and a word. */
@@ -98,9 +98,11 @@ function HealthProblem({ health, open }: { health: CameraHealth; open: boolean }
   if (!health.problem) return null;
   if (!open && health.problem !== OTHER_CAMERA) return null;
   return (
-    <p className="health-problem" role="status">
-      {health.problem}
-    </p>
+    <div className="health-problem-line">
+      <p className="health-problem" role="status">
+        {health.problem}
+      </p>
+    </div>
   );
 }
 
@@ -111,14 +113,15 @@ function HealthProblem({ health, open }: { health: CameraHealth; open: boolean }
 export function CameraHealthStrip(props: CameraHealthProps) {
   const { health, summary } = useCameraHealth(props);
   const [open, setOpen] = useState(false);
+  const pillsId = useId();
   return (
-    <div className="health-strip" aria-label="Camera health" role="group">
+    <div className="health-strip">
       <div className="health-row">
         <button
           type="button"
           className="ws-icon-button health-more"
           aria-expanded={open}
-          aria-controls="health-pills"
+          aria-controls={pillsId}
           aria-label={`Camera status: ${summary.label}`}
           title={`Camera status: ${summary.label}`}
           onClick={() => setOpen((value) => !value)}
@@ -126,7 +129,7 @@ export function CameraHealthStrip(props: CameraHealthProps) {
           <WorkspaceIcon name="more" />
           <span className={`health-dot is-${summary.tone}`} aria-hidden="true" />
         </button>
-        <div id="health-pills" hidden={!open}>
+        <div id={pillsId} className="health-pills" hidden={!open}>
           <HealthPills health={health} />
         </div>
       </div>

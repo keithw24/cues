@@ -152,19 +152,26 @@ test("the health strip never reads the clock during render", async () => {
   assert.equal(updatesFresh([new Date().toISOString()], 0), false);
 });
 
-test("the collapsed summary: amber for a fault, never for an empty room; grey only while checking", async () => {
+test("the collapsed summary: amber for a fault, grey only while checking", async () => {
   const { healthSummary } = await import("../lib/camera-health.ts");
   const base = { station: "S1", conflict: false };
   const checking = cameraHealth({ ...base, vision: null, updatesFresh: false, inView: 0 });
-  assert.deepEqual(healthSummary(checking, 0), { tone: "quiet", label: "Checking" });
+  assert.deepEqual(healthSummary(checking), { tone: "quiet", label: "Checking" });
   const fine = cameraHealth({ ...base, vision: ok(), updatesFresh: true, inView: 2 });
-  assert.deepEqual(healthSummary(fine, 2), { tone: "good", label: "All good" });
-  const empty = cameraHealth({ ...base, vision: ok(), updatesFresh: false, inView: 0 });
-  assert.equal(healthSummary(empty, 0).tone, "good");
+  assert.deepEqual(healthSummary(fine), { tone: "good", label: "All good" });
+  const quiet = cameraHealth({ ...base, vision: ok(), updatesFresh: false, inView: 0 });
+  assert.equal(healthSummary(quiet).tone, "warn");
+  const refusedEarly = cameraHealth({ ...base, conflict: true, vision: null, updatesFresh: false, inView: 0 });
+  assert.equal(refusedEarly.problem, OTHER_CAMERA);
+  assert.deepEqual(
+    refusedEarly.items.find((item) => item.key === "other-camera"),
+    { key: "other-camera", label: "Other cameras", value: "One refused", tone: "warn" },
+  );
+  assert.equal(healthSummary(refusedEarly).tone, "warn");
   const down = cameraHealth({ ...base, vision: { reachable: false }, updatesFresh: false, inView: 0 });
-  assert.equal(healthSummary(down, 0).tone, "warn");
+  assert.equal(healthSummary(down).tone, "warn");
   const hostedQuiet = cameraHealth({ ...base, vision: null, updatesFresh: false, inView: 0, localReadable: false });
-  assert.equal(healthSummary(hostedQuiet, 0).label, "All good");
+  assert.deepEqual(healthSummary(hostedQuiet), { tone: "quiet", label: "No updates" });
   const hostedConflict = cameraHealth({ ...base, conflict: true, vision: null, updatesFresh: false, inView: 0, localReadable: false });
-  assert.equal(healthSummary(hostedConflict, 0).tone, "warn");
+  assert.equal(healthSummary(hostedConflict).tone, "warn");
 });
