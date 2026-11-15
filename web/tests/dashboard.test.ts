@@ -98,18 +98,23 @@ test("dashboard defaults on, server override wins, invalid and unknown flags fai
   assert.throws(() => isEnabled("web.unknown", {}));
 });
 
-test("teacher review transport defaults off independently of the seat dashboard", () => {
-  assert.equal(isEnabled("web.teacher_reviews", {}), false);
+test("teacher review transport defaults on and can be turned off on its own", () => {
+  assert.equal(isEnabled("web.teacher_reviews", {}), true);
+  assert.equal(
+    isEnabled("web.teacher_reviews", { CUES_FLAG_WEB_TEACHER_REVIEWS: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.teacher_reviews", { CUES_FLAG_WEB_TEACHER_REVIEWS: "1" }),
     true,
   );
 });
 
-test("review actions stay disabled independently of review reads", () => {
+test("review actions turn off independently of review reads", () => {
   assert.equal(
     isEnabled("web.teacher_review_actions", {
       CUES_FLAG_WEB_TEACHER_REVIEWS: "1",
+      CUES_FLAG_WEB_TEACHER_REVIEW_ACTIONS: "0",
     }),
     false,
   );

@@ -79,25 +79,25 @@
   },
   "web.teacher_reviews": {
     "description": "Pending TeacherReview requests via Supabase. On the dashboard they are pinned first in the Class list as Needs you (even when the person is out of view), with the agent's rationale behind \"Why did Cues ask?\". Off: no requests and no rationale are read or shown.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "teacher-review-queue"
   },
   "web.teacher_review_actions": {
     "description": "Persistent review transitions; enable only after authorized Supabase RPC deployment",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "teacher-review-actions"
   },
   "web.session_controls": {
     "description": "Authenticated station session lifecycle and activity controls",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "session-controls"
   },
   "web.person_observations": {
     "description": "Read tracking_valid and show fresh, invalid, lost and paused person observations",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "person-observations"
   },
@@ -181,13 +181,13 @@
   },
   "web.review_page": {
     "description": "To review page at /review: each person Cues asked about as a card with the activity, time, Support needed / No support needed, Mark as reviewed and \"Why did Cues ask?\". Adds a To review link to the rail and the classroom header. Off: /review redirects to /dashboard and no links show.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "review-page"
   },
   "web.health_strip": {
     "description": "Camera health strip on the classroom page: camera service on or off, station set, updates arriving, and another camera refused, each as its own word. Reads the local vision service on 127.0.0.1:8000 (/health, /config) and the station's writer row. Off: the page shows only its single camera-off message.",
-    "default": false,
+    "default": true,
     "owner": "keith",
     "ticket": "health-strip"
   },
