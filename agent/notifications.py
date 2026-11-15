@@ -45,35 +45,51 @@ def _is_spectrum_setting(name: str) -> bool:
     return name.startswith("SPECTRUM_") or name == "CUES_USE_STATIC_TEACHER_PHONE"
 
 
-def current_spectrum_config(startup: dict, root: Path) -> dict:
-    """The startup config with cues/.env read again, so a long-running worker
-    picks up Photon credentials saved after it started. Process environment
-    (which also holds the root .env the worker loads) still wins."""
+def spectrum_env(environ=None) -> dict:
+    """The nonempty Spectrum settings in a process environment."""
+    environ = os.environ if environ is None else environ
+    return {k: v for k, v in environ.items() if _is_spectrum_setting(k) and v.strip()}
+
+
+def current_spectrum_config(
+    startup: dict, reread_env: Path | None = None, pinned: dict | None = None
+) -> dict:
+    """The startup config, with reread_env (normally cues/.env) read again so a
+    long-running worker picks up Photon credentials saved after it started.
+    pinned holds the values that outrank that file (the process environment as
+    it was at startup); it is a snapshot, so later shell changes don't leak in."""
     config = dict(startup)
-    path = root / "cues/.env"
-    if path.is_file():
+    if reread_env is not None and reread_env.is_file():
         config.update(
             {
                 k: v
-                for k, v in dotenv_values(path).items()
+                for k, v in dotenv_values(reread_env).items()
                 if _is_spectrum_setting(k) and v is not None and v.strip()
             }
         )
-    config.update({k: v for k, v in os.environ.items() if _is_spectrum_setting(k) and v.strip()})
+    config.update(pinned or {})
     return config
 
 
-def spectrum_notifier(startup_config: dict, root: Path, client=None) -> ReviewNotifier:
+def spectrum_notifier(
+    startup_config: dict,
+    root: Path,
+    client=None,
+    *,
+    reread_env: Path | None = None,
+    pinned: dict | None = None,
+) -> ReviewNotifier:
     """Always returns a notifier. Credentials are checked on each send, not at
     startup, so missing configuration fails loudly per review instead of
-    silently disabling notifications until the worker restarts."""
+    silently disabling notifications until the worker restarts. Without
+    reread_env the notifier uses startup_config exactly as given."""
     names = ("SPECTRUM_PROJECT_ID", "SPECTRUM_PROJECT_SECRET")
 
     class SpectrumNotifier:
         def notify_pending_review(self, review: TeacherReview) -> None:
             if review.status != "pending":
                 raise ValueError("only pending reviews may notify")
-            config = current_spectrum_config(startup_config, root)
+            config = current_spectrum_config(startup_config, reread_env, pinned)
             if not all(config.get(name) for name in names):
                 raise NotificationUnavailable(
                     "Spectrum project credentials are missing: set SPECTRUM_PROJECT_ID "
