@@ -13,7 +13,8 @@ import { WorkspaceIcon } from "@/components/workspace-icon";
 
 // One person, opened in place in the class list: their status in plain words
 // and Cues' request if there is one. Model details (its own words and what it
-// looked at) wait behind "Why?". Expression is never shown.
+// looked at) wait behind "Why?". No expression labels or scores are shown; the
+// rationale is the agent's own text, written under its no-diagnosis rules.
 function clock(at: string) {
   const date = new Date(at);
   const today = new Date().toDateString() === date.toDateString();

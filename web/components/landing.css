@@ -826,12 +826,14 @@ a.ln-button:active {
     animation-play-state: running;
   }
 }
+/* Starts from the untransformed glow, so a paused or motion-off page looks
+   exactly as it did before the drift existed. */
 @keyframes ln-drift {
   from {
-    transform: translate3d(-2%, 0, 0) rotate(-5deg) scale(1);
+    transform: none;
   }
   to {
-    transform: translate3d(2%, 3%, 0) rotate(5deg) scale(1.08);
+    transform: translate3d(3%, 3%, 0) rotate(8deg) scale(1.08);
   }
 }
 .ln-hero::after {

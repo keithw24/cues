@@ -78,7 +78,7 @@
     "ticket": "T7"
   },
   "web.teacher_reviews": {
-    "description": "Read-only pending TeacherReview queue via Supabase; requires Michelle-side persistence, RLS and Realtime publication.",
+    "description": "Pending TeacherReview requests via Supabase. On the dashboard they are pinned first in the Class list as Needs you (even when the person is out of view), with the agent's rationale behind \"Why did Cues ask?\". Off: no requests and no rationale are read or shown.",
     "default": false,
     "owner": "evan",
     "ticket": "teacher-review-queue"
