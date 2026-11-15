@@ -6,7 +6,10 @@ from vision import activities
 
 
 @pytest.fixture(autouse=True)
-def fresh_catalog():
+def fresh_catalog(monkeypatch, tmp_path):
+    # Never read this laptop's own recorded gestures (git-ignored).
+    monkeypatch.setattr(activities, "CUSTOM_FILE", tmp_path / "custom_gestures.catalog.json")
+    monkeypatch.delenv("CUES_GESTURE_NO_PROGRESS_SECONDS", raising=False)
     activities.load_activities.cache_clear()
     yield
     activities.load_activities.cache_clear()
@@ -44,3 +47,39 @@ def test_demo_launcher_uses_the_agents_demo_stall_time():
     assert "CUES_NO_PROGRESS_SECONDS" in source
     assert "DEMO_ESCALATION_CONFIG.normal_stall_seconds" in source
     assert DEMO_ESCALATION_CONFIG.normal_stall_seconds < 30
+
+
+def test_one_setting_changes_every_gesture_and_old_recordings_follow_it(monkeypatch, tmp_path):
+    import json
+
+    stored = tmp_path / "custom_gestures.catalog.json"
+    stored.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "custom_old",
+                    "name": "Old",
+                    "check_type": "gesture",
+                    "keywords": ["old"],
+                    "success_threshold": 0.78,
+                    "review_threshold": 0.58,
+                    "no_progress_seconds": 30,  # recorded before the 3s default
+                }
+            ]
+        )
+    )
+    monkeypatch.setattr(activities, "CUSTOM_FILE", stored)
+    monkeypatch.delenv("CUES_NO_PROGRESS_SECONDS", raising=False)
+    activities.load_activities.cache_clear()
+    assert activities.get("custom_old").no_progress_seconds == 3
+    monkeypatch.setenv("CUES_GESTURE_NO_PROGRESS_SECONDS", "30")  # the way back
+    activities.load_activities.cache_clear()
+    assert waits() == {("gesture", 30), ("rule", 30)}
+    monkeypatch.setenv("CUES_GESTURE_NO_PROGRESS_SECONDS", "nonsense")
+    activities.load_activities.cache_clear()
+    assert waits() == {("gesture", 3), ("rule", 30)}
+
+
+def test_a_new_recorded_gesture_gets_the_gesture_wait(monkeypatch, tmp_path):
+    monkeypatch.delenv("CUES_NO_PROGRESS_SECONDS", raising=False)
+    assert activities.add_custom_gesture("Wave").no_progress_seconds == 3

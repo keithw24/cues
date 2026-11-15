@@ -49,6 +49,9 @@ from vision.activities import Activity
 TRACKING_LOST_SECONDS = 3.0
 SUCCESS_HOLD_SECONDS = 1.0
 REVIEW_HOLD_SECONDS = 2.0
+# After the teacher's Mark as reviewed, a child is flagged for no progress again only
+# after at least this long (or the task's own wait, if longer).
+REFLAG_AFTER_REVIEW_SECONDS = 15.0
 MISS_HOLD_SECONDS = 1.0
 MAX_STEP_SECONDS = 0.5  # cap on time credited per update, so a stall does not jump timers
 
@@ -73,6 +76,13 @@ class SeatTracker:
         self.status = "idle"
         self._status_before_loss: str | None = None
         self.active_seconds = 0.0  # time on task, excluding tracking loss
+        # Time the task could be judged and was not done: a score was available, or no
+        # hand was up. A hand Cues cannot score (no recorded examples, gestures off) is
+        # not the child's failure and does not count.
+        self.judged_seconds = 0.0
+        # The wait before needs_help. Longer after the teacher's Mark as reviewed, so the
+        # child they just checked in with is not flagged again within seconds.
+        self._no_progress_wait = activity.no_progress_seconds
         self.best_score: float | None = None
         self._last_t: float | None = None
         self._unseen_since: float | None = None
@@ -102,6 +112,8 @@ class SeatTracker:
         else:
             self.status = "in_progress"
         self.active_seconds = 0.0
+        self.judged_seconds = 0.0
+        self._no_progress_wait = max(self.activity.no_progress_seconds, REFLAG_AFTER_REVIEW_SECONDS)
         self.best_score = None
         self._review_sent = False
         self._no_progress_sent = False
@@ -136,6 +148,8 @@ class SeatTracker:
         if self.status == "done":
             return events
         self.active_seconds += dt
+        if score is not None or not hand:
+            self.judged_seconds += dt
 
         # Track one "attempt" per continuous stretch of the hand being in view.
         if hand and not self._hand_in_view:
@@ -175,7 +189,7 @@ class SeatTracker:
         if (
             not reached_review
             and not self._no_progress_sent
-            and self.active_seconds >= self.activity.no_progress_seconds
+            and self.judged_seconds >= self._no_progress_wait
         ):
             self._no_progress_sent = True
             self.status = "needs_help"
