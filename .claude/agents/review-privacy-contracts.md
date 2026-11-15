@@ -12,7 +12,7 @@ The PR number and its base branch. The ticket is named in the PR body.
 ## Method
 1. Read these, then the diff (`gh pr diff <N>`):
    - "Product rules every change must respect" in `CLAUDE.md`;
-   - in `PRD-cues.md`: §3.2 (non-goals), §12.5 (agent guardrails), §13 (Photon), §17 (data model) and §23 (product and ethical constraints).
+   - in `notes/PRD-cues.md`: §3.2 (non-goals), §12.5 (agent guardrails), §13 (Photon), §17 (data model) and §23 (product and ethical constraints).
 2. **Privacy.** Follow every value that leaves the station laptop: Supabase writes, HTTP calls, LLM prompts, Photon messages, synced logs, and files that could be committed to git.
    - Flag any image, frame, face crop, raw camera data, landmark dump, or personal detail in them.
    - No face recognition or other biometric identification.

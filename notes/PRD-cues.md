@@ -785,11 +785,11 @@ Postgres Changes. The read-only teacher seat overview is implemented in `web/`
 behind `web.dashboard` (default off), with initial reads and realtime state
 refreshes. The follow-up `20261114000200_align_demo_activity.sql` migration aligns
 the synthetic activity's check type and timeout with the shared contract.
-Migrations 003–005 add persistent teacher reviews, authenticated resolution RPC and nullable tracking_valid; seat_state and teacher_reviews are published through Realtime. See `supabase/README.md` for setup and verification.
+Migrations 003–017 are applied to the hosted project: persistent teacher reviews and resolution, nullable tracking_valid, sessions and activities, one default station per teacher, live progress on seat_state, review lifecycle and Mark as reviewed, the activity catalog with built-in gestures, timeline flags and the one-camera-per-station lease. seat_state and teacher_reviews are published through Realtime. The full list is in `notes/supabase.md`.
 
 ### 17.5 What vision writes and how it is used
 
-See notes/keith.md for the current vision handoff.
+See [vision-data.md](vision-data.md) for the current vision handoff.
 
 Vision writes two kinds of data to Supabase, both validated against `shared/contracts.py`:
 
@@ -798,15 +798,15 @@ Vision writes two kinds of data to Supabase, both validated against `shared/cont
 | `Event` | `events` (insert) | on each status change and expression episode | Michelle's rules engine |
 | `SeatState` | `seat_state` (upsert on `seat_id`) | on each status change, otherwise once per second per person | Evan's dashboard cards; Michelle's progress evaluator |
 
-Vision reads one value: `sessions.current_activity_id` for its session, once per second, to know the class-wide task the teacher picked.
+Vision reads the station's active session, activity and revision once per second (the class-wide task the teacher picked), the review marks for that session (`seat_review_marks`, so a teacher's "Mark as reviewed" puts a child back to Working), and claims the station through `claim_station_writer` so only one camera writes to it. `seat_state` also carries `session_revision` (written by vision) and `evaluated_progress` (written only by the agent).
 
 `seat_state` is the primary input to the progress pipeline (vision → `seat_state` → ProgressEvaluator → EscalationEvaluator → EvaluationRouter → ContextEnricher → Deep Agent). Each row carries `tracking_valid` (person seen in this frame; low score vs tracking failure) and an `expression_context` with `duration_seconds` (how long it has persisted). Events are informational for audit and debugging; vision makes no review or agent decision.
 
-`seat_id` holds a person id (`S1-P1`…). tracking_valid is nullable with no default (migration 005). Invalid tracking persists false with null task_score; historical unknown values remain null. Remaining gaps include person-ID dashboard/read-policy provisioning and activity catalog alignment.
+`seat_id` holds a person id (`S1-P1`…). tracking_valid is nullable with no default (migration 005). Invalid tracking persists false with null task_score; historical unknown values remain null. Person-ID read policies and the activity catalog are in place (migrations 010, 011, 014). Person ids are position-only and can change when someone leaves for over ten seconds or two people swap places.
 
 ## 18. Runtime boundaries
 
-FastAPI serves local vision /health, /stream and gesture template recording/
+FastAPI serves local vision /health, /stream, /config (the signed-in teacher's station, loopback only), /gestures and gesture template recording/
 retrieval/deletion endpoints. Fixed-seat controls and agent/alert endpoints are
 not implemented. The agent runs through create_seat_state_runtime and the
 agent.worker entrypoint. Teacher resolution uses Supabase RPC. See STARTUP.md.

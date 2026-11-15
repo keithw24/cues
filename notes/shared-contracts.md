@@ -67,5 +67,5 @@ consumer pins the context per frame, resets its trackers on UUID/revision change
 and pauses after end or sync loss. The database rejects stale/ended managed
 observations. Future live progress/routing consumers must use the same lifecycle
 to call their existing reset hooks on restarts; ProgressEvaluator itself is
-unchanged. See `web/SESSION_CONTROLS.md` and `vision/SESSION_LIFECYCLE.md` for
+unchanged. See `notes/web-session-controls.md` and `notes/session-lifecycle.md` for
 transport, flags, rollout status and outstanding hardware verification.

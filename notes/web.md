@@ -1,5 +1,12 @@
 # Cues teacher dashboard
 
+> **Read this with the current docs.** This file started as the original read-only dashboard
+> foundation and keeps its operational checks and history. The current layout and design system
+> are in [DESIGN.md](DESIGN.md) and [web-ui-redesign.md](web-ui-redesign.md); the product
+> framing is in [PRODUCT.md](PRODUCT.md). The flag table at the bottom is generated from
+> `flags.json` and is the current list. The "UI components and reference palette" section
+> describes the first design, which the workspace redesign replaced.
+
 A compact operational classroom view: local video, an observation-based attention
 list, selectable seats, and details for the selected seat. This app reads
 structured state from Supabase; it does not upload camera frames or change
@@ -16,7 +23,7 @@ CUES_FLAG_WEB_DASHBOARD=1
 ```
 
 Use only a publishable key, never a service-role key in browser configuration.
-Apply the migrations in `../supabase/README.md` before seeding. Then run
+Apply the migrations in `notes/supabase.md` before seeding. Then run
 `npm run dev` and open http://localhost:3000.
 
 `web.dashboard` defaults off. The server evaluates flags before importing the
@@ -51,7 +58,7 @@ Supabase, the LLM, or another cloud service.
   Reconnect reloads the snapshot; failures retain it with a visible warning.
 - Attention reads only pending `teacher_reviews`, behind `web.teacher_reviews`
   (default off). No seat-status fallback and no approval/dismissal actions.
-  See [TeacherReview contract and rollout](TEACHER_REVIEWS.md) for the expected
+  See [TeacherReview contract and rollout](web-teacher-reviews.md) for the expected
   projection and Michelle-side persistence/RLS/Realtime prerequisites.
 - Seats and **View details** open the same side panel. Escape/Close returns focus
   to the original seat button, or that seat's stable strip button when the queue
@@ -94,18 +101,18 @@ fixture checks are not evidence of that deployment.
 Physical camera/model behavior, authenticated session/review UI wiring,
 and physical touch-device testing remain unverified or unimplemented as above.
 
-## UI components and reference palette
+## UI components and reference palette (historical: the first design)
 
 TypeScript and Tailwind4 were already configured. Reusable presentation primitives
 now live in `web/components/ui/`, separate from the data-aware dashboard and local
 feed components in `web/components/`. `@/components/ui` points there through the
 existing TypeScript alias; `web/components.json` configures the shadcn-compatible
-paths and `app/globals.css`. See [shadcn configuration](https://ui.shadcn.com/docs/components-json).
+paths and `web/app/globals.css`. See [shadcn configuration](https://ui.shadcn.com/docs/components-json).
 No framework reinitialization is needed.
 
 The supplied Card primitives are integrated into the classroom feed and attention
-surfaces in `components/ui/card.tsx`. Their heading ref type is corrected, shadows
-are removed, and `lib/utils.ts` provides `cn` using clsx/tailwind-merge. Both package
+surfaces in `web/components/ui/card.tsx` (removed again by the later workspace redesign). Their
+heading ref type is corrected, shadows are removed, and `web/lib/utils.ts` provides `cn` using clsx/tailwind-merge. Both package
 manifests are updated. The attachment references `Hero195` but supplies no such
 implementation, so no broken demo/hero route was added. Its unused Radix widgets,
 border beam, animation pack, stock images, and additional font families were not
@@ -117,7 +124,7 @@ Live state remains explicit text; status dots are removed.
 
 Persistent review action UI is available behind default-off
 `web.teacher_review_actions`. Its proposed Supabase RPC and deployment prerequisites
-are documented in [TEACHER_REVIEWS.md](TEACHER_REVIEWS.md#persistent-action-adapter-supersedes-read-only-action-notes-above).
+are documented in [TEACHER_REVIEWS.md](web-teacher-reviews.md#persistent-action-adapter-supersedes-read-only-action-notes-above).
 It remains disabled until authorized backend persistence and teacher authentication
 are implemented. Frontend tests now total 21.
 
@@ -159,19 +166,44 @@ check alongside migration 003. No real camera or remote rows were used.
 
 ## Teacher login and workspace redesign
 
-See [UI_REDESIGN.md](UI_REDESIGN.md) for the Columbia-inspired workspace, animated
+See [UI_REDESIGN.md](web-ui-redesign.md) for the Columbia-inspired workspace, animated
 login companion, preview flags and remaining integration checks. The companion is
 a product mascot on `/login`; it does not represent a teacher or student.
 
 Person-observation feature one reads `tracking_valid` and applies the agreed
 five-second display freshness rule. Lost/paused cards remain visible with their
 last observation time; no frontend progress/stall decisions are made. See
-[PERSON_OBSERVATIONS.md](PERSON_OBSERVATIONS.md) for the feature flag, hosted setup
+[PERSON_OBSERVATIONS.md](web-person-observations.md) for the feature flag, hosted setup
 verification and Keith-side fresh-emitter check.
 
 Session controls now have deployed station-scoped Supabase actions and a prepared
-vision lifecycle consumer. See [SESSION_CONTROLS.md](SESSION_CONTROLS.md) for the
-verified contract/security boundary and [Keith's handoff](../vision/SESSION_LIFECYCLE.md)
+vision lifecycle consumer. See [SESSION_CONTROLS.md](web-session-controls.md) for the
+verified contract/security boundary and [Keith's handoff](session-lifecycle.md)
 for restart and live checks. Teacher provisioning and Keith-side rollout remain;
 keep `web.session_controls` off until those checks. Earlier missing-contract notes
 are historical. Session acknowledgement is separate from camera/model readiness.
+
+## Web feature flags
+
+Generated from `flags.json` (the single registry; `web/lib/flags.ts` reads it). Override any flag with
+`CUES_FLAG_WEB_<NAME>=1|0` in `web/.env.local`, or `NEXT_PUBLIC_CUES_FLAG_WEB_<NAME>` for the browser.
+
+| Flag | Default | Owner | What it does |
+|---|---|---|---|
+| `web.teacher_login` | on | evan | Teacher sign-in with an animated Cues companion; uses existing Supabase teacher accounts. |
+| `web.teacher_signup` | on | evan | Teacher sign-up at /signup with the Cues companion; creates a Supabase account. |
+| `web.alert_phone` | on | evan | Optional sign-up step that saves the teacher's mobile number (user metadata alert_phone) for Photon alerts. |
+| `web.dashboard` | on | evan | Read-only teacher dashboard with Supabase seats and realtime state updates. |
+| `web.landing` | on | evan | Public landing page at /; the teacher dashboard moves to /dashboard. |
+| `web.teacher_reviews` | off | evan | Read-only pending TeacherReview queue via Supabase; requires Michelle-side persistence, RLS and Realtime publication. |
+| `web.teacher_review_actions` | off | evan | Persistent review transitions; enable only after authorized Supabase RPC deployment |
+| `web.session_controls` | off | evan | Authenticated station session lifecycle and activity controls |
+| `web.person_observations` | off | evan | Read tracking_valid and show fresh, invalid, lost and paused person observations |
+| `web.landing_faq` | on | evan | FAQ section and the full site footer on the landing page. When off, the landing page keeps its one-line footer. |
+| `web.teacher_profile` | on | evan | Save the signed-in teacher's display name and E.164 phone number to teacher_profiles (migration 006), and move the sign-up number there after first sign-in. |
+| `web.landing_demo` | on | evan | Landing hero shows a looping demo of the real dashboard (banner, People rows, review rows) with simulated students. When off, the hero keeps the older preview card. |
+| `web.landing_motion` | on | evan | Landing page sections fade in once as they scroll into view. When off, every section is visible from the start. |
+| `web.theme_toggle` | on | evan | Light/dark switch on the landing page, log-in, sign-up and the dashboard. The choice is saved in the browser. When off, each page keeps its default: Night for the landing page and dashboard, white for log-in and sign-up. |
+| `web.vision_station_config` | on | keith | Dashboard sends the signed-in teacher's station to the vision service on 127.0.0.1:8000/config. When off, nothing is sent. |
+| `web.live_progress` | off | michelle | Read agent-owned evaluated progress from seat_state after migration 012. |
+

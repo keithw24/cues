@@ -1,8 +1,8 @@
 # Teacher workspace redesign
 
 The workspace now matches the landing page demo and shares tokens with the
-landing (Night) and sign-in (light) pages. `DESIGN.md` at the repo root records
-the system; `.plans/teacher-workspace-alignment-spec.md` records the decisions.
+landing (Night) and sign-in (light) pages. `notes/DESIGN.md` at the repo root records
+the system; `notes/teacher-workspace-alignment-spec.md` records the decisions.
 
 ## What changed
 

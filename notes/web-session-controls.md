@@ -51,7 +51,7 @@ acknowledgements; it does not make task-progress decisions.
 
 ## Vision integration
 
-See [Keith's handoff](../vision/SESSION_LIFECYCLE.md). Under the separate default-off
+See [Keith's handoff](session-lifecycle.md). Under the separate default-off
 `vision.session_lifecycle` flag, vision polls the authoritative station session
 once a second and reports configuration through `report_station_session`. Each
 frame pins immutable UUID/activity/revision. Switching/restarting a task resets

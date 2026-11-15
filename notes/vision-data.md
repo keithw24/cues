@@ -8,8 +8,11 @@ for perception and [Michelle's notes](michelle.md) for consumption.
 
 Vision upserts one latest row per seat_id, on status/tracking changes and otherwise
 about once per second. Fields: seat_id, session_id, activity_id, status,
-updated_at, tracking_valid, task_score, expression_context.
-updated_at is the observation time, not the network send time.
+updated_at, tracking_valid, session_revision, task_score, expression_context.
+updated_at is the observation time, not the network send time. session_revision is the
+session revision the observation was made under; the database rejects writes that do not match
+the station's active session, revision and activity (managed stations).
+`seat_state.evaluated_progress` is written only by the agent (migration 012); vision's upserts omit it.
 
 tracking_valid is nullable: true is a valid current observation, false is missing
 tracking, null is unknown historical state. Invalid tracking publishes null
@@ -27,14 +30,42 @@ history recording → EscalationEvaluator → EvaluationRouter → ContextEnrich
 → Deep Agent → persistent teacher_reviews. New persisted reviews can notify through
 Photon/Spectrum; teacher resolution uses the authenticated Supabase RPC.
 
-Vision reads sessions.current_activity_id for CUES_SESSION_ID once per second
-when activity_sync is enabled. The dashboard's current activity controls and
-persistent review UI still require integration in this checkout. Backend review
-resolution exists; observation-local hiding is not its replacement.
+## Station, session and person ids
 
-Vision reports temporary person IDs such as S1-P1. Person-ID provisioning/read
-policies and alignment between vision's activity catalog and Supabase activities
-remain gaps. Do not assume fixed seat counts or persistent student identity.
+Vision works for one station, set by the signed-in teacher's dashboard (`POST 127.0.0.1:8000/config`,
+loopback only) or pinned with `CUES_STATION_ID` for dev/test. Until a station arrives it tracks people
+for the local video only and writes nothing. With the session lifecycle on (the launcher default) it
+follows the station's active session, activity and revision from Supabase once per second
+(`vision/session_sync.py`); an ended session, a failed read or an expired three-second lease pauses
+task evaluation and writes. `CUES_SESSION_ID` is not used for managed frames.
+
+Person ids are `<station>-P<n>`: `S1-P1` to `S1-P4`, `S2-P1` and so on, by position only (no face
+recognition). A new station starts with a fresh tracker. Simulated person slots for each station exist
+in `seats` (migrations 510 and 011), which is what lets the dashboard read their state. Do not assume
+fixed seat counts or persistent student identity: a person who leaves for over ten seconds, or two
+people who swap places, can change ids.
+
+## Mark as reviewed (vision reads, never writes)
+
+When a teacher uses Mark as reviewed, the database records a row in `seat_review_marks` (migration 015).
+With `vision.review_marks` on (the default), vision polls those marks for the active session
+(`vision/review_marks.py`) and puts a marked child back to `in_progress`, restarting the no-progress
+and review timers; a completed task stays `done`. Marks that exist when a tracker is created do not
+reset it. Vision reads only a seat id and a time.
+
+## One camera per station
+
+Each vision process claims its station with a random writer id (`claim_station_writer`, migration 017)
+before reading the session, and renews the lease about once a second. A second camera is refused: it
+pauses completely, retries each second, and takes over when the first stops (it releases at once) or
+crashes (the lease expires after 10 seconds). `GET /config` reports `station_busy`. Without the
+migration vision keeps working with no guard and warns once.
+
+## Local service endpoints
+
+All on `127.0.0.1:8000`, local only. `GET /health` (camera, frame rate, stages, every vision flag);
+`GET /stream` (MJPEG video); `GET`/`POST /config` (the station; loopback only, JSON only);
+`/gestures` and `/templates/*` (teacher-recorded gestures, below).
 
 ## Other outputs and local video
 
@@ -44,7 +75,7 @@ when cloud publication is unavailable. Gesture templates stay local.
 MJPEG /stream is the intentional local demo transport; WebRTC is not required.
 
 Setup and env details: [STARTUP](../STARTUP.md). Product authority:
-[PRD](../PRD-cues.md). Use simulated data only.
+[PRD](PRD-cues.md). Use simulated data only.
 
 ## Teacher-recorded gestures (dashboard API, for Evan)
 
@@ -98,3 +129,24 @@ Notes:
 - Privacy: only the gesture name goes to Supabase. The definition and the hand
   examples stay in `vision/templates/` on the laptop (git-ignored). The API
   never returns images or landmarks.
+
+## Vision flags
+
+Generated from `flags.json` (override with `CUES_FLAG_VISION_<NAME>=1|0`; the launcher turns the perception stages on).
+
+| Flag | Default | What it does |
+|---|---|---|
+| `vision.supabase_events` | off | Send vision events and seat_state to Supabase. When off, they are written only to vision/logs/*.jsonl. |
+| `vision.hands` | off | MediaPipe hand tracking, with each hand assigned to a seat. |
+| `vision.faces` | off | MediaPipe face detection and the face crop per seat. |
+| `vision.gestures` | off | Gesture match score per seat against the teacher's recorded examples. |
+| `vision.expression` | off | HSEmotion facial-expression context per seat (supporting evidence only). |
+| `vision.raise_hand` | off | Raise-hand rule per seat: a wrist above that seat's face, held briefly. |
+| `vision.task_status` | off | Per-seat task status and events (attempt_success, attempt_miss, review_needed, no_progress, tracking_lost, expression_context). |
+| `vision.activity_sync` | off | Read the current task from Supabase sessions.current_activity_id instead of CUES_TASK. |
+| `vision.session_lifecycle` | off | Follow teacher-managed station sessions, pin frame IDs and pause task processing on session end or sync loss |
+| `vision.all_scores` | off | Display-only readout of every task's score for every person (overlay and vision.watch). Not sent to Supabase. |
+| `vision.custom_gestures` | off | Dashboard API to create teacher-recorded gestures (/gestures). Definitions and examples stay in vision/templates/ on this laptop. |
+| `vision.station_config` | on | Local /config endpoint: the signed-in teacher's dashboard sets this laptop's station. Vision writes nothing until a station is set. When off, the station is S1 (or CUES_STATION_ID) as before. |
+| `agent.live_progress` | off | Publish guarded live progress summaries after migration 012 deploys. |
+| `vision.review_marks` | on | Read the teacher's Mark as reviewed marks so a flagged child goes back to working and the no-progress timer restarts. Reads only seat ids and times from Supabase. |

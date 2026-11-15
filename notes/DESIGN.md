@@ -54,7 +54,7 @@ spacing:
 
 Cues has three surfaces that share one look: the landing page (`/`), the sign-in pages (`/login`, `/signup`) and the teacher workspace (`/dashboard`, `/settings/*`). The workspace follows the dashboard that the landing page demo shows, so the product looks the way the marketing promises.
 
-The direction is **very simple and uncluttered**. A screen has few surfaces, small spaced captions, pill buttons and round icon buttons. Model and technical detail waits behind a disclosure. Sources: `web/components/workspace.css`, `dashboard.tsx`, `local-classroom-feed.tsx`, `person-panel.tsx`, `workspace-rows.tsx`, `workspace-sidebar.tsx`, `landing.css`, `auth.css`. The interview that set these decisions is in `.plans/teacher-workspace-alignment-spec.md`.
+The direction is **very simple and uncluttered**. A screen has few surfaces, small spaced captions, pill buttons and round icon buttons. Model and technical detail waits behind a disclosure. Sources: `web/components/workspace.css`, `dashboard.tsx`, `local-classroom-feed.tsx`, `person-panel.tsx`, `workspace-rows.tsx`, `workspace-sidebar.tsx`, `landing.css`, `auth.css`. The interview that set these decisions is in `notes/teacher-workspace-alignment-spec.md`.
 
 ## Themes
 

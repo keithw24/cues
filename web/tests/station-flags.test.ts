@@ -57,5 +57,5 @@ test("errors never show provider details and a bad station is refused first", as
 });
 
 // The dashboard's "Last hour" timeline was removed in the workspace redesign
-// (Evan's call, see DESIGN.md). readStationFlags stays, tested above, for a
+// (Evan's call, see notes/DESIGN.md). readStationFlags stays, tested above, for a
 // timeline or history view that reads it again.
