@@ -65,6 +65,113 @@ def clear_cues_port(port, grace_seconds=5):
                 pass
 
 
+# Processes this launcher starts. A leftover from an earlier run (the terminal was closed, the
+# launcher was killed) keeps a port or the dashboard's dev lock, and a second agent worker would
+# double every notification. Each entry: command text to look for, and the folder it runs in.
+LEFTOVERS = (
+    (("agent.worker",), REPO_ROOT),
+    (("vision.app:app",), REPO_ROOT),
+    (("next dev", "next-server", "next/dist/bin/next", "npm run dev"), REPO_ROOT / "web"),
+)
+
+
+def _process_table():
+    """(pid, command) for every process, from ps."""
+    out = subprocess.run(
+        ["ps", "-axo", "pid=,command="], capture_output=True, text=True, timeout=10
+    ).stdout
+    rows = []
+    for line in out.splitlines():
+        pid, _, command = line.strip().partition(" ")
+        if pid.isdigit():
+            rows.append((int(pid), command.strip()))
+    return rows
+
+
+def _working_directory(pid):
+    out = subprocess.run(
+        ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"], capture_output=True, text=True
+    ).stdout.splitlines()
+    return next((line[1:] for line in out if line.startswith("n")), None)
+
+
+def _own_pids():
+    """This launcher and its ancestors: never a leftover."""
+    pids, pid = set(), os.getpid()
+    while pid > 1 and pid not in pids:
+        pids.add(pid)
+        out = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "ppid="], capture_output=True, text=True
+        ).stdout.strip()
+        pid = int(out) if out.isdigit() else 0
+    return pids
+
+
+def find_leftovers(rows, working_directory, own):
+    """The previous run's processes: a known command AND the folder that belongs to it.
+
+    Matching only on the command could hit another project's `next dev`, so the process's
+    working directory must be exactly this repo's folder for that component.
+    """
+    found = []
+    for pid, command in rows:
+        if pid in own:
+            continue
+        for needles, folder in LEFTOVERS:
+            if any(needle in command for needle in needles):
+                if working_directory(pid) == str(folder):
+                    found.append((pid, command))
+                break
+    return found
+
+
+def sweep_leftovers(grace_seconds=5):
+    """Stop this repo's leftover vision, agent worker and dashboard processes before starting."""
+    try:
+        leftovers = find_leftovers(_process_table(), _working_directory, _own_pids())
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return []  # no ps/lsof: the port checks below still protect the start
+    for pid, command in leftovers:
+        print(f"Stopping a leftover Cues process (PID {pid}): {command[:60]}", flush=True)
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            continue
+    deadline = time.monotonic() + grace_seconds
+    alive = {pid for pid, _ in leftovers}
+    while alive and time.monotonic() < deadline:
+        alive = {pid for pid in alive if _is_alive(pid)}
+        if alive:
+            time.sleep(0.1)
+    for pid in alive:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    return [pid for pid, _ in leftovers]
+
+
+def _is_alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def install_stop_signals(stop):
+    """Stop cleanly on Ctrl-C, kill, and a closed terminal (SIGHUP).
+
+    Without SIGHUP the launcher died at once when its terminal closed, skipping the cleanup,
+    and the dashboard and worker (each in its own process group) kept running.
+    """
+    for name in ("SIGINT", "SIGTERM", "SIGHUP"):
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), lambda *_: stop.set())
+
+
 def port_is_free(port: int) -> bool:
     """True when nothing is listening on the port.
 
@@ -125,6 +232,7 @@ def main():
     required = ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GROQ_API_KEY")
     if any(not os.environ.get(name) for name in required):
         raise SystemExit("Configure root .env: " + ", ".join(required))
+    sweep_leftovers()
     for port in (3000, 8000):
         clear_cues_port(port)
         if not port_is_free(port):
@@ -143,8 +251,7 @@ def main():
     ]
     children = []
     stop = threading.Event()
-    signal.signal(signal.SIGINT, lambda *_: stop.set())
-    signal.signal(signal.SIGTERM, lambda *_: stop.set())
+    install_stop_signals(stop)
 
     def output(name, stream):
         for line in stream:
@@ -165,6 +272,14 @@ def main():
         key = f"CUES_FLAG_VISION_{stage}"
         if not vision_env.get(key):
             vision_env[key] = "1"
+    if profile == "demo":
+        # The agent asks for a review after about this many seconds of stalling in demo
+        # mode; make vision's Needs Review status arrive then too, not after 30 seconds.
+        from agent.escalation import DEMO_ESCALATION_CONFIG
+
+        vision_env.setdefault(
+            "CUES_NO_PROGRESS_SECONDS", str(DEMO_ESCALATION_CONFIG.normal_stall_seconds)
+        )
     print(
         f"Mode: {profile.upper()}\nAgent timing: {profile}\n"
         f"Camera index: {vision_env.get('CUES_CAMERA_INDEX', '0')}\n"

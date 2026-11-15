@@ -403,6 +403,77 @@
   line-height: 1.4;
 }
 
+/* Camera health: four words, and one sentence only when something needs the teacher. */
+.dashboard-shell .health-strip ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dashboard-shell .health-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--ws-surface);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.dashboard-shell .health-label {
+  color: var(--ws-ink-soft);
+}
+.dashboard-shell .health-value {
+  font-weight: 600;
+}
+.dashboard-shell .health-item.is-good .health-value {
+  color: var(--ws-done);
+}
+.dashboard-shell .health-item.is-warn {
+  background: var(--ws-review-soft);
+}
+.dashboard-shell .health-item.is-warn .health-value {
+  color: var(--ws-review);
+}
+.dashboard-shell .health-problem {
+  margin: 10px 0 0;
+  padding: 8px 14px;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 18px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Approve a suggested support: one line of words, a menu, one button. */
+.dashboard-shell .intervention-pick label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .intervention-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dashboard-shell .intervention-row select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 14px;
+  border: 1px solid var(--ws-line);
+  border-radius: 999px;
+  background: var(--ws-surface);
+  color: var(--ws-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
 /* A connection problem: one quiet line and a retry. */
 .dashboard-shell .notice {
   display: flex;

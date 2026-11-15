@@ -53,6 +53,7 @@ Root `.env` (backend only; never commit credentials):
 | `CUES_DASHBOARD_ORIGINS` | Optional, comma-separated browser origins allowed to call the local vision service; default `http://localhost:3000` |
 | `DATABASE_URL` | Only for `scripts/supabase-migrations.py` (applying migrations); never needed to run the stack |
 | `CUES_OVERLAY` | `debug` draws every stage's own detail on the video instead of the normal overlay |
+| `CUES_NO_PROGRESS_SECONDS` | Shortens the "no progress" wait for every task (default 30). `./scripts/demo.sh` sets it to the agent's demo stall time (4) so the Needs Review status arrives when the demo review request does |
 | `CUES_PALM_FLIP` | `1` swaps palm and back of hand if a camera mirrors its output |
 | `CUES_SPECTRUM_DEBUG` | Optional extra logging from the notification sender |
 
@@ -94,8 +95,9 @@ Restart after adding notification configuration.
 
 ## Database and demo prerequisites
 
-All 20 migrations in `supabase/migrations/` (000100 through 001700) are applied to the hosted
-project, and none are pending. A new project applies them in filename order; see
+The first 20 migrations in `supabase/migrations/` (000100 through 001700) are applied to the hosted
+project. Migration 001800 (approved interventions) is written and tested but **not applied**; it is
+needed only by the `agent.interventions` and `web.interventions` flags, which are off. A new project applies them in filename order; see
 [notes/supabase.md](notes/supabase.md) for what each adds, how to apply them
 (`scripts/supabase-migrations.py list|dry-run|push`) and their tests. The launcher does not
 apply migrations or create demo data. Do not reapply the initial schema to the hosted project.
@@ -129,6 +131,14 @@ Spectrum target activation, and check person-ID visibility.
 Camera-free development: `CUES_CAMERA=fake ./scripts/dev.sh`.
 
 ## Troubleshooting
+
+The launcher stops this repo's leftover dashboard, vision and agent-worker processes when it
+starts (a closed terminal used to leave them running), and it shuts everything down cleanly on
+Ctrl-C, kill or a closed terminal. It never touches another project's server.
+
+Old rows in `seat_state` (the retired S1-L and S1-R seats, and people from finished sessions):
+`uv run python scripts/cleanup-seat-state.py` lists them (a dry run). Add `--delete` to remove them,
+after it asks you to confirm.
 
 Notification activation is manual for the hackathon. The teacher opts in under
 /settings/profile; Cues records consent against the saved profile phone and shows

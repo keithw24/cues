@@ -2,6 +2,8 @@
  * Identity/priority come from TeacherReview.evaluation; rationale/evidence from assessment.
  * This is not the legacy alerts table and performs no agent eligibility checks.
  */
+import { isInterventionKey, type InterventionKey } from "./interventions.ts";
+
 export type AssessmentDecision =
   "continue_monitoring" | "teacher_review_warranted";
 export type ReviewPriority = "normal" | "elevated";
@@ -26,10 +28,14 @@ export type TeacherReview = Readonly<{
   resolved_at: string | null;
   progress?: { trend: string; stalled_seconds: number } | null;
   escalation_reason?: string | null;
+  /** The agent's one suggested support from the approved menu (migration 018), if any. */
+  suggested_intervention?: InterventionKey | null;
 }>;
 
 export const REVIEW_COLUMNS =
   "id,session_id,seat_id,activity_id,created_at,priority,decision,rationale,evidence_used,status,resolved_at,evaluation";
+/** Only with web.interventions: the column exists after migration 018. */
+export const REVIEW_COLUMNS_WITH_INTERVENTIONS = `${REVIEW_COLUMNS},suggested_intervention`;
 export const evidenceLabels: Record<EvidenceSource, string> = {
   current_progress: "Current task progress",
   activity: "Activity requirements",
@@ -101,6 +107,13 @@ export function parseTeacherReviews(input: unknown): TeacherReview[] {
       evidence_used: [...new Set(evidence)] as EvidenceSource[],
       status: row.status as TeacherReview["status"],
       resolved_at: row.resolved_at == null ? null : timestamp(row.resolved_at),
+      ...("suggested_intervention" in row
+        ? {
+            suggested_intervention: isInterventionKey(row.suggested_intervention)
+              ? row.suggested_intervention
+              : null,
+          }
+        : {}),
       ...(row.evaluation == null ? {} : {
         progress: validProgress ? { trend: String(progress.trend), stalled_seconds: progress.stalled_seconds as number } : null,
         escalation_reason: typeof escalation?.reason === 'string' ? escalation.reason : null,

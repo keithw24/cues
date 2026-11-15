@@ -40,9 +40,26 @@ class Activity:
     builtin: str | None = None
 
 
+def _no_progress_override() -> int | None:
+    """CUES_NO_PROGRESS_SECONDS: shorten the "no progress" wait for every task (demo mode).
+
+    The demo launcher sets it so vision's Needs Review status arrives about when the
+    agent's accelerated review request does. Unset, empty or invalid: no override.
+    """
+    raw = os.environ.get("CUES_NO_PROGRESS_SECONDS", "").strip()
+    if not raw:
+        return None
+    try:
+        seconds = int(raw)
+    except ValueError:
+        return None
+    return seconds if seconds > 0 else None
+
+
 @lru_cache(maxsize=1)
 def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
     items = json.loads(Path(path).read_text()) + _read_custom()
+    override = _no_progress_override()
     result = {}
     for item in items:
         activity = Activity(
@@ -51,7 +68,7 @@ def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
             check_type=item["check_type"],
             success_threshold=float(item["success_threshold"]),
             review_threshold=float(item["review_threshold"]),
-            no_progress_seconds=int(item["no_progress_seconds"]),
+            no_progress_seconds=override or int(item["no_progress_seconds"]),
             keywords=tuple(item.get("keywords", [])),
             builtin=item.get("builtin"),
         )

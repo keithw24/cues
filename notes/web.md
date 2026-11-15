@@ -205,5 +205,7 @@ Generated from `flags.json` (the single registry; `web/lib/flags.ts` reads it). 
 | `web.landing_motion` | on | evan | Landing page sections fade in once as they scroll into view. When off, every section is visible from the start. |
 | `web.theme_toggle` | on | evan | Light/dark switch on the landing page, log-in, sign-up and the dashboard. The choice is saved in the browser. When off, each page keeps its default: Night for the landing page and dashboard, white for log-in and sign-up. |
 | `web.vision_station_config` | on | keith | Dashboard sends the signed-in teacher's station to the vision service on 127.0.0.1:8000/config. When off, nothing is sent. |
+| `web.interventions` | off | evan | Show the agent's suggested support on a review and let the teacher approve it (or pick another from the menu). Needs migration 018; approving also confirms the review. |
 | `web.live_progress` | off | michelle | Read agent-owned evaluated progress from seat_state after migration 012. |
+| `web.health_strip` | off | keith | Camera health strip on the classroom page: camera service on or off, station set, updates arriving, and another camera refused, each as its own word. Reads the local vision service on 127.0.0.1:8000 (/health, /config) and the station's writer row. Off: the page shows only its single camera-off message. |
 

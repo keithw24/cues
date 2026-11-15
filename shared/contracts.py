@@ -74,6 +74,28 @@ class ExpressionLabel(StrEnum):
     SURPRISE = "surprise"
 
 
+# The approved intervention menu (PRD 12, 13). The agent may suggest ONE of these on a review
+# request and nothing else; the teacher approves before anything is recorded. The same keys are
+# in supabase/migrations/20261114001800_interventions.sql and web/lib/interventions.ts (a test
+# keeps all three equal). Wording describes what an adult does, never a child's state.
+INTERVENTION_MENU: dict[str, str] = {
+    "repeat_instruction": "Repeat the instruction",
+    "show_example": "Show an example",
+    "model_task": "Model the task",
+    "smaller_steps": "Break it into smaller steps",
+    "offer_break": "Offer a short break",
+    "adult_check_in": "Check in with the student",
+}
+InterventionKey = Literal[
+    "repeat_instruction",
+    "show_example",
+    "model_task",
+    "smaller_steps",
+    "offer_break",
+    "adult_check_in",
+]
+
+
 class _Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
