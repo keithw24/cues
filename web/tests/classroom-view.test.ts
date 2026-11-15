@@ -51,3 +51,26 @@ test("a To review card says the task, then not in view, then the request count",
     "Thumbs up · not in view · 3 requests",
   );
 });
+
+test("Attention names camera-flagged people instead of All clear, or under the requests", async () => {
+  const { attentionFlaggedLine, nameList } = await import("../lib/classroom-view.ts");
+  assert.equal(attentionFlaggedLine([], false), null);
+  assert.equal(
+    attentionFlaggedLine(["Keith"], false),
+    "No requests from Cues. The camera flagged Keith for a look.",
+  );
+  assert.equal(attentionFlaggedLine(["Keith"], true), "Also flagged by the camera: Keith.");
+  assert.doesNotMatch(attentionFlaggedLine(["Keith"], false) ?? "", /All clear/);
+  assert.equal(nameList(["Keith", "Evan"]), "Keith and Evan");
+  assert.equal(nameList(["Keith", "Evan", "Eric"]), "Keith, Evan and Eric");
+  assert.equal(nameList(["Keith", "Evan", "Eric", "Michelle"]), "Keith, Evan and 2 more");
+});
+
+test("the classroom wires the flagged line from the same list as To review", async () => {
+  const { readFileSync } = await import("node:fs");
+  const dash = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
+  // Built from reviewQueue's flagged list (marked people already left out).
+  assert.match(dash, /attentionFlaggedLine\(\s*flaggedOnly\.map\(\(seat\) => seat\.display_name\),/);
+  // All clear only when nobody is flagged and nobody marked is still catching up.
+  assert.match(dash, /flaggedLine \?\?\s*\(catchingUp\s*\?\s*"Marked as reviewed\. The camera will catch up in a moment\."\s*:\s*"All clear\. Cues will ask when someone may need you\."\)/);
+});

@@ -32,6 +32,7 @@ import { ReviewCompanion } from "@/components/review-companion";
 import { ReviewCard, WaitingReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
 import {
+  attentionFlaggedLine,
   reviewIssueLine,
   reviewQueue,
   stripEntries,
@@ -444,6 +445,20 @@ export default function Dashboard({
     askedSeatIds: reviewGroups.map((group) => group.seat_id),
     marked: markedSeats,
   });
+  // Attention names them too (web.review_waiting): instead of "All clear", or
+  // under the requests, so the cards and Attention always agree.
+  const flaggedLine = attentionFlaggedLine(
+    flaggedOnly.map((seat) => seat.display_name),
+    reviewGroups.length > 0,
+  );
+  // Marked as reviewed, but the camera hasn't reset them yet: not "All clear"
+  // while their card still reads Needs Review.
+  const catchingUp =
+    reviewWaitingEnabled &&
+    reviewsLive &&
+    inView.some(
+      (seat) => markedSeats.has(seat.id) && present(seat).needsReview,
+    );
   // A person picked from the strip who has no request opens in the side
   // panel; someone with a request opens in place in the attention list.
   const selectedPerson =
@@ -904,15 +919,26 @@ export default function Dashboard({
                   </ul>
                 ) : (
                   reviewNotice ? null : (
-                    <p className="panel-empty" role="status">
+                    <p
+                      className={`panel-empty${flaggedLine ? " is-flagged" : ""}`}
+                      role="status"
+                    >
                       {!reviewsEnabled || configurationError
                         ? "Cues will ask here when someone may need you."
                         : reviewsLive
-                          ? "All clear. Cues will ask when someone may need you."
+                          ? (flaggedLine ??
+                            (catchingUp
+                              ? "Marked as reviewed. The camera will catch up in a moment."
+                              : "All clear. Cues will ask when someone may need you."))
                           : "Checking…"}
                     </p>
                   )
                 )}
+                {reviewGroups.length && flaggedLine ? (
+                  <p className="list-also is-flagged" role="status">
+                    {flaggedLine}
+                  </p>
+                ) : null}
                   </>
                 )}
               </section>

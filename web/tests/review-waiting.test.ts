@@ -55,6 +55,7 @@ test("a stale observation no longer reads Needs Review, so it is not listed", ()
 
 test("web.review_waiting is registered off by default and wired from both pages", () => {
   const flag = JSON.parse(read("../../flags.json"))["web.review_waiting"];
+  // Off until the live station check is recorded (CLAUDE.md flag rule 2).
   assert.equal(flag.default, false);
   assert.equal(flag.owner, "evan");
   for (const page of ["../app/review/page.tsx", "../app/dashboard/page.tsx"])
