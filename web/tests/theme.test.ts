@@ -110,7 +110,7 @@ test("review decisions read as support needed or not, on the same statuses", asy
   assert.doesNotMatch(actions, /"Needs attention"|"Dismiss"/);
 });
 
-test("the rail keeps only Classroom and Profile", () => {
+test("the rail keeps Classroom, To review (when on) and Profile", () => {
   const rail = read("../components/workspace-sidebar.tsx");
   // The current entry follows the URL, not a fixed page.
   assert.match(rail, /usePathname\(\)/);
@@ -119,11 +119,35 @@ test("the rail keeps only Classroom and Profile", () => {
       .map((m) => m[1])
       .filter((href) => href !== "/"),
   );
-  // The profile holds email, sign-out, the camera link and alerts; nothing in
-  // the rail sends a signed-in teacher to the sign-in page.
-  assert.deepEqual([...links].sort(), ["/dashboard", "/settings/profile"]);
+  // The profile holds email, sign-out and alerts; nothing in the rail sends a
+  // signed-in teacher to the sign-in page.
+  assert.deepEqual([...links].sort(), ["/dashboard", "/review", "/settings/profile"]);
+  assert.match(rail, /\{reviewPage \? \(\s*<Link href="\/review"/);
   assert.doesNotMatch(rail, /href="\/login"|\/live|\/settings\/notifications/);
 });
+
+test("the To review page is off by default and redirects when off", () => {
+  assert.equal(isEnabled("web.review_page", {}), false);
+  assert.equal(
+    isEnabled("web.review_page", { CUES_FLAG_WEB_REVIEW_PAGE: "1" }),
+    true,
+  );
+  const page = read("../app/review/page.tsx");
+  assert.match(
+    page,
+    /if \(!isEnabled\("web\.review_page"\) \|\| !isEnabled\("web\.dashboard"\)\)\s*redirect\("\/dashboard"\)/,
+  );
+  assert.match(page, /view="review"/);
+  // With the flag off, the classroom shows no To review link or pill.
+  const dashboard = read("../components/dashboard.tsx");
+  assert.match(dashboard, /\) : reviewPageEnabled \? \(\s*<Link/);
+  assert.match(dashboard, /reviewPage=\{reviewPageEnabled\}/);
+  assert.match(
+    read("../app/dashboard/page.tsx"),
+    /reviewPageEnabled=\{isEnabled\("web\.review_page"\)\}/,
+  );
+});
+
 
 test("people are labelled as the backend names them, never made-up names", () => {
   assert.throws(() => isEnabled("web.simulated_names", {}));

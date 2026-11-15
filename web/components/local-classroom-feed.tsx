@@ -74,13 +74,11 @@ export default function LocalClassroomFeed() {
         {connection !== "live" ? (
           <div className="video-placeholder">
             <WorkspaceIcon name="camera" />
-            <p>
-              {connection === "error"
-                ? "Can’t reach this laptop’s camera. Check that Cues vision is running, then try again."
-                : connection === "connecting"
-                  ? "Connecting to this laptop’s camera…"
-                  : "See who Cues is tracking, live from this laptop."}
-            </p>
+            {connection === "error" ? (
+              <p>Can’t reach this laptop’s camera. Check that Cues vision is running, then try again.</p>
+            ) : connection === "connecting" ? (
+              <p>Connecting to this laptop’s camera…</p>
+            ) : null}
             {connection === "connecting" ? (
               <button type="button" className="ws-pill" onClick={turnOff}>
                 Cancel

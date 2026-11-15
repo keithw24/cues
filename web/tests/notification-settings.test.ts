@@ -60,7 +60,7 @@ test("membership-free status read is scoped to Auth user and reads the authorita
 });
 test("notification section source includes names, explicit checkbox, safe statuses and disable control", () => {
   const source = readFileSync(new URL("../components/demo-notifications.tsx", import.meta.url), "utf8");
-  for (const label of ["Demo notifications", "First name", "Last name", "I want to receive Cues demo notifications",
+  for (const label of ["demo notifications", "First name", "Last name", "I want to receive Cues demo notifications",
     "Enable notifications", "Disable notifications", "Notifications are being activated for this phone.",
     "Notifications enabled", "Notifications could not be activated yet."])
     assert.ok(source.includes(label));

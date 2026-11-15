@@ -117,15 +117,15 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
     else setAsking((value) => !value);
   };
   return <section id="notifications" className="profile-group" aria-labelledby="demo-notifications-heading" aria-busy={saving}>
-    <h2 id="demo-notifications-heading" className="profile-group-label">Text alerts</h2>
     <div className="profile-card profile-form">
+      <h2 id="demo-notifications-heading" className="sr-only">Text alerts</h2>
       {signedOut ? <div className="alerts-head">
-        <div className="alerts-copy"><strong>Demo notifications</strong><p className="profile-hint">Sign in to manage demo notifications.</p></div>
+        <div className="alerts-copy"><strong>demo notifications</strong><p className="profile-hint">Sign in to manage demo notifications.</p></div>
         <Link className="ws-pill is-dark" href="/login">Sign in</Link>
       </div> : <>
         <div className="alerts-head">
           <div className="alerts-copy">
-            <strong>Demo notifications</strong>
+            <strong>demo notifications</strong>
             <p className="profile-hint" role="status" aria-live="polite">{summary}</p>
           </div>
           <button type="button" role="switch" className="ws-switch"

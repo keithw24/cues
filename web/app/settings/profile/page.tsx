@@ -18,11 +18,11 @@ export default async function ProfilePage() {
       <WorkspaceSidebar
         accountEnabled={isEnabled("web.teacher_login")}
         themeToggle={isEnabled("web.theme_toggle")}
+        reviewPage={isEnabled("web.review_page")}
       />
       <main id="main-content" className="dashboard-main settings-main">
         <header className="page-intro">
-          <h1>Profile</h1>
-          <p>How Cues names you, and where alerts can reach you.</p>
+          <h1>profile</h1>
         </header>
         <div className="settings-list">
           {isEnabled("web.teacher_login") ? <ProfileAccount /> : null}
@@ -30,8 +30,8 @@ export default async function ProfilePage() {
             <TeacherProfileForm />
           ) : (
             <section className="profile-group">
-              <h2 className="profile-group-label">About you</h2>
               <div className="profile-card">
+                <h2 className="profile-card-title">name and phone</h2>
                 <p className="profile-hint">
                   Not turned on in this environment yet.
                 </p>

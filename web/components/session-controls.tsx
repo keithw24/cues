@@ -306,6 +306,13 @@ export function SessionControls({
         : sessionOwnership(session, user) === "other"
           ? "Another teacher started this session."
           : null;
+  const sync = snapshot ? stationSyncLabel(snapshot, now) : null;
+  const attention =
+    session && ownership && ownership !== "Pick an activity to start."
+      ? ownership
+      : session && sync && sync !== "Activity synced"
+        ? sync
+        : null;
   const refreshButton = (
     <button
       type="button"
@@ -387,12 +394,12 @@ export function SessionControls({
         ) : null}
         {refreshButton}
       </div>
-      {stationMessage || snapshot ? (
+      {/* Only what needs the teacher: a loading or setup message, a session
+          that isn't theirs, or a camera that isn't in step. "Synced" and
+          "Pick an activity" say nothing the controls don't already show. */}
+      {stationMessage || attention ? (
         <p className="session-line" role="status">
-          {stationMessage ||
-            [ownership, snapshot ? stationSyncLabel(snapshot, now) : null]
-              .filter(Boolean)
-              .join(" · ")}
+          {stationMessage || attention}
         </p>
       ) : null}
       {error ? (

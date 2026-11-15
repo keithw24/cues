@@ -11,6 +11,7 @@ import {
   type ReviewFeedState,
 } from "@/lib/teacher-review-feed";
 import {
+  activityLabel,
   groupReviewsBySeat,
   type TeacherReview,
 } from "@/lib/teacher-reviews";
@@ -25,6 +26,9 @@ import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import { PersonDetails } from "@/components/person-panel";
 import { MarkReviewedButton } from "@/components/mark-reviewed-button";
+import { TeacherReviewActions } from "@/components/teacher-review-actions";
+import { ReviewCard } from "@/components/review-card";
+import { StudentStrip } from "@/components/student-strip";
 import {
   CAMERA_CONFLICT_MESSAGE,
   cameraConflict,
@@ -39,7 +43,6 @@ import {
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 import {
-  PersonRowContent,
   ReviewRowContent,
   type PersonTone,
 } from "@/components/workspace-rows";
@@ -90,6 +93,8 @@ function SignInCard() {
 }
 
 export default function Dashboard({
+  view = "classroom",
+  reviewPageEnabled = false,
   liveProgressEnabled = false,
   personObservationsEnabled = false,
   sessionControlsEnabled = false,
@@ -100,6 +105,10 @@ export default function Dashboard({
   themeToggleEnabled = false,
   visionStationConfigEnabled = false,
 }: {
+  /** "classroom" (the default) or "review", the To review page. */
+  view?: "classroom" | "review";
+  /** web.review_page: the To review page and its links. */
+  reviewPageEnabled?: boolean;
   liveProgressEnabled?: boolean;
   personObservationsEnabled?: boolean;
   sessionControlsEnabled?: boolean;
@@ -167,9 +176,7 @@ export default function Dashboard({
         setVisionMessage(
           result === "pinned"
             ? "This laptop’s camera is set to another classroom. Remove CUES_STATION_ID from the root .env."
-            : result === "unavailable"
-              ? "Couldn’t link this laptop’s camera. Check that the vision service is running."
-              : "",
+            : "",
         ),
     });
   }, [client, station, visionStationConfigEnabled]);
@@ -294,6 +301,11 @@ export default function Dashboard({
   // People are labelled as the backend names them (seats.display_name,
   // "Person 1", "Person 2"…): no made-up names.
   const seats = feed.snapshot ? seatViews(feed.snapshot) : [];
+  const activityName = (id: string) =>
+    activityLabel(
+      id,
+      feed.snapshot?.activities.find((item) => item.id === id)?.name,
+    );
   const nameOf = (seatId: string) =>
     seats.find((seat) => seat.id === seatId)?.display_name ?? "A student";
   const observationOptions: ObservationOptions = {
@@ -380,9 +392,13 @@ export default function Dashboard({
       ),
     );
   }, [stillFlagged]);
-  // One list: whoever Cues asked about first (even out of view), then
-  // everyone else the camera sees, left to right.
-  const others = inView.filter((seat) => reviewsFor(seat.id).length === 0);
+  const waitingCount = reviewsLive ? reviewGroups.length : 0;
+  // A person picked from the strip who has no request opens in the side
+  // panel; someone with a request opens in place in the attention list.
+  const selectedPerson =
+    selectedId && reviewsFor(selectedId).length === 0
+      ? (inView.find((seat) => seat.id === selectedId) ?? null)
+      : null;
   const closeDetails = () => {
     const id = selectedId;
     setSelectedId(null);
@@ -513,6 +529,8 @@ export default function Dashboard({
       <WorkspaceSidebar
         accountEnabled={teacherLoginEnabled}
         themeToggle={themeToggleEnabled}
+        reviewPage={reviewPageEnabled}
+        reviewCount={reviewsLive ? reviewGroups.length : 0}
       />
       <main id="main-content" className="dashboard-main">
         {signedOut ? (
@@ -522,13 +540,31 @@ export default function Dashboard({
             <section className="ws-hero" aria-labelledby="classroom-heading">
               <header className="page-intro">
                 <div>
-                  <h1 id="classroom-heading">your classroom</h1>
-                  {sessionLive ? null : (
+                  <h1 id="classroom-heading">
+                    {view === "review" ? "to review" : "your classroom"}
+                  </h1>
+                  {view === "review" || sessionLive ? null : (
                     <p className="ws-subtitle">{activity}</p>
                   )}
                 </div>
+                {view === "review" ? (
+                  <Link className="ws-pill" href="/dashboard">
+                    <WorkspaceIcon name="back" />
+                    Back to classroom
+                  </Link>
+                ) : reviewPageEnabled ? (
+                  <Link
+                    className={`ws-pill review-link${waitingCount ? " has-items" : ""}`}
+                    href="/review"
+                  >
+                    To review
+                    {waitingCount ? (
+                      <span className="ws-count">{waitingCount}</span>
+                    ) : null}
+                  </Link>
+                ) : null}
               </header>
-              {sessionLive && client ? (
+              {view === "review" ? null : sessionLive && client ? (
                 <SessionControls
                   client={client}
                   station={station}
@@ -545,7 +581,7 @@ export default function Dashboard({
                   teacherLoginEnabled={teacherLoginEnabled}
                 />
               ) : null}
-              {sessionLive && conflict ? (
+              {view !== "review" && sessionLive && conflict ? (
                 <p className="station-busy" role="status">
                   {CAMERA_CONFLICT_MESSAGE}
                 </p>
@@ -574,6 +610,66 @@ export default function Dashboard({
               </section>
             ) : null}
 
+            {view === "review" ? (
+              <section className="review-page" aria-label="To review">
+                {reviewsEnabled &&
+                !configurationError &&
+                (reviews.error || reviews.connection === "disconnected") ? (
+                  <div className="list-notice" role="alert">
+                    <p>Couldn’t check for new requests.</p>
+                    <button
+                      type="button"
+                      className="ws-pill"
+                      disabled={reviews.loading}
+                      onClick={() => setReviewAttempt((n) => n + 1)}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : null}
+                {reviewGroups.length ? (
+                  <ol className="review-list">
+                    {reviewGroups.map((group, index) => {
+                      const lead = group.reviews[0];
+                      const visible = inView.some(
+                        (seat) => seat.id === group.seat_id,
+                      );
+                      return (
+                        <ReviewCard
+                          key={group.seat_id}
+                          index={index + 1}
+                          name={nameOf(group.seat_id)}
+                          issue={`${activityName(lead.activity_id)}${visible ? "" : " · not in view"}`}
+                          review={lead}
+                          count={group.reviews.length}
+                          elevated={group.elevated}
+                          decisions={
+                            reviewActionsEnabled && client ? (
+                              <TeacherReviewActions
+                                key={lead.id}
+                                client={client}
+                                review={lead}
+                                onResolved={resolved}
+                              />
+                            ) : null
+                          }
+                          mark={markReviewedButton(lead.session_id, group.seat_id)}
+                        />
+                      );
+                    })}
+                  </ol>
+                ) : (
+                  <p className="list-clear review-clear" role="status">
+                    {!reviewsEnabled || configurationError
+                      ? "Cues will list people here when someone may need you."
+                      : reviews.reviews === null
+                        ? "Checking…"
+                        : "All clear. No one needs you right now."}
+                  </p>
+                )}
+              </section>
+            ) : (
+              <>
             <div className="monitor-workspace">
               <LocalClassroomFeed />
               <section
@@ -583,14 +679,44 @@ export default function Dashboard({
                   if (event.key === "Escape" && selectedId) closeDetails();
                 }}
               >
+                {selectedPerson ? (
+                  <div className="panel-person">
+                    <header className="panel-heading">
+                      <button
+                        type="button"
+                        className="ws-icon-button"
+                        onClick={closeDetails}
+                        aria-label="Back to attention"
+                      >
+                        <WorkspaceIcon name="back" />
+                      </button>
+                      <h2 id="class-heading" ref={listHeading} tabIndex={-1}>
+                        {selectedPerson.display_name}
+                      </h2>
+                    </header>
+                    <PersonDetails
+                      id={`more-${selectedPerson.id}`}
+                      presentation={present(selectedPerson)}
+                      reviews={[]}
+                      stale={false}
+                      client={null}
+                      onResolved={resolved}
+                      actions={markReviewedButton(
+                        selectedPerson.state?.session_id ?? null,
+                        selectedPerson.id,
+                      )}
+                    />
+                  </div>
+                ) : (
+                  <>
                 <header className="panel-heading">
                   <h2 id="class-heading" ref={listHeading} tabIndex={-1}>
-                    Class
+                    Attention
                   </h2>
                   {reviewsLive && reviewGroups.length ? (
                     <span className="ws-count">
                       {reviewGroups.length}
-                      <span className="sr-only"> need you</span>
+                      <span className="sr-only"> waiting</span>
                     </span>
                   ) : null}
                 </header>
@@ -612,67 +738,61 @@ export default function Dashboard({
                 ) : null}
 
                 {reviewGroups.length ? (
-                  <>
-                    <p className="list-label">Needs you</p>
-                    <ul className="row-list">
-                      {reviewGroups.map((group) => {
-                        const seat = seats.find((s) => s.id === group.seat_id);
-                        const visible = inView.some((s) => s.id === group.seat_id);
-                        return row(
-                          group.seat_id,
-                          <ReviewRowContent
-                            name={nameOf(group.seat_id)}
-                            meta={
-                              !visible
-                                ? "Not in view"
-                                : mixedActivities && seat
-                                  ? seat.activity
-                                  : ""
-                            }
-                            time={group.latest}
-                            elevated={group.elevated}
-                          />,
-                          visible && seat ? present(seat) : null,
-                          group.reviews,
-                        );
-                      })}
-                    </ul>
-                  </>
-                ) : reviewsLive ? (
-                  <p className="list-clear" role="status">
-                    All clear. Cues will ask when someone may need you.
-                  </p>
-                ) : null}
-
-                {others.length ? (
-                  <>
-                    {reviewGroups.length ? (
-                      <p className="list-label">Everyone else</p>
-                    ) : null}
-                    <ul className="row-list">
-                      {others.map((seat) => {
-                        const presentation = present(seat);
-                        return row(
-                          seat.id,
-                          <PersonRowContent
-                            name={seat.display_name}
-                            status={presentation.label}
-                            tone={statusTone(presentation)}
-                            activity={mixedActivities ? seat.activity : ""}
-                          />,
-                          presentation,
-                          [],
-                        );
-                      })}
-                    </ul>
-                  </>
-                ) : inView.length === 0 ? (
+                  <ul className="row-list">
+                    {reviewGroups.map((group) => {
+                      const seat = seats.find((s) => s.id === group.seat_id);
+                      const visible = inView.some((s) => s.id === group.seat_id);
+                      return row(
+                        group.seat_id,
+                        <ReviewRowContent
+                          name={nameOf(group.seat_id)}
+                          meta={
+                            !visible
+                              ? "Not in view"
+                              : mixedActivities && seat
+                                ? seat.activity
+                                : ""
+                          }
+                          time={group.latest}
+                          elevated={group.elevated}
+                        />,
+                        visible && seat ? present(seat) : null,
+                        group.reviews,
+                      );
+                    })}
+                  </ul>
+                ) : (
                   <p className="panel-empty" role="status">
-                    {peopleEmpty}
+                    {!reviewsEnabled || configurationError
+                      ? "Cues will ask here when someone may need you."
+                      : reviews.reviews === null
+                        ? "Checking…"
+                        : "All clear. Cues will ask when someone may need you."}
                   </p>
-                ) : null}
+                )}
+                  </>
+                )}
               </section>
             </div>
+
+            <StudentStrip
+              empty={inView.length === 0 ? peopleEmpty : null}
+              people={inView.map((seat) => {
+                const presentation = present(seat);
+                const waiting = reviewsFor(seat.id).length > 0;
+                return {
+                  id: seat.id,
+                  name: seat.display_name,
+                  status: waiting ? "Attention" : presentation.label,
+                  tone: waiting ? "review" : statusTone(presentation),
+                  activity: mixedActivities ? seat.activity : "",
+                  selected: selectedId === seat.id,
+                };
+              })}
+              onSelect={(id) => setSelectedId(selectedId === id ? null : id)}
+            />
+              </>
+            )}
           </>
         )}
 
