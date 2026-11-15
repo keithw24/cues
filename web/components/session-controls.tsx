@@ -3,6 +3,7 @@ import Link from "next/link";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { markSeatReviewed } from "@/lib/seat-review";
 import {
   changeSession,
   readSession,
@@ -13,6 +14,10 @@ import {
   type SessionSnapshot,
 } from "@/lib/session-controls";
 
+const RESET_LABEL = "Put everyone back to working";
+const RESET_CONFIRM =
+  "Put everyone back to working? People who finished start over, and open requests are closed.";
+
 // Module-wide, so a remount never reuses a topic whose channel is still leaving.
 let channelId = 0;
 
@@ -21,12 +26,24 @@ export function SessionControls({
   station,
   onActivity,
   teacherLoginEnabled = false,
+  resetPeople = null,
 }: {
   client: SupabaseClient;
   station: string;
   onActivity: (label: string) => void;
   teacherLoginEnabled?: boolean;
+  /** web.reset_people: switching or restarting the activity puts everyone back to working, so
+   * the requests still open for the people in `seatIds` are closed too, and the refresh button
+   * restarts the current activity. Null: the button only reloads the session, as before. */
+  resetPeople?: {
+    seatIds: readonly string[];
+    onReset: (seatIds: string[]) => void;
+  } | null;
 }) {
+  const resetRef = useRef(resetPeople);
+  useEffect(() => {
+    resetRef.current = resetPeople;
+  });
   const [user, setUser] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null);
   const [selection, setSelection] = useState("");
@@ -185,6 +202,24 @@ export function SessionControls({
       void client.removeChannel(channel);
     };
   }, [client, station, user, refreshKey, onActivity]);
+  async function clearRequests(sessionId: string) {
+    const reset = resetRef.current;
+    if (!reset || reset.seatIds.length === 0) return;
+    const closed: string[] = [];
+    for (const seatId of reset.seatIds) {
+      try {
+        await markSeatReviewed(client, sessionId, seatId);
+        closed.push(seatId);
+      } catch {
+        /* Reported once below; the rest still close. */
+      }
+    }
+    if (closed.length) reset.onReset(closed);
+    if (closed.length < reset.seatIds.length)
+      setError(
+        "Everyone is back to working, but some requests could not be closed. Mark them as reviewed one by one.",
+      );
+  }
   async function act(activityId: string | null) {
     if (locked.current || !snapshot || refreshRequired) return;
     locked.current = true;
@@ -203,6 +238,10 @@ export function SessionControls({
         activityId,
         user,
       );
+      if (epoch !== generation.current) return;
+      // A new revision already starts every person over in vision; close what was still open
+      // for them so the queue and the people row agree.
+      if (activityId !== null && !result.ended_at) await clearRequests(result.id);
       if (epoch !== generation.current) return;
       const next = {
         ...snapshot,
@@ -309,14 +348,21 @@ export function SessionControls({
         : cameraUnavailable
           ? "The camera can’t run this activity. Pick another."
           : null;
+  // With reset on and an activity running, the button restarts it for everyone; otherwise (and
+  // in the load-error state, where it is the retry) it only reloads the session.
+  const restart = Boolean(resetPeople && snapshot?.session && !loadError);
   const refreshButton = (
     <button
       type="button"
       className="ws-icon-button"
-      aria-label="Refresh activity"
-      title="Refresh activity"
-      disabled={busy}
-      onClick={() => setRefreshKey((n) => n + 1)}
+      aria-label={restart ? RESET_LABEL : "Refresh activity"}
+      title={restart ? RESET_LABEL : "Refresh activity"}
+      disabled={busy || (restart && refreshRequired)}
+      onClick={() => {
+        if (!restart) return setRefreshKey((n) => n + 1);
+        if (window.confirm(RESET_CONFIRM) && snapshot?.session)
+          void act(snapshot.session.current_activity_id);
+      }}
     >
       <WorkspaceIcon name="refresh" />
     </button>

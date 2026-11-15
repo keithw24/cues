@@ -209,6 +209,12 @@
     "owner": "michelle",
     "ticket": "hosted-local-feed"
   },
+  "web.reset_people": {
+    "description": "Switching or restarting the activity puts everyone back to working: the refresh button beside Start/End restarts the current activity (finished and flagged people start over) and the requests still open are closed. Off: the button only reloads the session and switching leaves open requests alone.",
+    "default": true,
+    "owner": "keith",
+    "ticket": "reset-people"
+  },
   "web.landing_needs": {
     "description": "Landing page: the section \"Made for special education (SEN) classrooms\" (three cards in the privacy section's style) replaces \"The camera stays in the classroom\", plus two FAQ answers (SEN, workload). The privacy answers stay in the FAQ. Off: the page is as before.",
     "default": true,
