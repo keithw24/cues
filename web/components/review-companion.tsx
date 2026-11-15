@@ -76,10 +76,16 @@ export function ReviewCompanion({ count }: { count: number | null }) {
             wander={false}
             seed={11}
             color={COMPANION_COLORS[phase]}
-            face={phase === "eating" || phase === "done" ? "happy" : undefined}
+            face={
+              phase === "eating"
+                ? "surprised"
+                : phase === "done"
+                  ? "happy"
+                  : undefined
+            }
             look={
               phase === "eating"
-                ? [0.5, -0.6]
+                ? [0, -0.2]
                 : phase === "rest"
                   ? [0, 0]
                   : [0.5, -0.4]

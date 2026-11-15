@@ -13,7 +13,7 @@ export const COMPANION_COLORS = {
 } as const satisfies Record<CompanionPhase, `#${string}`>;
 
 /** The chomp runs this long; then it stays green this long before resting. */
-export const EAT_MS = 700;
+export const EAT_MS = 1000;
 export const DONE_MS = 2200;
 
 export type CompanionStep =
