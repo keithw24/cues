@@ -167,7 +167,7 @@ test("the collapsed summary: amber for a fault, grey only while checking", async
   const down = cameraHealth({ ...base, vision: { reachable: false }, updatesFresh: false, inView: 0 });
   assert.equal(healthSummary(down).tone, "warn");
   const hostedQuiet = cameraHealth({ ...base, vision: null, updatesFresh: false, inView: 0, localReadable: false });
-  assert.equal(healthSummary(hostedQuiet).label, "All good");
+  assert.deepEqual(healthSummary(hostedQuiet), { tone: "quiet", label: "No updates" });
   const hostedConflict = cameraHealth({ ...base, conflict: true, vision: null, updatesFresh: false, inView: 0, localReadable: false });
   assert.equal(healthSummary(hostedConflict).tone, "warn");
 });

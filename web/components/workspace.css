@@ -464,7 +464,7 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  box-shadow: 0 0 0 2px var(--ws-pill);
+  box-shadow: 0 0 0 2px var(--ws-panel-solid);
 }
 .dashboard-shell .health-dot {
   flex: none;

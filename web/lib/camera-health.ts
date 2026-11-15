@@ -244,5 +244,9 @@ export function healthSummary(health: CameraHealth): HealthSummary {
     return { tone: "warn", label: "Needs a look" };
   if (health.items.some((item) => item.value === "Checking"))
     return { tone: "quiet", label: "Checking" };
+  // A hosted page can't see the camera: with nothing arriving, say that rather
+  // than "All good".
+  if (health.items.some((item) => item.tone === "quiet"))
+    return { tone: "quiet", label: "No updates" };
   return { tone: "good", label: "All good" };
 }
