@@ -52,10 +52,15 @@
   color: var(--ln-ink);
   --cues-mark-accent: #8fa3ff;
 }
+/* Just the theme switch and Get Started: a matched pair, same height. */
 .ln-nav nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 10px;
+}
+.ln-nav .ln-button-small {
+  height: 40px;
+  padding: 0 18px;
 }
 .ln-nav nav a:not(.ln-button) {
   padding: 6px 12px;
@@ -1105,12 +1110,12 @@ a.ln-button:active {
 .ln-theme-toggle {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border: 0;
+  border: 1px solid rgb(255 255 255 / 0.14);
   border-radius: 50%;
-  background: transparent;
+  background: rgb(255 255 255 / 0.06);
   color: var(--ln-ink-soft);
   cursor: pointer;
   transition-property: scale, background-color, color;
@@ -1235,5 +1240,16 @@ a.ln-button:active {
   }
   :root[data-theme="light"] .ln-theme-toggle:hover {
     background: rgb(11 26 77 / 0.06);
+  }
+}
+
+/* Light theme: the switch sits on white like the sign-in page's. */
+:root[data-theme="light"] .landing .ln-theme-toggle {
+  border-color: #e3e6ee;
+  background: #ffffff;
+}
+@media (hover: hover) {
+  :root[data-theme="light"] .landing .ln-theme-toggle:hover {
+    background: #f1f2f6;
   }
 }
