@@ -472,6 +472,7 @@
 }
 .dashboard-shell .health-dot {
   flex: none;
+  transition: background-color 200ms ease;
   width: 8px;
   height: 8px;
   border-radius: 999px;
@@ -1685,6 +1686,21 @@ body .dashboard-shell.ws-demo {
   }
 }
 
+/* ---- Companion on the To review pill ----------------------------------- */
+/* It perches on the pill's top edge, above where the count sits. */
+.dashboard-shell .review-link {
+  position: relative;
+}
+.dashboard-shell .review-companion {
+  position: absolute;
+  right: 6px;
+  bottom: calc(100% - 6px);
+  pointer-events: none;
+}
+.dashboard-shell .review-companion-body {
+  display: block;
+  transform-origin: 50% 100%;
+}
 /* ---- Motion ------------------------------------------------------------ */
 /* First load only, 100ms apart: title, activity controls, camera, list. */
 @media (prefers-reduced-motion: no-preference) {
@@ -1777,6 +1793,102 @@ body .dashboard-shell.ws-demo {
       translate: 0 0;
     }
   }
+  /* Companion: it settles onto the pill once, eats the count when the queue
+     clears (a rare moment, so it gets the delight budget), then squashes. */
+  .dashboard-shell .review-companion {
+    transition:
+      opacity 300ms cubic-bezier(0.23, 1, 0.32, 1),
+      translate 300ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @starting-style {
+    .dashboard-shell .review-companion {
+      opacity: 0;
+      translate: 0 6px;
+    }
+  }
+  .dashboard-shell .review-companion-crumb {
+    animation: ws-crumb-eat 450ms cubic-bezier(0.77, 0, 0.175, 1) both;
+  }
+  .dashboard-shell .review-companion[data-phase="eating"] .review-companion-body {
+    animation: ws-chomp 260ms cubic-bezier(0.23, 1, 0.32, 1) 430ms both;
+  }
+  /* Opening the camera checks: each word fades in 40ms after the last, so
+     the row reads in order. Occasional, so a short stagger is fine. */
+  .dashboard-shell .health-pills li {
+    transition:
+      opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      translate 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .dashboard-shell .health-pills li:nth-child(2) {
+    transition-delay: 40ms;
+  }
+  .dashboard-shell .health-pills li:nth-child(3) {
+    transition-delay: 80ms;
+  }
+  .dashboard-shell .health-pills li:nth-child(4) {
+    transition-delay: 120ms;
+  }
+  @starting-style {
+    .dashboard-shell .health-pills li {
+      opacity: 0;
+      translate: -4px 0;
+    }
+  }
+  /* The queue empties: "All clear" fades up instead of popping in. */
+  .dashboard-shell .panel-empty,
+  .dashboard-shell .list-clear {
+    transition:
+      opacity 300ms cubic-bezier(0.23, 1, 0.32, 1),
+      translate 300ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @starting-style {
+    .dashboard-shell .panel-empty,
+    .dashboard-shell .list-clear {
+      opacity: 0;
+      translate: 0 4px;
+    }
+  }
+  /* A new count pops in rather than swapping. */
+  .dashboard-shell .review-link .ws-count {
+    transition:
+      scale 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @starting-style {
+    .dashboard-shell .review-link .ws-count {
+      scale: 0.8;
+      opacity: 0;
+    }
+  }
+}
+@keyframes ws-crumb-eat {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(2px, -30px) scale(0.35);
+  }
+}
+@keyframes ws-chomp {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.14, 0.84);
+  }
+  75% {
+    transform: scale(0.95, 1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes ws-crumb-fade {
+  to {
+    opacity: 0;
+  }
 }
 @keyframes ws-arrive {
   from {
@@ -1787,6 +1899,29 @@ body .dashboard-shell.ws-demo {
 }
 @media (prefers-reduced-motion: reduce) {
   /* Fewer, gentler: new items and opened details fade without moving. */
+  .dashboard-shell .review-companion-crumb {
+    animation: ws-crumb-fade 400ms ease-out both;
+  }
+  .dashboard-shell .health-pills li,
+  .dashboard-shell .panel-empty,
+  .dashboard-shell .list-clear {
+    transition: opacity 200ms ease-out;
+  }
+  @starting-style {
+    .dashboard-shell .health-pills li,
+    .dashboard-shell .panel-empty,
+    .dashboard-shell .list-clear {
+      opacity: 0;
+    }
+  }
+  .dashboard-shell .review-companion {
+    transition: opacity 200ms ease-out;
+  }
+  @starting-style {
+    .dashboard-shell .review-companion {
+      opacity: 0;
+    }
+  }
   .dashboard-shell .class-panel .row-list > li,
   .dashboard-shell .strip-track > li,
   .dashboard-shell .review-list > li,

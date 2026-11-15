@@ -33,6 +33,7 @@ export default async function DashboardPage() {
         interventionsEnabled={isEnabled("web.interventions")}
         resetPeopleEnabled={isEnabled("web.reset_people")}
         healthStripEnabled={isEnabled("web.health_strip")}
+        companionEnabled={isEnabled("web.companion")}
       />
     </div>
   );

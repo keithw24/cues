@@ -28,6 +28,7 @@ import { PersonDetails } from "@/components/person-panel";
 import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
 import { CameraHealthStrip } from "@/components/camera-health-strip";
+import { ReviewCompanion } from "@/components/review-companion";
 import { ReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
 import { reviewIssueLine, stripEntries } from "@/lib/classroom-view";
@@ -106,6 +107,7 @@ export default function Dashboard({
   teacherLoginEnabled = false,
   themeToggleEnabled = false,
   hostedLocalFeedEnabled = false,
+  companionEnabled = false,
   hostedDashboardOrigin = "https://cues.nyc",
   visionStationConfigEnabled = false,
   healthStripEnabled = false,
@@ -127,6 +129,8 @@ export default function Dashboard({
   teacherLoginEnabled?: boolean;
   themeToggleEnabled?: boolean;
   hostedLocalFeedEnabled?: boolean;
+  /** web.companion: the Cues companion on the To review pill. */
+  companionEnabled?: boolean;
   hostedDashboardOrigin?: string;
   visionStationConfigEnabled?: boolean;
   /** web.health_strip: camera on/off, classroom set, updates arriving, other cameras. */
@@ -631,7 +635,13 @@ export default function Dashboard({
                   >
                     TO REVIEW
                     {waitingCount ? (
-                      <span className="ws-count">{waitingCount}</span>
+                      // Keyed so a new count pops in, not just swaps.
+                      <span className="ws-count" key={waitingCount}>
+                        {waitingCount}
+                      </span>
+                    ) : null}
+                    {companionEnabled ? (
+                      <ReviewCompanion count={waitingCount} />
                     ) : null}
                   </Link>
                 ) : null}

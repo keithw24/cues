@@ -220,5 +220,11 @@
     "default": true,
     "owner": "keith",
     "ticket": "landing-needs"
+  },
+  "web.companion": {
+    "description": "The Cues companion perches on the To review pill: blue at rest, orange (with a hop) when a request is waiting, and when the queue clears it eats the count and turns green before resting. Decoration only; never a student. Off: the pill shows its text and count alone.",
+    "default": true,
+    "owner": "evan",
+    "ticket": "companion"
   }
 }
