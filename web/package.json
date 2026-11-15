@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "postinstall": "npm ci --prefix ../cues --no-audit --no-fund"
   },
   "dependencies": {
     "@bible-strong/avatar-core": "^1.0.1",
