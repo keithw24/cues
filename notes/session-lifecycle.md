@@ -50,10 +50,10 @@ expression settings. Don't use fake-camera output as evidence of real inference.
 
 The root server defaults to one-second session polling. It acknowledges
 configuration through service-only `report_station_session`. Failed reads/reports
-or an expired ten-second lease pause task evaluation (a busy laptop can stall a
+or an expired seven-second lease (under the 10s one-camera writer lease) pause task evaluation (a busy laptop can stall a
 poll for several seconds; the database still rejects writes for an ended session
 or an old revision). No session and ended sessions also pause evaluation/writes.
-A pause keeps each person's status and timers. Camera preview remains local and available.
+A pause keeps each person's status; holds and timers skip the paused time. Camera preview remains local and available.
 Only a new session/revision resets vision's task/hold/expression trackers; model and
 camera data are not uploaded.
 

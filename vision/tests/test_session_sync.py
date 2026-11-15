@@ -344,3 +344,94 @@ def test_a_sync_pause_keeps_each_persons_status_until_a_new_revision():
     # The teacher restarts the activity (new revision): everyone starts over.
     s = s.model_copy(update={"revision": s.revision + 1})
     assert process(13)["status"]["S1-L"] == "in_progress"
+
+
+class _Run:
+    """One station camera on S1-L under a managed session, frame by frame."""
+
+    def __init__(self):
+        self.clock = [10.0]
+        self.state = StationSessionState(lambda: self.clock[0])
+        self.session = session(current_activity_id="thumbs_up")
+        self.pin = SessionStage(self.state)
+        self.emitter = RecordingEmitter()
+        self.zones = SeatZones()
+        self.status = StatusStage(
+            emitter=self.emitter, tasks=CurrentTasks("thumbs_up"), zones=self.zones
+        )
+        self.image = np.zeros((480, 640, 3), np.uint8)
+
+    def frame(self, t, score=None, confirm=True, expression=None):
+        self.clock[0] = t
+        if confirm:
+            self.state.confirm(self.session)
+        else:
+            self.state.invalidate()
+        frame = Frame(self.image, t, int(t * 100))
+        ctx = {"hands": {"S1-L": []}, "faces": {"S1-L": object()}}
+        if expression:
+            ctx["expression"] = {"S1-L": expression}
+        self.pin.process(frame, ctx)
+        if score is not None:
+            ctx["match"] = {"S1-L": Match("thumbs_up", score)}
+        self.status.process(frame, ctx)
+        return ctx
+
+    def events(self, kind):
+        return [e for e in self.emitter.events if e["type"] == kind]
+
+
+def test_a_pause_does_not_count_toward_a_hold():
+    # Regression (review of #100): kept trackers measured holds in wall time, so one
+    # frame after a 5s pause set done, review or expression_context unseen.
+    run = _Run()
+    run.frame(10.0, score=0.99)
+    run.frame(10.1, score=0.99)
+    for i in range(50):
+        run.frame(10.2 + i / 10, score=None, confirm=False)
+    assert run.frame(15.3, score=0.99)["status"]["S1-L"] == "in_progress"
+    assert run.events("attempt_success") == []
+    # The observed 0.1s before the pause still counts: 0.9s more of holding is enough.
+    for i in range(10):
+        ctx = run.frame(15.4 + i / 10, score=0.99)
+    assert ctx["status"]["S1-L"] == "done"
+
+
+def test_review_and_expression_holds_also_skip_the_pause():
+    run = _Run()
+    sad = {"sadness": 0.9, "neutral": 0.1}
+    run.frame(10.0, score=0.6, expression=sad)
+    run.frame(10.1, score=0.6, expression=sad)
+    for i in range(50):
+        run.frame(10.2 + i / 10, confirm=False)
+    assert run.frame(15.3, score=0.6, expression=sad)["status"]["S1-L"] == "in_progress"
+    assert run.events("review_needed") == [] and run.events("expression_context") == []
+
+
+def test_a_flagged_person_keeps_review_through_a_pause_and_a_new_session_resets():
+    run = _Run()
+    for i in range(25):
+        ctx = run.frame(10 + i / 10, score=0.6)
+    assert ctx["status"]["S1-L"] == "review"
+    for i in range(30):
+        run.frame(12.5 + i / 10, confirm=False)
+    assert run.frame(15.6, score=0.2)["status"]["S1-L"] == "review"
+    run.session = session(current_activity_id="thumbs_up")  # a new session, same revision
+    assert run.frame(15.7, score=0.2)["status"]["S1-L"] == "in_progress"
+
+
+def test_an_id_released_during_a_pause_does_not_pass_its_status_on():
+    run = _Run()
+    for i in range(25):
+        ctx = run.frame(10 + i / 10, score=0.6)
+    assert ctx["status"]["S1-L"] == "review"
+    run.zones.ids = lambda ctx=None: ["S1-R"]  # S1-L released while paused
+    run.frame(12.6, confirm=False)
+    run.zones.ids = lambda ctx=None: ["S1-L", "S1-R"]  # someone new gets S1-L
+    assert run.frame(12.7, score=0.2)["status"]["S1-L"] == "in_progress"
+
+
+def test_the_session_lease_ends_before_another_camera_can_take_the_station():
+    from vision.station_lease import TTL_SECONDS
+
+    assert SESSION_LEASE_SECONDS <= TTL_SECONDS - 2

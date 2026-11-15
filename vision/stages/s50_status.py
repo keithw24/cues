@@ -78,6 +78,9 @@ class StatusStage:
         # seat -> ((status, tracking_valid), time sent)
         self._last_state: dict[str, tuple[tuple[str, bool], float]] = {}
         self._session_key = None
+        # Time of the last frame processed, and whether frames since then were paused.
+        self._last_processed_t: float | None = None
+        self._paused = False
         self.recent: deque[str] = deque(maxlen=RECENT_EVENTS)
         self._last_event: dict[str, tuple[str, float]] = {}  # seat -> (event type, time)
 
@@ -116,14 +119,25 @@ class StatusStage:
         if ctx.get("session_managed"):
             if session is None:
                 # Paused (sync lapsed, session ended, no activity): write nothing, but keep
-                # each person's status and timers. A brief sync gap must not send a flagged
-                # or finished child back to working; a new session or revision still resets.
+                # each person's status. A brief sync gap must not send a flagged or finished
+                # child back to working; a new session or revision still resets.
+                self._paused = True
+                self._drop_released(ctx)  # a released id must not pass its status on
                 ctx.update(status={}, events=[], last_event={})
                 return
             key = (session.id, session.revision)
             if key != self._session_key:
                 self._reset()
                 self._session_key = key
+            elif self._paused and self._last_processed_t is not None:
+                # Same session after a pause: the paused time was not observed.
+                gap = frame.timestamp - self._last_processed_t
+                for tracker in self._trackers.values():
+                    tracker.shift(gap)
+                for expression in self._expression.values():
+                    expression.shift(gap)
+            self._paused = False
+            self._last_processed_t = frame.timestamp
         self.emitter.station_id = station_id
         prefix = f"{station_id}-"
         session_id = session.id if session else self.emitter.session_id
@@ -175,15 +189,18 @@ class StatusStage:
                 session_id,
                 session_revision,
             )
+        self._drop_released(ctx)
+        ctx["status"] = {seat: tr.status for seat, tr in self._trackers.items()}
+        ctx["events"] = list(self.recent)
+        ctx["last_event"] = {s: e for s, (e, when) in self._last_event.items() if t - when < 3.0}
+
+    def _drop_released(self, ctx) -> None:
         live = set(self.zones.ids(ctx))
         for gone in [s for s in self._trackers if s not in live]:  # released person ids
             self._trackers.pop(gone, None)
             self._expression.pop(gone, None)
             self._last_state.pop(gone, None)
             self._last_event.pop(gone, None)
-        ctx["status"] = {seat: tr.status for seat, tr in self._trackers.items()}
-        ctx["events"] = list(self.recent)
-        ctx["last_event"] = {s: e for s, (e, when) in self._last_event.items() if t - when < 3.0}
 
     def _send_event(
         self,
