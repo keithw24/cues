@@ -78,7 +78,10 @@ export default function CuesBlob({
   face,
   look,
   bounce = 0,
+  mouth = false,
 }: {
+  /** Draw a small mouth (the review companion uses it to eat). */
+  mouth?: boolean;
   /** A face to hold, e.g. "happy"; leave it out to let the companion decide. */
   face?: string;
   /** Look at a fixed point ([x, y], each -1 to 1) instead of glancing. */
@@ -102,8 +105,8 @@ export default function CuesBlob({
   privacy?: boolean;
 }) {
   const filterId = useId().replaceAll(":", "");
-  const body = useMemo<AvatarCharacter>(
-    () =>
+  const body = useMemo<AvatarCharacter>(() => {
+    const shaped: AvatarCharacter =
       shape === "sphere" && !color
         ? character
         : {
@@ -113,9 +116,26 @@ export default function CuesBlob({
               primary: { ...character.body.primary, type: shape, ...shapes[shape] },
             },
             colors: { ...character.colors, body: color ?? character.colors.body },
-          },
-    [shape, color],
-  );
+          };
+    if (!mouth) return shaped;
+    // A small closed mouth under the eyes; CSS opens it (data-part="mouth").
+    return {
+      ...shaped,
+      face: {
+        ...shaped.face,
+        mouth: {
+          enabled: true,
+          shape: "ellipse",
+          curve: 0,
+          width: 26,
+          height: 7,
+          x: 0,
+          y: 44,
+          angle: 0,
+        },
+      },
+    };
+  }, [shape, color, mouth]);
   const reduced = useSyncExternalStore(
     subscribe,
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,

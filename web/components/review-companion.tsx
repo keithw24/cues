@@ -91,6 +91,7 @@ export function ReviewCompanion({ count }: { count: number | null }) {
                   : [0.5, -0.4]
             }
             bounce={hop}
+            mouth
           />
         </span>
       </span>
