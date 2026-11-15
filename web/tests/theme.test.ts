@@ -127,10 +127,19 @@ test("the rail links to /live only when the live view is on", () => {
 
 test("the rail keeps only Teacher profile, Classroom and Live", () => {
   const rail = read("../components/workspace-sidebar.tsx");
-  const links = [...rail.matchAll(/<Link\s+href="([^"]+)"/g)]
-    .map((m) => m[1])
-    .filter((href) => !["/", "/login"].includes(href));
-  assert.deepEqual(links, ["/settings/profile", "/dashboard", "/live"]);
+  const links = new Set(
+    [...rail.matchAll(/<Link\s+href="([^"]+)"/g)]
+      .map((m) => m[1])
+      .filter((href) => href !== "/"),
+  );
+  // The account buttons open the profile (email and sign out live there);
+  // nothing in the rail sends a signed-in teacher to the sign-in page.
+  assert.deepEqual([...links].sort(), [
+    "/dashboard",
+    "/live",
+    "/settings/profile",
+  ]);
+  assert.doesNotMatch(rail, /href="\/login"/);
   assert.doesNotMatch(
     rail,
     /#seats-heading|#attention-panel|\/settings\/notifications/,
@@ -155,4 +164,34 @@ test("the workspace shows no simulated class or data labels", () => {
       read(`../components/${file}`),
       /simulated class|Simulated data|Simulated seat|Simulated class/,
     );
+});
+
+test("no page shows a Workspace / … breadcrumb", async () => {
+  const { readdirSync } = await import("node:fs");
+  const files = ["../components/", "../app/"].flatMap((dir) =>
+    readdirSync(new URL(dir, import.meta.url), { recursive: true })
+      .map(String)
+      .filter((name) => name.endsWith(".tsx"))
+      .map((name) => `${dir}${name}`),
+  );
+  assert.ok(files.length > 20, "found the components and pages");
+  for (const file of files) {
+    assert.doesNotMatch(
+      read(file),
+      /page-breadcrumb|Workspace\s*(<span>)?\s*\/\s*(<\/span>)?/,
+      file,
+    );
+  }
+});
+
+test("alert copy names only the seat, matching what Photon sends", () => {
+  for (const file of [
+    "demo-notifications.tsx",
+    "teacher-login.tsx",
+    "teacher-profile-form.tsx",
+  ]) {
+    const source = read(`../components/${file}`);
+    assert.match(source, /only the seat|seat, never images/, file);
+    assert.doesNotMatch(source, /seat\s+and\s+(the\s+)?task/, file);
+  }
 });

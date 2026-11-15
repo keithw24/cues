@@ -267,15 +267,6 @@
   align-items: flex-end;
   margin-bottom: 28px;
 }
-.dashboard-shell .page-breadcrumb {
-  margin: 0 0 14px;
-  color: var(--ws-page-faint);
-  font-size: 13px;
-  font-weight: 500;
-}
-.dashboard-shell .page-breadcrumb span {
-  color: rgb(255 255 255 / 0.3);
-}
 .dashboard-shell .page-intro h1 {
   margin: 0;
   color: var(--ws-page-ink);
@@ -1009,12 +1000,6 @@
 .dashboard-shell .ws-hero .page-intro h1 {
   color: #ffffff;
 }
-.dashboard-shell .ws-hero .page-breadcrumb {
-  color: rgb(255 255 255 / 0.6);
-}
-.dashboard-shell .ws-hero .page-breadcrumb span {
-  color: rgb(255 255 255 / 0.35);
-}
 .dashboard-shell .ws-hero .page-intro p:not(.page-breadcrumb) {
   color: rgb(255 255 255 / 0.78);
 }
@@ -1254,10 +1239,6 @@ body .dashboard-shell.ws-demo {
 .dashboard-shell.ws-demo .page-intro {
   align-items: flex-start;
   margin-bottom: 18px;
-}
-.dashboard-shell.ws-demo .page-breadcrumb {
-  margin-bottom: 10px;
-  font-size: 12px;
 }
 .dashboard-shell.ws-demo .page-intro h1 {
   font-size: 40px;
@@ -2138,5 +2119,45 @@ body .dashboard-shell.ws-demo {
   }
   .dashboard-shell a.settings-row:hover > svg {
     translate: none;
+  }
+}
+
+/* The Account row's one action (Sign out / Sign in): a quiet pill. */
+.dashboard-shell .settings-row .settings-row-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-control);
+  color: var(--ws-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition-property: scale, background-color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .settings-row button.settings-row-action:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .settings-row-error {
+  color: #f3a383;
+  font-size: 13px;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .settings-row-error {
+  color: var(--ws-review);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .settings-row .settings-row-action:hover {
+    background: var(--ws-pill-hover);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell .settings-row button.settings-row-action:not(:disabled):active {
+    scale: 1;
   }
 }

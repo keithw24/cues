@@ -1,19 +1,23 @@
-import type { ObservationOptions } from "@/lib/observation-presentation";
-import { ProgressContext } from "@/components/progress-context";
 import type { SeatState } from "@/lib/dashboard";
 import type { ReactNode, RefObject } from "react";
-import {
-  activityLabel,
-  decisionLabels,
-  evidenceLabels,
-  priorityLabels,
-  teacherRationale,
-  type TeacherReview,
-} from "@/lib/teacher-reviews";
+import { activityLabel, type TeacherReview } from "@/lib/teacher-reviews";
+
+// One review, as a teacher needs it: who, which task, when, and the decision
+// (the actions passed in as children). The model's internals (decision code,
+// stall seconds, escalation reason, evidence list) stay out of the way.
+// Time of day, plus the date when the review is from an earlier day.
+function reviewTime(at: string) {
+  const date = new Date(at);
+  const today = new Date().toDateString() === date.toDateString();
+  return new Intl.DateTimeFormat(undefined, {
+    ...(today ? {} : { month: "short", day: "numeric" }),
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
 
 export function TeacherReviewDetails({
   review,
-  observationOptions,
   seats,
   activities,
   stale,
@@ -21,7 +25,6 @@ export function TeacherReviewDetails({
   headingRef,
   children,
 }: {
-  observationOptions?: ObservationOptions;
   review?: TeacherReview;
   seats: readonly {
     id: string;
@@ -34,6 +37,10 @@ export function TeacherReviewDetails({
   headingRef: RefObject<HTMLHeadingElement | null>;
   children?: ReactNode;
 }) {
+  const name = review
+    ? (seats.find((seat) => seat.id === review.seat_id)?.display_name ??
+      "A student")
+    : "Review";
   return (
     <section
       className="review-details"
@@ -47,95 +54,33 @@ export function TeacherReviewDetails({
     >
       <header className="panel-heading">
         <h2 id="review-detail-heading" ref={headingRef} tabIndex={-1}>
-          Review details
+          {name}
         </h2>
         <button type="button" className="text-button" onClick={close}>
-          Back to queue
+          Back
         </button>
       </header>
       <div className="detail-body">
         {!review ? (
-          <p role="status">
-            This review is no longer in the pending queue. It may have been
-            resolved or removed.
-          </p>
+          <p role="status">This review was already answered.</p>
         ) : (
           <>
+            <p className="detail-description">
+              {activityLabel(
+                review.activity_id,
+                activities.find((item) => item.id === review.activity_id)?.name,
+              )}{" "}
+              ·{" "}
+              <time dateTime={review.created_at}>
+                {reviewTime(review.created_at)}
+              </time>
+              {review.priority === "elevated" ? " · Urgent" : ""}
+            </p>
             {stale ? (
               <p className="detail-description" role="status">
-                Showing the last loaded assessment. Return to the queue to
-                reconnect.
+                Reconnecting… this may have changed.
               </p>
             ) : null}
-            <dl className="detail-facts">
-              <div>
-                <dt>Decision</dt>
-                <dd>
-                  {review.decision
-                    ? decisionLabels[review.decision]
-                    : "Decision unavailable"}
-                </dd>
-              </div>
-              <div><dt>Status</dt><dd>{review.status}</dd></div>
-              <div><dt>Evaluated progress</dt><dd>{review.progress?.trend ?? "Unavailable"}</dd></div>
-              <div><dt>Stall at evaluation</dt><dd>{review.progress ? `${review.progress.stalled_seconds} seconds` : "Unavailable"}</dd></div>
-              <div><dt>Escalation reason</dt><dd>{review.escalation_reason ?? "Unavailable"}</dd></div>
-              <div>
-                <dt>Priority</dt>
-                <dd>{priorityLabels[review.priority]}</dd>
-              </div>
-              <div>
-                <dt>Seat</dt>
-                <dd>
-                  {seats.find((seat) => seat.id === review.seat_id)
-                    ?.display_name ?? `Seat ${review.seat_id}`}
-                </dd>
-              </div>
-              <div>
-                <dt>Activity</dt>
-                <dd>
-                  {activityLabel(
-                    review.activity_id,
-                    activities.find((item) => item.id === review.activity_id)
-                      ?.name,
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt>Created</dt>
-                <dd>
-                  <time dateTime={review.created_at}>
-                    {new Intl.DateTimeFormat(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(new Date(review.created_at))}
-                  </time>
-                </dd>
-              </div>
-            </dl>
-            <section className="detail-section">
-              <h3>Agent rationale</h3>
-              <p>{teacherRationale(review.rationale)}</p>
-            </section>
-            <section className="detail-section">
-              <h3>Evidence used</h3>
-              {review.evidence_used.length ? (
-                <ul className="review-evidence-list">
-                  {review.evidence_used.map((source) => (
-                    <li key={source}>{evidenceLabels[source]}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No evidence summary provided.</p>
-              )}
-            </section>
-            {!review.progress ? <ProgressContext
-              observation={
-                seats.find((seat) => seat.id === review.seat_id)?.state
-              }
-              scope={review}
-              observationOptions={observationOptions}
-            /> : null}
             {children}
           </>
         )}

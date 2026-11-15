@@ -71,7 +71,7 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
       if (current !== generation.current) return;
       setSettings(previous => previous ? {...previous,
         photon_registration_status: status === "registered" ? "registered" : "registering"} : previous);
-      setTestMessage(status === "registered" ? "Notifications enabled" :
+      setTestMessage(status === "registered" ? "Test notification sent." :
         "Notifications are not active yet. Finish activation and try again.");
     } catch (cause) {
       if (current !== generation.current) return;
@@ -97,23 +97,37 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
       setError("Notification settings could not be saved. Please retry.");
     } finally {locked.current = false; setSaving(false);}
   }
-  return <section className="integration-details profile-form" aria-labelledby="demo-notifications-heading" aria-busy={saving}>
-    <h2 id="demo-notifications-heading">Demo notifications</h2>
+  // One status, said once: a pill in the header and a sentence under it.
+  const pill = loading ? "Loading…" : state === "enabled" ? "On" : state === "activating" ? "Activating"
+    : state === "activation failed" ? "Not active" : "Off";
+  const summary = !phone ? "Save a phone number in your profile first."
+    : state === "enabled" ? `Notifications enabled for ${phone}.`
+    : state === "activating" ? "Notifications are being activated for this phone."
+    : state === "activation failed" ? "Notifications could not be activated yet."
+    : `Get a text at ${phone} when a student needs you. Texts name only the seat, never images.`;
+  const showOptIn = !settings?.notification_opt_in || state === "not enabled" || state === "activation failed";
+  return <section className="settings-panel profile-form" aria-labelledby="demo-notifications-heading" aria-busy={saving}>
+    <header className="profile-card-head">
+      <h2 id="demo-notifications-heading">Demo notifications</h2>
+      {signedOut ? null : <span className={`profile-status is-${state.replace(" ", "-")}`}>{pill}</span>}
+    </header>
     {signedOut ? <><p>Sign in to manage demo notifications.</p><Link href="/login">Teacher sign in</Link></> : <>
-      <p>Phone: {phone ?? "Save a phone number in your profile first."}</p>
-      <p role="status" aria-live="polite">{loading ? "Loading notification status…" : `Notifications: ${state}`}</p>
-      {state === "activating" ? <p>Notifications are being activated for this phone.</p> : null}
-      {state === "enabled" ? <p>Notifications enabled</p> : null}
-      {state === "activation failed" ? <p>Notifications could not be activated yet.</p> : null}
-      {phoneDirty ? <p>Save your profile phone before enabling notifications. A new phone requires fresh opt-in.</p> : null}
-      <label className="profile-field"><span>First name</span><input value={first} onChange={e => setFirst(e.target.value)} maxLength={80} autoComplete="given-name" disabled={saving} /></label>
-      <label className="profile-field"><span>Last name</span><input value={last} onChange={e => setLast(e.target.value)} maxLength={80} autoComplete="family-name" disabled={saving} /></label>
-      <label><input type="checkbox" checked={consentValid && !phoneDirty} onChange={e => {setConsent(e.target.checked); setConsentPhone(phone);}} disabled={saving || phoneDirty || !phone} /> I want to receive Cues demo notifications</label>
-      <button type="button" className="primary-button" onClick={() => void submit(true)} disabled={loading || saving || profileSaving || phoneDirty || !phone || !consentValid || !first.trim() || !last.trim()}>{saving ? "Saving…" : "Enable notifications"}</button>
-      {settings?.notification_opt_in ? <button type="button" className="text-button" onClick={() => void submit(false)} disabled={saving || profileSaving}>Disable notifications</button> : null}
-      {canTest ? <button type="button" className="text-button" onClick={() => void testNotification()} disabled={loading || saving || profileSaving}>Send test notification</button> : null}
-      {canTest && testMessage ? <p role="status">{testMessage}</p> : null}
+      <p className="profile-hint" role="status" aria-live="polite">{loading ? "Loading notification status…" : summary}</p>
+      {phoneDirty ? <p className="profile-hint">Save your profile phone before enabling notifications. A new phone requires fresh opt-in.</p> : null}
+      {showOptIn ? <>
+        <div className="profile-pair">
+          <label className="profile-field"><span>First name</span><input value={first} onChange={e => setFirst(e.target.value)} maxLength={80} autoComplete="given-name" disabled={saving} /></label>
+          <label className="profile-field"><span>Last name</span><input value={last} onChange={e => setLast(e.target.value)} maxLength={80} autoComplete="family-name" disabled={saving} /></label>
+        </div>
+        <label className="profile-check"><input type="checkbox" checked={consentValid && !phoneDirty} onChange={e => {setConsent(e.target.checked); setConsentPhone(phone);}} disabled={saving || phoneDirty || !phone} /> I want to receive Cues demo notifications</label>
+      </> : null}
+      <div className="profile-actions">
+        {showOptIn ? <button type="button" className="primary-button" onClick={() => void submit(true)} disabled={loading || saving || profileSaving || phoneDirty || !phone || !consentValid || !first.trim() || !last.trim()}>{saving ? "Saving…" : "Enable notifications"}</button> : null}
+        {canTest ? <button type="button" onClick={() => void testNotification()} disabled={loading || saving || profileSaving}>Send test notification</button> : null}
+        {settings?.notification_opt_in ? <button type="button" onClick={() => void submit(false)} disabled={saving || profileSaving}>Disable notifications</button> : null}
+      </div>
+      {canTest && testMessage ? <p className="profile-hint" role="status">{testMessage}</p> : null}
     </>}
-    {error ? <><p role="alert">{error}</p><button type="button" className="text-button" disabled={saving} onClick={() => setReload(n => n + 1)}>Refresh notification status</button></> : null}
+    {error ? <div className="profile-actions"><p className="settings-row-error" role="alert">{error}</p><button type="button" disabled={saving} onClick={() => setReload(n => n + 1)}>Refresh notification status</button></div> : null}
   </section>;
 }

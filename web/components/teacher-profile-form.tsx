@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { countryCodes, normalizeAlertPhone } from "@/lib/alert-phone";
 import { createDashboardClient } from "@/lib/supabase";
@@ -32,7 +31,6 @@ export default function TeacherProfileForm() {
       return null;
     }
   });
-  const [email, setEmail] = useState<string | null>(null);
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [name, setName] = useState("");
   const [countryCode, setCountryCode] = useState("1");
@@ -42,22 +40,17 @@ export default function TeacherProfileForm() {
   >("loading");
   const [message, setMessage] = useState<string | null>(null);
   const locked = useRef(false);
+  const userRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
-    async function load() {
-      const { data } = await client!.auth.getUser();
-      if (cancelled) return;
-      if (!data.user) {
-        setState("signed-out");
-        return;
-      }
-      setEmail(data.user.email ?? null);
+    let loadedFor: string | null = null;
+    async function load(userId: string) {
       try {
         // Also moves a number left in sign-up metadata into the profile.
         const loaded = await syncSignupProfile(client!);
-        if (cancelled) return;
+        if (cancelled || loadedFor !== userId) return;
         setProfile(loaded);
         setName(loaded.display_name ?? "");
         const parts = splitPhone(loaded.phone_number);
@@ -65,15 +58,35 @@ export default function TeacherProfileForm() {
         setPhone(parts.number);
         setState("ready");
       } catch {
-        if (!cancelled) {
+        if (!cancelled && loadedFor === userId) {
           setMessage("Your profile could not be loaded. Refresh to try again.");
           setState("error");
         }
       }
     }
-    void load();
+    // Follow the session, so signing out from the Account card clears the
+    // previous teacher's name and number at once.
+    const { data } = client.auth.onAuthStateChange((_event, session) => {
+      const userId = session?.user.id ?? null;
+      if (userId === loadedFor) return;
+      loadedFor = userId;
+      userRef.current = userId;
+      setProfile(null);
+      setName("");
+      setCountryCode("1");
+      setPhone("");
+      setMessage(null);
+      if (!userId) {
+        setState("signed-out");
+        return;
+      }
+      setState("loading");
+      // Defer: Supabase calls inside this callback would wait on the auth lock.
+      setTimeout(() => void load(userId), 0);
+    });
     return () => {
       cancelled = true;
+      data.subscription.unsubscribe();
     };
   }, [client]);
 
@@ -86,6 +99,8 @@ export default function TeacherProfileForm() {
     event.preventDefault();
     if (!client || locked.current || phoneInvalid) return;
     locked.current = true;
+    // If the teacher signs out mid-save, the result belongs to nobody on screen.
+    const savingFor = userRef.current;
     setState("saving");
     setMessage(null);
     try {
@@ -93,9 +108,11 @@ export default function TeacherProfileForm() {
         display_name: name,
         phone_number: normalizedPhone,
       });
+      if (userRef.current !== savingFor) return;
       setProfile(saved);
       setMessage("Profile saved.");
     } catch (cause) {
+      if (userRef.current !== savingFor) return;
       setMessage(
         cause instanceof Error
           ? cause.message
@@ -103,114 +120,111 @@ export default function TeacherProfileForm() {
       );
     } finally {
       locked.current = false;
-      setState("ready");
+      if (userRef.current === savingFor) setState("ready");
     }
   }
 
   if (!client)
     return (
-      <div className="integration-details">
+      <div className="settings-panel profile-form">
         <p>Teacher accounts aren’t configured in this environment.</p>
       </div>
     );
   if (state === "loading")
     return (
-      <div className="integration-details" role="status">
+      <div className="settings-panel profile-form" role="status">
         <p>Loading your profile…</p>
       </div>
     );
-  if (state === "signed-out")
-    return (
-      <div className="integration-details">
-        <p>Sign in to manage your profile.</p>
-        <Link className="quiet-link" href="/login">
-          Teacher sign in
-        </Link>
-      </div>
-    );
+  // Signed out: the Account card above offers Sign in.
+  if (state === "signed-out") return null;
   if (state === "error")
     return (
-      <div className="integration-details">
+      <div className="settings-panel profile-form">
         <p role="alert">{message}</p>
       </div>
     );
   return (
-    <><form className="integration-details profile-form" onSubmit={save}>
-      <dl>
-        <div>
-          <dt>Email</dt>
-          <dd>{email ?? "Unavailable"}</dd>
-        </div>
-      </dl>
-      <label className="profile-field">
-        <span>Display name</span>
-        <input
-          name="display_name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          autoComplete="name"
-          maxLength={80}
-          placeholder="Ms. Rivera"
-        />
-      </label>
-      <fieldset className="profile-field">
-        <legend>Mobile number for alerts</legend>
-        <div className="profile-phone">
-          <label className="sr-only" htmlFor="profile-country">
-            Country code
-          </label>
-          <select
-            id="profile-country"
-            value={countryCode}
-            onChange={(event) => setCountryCode(event.target.value)}
-            autoComplete="tel-country-code"
-          >
-            {countryCodes.map((country) => (
-              <option key={country.code} value={country.code}>
-                +{country.code} {country.label}
-              </option>
-            ))}
-          </select>
-          <label className="sr-only" htmlFor="profile-phone">
-            Mobile number
-          </label>
-          <input
-            id="profile-phone"
-            type="tel"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            autoComplete="tel-national"
-            inputMode="tel"
-            maxLength={20}
-            aria-invalid={phoneInvalid || undefined}
-            aria-describedby="profile-phone-hint"
-          />
-        </div>
-        <p id="profile-phone-hint" className="integration-note">
-          {phoneInvalid
-            ? "Check the number and its country code."
-            : "Optional. Alerts carry only the seat and task, never images."}
-        </p>
-      </fieldset>
-      <button
-        className="primary-button"
-        type="submit"
-        disabled={state === "saving" || phoneInvalid}
+    <>
+      <form
+        className="settings-panel profile-form"
+        aria-labelledby="profile-form-heading"
+        onSubmit={save}
       >
-        {state === "saving" ? "Saving…" : "Save profile"}
-      </button>
-      {message ? (
-        <p role="status" aria-live="polite">
-          {message}
-        </p>
-      ) : null}
-      {profile?.phone_number ? (
-        <p className="integration-note">Saved as {profile.phone_number}</p>
-      ) : null}
-    </form>
-    <DemoNotifications client={client} phone={profile?.phone_number ?? null}
-      phoneDirty={normalizedPhone !== (profile?.phone_number ?? null) || phoneInvalid}
-      profileSaving={state === "saving"} />
+        <header className="profile-card-head">
+          <h2 id="profile-form-heading">Name and alert phone</h2>
+        </header>
+        <label className="profile-field">
+          <span>Display name</span>
+          <input
+            name="display_name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="name"
+            maxLength={80}
+            placeholder="Ms. Rivera"
+          />
+        </label>
+        <fieldset className="profile-field">
+          <legend>Mobile number for alerts</legend>
+          <div className="profile-phone">
+            <label className="sr-only" htmlFor="profile-country">
+              Country code
+            </label>
+            <select
+              id="profile-country"
+              value={countryCode}
+              onChange={(event) => setCountryCode(event.target.value)}
+              autoComplete="tel-country-code"
+            >
+              {countryCodes.map((country) => (
+                <option key={country.code} value={country.code}>
+                  +{country.code} {country.label}
+                </option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor="profile-phone">
+              Mobile number
+            </label>
+            <input
+              id="profile-phone"
+              type="tel"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              autoComplete="tel-national"
+              inputMode="tel"
+              maxLength={20}
+              aria-invalid={phoneInvalid || undefined}
+              aria-describedby="profile-phone-hint"
+            />
+          </div>
+          <p id="profile-phone-hint" className="profile-hint">
+            {phoneInvalid
+              ? "Check the number and its country code."
+              : "Optional. Alerts name only the seat, never images or camera data."}
+          </p>
+        </fieldset>
+        <div className="profile-actions">
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={state === "saving" || phoneInvalid}
+          >
+            {state === "saving" ? "Saving…" : "Save profile"}
+          </button>
+          <p className="profile-hint" role="status" aria-live="polite">
+            {message}
+          </p>
+        </div>
+      </form>
+      <DemoNotifications
+        client={client}
+        phone={profile?.phone_number ?? null}
+        phoneDirty={
+          normalizedPhone !== (profile?.phone_number ?? null) || phoneInvalid
+        }
+        profileSaving={state === "saving"}
+      />
     </>
   );
 }

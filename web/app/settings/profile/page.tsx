@@ -3,6 +3,7 @@ import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 import { isEnabled } from "@/lib/flags";
 import { garamond } from "@/components/workspace-fonts";
+import ProfileAccount from "@/components/profile-account";
 import "@/components/workspace.css";
 
 export const metadata = { title: "Cues · Profile" };
@@ -22,13 +23,11 @@ export default async function ProfilePage() {
       />
       <main id="main-content" className="dashboard-main settings-main">
         <header className="page-intro">
-          <p className="page-breadcrumb">
-            Workspace <span>/</span> Profile
-          </p>
           <h1>Profile</h1>
           <p>How Cues names you, and where alerts can reach you.</p>
         </header>
         <div className="settings-list">
+          {isEnabled("web.teacher_login") ? <ProfileAccount /> : null}
           <Link className="settings-row" href="/settings/stations">
             <span className="settings-row-body">
               <strong>Classroom camera</strong>
@@ -37,9 +36,7 @@ export default async function ProfilePage() {
             <WorkspaceIcon name="arrow" />
           </Link>
           {TeacherProfileForm ? (
-            <section className="settings-panel" aria-label="Profile details">
-              <TeacherProfileForm />
-            </section>
+            <TeacherProfileForm />
           ) : (
             <section className="settings-row is-static">
               <span className="settings-row-body">
