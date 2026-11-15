@@ -21,13 +21,24 @@ One shared Python environment for the whole repo, set up by Michelle: `pyproject
 
 Run from the repo root.
 
-Checks (the same ones CI runs):
+Checks. CI runs three workflows, each only when its own paths change:
+
+| Workflow | Runs when | What it runs |
+|---|---|---|
+| `vision` | `vision/`, `shared/`, `agent/`, `flags.json`, `pyproject.toml`, `uv.lock` | `ruff check` and `ruff format --check` on `vision shared agent`, then `pytest vision shared/tests agent/tests` |
+| `web` | `web/`, `flags.json` | in `web/`: `npm ci`, `npx next typegen`, `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` |
+| `supabase` | `supabase/`, `pyproject.toml`, `uv.lock` | `ruff` on `supabase`, then `pytest supabase` against a real PostgreSQL (replays every migration). A skipped database test fails the step |
+
+The same checks locally, from the repo root:
 
 ```bash
-uv run pytest vision                   # unit tests (hardware tests skipped)
-CUES_HARDWARE=1 uv run pytest vision   # include camera / model tests
-uv run ruff check vision
-uv run ruff format --check vision
+uv run pytest vision shared/tests agent/tests   # unit tests (hardware tests skipped)
+CUES_HARDWARE=1 uv run pytest vision            # include camera / model tests
+uv run ruff check vision shared agent
+uv run ruff format --check vision shared agent
+(cd web && npx next typegen && npx tsc --noEmit && npm run lint && npm test && npm run build)
+# Database tests need PostgreSQL's initdb, pg_ctl and psql on the PATH. On a Mac with Homebrew:
+PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH" LC_ALL=en_US.UTF-8 uv run pytest supabase
 ```
 
 Fix formatting (rewrites files): `uv run ruff format vision`
@@ -54,7 +65,7 @@ uv run python -m vision.events --demo  # (after T3) send one test event
    - the files owned.
    List any check CI cannot run (camera, Supabase, Photon) as an unticked box with the exact command and the name of the person who will run it.
 4. PRs that are worked on at the same time must not edit the same files. One exception: `flags.json` is shared. Each PR only adds its own entry and rebases if another PR's entry conflicts.
-5. CI (`.github/workflows/`) must pass. Tests that need a camera or model weights use `@pytest.mark.hardware` and are skipped in CI. CI only runs for paths that have a workflow. "No checks reported" is fine for a PR that changes none of those paths. Don't make the `vision` check a required status check: PRs that skip it would wait on it forever.
+5. CI (`.github/workflows/`) must pass. Tests that need a camera or model weights use `@pytest.mark.hardware` and are skipped in CI. CI only runs for paths that have a workflow (`vision`, `web`, `supabase`). "No checks reported" is fine for a PR that changes none of those paths (for example notes or docs only). Don't make the `vision`, `web` or `supabase` check a required status check: PRs that skip it would wait on it forever.
 6. Every new feature ships behind a feature flag (next section).
 7. Before any merge, run the pre-merge review (section after next).
 
