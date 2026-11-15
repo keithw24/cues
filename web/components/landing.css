@@ -1001,6 +1001,27 @@ a.ln-button:active {
     radial-gradient(50% 35% at 50% 105%, rgb(68 89 180 / 0.2), transparent 70%);
   pointer-events: none;
 }
+/* The dotted page runs the full length of the landing, over the glow and
+   under every section. It scrolls with the page, like printed paper. The
+   hero's own dot layer is hidden so the two grids never double up. */
+.landing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(
+    rgb(255 255 255 / 0.12) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+.ln-hero-dots {
+  display: none;
+}
+:root[data-theme="light"] .landing::after {
+  background-image: radial-gradient(rgb(11 26 77 / 0.13) 1px, transparent 1px);
+}
 
 /* First-load entrance: staggered by 100ms, once. */
 @media (prefers-reduced-motion: no-preference) {
