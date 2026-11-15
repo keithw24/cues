@@ -31,6 +31,7 @@ export default async function DashboardPage() {
         themeToggleEnabled={isEnabled("web.theme_toggle")}
         visionStationConfigEnabled={isEnabled("web.vision_station_config")}
         interventionsEnabled={isEnabled("web.interventions")}
+        reviewWaitingEnabled={isEnabled("web.review_waiting")}
         resetPeopleEnabled={isEnabled("web.reset_people")}
         healthStripEnabled={isEnabled("web.health_strip")}
         companionEnabled={isEnabled("web.companion")}

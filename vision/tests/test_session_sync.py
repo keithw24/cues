@@ -270,3 +270,31 @@ def test_gesture_stage_scores_nothing_while_session_is_paused():
     ctx = {"session_managed": True, "session": None, "hands": {"S1-P1": [object()]}}
     stage.process(SimpleNamespace(timestamp=0.0), ctx)
     assert ctx["match"] == {}
+
+
+def test_managed_session_stores_expression_context_events():
+    # Regression: the session_revision tag made every expression_context event fail
+    # validation, which also aborted the rest of the status stage for that frame.
+    clock = [10.0]
+    state = StationSessionState(lambda: clock[0])
+    s = session(revision=3)
+    pin = SessionStage(state)
+    emitter = RecordingEmitter()
+    status = StatusStage(emitter=emitter, tasks=CurrentTasks("thumbs_up"), zones=SeatZones())
+    image = np.zeros((480, 640, 3), np.uint8)
+    for i in range(80):
+        clock[0] = t = 10 + i / 10
+        state.confirm(s)
+        frame = Frame(image, t, i)
+        ctx = {
+            "hands": {"S1-L": []},
+            "faces": {"S1-L": object()},
+            "expression": {"S1-L": {"sadness": 0.8, "neutral": 0.2}},
+        }
+        pin.process(frame, ctx)
+        ctx["match"] = {"S1-L": Match("thumbs_up", 0.1)}
+        status.process(frame, ctx)
+    expression = [e for e in emitter.events if e["type"] == "expression_context"]
+    assert len(expression) == 1
+    assert expression[0]["payload"]["session_revision"] == 3
+    assert expression[0]["payload"]["label"] == "sadness"

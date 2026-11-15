@@ -124,7 +124,11 @@ class Event(_Contract):
     @model_validator(mode="after")
     def validate_expression_payload(self) -> Self:
         if self.type == EventType.EXPRESSION_CONTEXT:
-            context = ExpressionContext.model_validate(self.payload)
+            # Vision adds session_revision to every managed-session payload (the database's
+            # stale-write guard reads it); it is not part of the expression context itself.
+            context = ExpressionContext.model_validate(
+                {key: value for key, value in self.payload.items() if key != "session_revision"}
+            )
             if context.duration_seconds is None:
                 raise ValueError("expression_context events require duration_seconds")
         return self

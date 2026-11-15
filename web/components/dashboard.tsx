@@ -29,9 +29,13 @@ import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
 import { CameraHealthStrip } from "@/components/camera-health-strip";
 import { ReviewCompanion } from "@/components/review-companion";
-import { ReviewCard } from "@/components/review-card";
+import { ReviewCard, WaitingReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
-import { reviewIssueLine, stripEntries } from "@/lib/classroom-view";
+import {
+  flaggedWithoutRequest,
+  reviewIssueLine,
+  stripEntries,
+} from "@/lib/classroom-view";
 import {
   CAMERA_CONFLICT_MESSAGE,
   cameraConflict,
@@ -113,6 +117,7 @@ export default function Dashboard({
   healthStripEnabled = false,
   interventionsEnabled = false,
   resetPeopleEnabled = false,
+  reviewWaitingEnabled = false,
 }: {
   /** "classroom" (the default) or "review", the To review page. */
   view?: "classroom" | "review";
@@ -139,6 +144,8 @@ export default function Dashboard({
   interventionsEnabled?: boolean;
   /** web.reset_people: switching or restarting the activity puts everyone back to working. */
   resetPeopleEnabled?: boolean;
+  /** web.review_waiting: To review also lists people the camera flagged who have no request yet. */
+  reviewWaitingEnabled?: boolean;
 }) {
   const [observationNow, setObservationNow] = useState<number | null>(null);
   useEffect(() => {
@@ -426,7 +433,21 @@ export default function Dashboard({
       ),
     );
   }, [stillFlagged]);
-  const waitingCount = reviewsLive ? reviewGroups.length : 0;
+  // People whose row reads Needs Review but who have no request yet: listed on
+  // To review so the two agree. Only once the review feed is live, so no one is
+  // shown twice while requests are still loading.
+  const flaggedOnly =
+    reviewWaitingEnabled && reviewsLive
+      ? flaggedWithoutRequest(
+          inView,
+          (seat) => present(seat).needsReview,
+          new Set(reviewGroups.map((group) => group.seat_id)),
+          markedSeats,
+        )
+      : [];
+  const waitingCount = reviewsLive
+    ? reviewGroups.length + flaggedOnly.length
+    : 0;
   // A person picked from the strip who has no request opens in the side
   // panel; someone with a request opens in place in the attention list.
   const selectedPerson =
@@ -726,7 +747,7 @@ export default function Dashboard({
                     </button>
                   </div>
                 ) : null}
-                {reviewGroups.length ? (
+                {reviewGroups.length || flaggedOnly.length ? (
                   <ol className="review-list">
                     {reviewGroups.map((group, index) => {
                       const lead = group.reviews[0];
@@ -761,6 +782,19 @@ export default function Dashboard({
                         />
                       );
                     })}
+                    {flaggedOnly.map((seat, index) => (
+                      <WaitingReviewCard
+                        key={seat.id}
+                        headingId={`review-card-${seat.id}`}
+                        index={reviewGroups.length + index + 1}
+                        name={seat.display_name}
+                        issue={reviewIssueLine(seat.activity, true, 1)}
+                        mark={markReviewedButton(
+                          seat.state?.session_id ?? null,
+                          seat.id,
+                        )}
+                      />
+                    ))}
                   </ol>
                 ) : (
                   reviewNotice ? null : (

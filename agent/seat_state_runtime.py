@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -322,6 +323,7 @@ class SeatStateRuntime:
         self.source = source
         self.pipeline = pipeline
         self.poll_seconds = poll_seconds
+        self.monotonic = time.monotonic
 
     def run_once(self) -> list[SeatStateProcessingResult]:
         rows = self.source.fetch()
@@ -351,11 +353,14 @@ class SeatStateRuntime:
     def run_forever(self, stop: threading.Event | None = None) -> None:
         stop = stop if stop is not None else threading.Event()
         while not stop.is_set():
+            started = self.monotonic()
             try:
                 self.run_once()
             except Exception as error:
                 log.error("SeatState source read failed: %s", type(error).__name__)
-            stop.wait(self.poll_seconds)
+            # Poll at a fixed rate: Supabase reads take 0.5-1s, and waiting the full
+            # period after them would skip vision's 1 Hz rows and reset stall timing.
+            stop.wait(max(0.0, self.poll_seconds - (self.monotonic() - started)))
 
 
 def local_station():

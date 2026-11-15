@@ -19,7 +19,8 @@ class TeacherReview(BaseModel):
     evaluation: AgentEvaluationRequest
     assessment: AgentAssessment
     # "expired": closed by the system (its session ended), not by a teacher's decision.
-    status: Literal["pending", "confirmed", "dismissed", "expired"] = "pending"
+    # "reviewed": closed by the teacher's Mark as reviewed (migration 1500).
+    status: Literal["pending", "confirmed", "dismissed", "expired", "reviewed"] = "pending"
     resolved_at: AwareDatetime | None = None
 
     @model_validator(mode="after")

@@ -120,29 +120,87 @@ def test_new_owned_session_restarts_completed_stream():
     assert results[4].request.session_id == UUID(int=2)
 
 
-def test_demo_polling_does_not_skip_one_second_vision_heartbeats():
-    # Model a 1.03s vision heartbeat and 0.10s HTTP fetch overhead. A 1s
-    # sleep after fetching eventually skips a row (2.06s > the 2s gap limit).
-    def simulate(poll_seconds):
-        target = pipeline([activity("raise_hand")])
-        states = []
-        read_at = 0.0
-        while read_at < 20:
-            observation = int(read_at / 1.03) * 1.03
-            result = target.process_row(
-                snapshot(observation, activity_id="raise_hand", score=0),
-                now=START + timedelta(seconds=read_at),
-            )
-            if result is not None:
-                states.append(result)
-            read_at += poll_seconds + 0.10
-        return states
+def simulate_polling(target, *, poll_seconds, fetch_seconds, fixed_rate, until=40):
+    """Vision rewrites a stuck child's row every 1.03s; the agent polls Supabase."""
+    results = []
+    started = 0.0
+    while started < until:
+        read_at = started + fetch_seconds
+        observation = int((started + fetch_seconds / 2) / 1.03) * 1.03
+        result = target.process_row(
+            snapshot(observation, activity_id="raise_hand", status="needs_help", score=0),
+            now=START + timedelta(seconds=read_at),
+        )
+        if result is not None:
+            results.append(result)
+        wait = max(0.0, poll_seconds - fetch_seconds) if fixed_rate else poll_seconds
+        started = read_at + wait
+    return results
 
-    slower = simulate(1.0)
-    assert any(r.progress.trend == "unknown" for r in slower[4:])
-    faster = simulate(0.5)
-    assert all(r.progress.trend == "stalled" for r in faster[2:])
-    assert any(r.escalation.reason == "prolonged_stalled_progress" for r in faster)
+
+def test_demo_polling_does_not_skip_one_second_vision_heartbeats():
+    # Measured hosted Supabase reads take 0.5-0.8s per poll, not 0.1s.
+    for fetch_seconds in (0.1, 0.5, 0.8):
+        results = simulate_polling(
+            pipeline([activity("raise_hand")]),
+            poll_seconds=0.5,
+            fetch_seconds=fetch_seconds,
+            fixed_rate=True,
+        )
+        assert all(r.progress.trend == "stalled" for r in results[3:])
+        assert any(r.escalation.reason == "prolonged_stalled_progress" for r in results)
+
+
+def test_dev_profile_escalates_a_stuck_child_despite_slow_supabase_reads():
+    # Regression: a 2s gap limit plus a full 1s sleep after a 0.5-0.8s read skipped
+    # a vision row every few polls, so the stall timer never reached 10s and the
+    # To review tab stayed empty while the person row said Needs Review.
+    for fetch_seconds, fixed_rate in ((0.5, False), (0.8, False), (0.8, True), (1.2, True)):
+        target = SeatStatePipeline(
+            [activity("raise_hand")],
+            RecordingAgent(),
+            ProgressHistoryStore(),
+            clock=lambda: START,
+        )
+        simulate_polling(
+            target, poll_seconds=1.0, fetch_seconds=fetch_seconds, fixed_rate=fixed_rate
+        )
+        assert len(target.agent.contexts) >= 1, (fetch_seconds, fixed_rate)
+        assert target.agent.contexts[0].request.escalation.reason == "stalled_progress"
+
+
+def test_two_missed_heartbeats_still_reset_the_stall_window():
+    target = pipeline([activity("raise_hand")])
+    rows = [snapshot(t, activity_id="raise_hand", score=0) for t in (0, 1, 2, 3, 6.5, 7.5)]
+    results = feed(target, rows)
+    assert results[3].progress.trend == "stalled"
+    assert results[4].progress.trend == "unknown"
+
+
+def test_run_forever_polls_at_a_fixed_rate():
+    waits = []
+    clock = iter([0.0, 0.7, 1.0, 2.4, 2.4, 2.4])
+
+    class Source:
+        def fetch(self):
+            return []
+
+    class Stop:
+        def __init__(self):
+            self.calls = 0
+
+        def is_set(self):
+            return self.calls >= 3
+
+        def wait(self, seconds):
+            self.calls += 1
+            waits.append(round(seconds, 2))
+
+    runtime = SeatStateRuntime(Source(), pipeline(), poll_seconds=1.0)
+    runtime.monotonic = lambda: next(clock)
+    runtime.run_forever(Stop())
+    # A 0.7s read waits 0.3s; a read slower than the period does not wait at all.
+    assert waits == [0.3, 0.0, 1.0]
 
 
 def test_tracking_loss_never_routes_or_turns_null_score_into_failure():

@@ -24,7 +24,9 @@ test("switching an activity closes open requests, and the refresh button restart
   assert.match(controls, /window\.confirm\(RESET_CONFIRM\)/);
   assert.match(controls, /act\(snapshot\.session\.current_activity_id\)/);
   // Off, or with no running activity, or while the session failed to load: it only reloads.
-  assert.match(controls, /Boolean\(resetPeople && snapshot\?\.session && !loadError\)/);
+  assert.match(controls, /resetPeople && snapshot\?\.session && !loadError && !refreshRequired/);
+  // After one failed read or action the button is the retry, and it stays usable.
+  assert.match(controls, /disabled=\{busy\}\n\s*onClick=\{\(\) => \{\n\s*if \(!restart\) return setRefreshKey/);
   assert.match(controls, /if \(!restart\) return setRefreshKey/);
 });
 

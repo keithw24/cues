@@ -59,3 +59,21 @@ export function reviewIssueLine(
     .filter(Boolean)
     .join(" · ");
 }
+
+/**
+ * People the camera has flagged (their row reads Needs Review) who have no
+ * pending request from Cues yet, in the order given (web.review_waiting). The
+ * agent may still be deciding, or its call may have failed; either way the
+ * teacher sees them. Someone already marked reviewed is left out until vision
+ * moves them back to working.
+ */
+export function flaggedWithoutRequest<T extends { id: string }>(
+  people: readonly T[],
+  flagged: (person: T) => boolean,
+  asked: ReadonlySet<string>,
+  marked: ReadonlySet<string>,
+): T[] {
+  return people.filter(
+    (person) => flagged(person) && !asked.has(person.id) && !marked.has(person.id),
+  );
+}
