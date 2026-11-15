@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { mayConnectLocalFeed } from "@/lib/local-feed-policy";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 
@@ -46,6 +46,19 @@ export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin 
     }
   }, [hostedEnabled, hostedOrigin]);
   const streaming = connection === "connecting" || connection === "live";
+  // The stream is still showing after a tab switch (the browser keeps the connection), but the
+  // image's load event does not fire again for a stream it already has, which left "Connecting…"
+  // on top of a working picture. Look at the image itself: once it has a frame, it is live.
+  const image = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    if (connection !== "connecting") return;
+    const look = () => {
+      if (image.current && image.current.naturalWidth > 0) setConnection("live");
+    };
+    look();
+    const timer = setInterval(look, 250);
+    return () => clearInterval(timer);
+  }, [connection]);
   return (
     <section
       className="ws-panel classroom-feed"
@@ -56,7 +69,7 @@ export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin 
         <h2 id="feed-heading">Camera</h2>
         {connection === "live" ? (
           <button className="ws-pill" type="button" onClick={turnOff}>
-            Turn off
+            OFF
           </button>
         ) : null}
       </header>
@@ -65,6 +78,7 @@ export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin 
           // MJPEG requires a native image; Next Image cannot optimize an open multipart stream.
           // eslint-disable-next-line @next/next/no-img-element
           <img
+            ref={image}
             className="local-stream"
             src="http://127.0.0.1:8000/stream"
             crossOrigin="anonymous"

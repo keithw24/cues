@@ -811,6 +811,19 @@ div.ws-row {
 }
 
 /* ---- Header link, rail badge, side-panel person ------------------------- */
+/* TO REVIEW in the header: larger than the other pills, with an orange border. */
+.dashboard-shell .review-link {
+  --ws-orange: #e8741f;
+  height: 48px;
+  padding: 0 24px;
+  border: 2px solid var(--ws-orange);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+:root:not([data-theme="light"]) .dashboard-shell .review-link {
+  --ws-orange: #f59a5a;
+}
 .dashboard-shell .review-link .ws-count {
   min-width: 22px;
   height: 22px;
