@@ -4,6 +4,7 @@ import path from "node:path";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  transpilePackages: ["cues"],
   partialPrefetching: true,
   turbopack: {
     root: path.resolve(__dirname, ".."),
