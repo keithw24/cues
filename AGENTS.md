@@ -2,7 +2,7 @@
 
 ## 1. Source of truth
 
-- Read the product/architecture source of truth, [PRD-cues.md](PRD-cues.md), before implementing product behavior. The requested `prd.md` is named `PRD-cues.md` in this repository; do not create a duplicate.
+- Read the product/architecture source of truth, [notes/PRD-cues.md](notes/PRD-cues.md), before implementing product behavior. The requested `prd.md` is named `notes/PRD-cues.md` in this repository; do not create a duplicate.
 - `pyproject.toml` and `uv.lock` define the shared Python environment; `web/package.json` and `web/package-lock.json` define frontend dependencies.
 - Inspect existing code before assuming paths, commands, or capabilities. Code establishes what is implemented; the PRD defines intended behavior. Surface discrepancies rather than silently rewriting architecture.
 - Read `notes/archive/TEAM_WORKFLOW.md` for team branches, ownership, and shared contract decisions. It takes precedence over older branch/ownership guidance. Consult `CLAUDE.md` for feature flags and pre-merge review; follow `web/AGENTS.md` for frontend edits.
@@ -10,7 +10,7 @@
 
 ## 2. Current architecture
 
-Implemented backend flow (frontend gaps are documented in PRODUCT.md):
+Implemented backend flow (what is still open is ranked in `notes/outstanding-work.md`):
 
 ```text
 Camera → local vision → Supabase seat_state → ProgressEvaluator
@@ -21,7 +21,7 @@ Camera → local vision → Supabase seat_state → ProgressEvaluator
 - Camera frames stay local. The LLM never receives images/video; only structured state leaves the perception boundary.
 - HSEmotion is supporting context only, never independent evidence of task struggle.
 - Teacher approval is required before changing a task, instruction, or support intervention. Notifications do not require approval.
-- Current checkout implements local vision, a continuous agent worker, persistent teacher reviews, Spectrum notifications and a Next.js dashboard. Frontend review/RPC wiring and person-ID visibility remain gaps.
+- Current checkout implements local vision (one camera per station), a continuous agent worker, persistent teacher reviews, Spectrum notifications and a Next.js dashboard with sign-in, per-teacher stations, session controls, review actions, Mark as reviewed and person cards. Open items are ranked in `notes/outstanding-work.md`.
 
 - Groq openai/gpt-oss-20b is the demo model. Keep core routing, contracts and tools provider-independent through injected models.
 
@@ -47,7 +47,7 @@ Known entry point, from the root:
 uv run uvicorn vision.app:app --host 127.0.0.1 --port 8000
 ```
 
-Use `CUES_CAMERA=fake` for camera-free startup. `/health` and `/stream` exist; keep the image stream local. Do not invent other FastAPI entry points or treat PRD example endpoints as implemented.
+Use `CUES_CAMERA=fake` for camera-free startup. The service exposes `/health`, `/stream` (keep the image stream local), `/config` (the signed-in dashboard sets the station; loopback only), `/gestures` and `/templates` (teacher-recorded gestures). Do not invent other FastAPI entry points or treat PRD example endpoints as implemented.
 
 ## 6. Git discipline
 
@@ -71,7 +71,7 @@ Inspect the actual tree before adding or assuming directories. Integration is sh
 | Vision — Keith (`vision/`) | Webcam input, MediaPipe, normalized landmarks, local gesture templates, nearest-neighbor match score, HSEmotion, tracking state, structured perception events. Keep agent logic out. |
 | App backend — Evan | App-facing APIs, Supabase schema/integration, realtime product state, and app support for teacher decisions. Current local vision FastAPI service remains in Keith’s `vision/`; no separate app backend directory exists yet. |
 | Agent / routing — Michelle | Event routing, rules, alert cooldowns, Deep Agents, LLM integration, tools, intervention decisions, Photon, agent approval workflow. Operates on structured state, never camera frames. |
-| Frontend — Evan (`web/`) | Teacher dashboard, station UI, realtime display, task selection, voice controls, alert approval/dismissal, gesture recording controls. Current dashboard integration; persistent review UI wiring remains a gap. |
+| Frontend — Evan (`web/`) | Teacher dashboard, station UI, realtime display, task selection, voice controls, alert approval/dismissal, gesture recording controls. Dashboard, session controls, review actions and Mark as reviewed are connected. |
 
 Event/table changes affect shared contracts in PRD §17. Update affected components and the PRD together and record Keith, Evan, and Michelle's sign-off in the PR, per `CLAUDE.md`.
 
@@ -113,21 +113,13 @@ Photon messages contain minimal structured information: no images, raw camera da
 
 - Never upload student camera frames, face crops, recordings, or raw camera data to Supabase, any LLM provider, LangChain, Photon, or other cloud APIs.
 - Use only simulated student data during the hackathon. Identify seats by position, not biometric identity.
-- Preserve `.gitignore` protections for local templates, captures, weights, logs, and secrets. The documented developer-recorded built-in `thumbs_up.json` exception contains no student data; do not generalize it to student templates.
+- Preserve `.gitignore` protections for local templates, captures, weights, logs, and secrets.
 - See STARTUP.md for the env split: backend Supabase/Groq in root .env, browser-safe configuration in web/.env.local, and backend-only Spectrum project credentials/destination in cues/.env. Never expose secrets in NEXT_PUBLIC_*.
 - Current vision client loads the root `.env` and reads `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. Station/session/camera settings may also be set there or in the shell; do not introduce a second credentials convention.
 
 ## 12. Verification and feature flags
 
-Run checks relevant to changes. Existing vision CI commands, from the root:
-
-```bash
-uv run pytest vision shared/tests
-uv run ruff check vision shared
-uv run ruff format --check vision shared
-```
-
-Hardware tests are skipped by default; `CUES_HARDWARE=1 uv run pytest vision` opts in. Record manual camera/model/Supabase/Photon verification still needed. Frontend has `npm run lint` and `npm run build` inside `web/`; inspect scripts before assuming other checks.
+Run the checks relevant to your change. CI has three workflows (`vision`, `web`, `supabase`); the table of what each runs, and the same commands to run locally, are under "Commands" in `CLAUDE.md`. Hardware tests are skipped by default; `CUES_HARDWARE=1 uv run pytest vision` opts in. Record manual camera/model/Supabase/Photon verification still needed.
 
 Follow `CLAUDE.md` for feature flags: add needed entries to `flags.json`, default new features off until verified, and verify the flag-off fallback. Infrastructure needs no flag. The vision helper (`vision/flags.py`) and vision module gating exist; the vision event emitter sends to Supabase only when `vision.supabase_events` is on and credentials are set. The web flag helper is implemented; the agent worker is explicitly started through its runtime entrypoint.
 

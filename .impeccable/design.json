@@ -320,7 +320,7 @@
       "web/components/login-companion.tsx",
       "web/app/login/page.tsx",
       ".impeccable/teacher-workspace.md",
-      "web/UI_REDESIGN.md"
+      "notes/web-ui-redesign.md"
     ]
   },
   "components": [

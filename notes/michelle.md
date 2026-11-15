@@ -327,7 +327,7 @@ All eleven migrations replayed on isolated local PostgreSQL with minimal Auth
 stubs. Hosted definitions/effects through 007 were verified; official CLI 3.1.0
 marked only those ten versions applied without replaying their SQL. The resulting
 official migration list matches through 007, and db push --dry-run selected only
-008_station_pairing. Migration 008 was not deployed. See supabase/README.md for
+008_station_pairing. Migration 008 was not deployed. See notes/supabase.md for
 the pinned CLI commands, explicit targeting helper and future deployment procedure.
 
 ### Station pairing backend (local, not deployed)
@@ -342,7 +342,7 @@ and still consumes a fresh code. Invalid/expired/used codes share one generic er
 No browser membership inserts, arbitrary identity/station arguments, historical
 session claims or changes to session RPCs are introduced. Service access remains.
 Operator/frontend instructions and isolated local PostgreSQL test command are in
-supabase/README.md. Four SQL integration tests passed, including concurrent
+notes/supabase.md. Four SQL integration tests passed, including concurrent
 redemption, privacy/permissions, normalization, repeat membership, rejection cases,
 and unchanged historical sessions. No Photon registration or UI was added.
 
@@ -377,7 +377,7 @@ Migration and rollback SQL ownership checks are provided; hosted application
 is not claimed in this step. Historical demo-only authorization claims above
 describe migration 004 and are superseded by migration 006 once deployed.
 
-Latest full offline suite: **449 passed, 4 skipped**. Skips are existing hardware
+Full offline suite (2026-11-14): **about 619 passed, 4 skipped**. Skips are existing hardware
 and credential-gated checks. Coverage includes deterministic routing, history
 isolation/bounds, evidence repair/budgets, terminal action, review lifecycle,
 persistence adapter, notification failure/duplicates, continuous wiring, malformed

@@ -134,7 +134,7 @@ task_status, activity_sync, supabase_events and all_scores. Set the correspondin
 CUES_FLAG_VISION_* environment variable to 1. watch --all-on enables its perception,
 status and display flags; it does not automatically enable cloud publication or
 activity sync. Cloud publishing requires SUPABASE_URL,
-SUPABASE_SERVICE_ROLE_KEY and CUES_SESSION_ID; CUES_STATION_ID defaults to S1.
+SUPABASE_SERVICE_ROLE_KEY and a station: the signed-in teacher's dashboard sends it to `POST /config`, or `CUES_STATION_ID` pins it for dev/test. `CUES_SESSION_ID` is for legacy/smoke commands only. The launcher turns the needed flags on.
 Keep credentials backend-only and the video stream local.
 
 ## Verified integration and remaining work
@@ -148,14 +148,13 @@ Michelle's continuous SeatState consumer is implemented. A hosted scripted smoke
 consumed synthetic observations, detected a stall, persisted a pending teacher
 review and received one Spectrum acknowledgement; probe rows were cleaned up.
 That validates integration mechanics, not camera accuracy or live-model judgment.
-Latest recorded full offline suite: 449 passed, 4 skipped (hardware/credential gated).
+Full offline suite (2026-11-14): about 619 passed, 4 skipped (hardware/credential gated), plus 60 database tests in `supabase/`.
 
 Remaining checks and handoff:
 - Benchmark pose/perception throughput and gesture/raise-hand accuracy on the actual camera.
 - Re-record incompatible custom templates and validate thresholds with real demonstrations.
-- Align Supabase activities with vision's three tasks; worker catalog refresh requires restart.
-- Provision person IDs for dashboard cards/read policies; legacy S1-L/S1-R rows do not cover S1-P*.
+- A newly created gesture needs a worker restart to appear in the agent's catalog. (Activity catalog and person ids are provisioned: migrations 010, 011, 014.)
 - Account for track ID reuse and possible swaps when people cross; persistent student preferences cannot assume stable identity.
 - Complete a real camera-to-dashboard/teacher demo acceptance pass. Synthetic smoke does not establish that result.
 
-No new vision behavior or hardware verification is implied by this documentation update.
+Everything still to check on real hardware is ranked in [outstanding-work.md](outstanding-work.md) (P0). What vision writes is in [vision-data.md](vision-data.md).

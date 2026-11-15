@@ -1,7 +1,7 @@
 """Activities (tasks) and the current task for each seat.
 
 Until the app's `activities` table and current-task sync are connected, the
-vision service reads vision/activities.json (same shape as TEAM_WORKFLOW.md
+vision service reads vision/activities.json (same shape as notes/archive/TEAM_WORKFLOW.md
 §3.4) and takes the current task from CUES_TASK (default: thumbs_up).
 
 Thresholds are per activity; there is no single threshold for every task.

@@ -1,0 +1,59 @@
+name: web
+
+# Runs when the web app, the flag registry or this file changes: type check, lint, tests and
+# a production build, from a clean install.
+# Don't make this a required status check: PRs that skip it would wait forever.
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - "flags.json"
+      - ".github/workflows/web.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "flags.json"
+      - ".github/workflows/web.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 or newer is what STARTUP.md asks for; the tests run TypeScript directly.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install (from the lockfile)
+        run: npm ci
+
+      # A fresh checkout has no generated route types, so the type check needs them first.
+      - name: Generate Next route types
+        run: npx next typegen
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

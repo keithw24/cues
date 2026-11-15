@@ -10,6 +10,10 @@ flowchart TD
     C["Logitech camera"] --> D["Local MediaPipe + HSEmotion"]
     B --> D
 
+    T["Teacher signs in"] --> ST["Own default station"]
+    ST --> CF["Dashboard tells local vision its station (/config)"]
+    CF --> D
+
     D --> E["Supabase seat_state"]
     E --> F["ProgressEvaluator"]
     F --> G["ProgressHistoryStore"]
@@ -33,6 +37,11 @@ flowchart TD
     P -->|Support needed / No support needed| S["resolve_teacher_review RPC"]
     S --> Q["confirmed"]
     S --> R["dismissed"]
+
+    P -->|Mark as reviewed| MR["mark_seat_reviewed RPC"]
+    MR --> RV["reviews closed as reviewed"]
+    MR --> V["Vision: child back to Working, timers restart"]
+    M -. session ends or task completed .-> EX["reviews closed as expired"]
 ```
 
 The continuous agent worker polls structured state and selects information/action
@@ -63,13 +72,15 @@ Use simulated data during the hackathon.
 | `shared/` | Authoritative Pydantic contracts and fixtures |
 | `supabase/` | Ordered migrations and SQL checks |
 | `cues/` | Nested Spectrum SDK project, on-demand notification sender |
-| `notes/` | Implementation details and verification |
+| `notes/` | All documentation: product spec, database, web, vision and agent notes (index: [notes/README.md](notes/README.md)) |
+| `.github/` | CI workflows (`vision`, `web`, `supabase`) and the PR template |
 | `STARTUP.md` | Setup, env requirements, operational troubleshooting |
 
 See [STARTUP.md](STARTUP.md), then run `./scripts/dev.sh` to start vision, the
 agent worker, and dashboard together. Photon runs on demand. Voice is not required
-by this startup flow. Current person-ID dashboard/read-policy and activity catalog
-alignment gaps are documented in [vision handoff](notes/vision-data.md).
+by this startup flow. What vision writes, and how the other two areas use it, is in the
+[vision handoff](notes/vision-data.md); what is still open is ranked in
+[outstanding work](notes/outstanding-work.md).
 
 Dashboard activity writes and persistent teacher review controls are connected.
 Live progress requires migration 012 and explicit `agent.live_progress` /
@@ -79,5 +90,5 @@ MJPEG `/stream` is the intentional local demo transport; WebRTC is not required.
 
 Python dependencies use root uv; Node packages use their npm lockfiles. Follow
 [notes/archive/TEAM_WORKFLOW.md](notes/archive/TEAM_WORKFLOW.md) for branches and ownership, and
-[PRD-cues.md](PRD-cues.md) for product requirements. Shared Python contracts in
+[notes/PRD-cues.md](notes/PRD-cues.md) for product requirements. Shared Python contracts in
 `shared/contracts.py` are authoritative.

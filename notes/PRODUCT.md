@@ -9,7 +9,7 @@ web
 ## Users
 
 Special-education teachers monitoring task progress at a station.
-Product authority remains `PRD-cues.md`; this file provides concise design context.
+Product authority remains `notes/PRD-cues.md`; this file provides concise design context.
 
 ## Product Purpose
 
@@ -50,7 +50,7 @@ behind a disclosure. Color supports explicit status text and never implies a
 learner's state.
 
 Sign-in asks one question at a time beneath the illustrated Cues companion. The
-companion belongs to the product, never to a teacher or learner. `DESIGN.md`
+companion belongs to the product, never to a teacher or learner. `notes/DESIGN.md`
 records the implemented tokens and layout.
 
 ## Current Implementation Limits
@@ -85,7 +85,7 @@ observation producer; available progress history is process-local.
 
 ## Evidence on Hand
 
-`PRD-cues.md`, `shared/contracts.py`, synthetic fixtures, and implementation notes under `notes/`.
+`notes/PRD-cues.md`, `shared/contracts.py`, synthetic fixtures, and implementation notes under `notes/`.
 Historical team coordination material is archived under `notes/archive/`.
 
 Use simulated data only. Do not assume a fixed seat count unless the current
