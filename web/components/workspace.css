@@ -1673,6 +1673,17 @@ body .dashboard-shell.ws-demo {
       translate: 0 6px;
     }
   }
+  /* Inside the side panel the details ride along with the panel's own
+     glide, so they don't fade twice (or travel 12px). */
+  .dashboard-shell .panel-person .row-more {
+    transition: none;
+  }
+  @starting-style {
+    .dashboard-shell .panel-person .row-more {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
 }
 @keyframes ws-arrive {
   from {
@@ -1699,6 +1710,14 @@ body .dashboard-shell.ws-demo {
     .dashboard-shell .panel-person,
     .dashboard-shell .alerts-optin {
       opacity: 0;
+    }
+  }
+  .dashboard-shell .panel-person .row-more {
+    transition: none;
+  }
+  @starting-style {
+    .dashboard-shell .panel-person .row-more {
+      opacity: 1;
     }
   }
   .dashboard-shell .rail-link .nav-label {

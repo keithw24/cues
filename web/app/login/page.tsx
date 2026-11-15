@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { isEnabled } from "@/lib/flags";
 
-
 export default async function LoginPage() {
   if (!isEnabled("web.teacher_login"))
     return (

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { isEnabled } from "@/lib/flags";
 
-
 export default async function ConfirmedPage() {
   if (!isEnabled("web.teacher_signup"))
     return (

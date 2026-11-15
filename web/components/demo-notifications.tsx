@@ -23,6 +23,7 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
   const [reload, setReload] = useState(0);
   const locked = useRef(false);
   const generation = useRef(0);
+  const shownUser = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     let cancelled = false;
     let sequence = 0;
@@ -49,7 +50,14 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
     const focus = () => void refresh();
     window.addEventListener("focus", focus);
     const timers = new Set<ReturnType<typeof setTimeout>>();
-    const {data} = client.auth.onAuthStateChange(() => {
+    // Reset the form only for a different account: tab focus, token refresh and
+    // this effect re-running all report the same teacher again.
+    const {data} = client.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user.id ?? null;
+      if (shownUser.current !== undefined && user === shownUser.current) return;
+      const first = shownUser.current === undefined;
+      shownUser.current = user;
+      if (first) return;
       invalidate(); sequence++; setSettings(null); setConsent(false);
       setFirst(""); setLast(""); setLoading(true);
       const handle = setTimeout(() => { timers.delete(handle); if (!cancelled) void refresh(); }, 0);

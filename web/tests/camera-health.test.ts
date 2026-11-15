@@ -113,3 +113,13 @@ test("a failing or refusing service reads as not running here", async () => {
   const bad = async () => new Response("no", { status: 500 });
   assert.deepEqual(await readLocalVision(bad as never), { reachable: false });
 });
+
+test("readLocalVision keeps the camera reachable when /config is refused at the network level", async () => {
+  const fetcher = async (url: string) => {
+    if (url.endsWith("/config")) throw new TypeError("Failed to fetch");
+    return new Response(JSON.stringify({ camera_open: true, frame_age_seconds: 0.4, station_id: "S2" }));
+  };
+  const reading = await readLocalVision(fetcher as never);
+  assert.equal(reading.reachable, true);
+  assert.equal(reading.reachable && reading.stationId, "S2");
+});

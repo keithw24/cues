@@ -217,12 +217,19 @@ export default function Dashboard({
       }
     };
     const initial = latest;
+    // undefined until the first read: tab focus fires SIGNED_IN again for the
+    // same teacher, which must not reset the classroom.
+    let userId: string | null | undefined;
     void client.auth.getSession().then(({ data }) => {
       if (disposed || latest !== initial) return;
+      userId = data.session?.user.id ?? null;
       void resolve(Boolean(data.session));
     });
     const { data } = client.auth.onAuthStateChange((event, session) => {
       if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+      const next = session?.user.id ?? null;
+      if (userId !== undefined && next === userId) return;
+      userId = next;
       ++latest; // Immediately invalidate in-flight work for the previous identity.
       // A different account: never keep the previous teacher's station on screen.
       setAccount(session ? { state: "finding" } : { state: "signed-out" });
@@ -303,7 +310,8 @@ export default function Dashboard({
   const signedOut =
     teacherLoginEnabled && resolvesStation && account.state === "signed-out";
   // Without a station there is nothing to load yet: say why, not "error".
-  const waitingForStation = resolvesStation && !station;
+  const waitingForStation =
+    resolvesStation && !station && !configurationError;
 
   // People are labelled as the backend names them (seats.display_name,
   // "Person 1", "Person 2"…): no made-up names.
@@ -357,13 +365,19 @@ export default function Dashboard({
   useEffect(() => {
     if (!client || !station || !sessionControlsEnabled) return;
     let disposed = false;
+    // One read at a time (a read can take up to 12s, the poll is 5s), so an
+    // old answer never overwrites a newer one; a failed read keeps the last.
+    let inFlight = false;
     const check = () => {
+      if (inFlight) return;
+      inFlight = true;
       void readStationWriter(client, station)
         .then((writer) => {
           if (!disposed) setConflict(cameraConflict(writer, Date.now()));
         })
-        .catch(() => {
-          if (!disposed) setConflict(false);
+        .catch(() => {})
+        .finally(() => {
+          inFlight = false;
         });
     };
     check();
@@ -406,16 +420,44 @@ export default function Dashboard({
     selectedId && reviewsFor(selectedId).length === 0
       ? (inView.find((seat) => seat.id === selectedId) ?? null)
       : null;
-  const closeDetails = () => {
+  // A request arrives for the person open in the side panel: the panel closes
+  // and they open in the attention list, so carry focus to their row there.
+  const panelPerson = useRef<string | null>(null);
+  const panelId = selectedPerson?.id ?? null;
+  useEffect(() => {
+    const was = panelPerson.current;
+    panelPerson.current = panelId;
+    if (!was || panelId || selectedId !== was) return;
+    if (!document.activeElement || document.activeElement === document.body)
+      document
+        .querySelector<HTMLButtonElement>(`.row-list [aria-controls="more-${was}"]`)
+        ?.focus();
+  }, [panelId, selectedId]);
+  // Close the open person and return focus to what opened them: the card the
+  // teacher pressed Escape on, else their row, else the list heading.
+  const closeDetails = (returnTo?: HTMLElement | null) => {
     const id = selectedId;
     setSelectedId(null);
     requestAnimationFrame(() =>
-      (id
-        ? document.querySelector<HTMLButtonElement>(`[aria-controls="more-${id}"]`)
-        : listHeading.current
+      (returnTo?.isConnected
+        ? returnTo
+        : id
+          ? document.querySelector<HTMLButtonElement>(`[aria-controls="more-${id}"]`)
+          : listHeading.current
       )?.focus(),
     );
   };
+  // The groups and who is in view as last rendered, for settleRow.
+  const latest = useRef({
+    groups: reviewGroups,
+    visibleIds: new Set<string>(),
+  });
+  useEffect(() => {
+    latest.current = {
+      groups: reviewGroups,
+      visibleIds: new Set(inView.map((seat) => seat.id)),
+    };
+  });
   // After a decision or a mark: if the person has nothing left to show (no other
   // request and out of view), close their row so it can't reopen on its own later;
   // otherwise keep focus on their row, which may have moved to the other group.
@@ -426,23 +468,31 @@ export default function Dashboard({
     !configurationError &&
     Boolean(reviews.error || reviews.connection === "disconnected");
   const pageHeading = useRef<HTMLHeadingElement>(null);
-  const settleRow = (seatId: string, remaining: number) => {
-    // On To review the card leaves the list: keep focus on the page.
-    if (view === "review") {
-      requestAnimationFrame(() => pageHeading.current?.focus());
-      return;
-    }
-    const visible = inView.some((seat) => seat.id === seatId);
-    if (!remaining && !visible) {
-      setSelectedId(null);
-      requestAnimationFrame(() => listHeading.current?.focus());
-      return;
-    }
-    requestAnimationFrame(() =>
+  const settleRow = (seatId: string) => {
+    // Decide on the next frame, from the data that render committed, so a
+    // request that arrived (or left) while saving is counted.
+    requestAnimationFrame(() => {
+      const { groups, visibleIds } = latest.current;
+      const remaining =
+        groups.find((group) => group.seat_id === seatId)?.reviews.length ?? 0;
+      if (view === "review") {
+        // The card stays while the person has another request: keep focus on
+        // it; otherwise the page title.
+        (remaining
+          ? document.getElementById(`review-card-${seatId}`)
+          : pageHeading.current
+        )?.focus();
+        return;
+      }
+      if (!remaining && !visibleIds.has(seatId)) {
+        setSelectedId(null);
+        listHeading.current?.focus();
+        return;
+      }
       document
         .querySelector<HTMLButtonElement>(`[aria-controls="more-${seatId}"]`)
-        ?.focus(),
-    );
+        ?.focus();
+    });
   };
   const resolved = (review: TeacherReview) => {
     resolvedReviewIds.current.add(review.id);
@@ -450,10 +500,7 @@ export default function Dashboard({
       ...state,
       reviews: state.reviews?.filter((item) => item.id !== review.id) ?? null,
     }));
-    settleRow(
-      review.seat_id,
-      reviewsFor(review.seat_id).filter((item) => item.id !== review.id).length,
-    );
+    settleRow(review.seat_id);
   };
   // "Mark as reviewed": close this person's review requests here at once (every page reads
   // the same table, so they leave the others too) and let vision reset them to working.
@@ -483,7 +530,7 @@ export default function Dashboard({
                 state.reviews?.filter((item) => item.seat_id !== marked) ?? null,
             };
           });
-          settleRow(marked, 0);
+          settleRow(marked);
         }}
       />
     ) : null;
@@ -656,6 +703,7 @@ export default function Dashboard({
                       return (
                         <ReviewCard
                           key={group.seat_id}
+                          headingId={`review-card-${group.seat_id}`}
                           index={index + 1}
                           name={nameOf(group.seat_id)}
                           issue={reviewIssueLine(
@@ -710,7 +758,7 @@ export default function Dashboard({
                       <button
                         type="button"
                         className="ws-icon-button"
-                        onClick={closeDetails}
+                        onClick={() => closeDetails()}
                         aria-label="Back to attention"
                       >
                         <WorkspaceIcon name="back" />
@@ -820,7 +868,7 @@ export default function Dashboard({
                 mixedActivities,
               )}
               onSelect={(id) => setSelectedId(selectedId === id ? null : id)}
-              onEscape={selectedId ? closeDetails : undefined}
+              onEscape={selectedId ? (card) => closeDetails(card) : undefined}
             />
               </>
             )}
