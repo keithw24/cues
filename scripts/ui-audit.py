@@ -193,9 +193,13 @@ def audit(root=ROOT, process=None, direct_next=False):
         sm,
     )
     for name, anchor, condition in (
-        ("Start Session", "Start Session", "no active session; activity selected"),
-        ("End Session", "End Session", "active session"),
-        ("Refresh Session", "Refresh session", "enabled unless busy; recovers fetch/action errors"),
+        ("Start Session", "Starting…", "no active session; activity selected"),
+        ("End Session", "Ending…", "active session"),
+        (
+            "Refresh Session",
+            "Refresh activity",
+            "enabled unless busy; recovers fetch/action errors",
+        ),
         ("Session status", "Session status", "successful session snapshot; expand details"),
     ):
         add(
@@ -253,19 +257,18 @@ def audit(root=ROOT, process=None, direct_next=False):
         )
     add(
         "Logout",
-        "/dashboard",
-        controls,
+        "/settings/profile",
+        "web/components/profile-account.tsx",
         "client.auth.signOut()",
-        sflags,
-        "Authenticated + station configured; "
-        "control is inside SessionControls, not global sidebar.",
-        sm,
+        pflags,
+        "Authenticated; Sign out sits in the account card on Profile.",
+        pm,
     )
     add(
         "Teacher profile",
         "/settings/profile",
         profile,
-        "Save profile",
+        "Saving…",
         pflags,
         "Sidebar Teacher profile link; authenticated user.",
         pm,

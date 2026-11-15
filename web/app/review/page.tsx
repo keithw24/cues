@@ -26,6 +26,7 @@ export default async function ReviewPage() {
         teacherLoginEnabled={isEnabled("web.teacher_login")}
         themeToggleEnabled={isEnabled("web.theme_toggle")}
         visionStationConfigEnabled={isEnabled("web.vision_station_config")}
+        interventionsEnabled={isEnabled("web.interventions")}
       />
     </div>
   );

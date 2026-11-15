@@ -50,6 +50,12 @@ def review_to_row(review: TeacherReview) -> dict:
         "evidence_used": list(review.assessment.evidence_used),
         "status": review.status,
         "resolved_at": data["resolved_at"],
+        # Written only when there is one, so a database without migration 1800 keeps working.
+        **(
+            {"suggested_intervention": review.assessment.suggested_intervention}
+            if review.assessment.suggested_intervention
+            else {}
+        ),
     }
 
 
@@ -60,7 +66,10 @@ def review_from_row(row: dict) -> TeacherReview:
             "id": row["id"],
             "created_at": row["created_at"],
             "evaluation": row["evaluation"],
-            "assessment": {key: row[key] for key in ("decision", "rationale", "evidence_used")},
+            "assessment": {
+                **{key: row[key] for key in ("decision", "rationale", "evidence_used")},
+                "suggested_intervention": row.get("suggested_intervention"),
+            },
             "status": row["status"],
             "resolved_at": row["resolved_at"],
         }

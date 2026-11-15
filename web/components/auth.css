@@ -8,6 +8,8 @@
   --auth-dot: rgb(11 13 18 / 0.13);
   position: relative;
   isolation: isolate;
+  /* The step slides in from the right: keep that from adding a sideways scroll. */
+  overflow-x: clip;
   display: flex;
   flex-direction: column;
   min-height: 100dvh;

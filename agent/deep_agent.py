@@ -30,6 +30,7 @@ from agent.context_enricher import EnrichedEvaluationContext
 from agent.progress_history import ProgressHistoryStore
 from agent.prompt_history import PromptHistoryStore
 from agent.teacher_review import TeacherReview, TeacherReviewStorage, TeacherReviewStore
+from shared.contracts import INTERVENTION_MENU
 
 
 @dataclass(frozen=True)
@@ -219,6 +220,23 @@ missing data into unsupported claims.
 """
 
 
+def _system_prompt() -> str:
+    """The instructions, plus the approved intervention menu when agent.interventions is on."""
+    from vision import flags
+
+    if not flags.enabled("agent.interventions"):
+        return SYSTEM_PROMPT
+    menu = "\n".join(f"- {key}: {label}" for key, label in INTERVENTION_MENU.items())
+    return (
+        SYSTEM_PROMPT
+        + "\n\nApproved intervention menu. When you request a review you may also pass "
+        "suggested_intervention with exactly ONE key from this list, and only when the "
+        "observable task facts support it. It is a suggestion for the teacher, who approves "
+        "or changes it; you never apply it, never invent items, and never describe a child's "
+        "feelings, motives or condition. Omit it when unsure.\n" + menu
+    )
+
+
 def serialize_agent_context(context: EnrichedEvaluationContext) -> str:
     """Serialize task evidence, excluding the unused legacy activity timeout.
 
@@ -355,7 +373,10 @@ class CuesDeepAgent:
 
         @tool(return_direct=True, response_format="content_and_artifact")
         def request_teacher_review(
-            runtime: ToolRuntime, rationale: str, evidence_used: list[str]
+            runtime: ToolRuntime,
+            rationale: str,
+            evidence_used: list[str],
+            suggested_intervention: str | None = None,
         ) -> tuple[str, TeacherReview]:
             """Create a pending teacher review when attention may be useful.
 
@@ -363,11 +384,18 @@ class CuesDeepAgent:
             Identity/priority come from this evaluation. No notification, approval,
             or instructional change occurs. Success ends the run with the stored
             assessment and pending review; repeated calls reuse the same review.
+            Optionally suggest ONE support from the approved menu (keys listed in the
+            instructions); it is only a suggestion and the teacher approves it.
             """
+            from vision import flags
+
+            if not flags.enabled("agent.interventions"):
+                suggested_intervention = None
             assessment = AgentAssessment(
                 decision="teacher_review_warranted",
                 rationale=rationale,
                 evidence_used=evidence_used,
+                suggested_intervention=suggested_intervention,
             )
             validate_assessment(
                 {"structured_response": assessment, "messages": runtime.state.get("messages", [])}
@@ -387,7 +415,7 @@ class CuesDeepAgent:
         return create_deep_agent(
             model=_ScopedModel(inner=self.model),
             tools=[get_recent_progress_history, get_prompt_history, request_teacher_review],
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=_system_prompt(),
             middleware=[
                 _TerminalReviewMiddleware(),
                 FilesystemMiddleware(tools=["read_file"]),

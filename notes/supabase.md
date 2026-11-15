@@ -31,6 +31,7 @@ emulation). Per-feature SQL tests are in `supabase/tests/`; they need PostgreSQL
 | `001500_review_marks` | Mark as reviewed (`seat_review_marks`, `mark_seat_reviewed`); reviews close when the task is done; status `reviewed` |
 | `001600_station_flags` | `read_station_flags` for the dashboard timeline's data |
 | `001700_station_writers` | One camera per station (`station_writers`, `claim_station_writer`, `release_station_writer`) |
+| `001800_interventions` | **Written, not applied to the hosted project.** The approved intervention menu: `teacher_reviews.suggested_intervention`, `interventions.review_id`, owner-only reads, and `approve_review_intervention` (see below). Needed only by `agent.interventions` and `web.interventions` (both off) |
 
 ## Reconciled migration history
 
@@ -335,3 +336,25 @@ existing owner, and historical sessions stay unowned. The browser never sends a 
 ID; it only checks that a new session came back owned by the signed-in user. Apply it
 after 006. Not applied to the hosted project. SQL smoke (rolls back):
 `supabase/tests/session_owner_on_start.sql`, not yet run (no local Postgres).
+
+## Approved interventions (migration 018, not yet applied)
+
+`20261114001800_interventions.sql` builds the approved-intervention workflow (PRD §12, §13, §26).
+The agent may attach **one** suggested support to the review it requests, and only from a fixed
+menu of six (`repeat_instruction`, `show_example`, `model_task`, `smaller_steps`, `offer_break`,
+`adult_check_in`). The same keys are in `shared/contracts.py` (`INTERVENTION_MENU`),
+`web/lib/interventions.ts` and the migration, and a test keeps them equal.
+
+- `teacher_reviews.suggested_intervention`: nullable, checked against the menu. Written by the
+  agent only when `agent.interventions` is on and it chose one.
+- `interventions.review_id` (unique per review) and a menu check on `action`. A teacher can read the
+  approvals of reviews in sessions they own; nobody writes the table directly.
+- `approve_review_intervention(review_id, action default null)`: owner-only. The action defaults to
+  the agent's suggestion; the teacher may pick any other menu item. A pending review becomes
+  `confirmed` in the same step; closed reviews (`dismissed`, `expired`, `reviewed`) cannot be
+  approved, and a review can be approved once.
+
+Nothing changes a student's task or an instruction: the approval is the teacher's record. Tests:
+`supabase/tests/test_interventions.py` (11 cases on a real PostgreSQL). Apply it only with the
+usual dry run first (`scripts/supabase-migrations.py dry-run`, then `push`), before turning either
+flag on: the agent writes the new column and the dashboard selects it.

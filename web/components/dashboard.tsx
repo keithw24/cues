@@ -27,6 +27,7 @@ import LocalClassroomFeed from "@/components/local-classroom-feed";
 import { PersonDetails } from "@/components/person-panel";
 import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
+import { CameraHealthStrip } from "@/components/camera-health-strip";
 import { ReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
 import { reviewIssueLine, stripEntries } from "@/lib/classroom-view";
@@ -105,6 +106,8 @@ export default function Dashboard({
   teacherLoginEnabled = false,
   themeToggleEnabled = false,
   visionStationConfigEnabled = false,
+  healthStripEnabled = false,
+  interventionsEnabled = false,
 }: {
   /** "classroom" (the default) or "review", the To review page. */
   view?: "classroom" | "review";
@@ -121,6 +124,10 @@ export default function Dashboard({
   teacherLoginEnabled?: boolean;
   themeToggleEnabled?: boolean;
   visionStationConfigEnabled?: boolean;
+  /** web.health_strip: camera on/off, classroom set, updates arriving, other cameras. */
+  healthStripEnabled?: boolean;
+  /** web.interventions: the agent's suggested support, and approving one (migration 018). */
+  interventionsEnabled?: boolean;
 }) {
   const [observationNow, setObservationNow] = useState<number | null>(null);
   useEffect(() => {
@@ -282,6 +289,7 @@ export default function Dashboard({
         }),
       reviewsEnabled,
       station,
+      interventionsEnabled,
     );
     const offline = () => subscription.disconnect();
     const online = () => setReviewAttempt((n) => n + 1);
@@ -292,7 +300,7 @@ export default function Dashboard({
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [client, reviewsEnabled, reviewAttempt, station]);
+  }, [client, reviewsEnabled, reviewAttempt, station, interventionsEnabled]);
 
   const signedOut =
     teacherLoginEnabled && resolvesStation && account.state === "signed-out";
@@ -507,6 +515,7 @@ export default function Dashboard({
             stale={!!reviews.error || reviews.connection === "disconnected"}
             client={reviewActionsEnabled ? client : null}
             onResolved={resolved}
+            interventionsEnabled={interventionsEnabled}
             actions={markReviewedButton(
               pending[0]?.session_id ??
                 seats.find((seat) => seat.id === seatId)?.state?.session_id ??
@@ -594,7 +603,15 @@ export default function Dashboard({
                   teacherLoginEnabled={teacherLoginEnabled}
                 />
               ) : null}
-              {view !== "review" && sessionLive && conflict ? (
+              {view !== "review" && healthStripEnabled && station ? (
+                <CameraHealthStrip
+                  station={station}
+                  updatedAt={seats.map((seat) => seat.state?.updated_at)}
+                  inView={inView.length}
+                  conflict={conflict}
+                />
+              ) : null}
+              {view !== "review" && sessionLive && conflict && !healthStripEnabled ? (
                 <p className="station-busy" role="status">
                   {CAMERA_CONFLICT_MESSAGE}
                 </p>
@@ -666,6 +683,7 @@ export default function Dashboard({
                                 client={client}
                                 review={lead}
                                 onResolved={resolved}
+                                interventionsEnabled={interventionsEnabled}
                               />
                             ) : null
                           }
