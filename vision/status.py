@@ -83,6 +83,30 @@ class SeatTracker:
         self._no_progress_sent = False
         self._hand_in_view = False
         self._miss_counted = False
+        # When the teacher last marked this child reviewed (only newer marks act).
+        self.acknowledged_at = None
+
+    def acknowledge(self, marked_at=None) -> bool:
+        """The teacher checked in with this child ("Mark as reviewed").
+
+        The child goes back to working and the timers start again: time on task, the
+        no-progress timer and the review timer, so a new needs_help or review_needed
+        comes only after a fresh stall. A completed task stays completed.
+        Returns True when the child was reset.
+        """
+        self.acknowledged_at = marked_at
+        if self.status == "done":
+            return False
+        if self.status == "tracking_lost":
+            self._status_before_loss = None  # back in view they continue as working
+        else:
+            self.status = "in_progress"
+        self.active_seconds = 0.0
+        self.best_score = None
+        self._review_sent = False
+        self._no_progress_sent = False
+        self._reset_band()
+        return True
 
     def update(self, t: float, score: float | None, hand: bool, face: bool) -> list[StatusEvent]:
         events: list[StatusEvent] = []

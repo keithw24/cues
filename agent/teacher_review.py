@@ -18,7 +18,8 @@ class TeacherReview(BaseModel):
     created_at: AwareDatetime
     evaluation: AgentEvaluationRequest
     assessment: AgentAssessment
-    status: Literal["pending", "confirmed", "dismissed"] = "pending"
+    # "expired": closed by the system (its session ended), not by a teacher's decision.
+    status: Literal["pending", "confirmed", "dismissed", "expired"] = "pending"
     resolved_at: AwareDatetime | None = None
 
     @model_validator(mode="after")
@@ -65,8 +66,10 @@ def validate_review_request(
 class TeacherReviewStore:
     """Bounded local reviews, with teacher-only resolution operations.
 
-    Duplicate pending requests reuse the first review; resolved requests cannot
-    reopen it. Capacity includes resolved reviews, preserving their decisions.
+    Duplicate pending requests reuse the first review; so does any new evaluation for
+    a person, activity and session that already has an open (pending) review: there is
+    one open review per person, and a new one only after it is resolved. Resolved
+    requests cannot reopen it. Capacity includes resolved reviews, preserving their decisions.
     Full stores reject new reviews rather than silently evicting review history.
     """
 
@@ -89,6 +92,14 @@ class TeacherReviewStore:
                 if existing.status != "pending":
                     raise ValueError("review already resolved")
                 return existing.model_copy(deep=True)
+            for open_review in self._reviews.values():
+                if (
+                    open_review.status == "pending"
+                    and open_review.evaluation.session_id == evaluation.session_id
+                    and open_review.evaluation.seat_id == evaluation.seat_id
+                    and open_review.evaluation.activity_id == evaluation.activity_id
+                ):
+                    return open_review.model_copy(deep=True)
             if len(self._reviews) >= self.capacity:
                 raise ValueError("review capacity reached")
             review = TeacherReview(

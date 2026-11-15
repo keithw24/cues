@@ -31,6 +31,7 @@ export function PersonDetails({
   stale,
   client,
   onResolved,
+  actions,
 }: {
   id: string;
   /** Null when the camera has no row for this person right now. */
@@ -41,6 +42,8 @@ export function PersonDetails({
   /** Present only when review decisions can be saved. */
   client: SupabaseClient | null;
   onResolved: (review: TeacherReview) => void;
+  /** "Mark as reviewed", shown while this person is flagged or has a request. */
+  actions?: React.ReactNode;
 }) {
   const review = reviews[0];
   return (
@@ -48,6 +51,7 @@ export function PersonDetails({
       <p className="person-status">
         {presentation ? presentation.detail : "Not in view right now."}
       </p>
+      {presentation?.needsReview && !review ? actions : null}
       {review ? (
         <div className="person-request">
           <p className="ws-caption">
@@ -90,6 +94,7 @@ export function PersonDetails({
               </p>
             ) : null}
           </details>
+          {actions}
           {reviews.length > 1 ? (
             <p className="person-note">
               {reviews.length - 1} more after this one.

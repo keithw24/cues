@@ -61,6 +61,11 @@ def main():
         timing.prolonged_stall_seconds,
         options.get("poll_seconds", 1.0),
     )
+    from vision import flags
+
+    if flags.enabled("agent.live_progress"):
+        options["publish_progress"] = True
+
     from dotenv import dotenv_values
 
     if not all(

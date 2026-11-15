@@ -1,3 +1,4 @@
+import { evaluatedProgress } from "./progress-context.ts";
 import { statuses, type SeatState } from "./dashboard.ts";
 
 export const OBSERVATION_STALE_MS = 5000;
@@ -76,9 +77,10 @@ export function observationPresentation(
         "Tracking validity has not been provided for this observation.",
       );
   }
+  const evaluated = evaluatedProgress(state, options?.now ?? undefined);
   return {
-    label: statuses[state.status].label,
-    detail: statuses[state.status].detail,
+    label: evaluated?.trend === "stalled" ? "Stalled" : evaluated?.trend === "improving" ? "Improving" : statuses[state.status].label,
+    detail: evaluated?.trend === "stalled" ? "Valid task observations show sustained lack of progress." : statuses[state.status].detail,
     score: state.status === "tracking_lost" ? null : state.task_score,
     currentStatus: state.status,
     needsReview: state.status === "review" || state.status === "needs_help",

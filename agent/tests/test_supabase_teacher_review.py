@@ -70,10 +70,29 @@ class ReviewDatabase:
             assert "resolution=ignore-duplicates" in request.headers["prefer"]
             if any(r["evaluation"] == row["evaluation"] for r in self.rows):
                 return httpx.Response(201, json=[])
+            # Like the partial unique index: one open review per session, seat and activity.
+            if any(
+                r["status"] == "pending"
+                and (r["session_id"], r["seat_id"], r["activity_id"])
+                == (row["session_id"], row["seat_id"], row["activity_id"])
+                for r in self.rows
+            ):
+                return httpx.Response(
+                    409,
+                    json={"code": "23505", "message": "duplicate key value violates unique"},
+                )
             self.rows.append(row)
             return httpx.Response(201, json=[row])
         rows = list(self.rows)
-        for key in ("id", "status", "evaluation", "session_id", "rationale"):
+        for key in (
+            "id",
+            "status",
+            "evaluation",
+            "session_id",
+            "rationale",
+            "seat_id",
+            "activity_id",
+        ):
             if key in params:
                 value = params[key].removeprefix("eq.")
                 if key == "evaluation":
@@ -434,3 +453,64 @@ def test_failed_persistence_does_not_notify(database):
     with pytest.raises(TeacherReviewPersistenceError):
         store.request_teacher_review(evaluation(), assessment())
     notifier.notify_pending_review.assert_not_called()
+
+
+def test_one_open_review_per_person_and_a_new_one_after_it_is_resolved(database):
+    db, client = database
+    notified = []
+
+    class Recorder:
+        def notify_pending_review(self, review):
+            notified.append(review.id)
+
+    store = SupabaseTeacherReviewStore(client, clock=lambda: NOW, notifier=Recorder())
+    first = store.request_teacher_review(evaluation(), assessment())
+    # Later evaluations of the same person, activity and session reuse the open review.
+    later = [
+        store.request_teacher_review(
+            evaluation(observed_at=NOW + timedelta(seconds=n)), assessment()
+        )
+        for n in (5, 10, 15)
+    ]
+    assert all(review.id == first.id for review in later)
+    assert len(db.rows) == 1 and notified == [first.id]  # one row, one notification
+    # Another person is a different review.
+    other = store.request_teacher_review(evaluation(seat_id="B"), assessment())
+    assert other.id != first.id and len(db.rows) == 2
+    # Once the teacher resolves it, a later evaluation may open a new one.
+    store.dismiss_review(first.id)
+    reopened = store.request_teacher_review(
+        evaluation(observed_at=NOW + timedelta(seconds=60)), assessment()
+    )
+    assert reopened.id != first.id and reopened.status == "pending"
+    assert len(db.rows) == 3 and notified == [first.id, other.id, reopened.id]
+
+
+def test_a_race_for_the_open_slot_returns_the_winner_not_an_error(database):
+    db, client = database
+    store = SupabaseTeacherReviewStore(client, clock=lambda: NOW)
+    winner = store.request_teacher_review(evaluation(), assessment())
+    # Another process opened it after our check: the database refuses the duplicate.
+    original = store._open_review
+    calls = []
+
+    def stale_check(evaluation_request):
+        calls.append(1)
+        return None if len(calls) == 1 else original(evaluation_request)
+
+    store._open_review = stale_check
+    got = store.request_teacher_review(
+        evaluation(observed_at=NOW + timedelta(seconds=9)), assessment()
+    )
+    assert got.id == winner.id and len(db.rows) == 1
+
+
+def test_an_expired_review_is_readable_and_never_pending(database):
+    db, client = database
+    store = SupabaseTeacherReviewStore(client, clock=lambda: NOW)
+    review = store.request_teacher_review(evaluation(), assessment())
+    db.rows[0].update(status="expired", resolved_at=(NOW + timedelta(seconds=1)).isoformat())
+    assert store.get_review(review.id).status == "expired"
+    assert store.get_pending_reviews() == []
+    with pytest.raises(ValueError, match="already resolved"):
+        store.confirm_needs_attention(review.id)

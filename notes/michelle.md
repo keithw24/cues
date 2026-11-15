@@ -442,3 +442,18 @@ Both startup profiles default lifecycle on without requiring a legacy session UU
 Dashboard/connected Live pause unresolved feeds. Local handoff failures are surfaced,
 and sign-out clears unpinned vision state. Session-owner Photon routing is unchanged.
 Migration 011 and hosted teacher defaults require separate deployment verification.
+
+### Live progress UI publication and README audit
+
+Added a guarded agent-owned evaluated_progress summary on seat_state (migration 012).
+The pipeline publishes current trend/stall plus ten recent revision-scoped summaries
+before model evaluation. It reuses existing history models and the Realtime channel;
+no new perception fields, browser trend calculation, or polling feedback loop.
+UI projection validates session/activity/revision/tracking/freshness; stale summaries
+are hidden. Both live-progress rollout flags default off until schema deployment.
+The README diagram now branches history from progress and places resolution RPC before
+confirmed/dismissed. `notes/pipeline-audit.md` audits every edge and records configuration
+constants and operational gaps explicitly. Migration 012 was subsequently deployed with explicit approval; both local flags are enabled.
+
+Final live progress rollout verified S2-P1: stalled at 4.066419 seconds with ten
+recent entries, observed 1.3 seconds after capture. Hosted migrations are up to date.

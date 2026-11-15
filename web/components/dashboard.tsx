@@ -24,6 +24,7 @@ import { startLocalVisionSync } from "@/lib/local-vision";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import { PersonDetails } from "@/components/person-panel";
+import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import {
   inCameraView,
   isFresh,
@@ -84,6 +85,7 @@ function SignInCard() {
 }
 
 export default function Dashboard({
+  liveProgressEnabled = false,
   personObservationsEnabled = false,
   sessionControlsEnabled = false,
   stationId = "",
@@ -93,6 +95,7 @@ export default function Dashboard({
   themeToggleEnabled = false,
   visionStationConfigEnabled = false,
 }: {
+  liveProgressEnabled?: boolean;
   personObservationsEnabled?: boolean;
   sessionControlsEnabled?: boolean;
   /** Explicit dev/test override (CUES_STATION_OVERRIDE). Normally empty: a signed-in
@@ -237,6 +240,7 @@ export default function Dashboard({
       },
       personObservationsEnabled,
       station,
+      liveProgressEnabled,
     );
     const offline = () => subscription.disconnect();
     const online = () => setAttempt((n) => n + 1);
@@ -247,7 +251,7 @@ export default function Dashboard({
       window.removeEventListener("online", online);
       subscription.dispose();
     };
-  }, [attempt, client, personObservationsEnabled, station]);
+  }, [attempt, client, personObservationsEnabled, station, liveProgressEnabled]);
   useEffect(() => {
     if (!client) return;
     const subscription = watchTeacherReviews(
@@ -344,6 +348,30 @@ export default function Dashboard({
       reviews: state.reviews?.filter((item) => item.id !== review.id) ?? null,
     }));
   };
+  // "Mark as reviewed": close this person's review requests here at once (every page reads
+  // the same table, so they leave the others too) and let vision reset them to working.
+  const markReviewedButton = (sessionId: string | null, seatId: string) =>
+    reviewActionsEnabled && client && sessionId ? (
+      <MarkReviewedButton
+        key={seatId}
+        client={client}
+        sessionId={sessionId}
+        seatId={seatId}
+        onMarked={(marked) =>
+          setReviews((state) => {
+            const closed = (state.reviews ?? []).filter(
+              (item) => item.seat_id === marked,
+            );
+            for (const item of closed) resolvedReviewIds.current.add(item.id);
+            return {
+              ...state,
+              reviews:
+                state.reviews?.filter((item) => item.seat_id !== marked) ?? null,
+            };
+          })
+        }
+      />
+    ) : null;
   const row = (
     seatId: string,
     content: React.ReactNode,
@@ -370,6 +398,12 @@ export default function Dashboard({
             stale={!!reviews.error || reviews.connection === "disconnected"}
             client={reviewActionsEnabled ? client : null}
             onResolved={resolved}
+            actions={markReviewedButton(
+              pending[0]?.session_id ??
+                seats.find((seat) => seat.id === seatId)?.state?.session_id ??
+                null,
+              seatId,
+            )}
           />
         ) : null}
       </li>

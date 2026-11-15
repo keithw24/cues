@@ -314,3 +314,53 @@ def test_held_gesture_score_falls_with_the_hand_instead_of_freezing(cache):
         assert r.activity_id == "thumbs_up"  # still held (inside 1.5 s)
         seen.append(r.score)
     assert seen == pytest.approx([0.8, 0.6, 0.45, 0.3, 0.1])  # every step visible, no plateau
+
+
+# ---- only the selected task is checked; other gestures are shown in grey -----------------
+GREEN_BGR = (0, 190, 0)  # the overlay's "completed" colour
+GREY_BGR = (150, 150, 150)
+
+
+def _paint(task, recognized_id, score):
+    """Draw one person's overlay when `task` is selected and `recognized_id` is seen."""
+    from vision.perception import Match
+    from vision.stages.s46_recognize import Recognized
+    from vision.stages.s90_overlay import OverlayStage
+
+    ctx = ctx_with(raised=False, thumb=True)
+    hand = ctx["hands"]["S1-P1"][0]
+    ctx["match"] = {"S1-P1": Match(task, 0.2, hand=hand)}  # the selected task, barely started
+    ctx["recognized"] = {"S1-P1": Recognized(recognized_id, score, hand)}
+    ov = OverlayStage(grouping=PeopleGrouping())
+    ov.process(Frame(IMG, 0.0, 1), ctx)
+    img = np.zeros((480, 640, 3), np.uint8)
+    ov.draw(img, ctx)
+    return img
+
+
+def _has(img, bgr):
+    return bool((img == np.array(bgr, dtype=np.uint8)).all(axis=2).any())
+
+
+def test_a_confident_gesture_that_is_not_the_selected_task_is_never_green():
+    img = _paint("raise_hand", "thumbs_up", 0.97)  # a very confident thumbs up, but not the task
+    assert not _has(img, GREEN_BGR)
+    assert _has(img, GREY_BGR)  # still shown, in grey
+
+
+def test_the_selected_task_turns_green_when_it_is_completed():
+    img = _paint("thumbs_up", "thumbs_up", 0.9)
+    assert _has(img, GREEN_BGR)
+
+
+def test_a_non_task_gesture_adds_a_grey_note_and_keeps_the_tasks_own_label(monkeypatch):
+    import vision.stages.s90_overlay as module
+
+    labels = []
+    monkeypatch.setattr(
+        module, "label", lambda image, text, x, y, fill: labels.append((text, fill))
+    )
+    _paint("raise_hand", "thumbs_up", 0.97)
+    assert any("raise_hand 0.20" in text for text, _ in labels)  # the selected task's own score
+    note = [(text, fill) for text, fill in labels if "also seeing: thumbs_up 0.97" in text]
+    assert note and note[0][1] == GREY_BGR

@@ -53,6 +53,8 @@ export type SeatState = {
     duration_seconds?: number | null;
     supporting_only: true;
   } | null;
+  session_revision?: number | null;
+  evaluated_progress?: unknown;
   updated_at: string;
 };
 export type Activity = { id: string; name: string };
@@ -152,6 +154,8 @@ export function parseSnapshot(
               expression_context: (expression ?? null) as SeatState['expression_context'],
             }
           : {}),
+        session_revision: typeof r.session_revision === "number" ? r.session_revision : null,
+        evaluated_progress: r.evaluated_progress ?? null,
         updated_at: updated,
       };
     }),

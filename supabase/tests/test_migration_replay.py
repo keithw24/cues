@@ -75,6 +75,13 @@ def test_full_migration_chain():
                     raise AssertionError(f"{file.name}: {error}") from error
             assert sql("select to_regclass('public.station_pairing_codes') is not null;") == "t"
             assert (
+                sql(
+                    "select count(*) from public.activities where id in "
+                    "('thumbs_up','open_palm','pointing','peace','fist');"
+                )
+                == "5"
+            )
+            assert (
                 sql("select has_table_privilege('authenticated','public.sessions','INSERT');")
                 == "f"
             )
@@ -199,6 +206,37 @@ def test_full_migration_chain():
                 sql(
                     "select has_function_privilege('authenticated',"
                     "'public.prepare_teacher_notification_registration(uuid,boolean,text,text,text)',"
+                    "'EXECUTE');"
+                )
+                == "f"
+            )
+            sql("""
+              insert into public.activities(id,name,check_type,no_progress_seconds,config)
+                values('progress_test','Progress test','rule',30,'{}');
+              insert into public.stations(id,name) values('progress_station','Progress station');
+              insert into public.seats(id,station_id,display_name,is_simulated)
+                values('progress_seat','progress_station','Simulated',true);
+              insert into public.sessions(id,station_id,current_activity_id,revision)
+                values('00000000-0000-4000-8000-000000000012','progress_station','progress_test',0);
+              insert into public.seat_state(seat_id,session_id,activity_id,status,
+                                            updated_at,session_revision)
+                values('progress_seat','00000000-0000-4000-8000-000000000012','progress_test',
+                       'in_progress','2026-11-14T23:00:00Z',0);
+            """)
+            progress_call = (
+                "select public.publish_task_progress('progress_seat',"
+                "'00000000-0000-4000-8000-000000000012','progress_test',"
+            )
+            payload = '\'{"trend":"stalled","stalled_seconds":6,"recent":[]}\'::jsonb);'
+            assert sql(progress_call + "0,'2026-11-14T23:00:00Z'," + payload) == "t"
+            assert sql(progress_call + "1,'2026-11-14T23:00:00Z'," + payload) == "f"
+            assert sql(progress_call + "0,'2026-11-14T22:59:59Z'," + payload) == "f"
+            sql("update public.sessions set ended_at=now() where station_id='progress_station';")
+            assert sql(progress_call + "0,'2026-11-14T23:00:00Z'," + payload) == "f"
+            assert (
+                sql(
+                    "select has_function_privilege('authenticated',"
+                    "'public.publish_task_progress(text,uuid,text,integer,timestamptz,jsonb)',"
                     "'EXECUTE');"
                 )
                 == "f"

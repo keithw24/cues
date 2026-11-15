@@ -54,7 +54,6 @@ For example:
 ```bash
 CUES_FLAG_VISION_EXPRESSION=0 ./scripts/demo.sh
 CUES_CAMERA=fake ./scripts/dev.sh
-CUES_MODE=recognize ./scripts/demo.sh
 ```
 For the current Logitech setup use `CUES_CAMERA_INDEX=1`; other machines may need
 0 or 2. Gesture detection (every known gesture, shown green on the video when
@@ -185,3 +184,12 @@ an ended session pauses consumption. Task revision changes reset progress/router
 state. Dashboard and connected Live feeds pause until station resolution succeeds.
 Vision handoff failures appear in session controls; signing out clears an unpinned
 vision assignment. Photon continues to resolve the review session's owner.
+
+### Live evaluated progress
+
+Migration `20261114001200_live_progress.sql` adds the guarded agent-owned summary.
+After deployment, enable `CUES_FLAG_AGENT_LIVE_PROGRESS=1` in root `.env` and
+`CUES_FLAG_WEB_LIVE_PROGRESS=1` in `web/.env.local`, then restart the stack.
+Both flags default off for safe rollout. Vision status remains separate from evaluated
+trend. Missing/stale/invalid-tracking evaluations display unavailable rather than invented
+stall time. See `notes/pipeline-audit.md` for the complete connection audit.

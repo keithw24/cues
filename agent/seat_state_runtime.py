@@ -43,6 +43,7 @@ class SupabaseSeatStateSource:
     def __init__(self, client, station_provider=None) -> None:
         self.client = client
         self.station_provider = station_provider
+        self._session_id: str | None = None  # the active session found by the last fetch()
 
     def fetch(self) -> Sequence[Mapping[str, Any]]:
         if self.station_provider is None:
@@ -60,8 +61,10 @@ class SupabaseSeatStateSource:
             or []
         )
         if len(sessions) != 1:
+            self._session_id = None
             return []
         session = sessions[0]
+        self._session_id = session["id"]
         seats = (
             self.client.table("seats").select("id").eq("station_id", station).execute().data or []
         )
@@ -83,6 +86,26 @@ class SupabaseSeatStateSource:
             and row.get("session_revision") == session["revision"]
             and row.get("activity_id") == session["current_activity_id"]
         ]
+
+    def fetch_marks(self) -> dict[tuple[UUID, str], datetime]:
+        """The teacher's "Mark as reviewed" marks for the active session (seat id and time)."""
+        if self._session_id is None:
+            return {}
+        rows = (
+            self.client.table("seat_review_marks")
+            .select("seat_id,marked_at")
+            .eq("session_id", self._session_id)
+            .execute()
+            .data
+            or []
+        )
+        session_id = UUID(str(self._session_id))
+        return {
+            (session_id, row["seat_id"]): datetime.fromisoformat(
+                row["marked_at"].replace("Z", "+00:00")
+            )
+            for row in rows
+        }
 
 
 @dataclass(frozen=True)
@@ -107,11 +130,14 @@ class SeatStatePipeline:
         progress_window_seconds: float = 4,
         escalation_config: EscalationConfig = DEFAULT_ESCALATION_CONFIG,
         clock: Callable[[], datetime] | None = None,
+        publisher=None,
     ) -> None:
         catalog = [Activity.model_validate(item.model_dump()) for item in activities]
         self.activities = {item.id: item for item in catalog}
         if len(self.activities) != len(catalog):
             raise ValueError("activity IDs must be unique")
+        self.publisher = publisher
+        self._revision_started = {}
         self.agent = agent
         self.history = history
         self.router = router if router is not None else EvaluationRouter()
@@ -122,6 +148,35 @@ class SeatStatePipeline:
         self._evaluators: dict[tuple[UUID, str, str], ProgressEvaluator] = {}
         self._last_rows: dict[str, str] = {}
         self._diagnostics: dict[str, tuple] = {}
+        self._marks_seen: dict[tuple[UUID, str], datetime] = {}
+        self._marks_primed = False
+
+    def apply_review_marks(self, marks: Mapping[tuple[UUID, str], datetime]) -> None:
+        """Restart stall detection for each child the teacher has just marked reviewed.
+
+        The first call only records the marks that already exist (a restarted worker must
+        not treat old marks as new); later marks that are new or newer act once.
+        """
+        if not self._marks_primed:
+            self._marks_seen = dict(marks)
+            self._marks_primed = True
+            return
+        for key, marked_at in marks.items():
+            seen = self._marks_seen.get(key)
+            if seen is not None and marked_at <= seen:
+                continue
+            self._marks_seen[key] = marked_at
+            self.acknowledge_review(*key, marked_at)
+
+    def acknowledge_review(self, session_id: UUID, seat_id: str, marked_at: datetime) -> None:
+        """The teacher checked in with this child: measure a stall from scratch, and let
+        a new review open (the review itself was closed by the mark)."""
+        self._last_rows.pop(seat_id, None)
+        for key, evaluator in self._evaluators.items():
+            if key[0] == session_id and key[1] == seat_id:
+                evaluator.reset()
+                self._revision_started[key] = marked_at
+                self.router.reset(session_id=session_id, seat_id=seat_id, activity_id=key[2])
 
     def process_row(
         self, row: Mapping[str, Any] | SeatState, *, now: datetime | None = None
@@ -143,12 +198,14 @@ class SeatStatePipeline:
         key = (snapshot.session_id, snapshot.seat_id, snapshot.activity_id)
         evaluator = self._evaluators.get(key)
         if evaluator is None:
+            self._revision_started[key] = snapshot.updated_at
             evaluator = self._evaluators[key] = ProgressEvaluator(
                 activity, window_seconds=self.progress_window_seconds
             )
         if evaluator.key is not None and evaluator.key[-1] != snapshot.session_revision:
             if evaluator.last is not None and snapshot.updated_at <= evaluator.last:
                 return None
+            self._revision_started[key] = snapshot.updated_at
             evaluator.reset()
             self.router.reset(
                 session_id=snapshot.session_id,
@@ -164,6 +221,22 @@ class SeatStatePipeline:
         # become misleading history entries.
         if evaluator.last == snapshot.updated_at and evaluator.last != previous_timestamp:
             self.history.record(snapshot, progress)
+            if self.publisher is not None:
+                recent = [
+                    entry
+                    for entry in self.history.get_recent_progress_history(
+                        snapshot.session_id, snapshot.seat_id, snapshot.activity_id, limit=10
+                    )
+                    if entry.observed_at >= self._revision_started[key]
+                ]
+                try:
+                    self.publisher(snapshot, progress, recent)
+                except Exception as error:
+                    log.error(
+                        "Live progress publication failed seat=%s error=%s; check migration 012",
+                        snapshot.seat_id,
+                        type(error).__name__,
+                    )
         escalation = evaluate_escalation(
             progress, snapshot.expression_context, config=self.escalation_config
         )
@@ -252,6 +325,18 @@ class SeatStateRuntime:
 
     def run_once(self) -> list[SeatStateProcessingResult]:
         rows = self.source.fetch()
+        fetch_marks = getattr(self.source, "fetch_marks", None)
+        if fetch_marks is not None:
+            try:
+                self.pipeline.apply_review_marks(fetch_marks())
+                self._marks_failing = False
+            except Exception as error:
+                # For example migration 1500 is not applied yet: keep working, say so once.
+                if not getattr(self, "_marks_failing", False):
+                    log.error(
+                        "Review marks unavailable (%s); apply migration 1500", type(error).__name__
+                    )
+                self._marks_failing = True
         results = []
         for row in rows:
             try:

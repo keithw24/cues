@@ -137,7 +137,7 @@ test("the dashboard resolves the station and passes it to every part", () => {
   const dashboard = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
   assert.ok(dashboard.includes("resolveDefaultStation(client)"));
   assert.ok(dashboard.includes("station={station}"));
-  assert.match(dashboard, /personObservationsEnabled,\s*station,\s*\)/);
+  assert.match(dashboard, /personObservationsEnabled,\s*station,\s*liveProgressEnabled,\s*\)/);
   assert.match(dashboard, /reviewsEnabled,\s*station,\s*\)/);
   const page = readFileSync(new URL("../app/dashboard/page.tsx", import.meta.url), "utf8");
   assert.ok(page.includes("CUES_STATION_OVERRIDE"));

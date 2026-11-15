@@ -316,3 +316,76 @@ def test_station_source_filters_session_revision_and_foreign_seats():
         SimpleNamespace(data=rows),
     ]
     assert SupabaseSeatStateSource(client, lambda: "S2").fetch() == [rows[0]]
+
+
+# ---- "Mark as reviewed" restarts stall detection ----------------------------------
+def test_a_marked_child_must_stall_again_before_a_new_review_is_routed():
+    target = pipeline()
+    first = feed(target, [snapshot(i) for i in range(6)])
+    assert any(result.request is not None for result in first)  # stalled: a review is routed
+    key = (UUID(int=1), "A")
+    # The existing marks are only recorded the first time (a restarted worker is not reset).
+    target.apply_review_marks({})
+    # The teacher marks the child reviewed.
+    target.apply_review_marks({key: START + timedelta(seconds=6)})
+    # The same stalled stream does not route again at once: the timer starts from scratch.
+    after = feed(target, [snapshot(6 + i) for i in range(3)])
+    assert not any(result.request is not None for result in after if result)
+    assert after[0].progress.trend == "unknown"
+    # A fresh stall, a few seconds later, routes a new review.
+    later = feed(target, [snapshot(9 + i) for i in range(6)])
+    assert any(result.request is not None for result in later if result)
+
+
+def test_marks_that_already_exist_when_the_worker_starts_do_not_reset_anyone():
+    target = pipeline()
+    old = {(UUID(int=1), "A"): START - timedelta(minutes=5)}
+    target.apply_review_marks(old)  # first call: recorded, not acted on
+    results = feed(target, [snapshot(i) for i in range(6)])
+    assert any(result.request is not None for result in results)
+    target.apply_review_marks(old)  # the same old mark again: still nothing
+    assert target.router is not None
+    again = feed(target, [snapshot(6 + i) for i in range(2)])
+    assert again[-1] is not None and again[-1].progress.trend == "stalled"  # not reset
+
+
+def test_a_mark_for_another_child_leaves_this_one_alone():
+    target = pipeline()
+    feed(target, [snapshot(i) for i in range(6)])
+    target.apply_review_marks({})
+    target.apply_review_marks({(UUID(int=1), "B"): START + timedelta(seconds=6)})
+    after = feed(target, [snapshot(6 + i) for i in range(2)])
+    assert after[-1] is not None and after[-1].progress.trend == "stalled"
+
+
+def test_the_source_reads_the_active_sessions_marks():
+    from unittest.mock import MagicMock
+
+    client = MagicMock()
+    session = {"id": str(UUID(int=1)), "current_activity_id": "task", "revision": 0}
+    active = client.table.return_value.select.return_value.eq.return_value.is_
+    active.return_value.execute.return_value.data = [session]
+    seats = client.table.return_value.select.return_value.eq.return_value.execute
+    seats.side_effect = [
+        SimpleNamespace(data=[{"id": "S1-P1"}]),
+        SimpleNamespace(data=[]),
+        SimpleNamespace(data=[{"seat_id": "S1-P1", "marked_at": "2026-11-14T00:00:06+00:00"}]),
+    ]
+    source = SupabaseSeatStateSource(client, lambda: "S1")
+    assert source.fetch_marks() == {}  # nothing fetched yet: no session known
+    source.fetch()
+    assert source.fetch_marks() == {(UUID(int=1), "S1-P1"): START + timedelta(seconds=6)}
+
+
+def test_a_missing_marks_table_does_not_stop_the_runtime(caplog):
+    class Source:
+        def fetch(self):
+            return [snapshot(1)]
+
+        def fetch_marks(self):
+            raise RuntimeError("relation does not exist")
+
+    runtime = SeatStateRuntime(Source(), pipeline())
+    runtime.run_once()
+    runtime.run_once()
+    assert caplog.text.count("Review marks unavailable") == 1  # said once, not every second
