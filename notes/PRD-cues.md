@@ -660,6 +660,8 @@ Example:
 
 The live expression distribution does not need to be stored as historical student data.
 
+In a teacher-managed session, vision also adds `session_revision` (a non-negative integer) to every event payload, this one included, so the database can reject writes from an earlier revision. It is not part of the expression context.
+
 ### 17.3 Core tables
 
 ```sql
@@ -766,8 +768,8 @@ the full `AgentEvaluationRequest` is retained in `evaluation`, with matching
 session/seat/activity/priority columns for consumers. Decision/rationale/evidence
 come from the existing `AgentAssessment`. The exact constraints, immutable-field
 guard and Realtime publication are in migration
-`20261114000300_teacher_reviews.sql`. Only pending → confirmed (teacher's Support
-needed) or pending → dismissed (No support needed) is allowed. This records an attention decision,
+`20261114000300_teacher_reviews.sql`. A review moves only from pending, to one of: confirmed (teacher's Support
+needed), dismissed (No support needed), reviewed (the teacher's Mark as reviewed, migration 1500) or expired (closed by the system: session ended, task done or activity changed). This records an attention decision,
 not intervention approval or an automatic instructional change. Server writes
 are required; the existing simulated-seat RLS pattern permits demo-only reads.
 The live runtime injects Supabase persistence; the in-memory store remains for offline use. Migration 004 provides authenticated resolution; demo scope permits authenticated users to resolve simulated-seat reviews, without teacher/session ownership authorization.
@@ -1167,7 +1169,7 @@ The central design principle of Cues is:
 
 The primary automatic routing trigger is sustained lack of progress, not a miss count. Keith supplies fresh task observations; Evan owns app state; Michelle evaluates the rolling window. `SeatState.tracking_valid` explicitly reports task tracking usability; unknown is not valid. For evaluator input, `updated_at` is the task observation time; expression-only/app updates must not masquerade as fresh task samples.
 
-The implemented ProgressEvaluator compares earlier/later half-window means over a configurable four-second window, with one sample per half-second bucket. Improvement enters at 0.10 and exits below 0.05. It returns improving, stalled, completed, or unknown plus stalled_seconds; it does not route to an agent. Invalid tracking, missing gesture scores, and long observation gaps reset history. Completion uses the activity-specific gesture threshold or explicit done status. Same-task restarts require reset().
+The implemented ProgressEvaluator compares earlier/later half-window means over a configurable four-second window, with one sample per half-second bucket. Improvement enters at 0.10 and exits below 0.05. It returns improving, stalled, completed, or unknown plus stalled_seconds; it does not route to an agent. Invalid tracking, missing gesture scores, and long observation gaps (more than 3 seconds: one missed 1 Hz vision heartbeat is tolerated, two are not) reset history. The worker polls at a fixed rate, so slow Supabase reads do not add to the gap. Completion uses the activity-specific gesture threshold or explicit done status. Same-task restarts require reset().
 
 The separate pure evaluate_escalation function requires stalled progress before considering expression. Classroom thresholds are 5 seconds minimum observation, 6 expression-assisted, 10 normal stall, and 15 prolonged stall. Demo thresholds are 2/5/4/6 seconds, passed through a configuration object. These are engineering defaults, not clinical or universal learner thresholds. Demo timings are intentionally compressed and are not classroom recommendations. The progress window is configured separately; demo callers explicitly select the two-second progress window; expression persistence remains five seconds.
 

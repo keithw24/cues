@@ -349,15 +349,18 @@ export function SessionControls({
           ? "The camera can’t run this activity. Pick another."
           : null;
   // With reset on and an activity running, the button restarts it for everyone; otherwise (and
-  // in the load-error state, where it is the retry) it only reloads the session.
-  const restart = Boolean(resetPeople && snapshot?.session && !loadError);
+  // in the load-error state, or after a failed read or action, where it is the retry) it only
+  // reloads the session. Without that retry the controls would stay locked until a page reload.
+  const restart = Boolean(
+    resetPeople && snapshot?.session && !loadError && !refreshRequired,
+  );
   const refreshButton = (
     <button
       type="button"
       className="ws-icon-button"
       aria-label={restart ? RESET_LABEL : "Refresh activity"}
       title={restart ? RESET_LABEL : "Refresh activity"}
-      disabled={busy || (restart && refreshRequired)}
+      disabled={busy}
       onClick={() => {
         if (!restart) return setRefreshKey((n) => n + 1);
         if (window.confirm(RESET_CONFIRM) && snapshot?.session)

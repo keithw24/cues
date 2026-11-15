@@ -12,7 +12,7 @@ test("web.reset_people is registered and wired from the page to the session cont
   assert.match(dashboard, /resetPeopleEnabled\s*\?\s*\{/);
   // Everyone with an open request is closed through the existing Mark as reviewed path.
   assert.match(dashboard, /seatIds: reviewGroups\.map\(\(group\) => group\.seat_id\)/);
-  assert.match(dashboard, /onReset: \(ids\) => ids\.forEach\(applyMarked\)/);
+  assert.match(dashboard, /onReset: \(ids\) =>\s*\[\.\.\.ids, \.\.\.flaggedOnly\.map\(\(seat\) => seat\.id\)\]\.forEach\(\s*applyMarked,?\s*\)/);
 });
 
 test("switching an activity closes open requests, and the refresh button restarts the activity", () => {
@@ -24,7 +24,9 @@ test("switching an activity closes open requests, and the refresh button restart
   assert.match(controls, /window\.confirm\(RESET_CONFIRM\)/);
   assert.match(controls, /act\(snapshot\.session\.current_activity_id\)/);
   // Off, or with no running activity, or while the session failed to load: it only reloads.
-  assert.match(controls, /Boolean\(resetPeople && snapshot\?\.session && !loadError\)/);
+  assert.match(controls, /resetPeople && snapshot\?\.session && !loadError && !refreshRequired/);
+  // After one failed read or action the button is the retry, and it stays usable.
+  assert.match(controls, /disabled=\{busy\}\n\s*onClick=\{\(\) => \{\n\s*if \(!restart\) return setRefreshKey/);
   assert.match(controls, /if \(!restart\) return setRefreshKey/);
 });
 

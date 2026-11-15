@@ -514,3 +514,14 @@ def test_an_expired_review_is_readable_and_never_pending(database):
     assert store.get_pending_reviews() == []
     with pytest.raises(ValueError, match="already resolved"):
         store.confirm_needs_attention(review.id)
+
+
+def test_a_review_closed_by_mark_as_reviewed_reads_as_resolved(database):
+    # Regression: migration 1500 writes "reviewed", which the agent could not decode.
+    db, client = database
+    store = SupabaseTeacherReviewStore(client, clock=lambda: NOW)
+    review = store.request_teacher_review(evaluation(), assessment())
+    db.rows[0].update(status="reviewed", resolved_at=(NOW + timedelta(seconds=1)).isoformat())
+    assert store.get_review(review.id).status == "reviewed"
+    with pytest.raises(ValueError, match="already resolved"):
+        store.confirm_needs_attention(review.id)

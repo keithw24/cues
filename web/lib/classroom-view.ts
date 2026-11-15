@@ -59,3 +59,48 @@ export function reviewIssueLine(
     .filter(Boolean)
     .join(" · ");
 }
+
+/**
+ * People the camera has flagged (their row reads Needs Review) who have no
+ * pending request from Cues yet, in the order given (web.review_waiting). The
+ * agent may still be deciding, or its call may have failed; either way the
+ * teacher sees them. Someone already marked reviewed is left out until vision
+ * moves them back to working.
+ */
+export function flaggedWithoutRequest<T extends { id: string }>(
+  people: readonly T[],
+  flagged: (person: T) => boolean,
+  asked: ReadonlySet<string>,
+  marked: ReadonlySet<string>,
+): T[] {
+  return people.filter(
+    (person) => flagged(person) && !asked.has(person.id) && !marked.has(person.id),
+  );
+}
+
+/**
+ * What To review counts and lists beyond Cues's requests. Off, or while the
+ * review feed is not live, it is exactly as before: no extra people, and the
+ * count is the number of people with requests (0 until the feed is live).
+ */
+export function reviewQueue<T extends { id: string }>({
+  enabled,
+  live,
+  people,
+  flagged,
+  askedSeatIds,
+  marked,
+}: {
+  enabled: boolean;
+  live: boolean;
+  people: readonly T[];
+  flagged: (person: T) => boolean;
+  askedSeatIds: readonly string[];
+  marked: ReadonlySet<string>;
+}): { flagged: T[]; count: number } {
+  if (!live) return { flagged: [], count: 0 };
+  const extra = enabled
+    ? flaggedWithoutRequest(people, flagged, new Set(askedSeatIds), marked)
+    : [];
+  return { flagged: extra, count: askedSeatIds.length + extra.length };
+}

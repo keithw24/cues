@@ -185,6 +185,12 @@
     "owner": "evan",
     "ticket": "review-page"
   },
+  "web.review_waiting": {
+    "description": "To review also lists each person the camera flagged (Needs Review) who has no request from Cues yet, as \"No suggestion yet\" with Mark as reviewed, and counts them on the To review link. Nothing is written for them. Off: To review lists only Cues's requests.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "review-status-sync"
+  },
   "web.health_strip": {
     "description": "Camera health strip on the classroom page: camera service on or off, station set, updates arriving, and another camera refused, each as its own word. Reads the local vision service on 127.0.0.1:8000 (/health, /config) and the station's writer row. Off: the page shows only its single camera-off message.",
     "default": true,

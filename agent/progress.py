@@ -11,6 +11,9 @@ from shared.contracts import Activity, SeatState
 
 # Pass explicitly for accelerated demos; the evaluator default stays four seconds.
 DEMO_PROGRESS_WINDOW_SECONDS = 2
+# Vision rewrites seat_state about once a second. A poll that is a little slower than
+# that sees two rows 2.06s apart; one missed heartbeat is not a tracking gap, two are.
+MAX_OBSERVATION_GAP_SECONDS = 3
 
 
 @dataclass(frozen=True)
@@ -32,7 +35,7 @@ class ProgressEvaluator:
         activity: Activity,
         window_seconds: float = 4,
         min_increase: float = 0.10,
-        max_gap_seconds: float = 2,
+        max_gap_seconds: float = MAX_OBSERVATION_GAP_SECONDS,
     ) -> None:
         if any(not isfinite(v) or v <= 0 for v in (window_seconds, max_gap_seconds, min_increase)):
             raise ValueError("configuration must be finite and positive")

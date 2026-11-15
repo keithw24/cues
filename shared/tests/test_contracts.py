@@ -98,6 +98,24 @@ def test_expression_snapshot_and_sustained_event_have_different_duration_require
     assert Event.model_validate(event).payload["duration_seconds"] == 6
 
 
+def test_managed_session_expression_event_keeps_its_session_revision():
+    # Regression: vision tags every managed-session payload with session_revision (the
+    # database guard reads it), and that made every expression_context event invalid.
+    payload = {"label": "sadness", "probability": 0.7, "duration_seconds": 6}
+    event = rows("events.json")[0] | {
+        "type": "expression_context",
+        "payload": payload | {"session_revision": 2},
+    }
+    assert Event.model_validate(event).payload["session_revision"] == 2
+    event["payload"] = payload | {"session_revision": 2, "dominant_label": "neutral"}
+    with pytest.raises(ValidationError):
+        Event.model_validate(event)
+    for bad in ("2", -1, {"n": 2}):
+        event["payload"] = payload | {"session_revision": bad}
+        with pytest.raises(ValidationError):
+            Event.model_validate(event)
+
+
 @pytest.mark.parametrize(
     "change",
     [
