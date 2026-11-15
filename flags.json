@@ -84,7 +84,7 @@
     "ticket": "teacher-review-queue"
   },
   "web.teacher_review_actions": {
-    "description": "Persistent review transitions; enable only after authorized Supabase RPC deployment",
+    "description": "Persistent review decisions through the resolve_teacher_review RPC (migrations 003-017, applied)",
     "default": true,
     "owner": "evan",
     "ticket": "teacher-review-actions"
