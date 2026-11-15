@@ -26,6 +26,11 @@ import LocalClassroomFeed from "@/components/local-classroom-feed";
 import { PersonDetails } from "@/components/person-panel";
 import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import {
+  CAMERA_CONFLICT_MESSAGE,
+  cameraConflict,
+  readStationWriter,
+} from "@/lib/station-writer";
+import {
   inCameraView,
   isFresh,
   observationPresentation,
@@ -325,6 +330,27 @@ export default function Dashboard({
       ? "Several activities"
       : (activityNames[0] ?? "No activity yet");
   const sessionLive = Boolean(sessionControlsEnabled && client);
+  // One camera per station: while a second camera is being refused (and paused), say so.
+  const [conflict, setConflict] = useState(false);
+  useEffect(() => {
+    if (!client || !station || !sessionControlsEnabled) return;
+    let disposed = false;
+    const check = () => {
+      void readStationWriter(client, station)
+        .then((writer) => {
+          if (!disposed) setConflict(cameraConflict(writer, Date.now()));
+        })
+        .catch(() => {
+          if (!disposed) setConflict(false);
+        });
+    };
+    check();
+    const timer = setInterval(check, 5000);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, [client, station, sessionControlsEnabled]);
   // With session controls, the activity picker itself shows the activity.
   const activity = observationActivity;
 
@@ -459,6 +485,11 @@ export default function Dashboard({
                   onActivity={ignoreActivity}
                   teacherLoginEnabled={teacherLoginEnabled}
                 />
+              ) : null}
+              {sessionLive && conflict ? (
+                <p className="station-busy" role="status">
+                  {CAMERA_CONFLICT_MESSAGE}
+                </p>
               ) : null}
             </section>
 

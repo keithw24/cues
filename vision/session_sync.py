@@ -75,7 +75,7 @@ class StationSessionSync:
     that started before a station change is discarded, never confirmed.
     """
 
-    def __init__(self, client, station=None, state=STATION_SESSION, poll_seconds=1.0):
+    def __init__(self, client, station=None, state=STATION_SESSION, poll_seconds=1.0, lease=None):
         from vision import station as station_module
 
         if station is None:
@@ -87,6 +87,9 @@ class StationSessionSync:
         self.station_id: str | None = station.get()
         self.state = state
         self.poll_seconds = poll_seconds
+        # One camera per station (vision.station_lease). None = no guard (older setups, tests).
+        self.lease = lease
+        self._leased_station: str | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
@@ -111,8 +114,18 @@ class StationSessionSync:
         self.station_id = station_id
         if station_id is None:
             self.state.invalidate()  # no teacher station yet: tasks stay paused
+            self._release_lease()
             return None
         try:
+            if self.lease is not None:
+                if self._leased_station not in (None, station_id):
+                    self._release_lease()  # the station changed: hand the old one over
+                self._leased_station = station_id
+                if not self.lease.claim(station_id):
+                    # Another camera holds this station. Pause (read nothing, write nothing)
+                    # and try again on the next poll; this one takes over when it stops.
+                    self.state.invalidate()
+                    return None
             rows = (
                 self.client.table("sessions")
                 .select("id,station_id,current_activity_id,started_at,ended_at,revision")
@@ -163,11 +176,17 @@ class StationSessionSync:
         self._thread = threading.Thread(target=self._loop, name="station-session-sync", daemon=True)
         self._thread.start()
 
+    def _release_lease(self) -> None:
+        if self.lease is not None and self._leased_station is not None:
+            self.lease.release(self._leased_station)
+        self._leased_station = None
+
     def stop(self) -> None:
         self._stop.set()
         self.state.invalidate()
         if self._thread:
             self._thread.join(timeout=2)
+        self._release_lease()  # a camera that stops hands the station over at once
 
     def _loop(self) -> None:
         while not self._stop.is_set():

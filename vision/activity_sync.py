@@ -125,7 +125,10 @@ def sync_from_env():
         if client is None:
             log.warning("session lifecycle enabled without station credentials; tasks stay paused")
             return None
-        return StationSessionSync(client)  # follows vision.station.STATION
+        from vision.station_lease import StationLease
+
+        # Follows vision.station.STATION; one camera per station (the lease).
+        return StationSessionSync(client, lease=StationLease(client))
     if not flags.enabled("vision.activity_sync"):
         return None
     client = get_client()

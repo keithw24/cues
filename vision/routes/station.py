@@ -63,8 +63,15 @@ def require_local(request: Request) -> None:
 
 
 def _state() -> dict:
+    from vision.station_lease import STATUS
+
     current = station_module.STATION
-    return {"station_id": current.get(), "pinned": current.pinned}
+    return {
+        "station_id": current.get(),
+        "pinned": current.pinned,
+        # True while another camera holds this station and this one is paused.
+        "station_busy": STATUS.refused,
+    }
 
 
 @router.get("/config", dependencies=[Depends(require_local)])
