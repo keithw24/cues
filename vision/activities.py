@@ -23,6 +23,9 @@ ACTIVITIES_FILE = Path(__file__).resolve().parent / "activities.json"
 CUSTOM_FILE = ACTIVITIES_FILE.parent / "templates" / "custom_gestures.catalog.json"
 CUSTOM_PREFIX = "custom_"
 CUSTOM_SUCCESS, CUSTOM_REVIEW = 0.78, 0.58
+# A gesture task flags a person (Needs Review) after this much time on task without
+# any score reaching the review band. Rule tasks (raise hand) keep their own, longer wait.
+GESTURE_NO_PROGRESS_SECONDS = 3
 _custom_lock = threading.Lock()
 
 
@@ -44,7 +47,8 @@ def _no_progress_override() -> int | None:
     """CUES_NO_PROGRESS_SECONDS: shorten the "no progress" wait for every task (demo mode).
 
     The demo launcher sets it so vision's Needs Review status arrives about when the
-    agent's accelerated review request does. Unset, empty or invalid: no override.
+    agent's accelerated review request does. It only ever shortens a wait: a task whose
+    own wait is already shorter (gestures, 3s) keeps it. Unset, empty or invalid: no override.
     """
     raw = os.environ.get("CUES_NO_PROGRESS_SECONDS", "").strip()
     if not raw:
@@ -68,7 +72,9 @@ def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
             check_type=item["check_type"],
             success_threshold=float(item["success_threshold"]),
             review_threshold=float(item["review_threshold"]),
-            no_progress_seconds=override or int(item["no_progress_seconds"]),
+            no_progress_seconds=min(
+                int(item["no_progress_seconds"]), override or int(item["no_progress_seconds"])
+            ),
             keywords=tuple(item.get("keywords", [])),
             builtin=item.get("builtin"),
         )
@@ -120,7 +126,7 @@ def add_custom_gesture(name: str, keywords: tuple[str, ...] = ()) -> Activity:
             "keywords": list(keywords) or [name.strip().lower()],
             "success_threshold": CUSTOM_SUCCESS,
             "review_threshold": CUSTOM_REVIEW,
-            "no_progress_seconds": 30,
+            "no_progress_seconds": GESTURE_NO_PROGRESS_SECONDS,
         }
         _write_custom(_read_custom() + [item])
     return get(aid)

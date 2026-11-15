@@ -12,21 +12,29 @@ def fresh_catalog():
     activities.load_activities.cache_clear()
 
 
-def test_default_wait_is_unchanged(monkeypatch):
+def waits():
+    return {(a.check_type, a.no_progress_seconds) for a in activities.load_activities().values()}
+
+
+def test_default_wait_flags_a_gesture_after_three_seconds(monkeypatch):
     monkeypatch.delenv("CUES_NO_PROGRESS_SECONDS", raising=False)
-    assert {a.no_progress_seconds for a in activities.load_activities().values()} == {30}
+    assert waits() == {("gesture", activities.GESTURE_NO_PROGRESS_SECONDS), ("rule", 30)}
+    assert activities.GESTURE_NO_PROGRESS_SECONDS == 3
 
 
-def test_override_shortens_every_task(monkeypatch):
+def test_override_only_shortens(monkeypatch):
     monkeypatch.setenv("CUES_NO_PROGRESS_SECONDS", "4")
-    waits = {a.no_progress_seconds for a in activities.load_activities().values()}
-    assert waits == {4}
+    # Raise hand drops to 4s; gestures keep their shorter 3s.
+    assert waits() == {("gesture", 3), ("rule", 4)}
+    monkeypatch.setenv("CUES_NO_PROGRESS_SECONDS", "2")
+    activities.load_activities.cache_clear()
+    assert waits() == {("gesture", 2), ("rule", 2)}
 
 
 @pytest.mark.parametrize("bad", ["", "  ", "abc", "0", "-3", "2.5"])
 def test_invalid_override_is_ignored(monkeypatch, bad):
     monkeypatch.setenv("CUES_NO_PROGRESS_SECONDS", bad)
-    assert {a.no_progress_seconds for a in activities.load_activities().values()} == {30}
+    assert waits() == {("gesture", 3), ("rule", 30)}
 
 
 def test_demo_launcher_uses_the_agents_demo_stall_time():

@@ -9,7 +9,7 @@
     ],
     "success_threshold": 0.7,
     "review_threshold": 0.5,
-    "no_progress_seconds": 30,
+    "no_progress_seconds": 3,
     "builtin": "Thumb_Up"
   },
   {
@@ -33,7 +33,7 @@
     ],
     "success_threshold": 0.78,
     "review_threshold": 0.58,
-    "no_progress_seconds": 30
+    "no_progress_seconds": 3
   },
   {
     "id": "open_palm",
@@ -46,7 +46,7 @@
     ],
     "success_threshold": 0.7,
     "review_threshold": 0.5,
-    "no_progress_seconds": 30,
+    "no_progress_seconds": 3,
     "builtin": "Open_Palm"
   },
   {
@@ -60,7 +60,7 @@
     ],
     "success_threshold": 0.7,
     "review_threshold": 0.5,
-    "no_progress_seconds": 30,
+    "no_progress_seconds": 3,
     "builtin": "Pointing_Up"
   },
   {
@@ -74,7 +74,7 @@
     ],
     "success_threshold": 0.7,
     "review_threshold": 0.5,
-    "no_progress_seconds": 30,
+    "no_progress_seconds": 3,
     "builtin": "Victory"
   },
   {
@@ -88,7 +88,7 @@
     ],
     "success_threshold": 0.7,
     "review_threshold": 0.5,
-    "no_progress_seconds": 30,
+    "no_progress_seconds": 3,
     "builtin": "Closed_Fist"
   }
 ]

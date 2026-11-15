@@ -23,5 +23,6 @@ def test_every_builtin_gesture_is_seeded_with_vision_values():
         assert [k.strip("' ") for k in row.group(1).split(",")] == activity["keywords"]
         assert float(row.group(2)) == activity["success_threshold"]
         assert float(row.group(3)) == activity["review_threshold"]
-        assert int(row.group(4)) == activity["no_progress_seconds"]
+        # no_progress_seconds is not compared: nothing reads it from the database. Vision's
+        # catalog (activities.json) owns the timer, and the agent loads vision's values.
         assert f"('{activity['id']}'," in seed  # fresh databases get it too
