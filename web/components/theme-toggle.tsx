@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { RiMoonLine, RiSunLine } from "@remixicon/react";
 import { AUTO_THEME_ATTRIBUTE, THEME_KEY, type Theme } from "@/lib/theme";
 
@@ -28,6 +28,9 @@ export function ThemeToggle({
     () => pageDefault,
   );
   const next: Theme = theme === "dark" ? "light" : "dark";
+  // Only a switch the visitor made animates the icon, not the first paint.
+  const [switched, setSwitched] = useState(false);
+  const iconClass = switched ? "theme-icon-in" : undefined;
   return (
     <button
       type="button"
@@ -35,6 +38,7 @@ export function ThemeToggle({
       aria-label={`Switch to ${next} mode`}
       title={`Switch to ${next} mode`}
       onClick={() => {
+        setSwitched(true);
         // Switch every color at once: no transitions fire during the swap.
         const root = document.documentElement;
         const pause = document.createElement("style");
@@ -51,9 +55,9 @@ export function ThemeToggle({
       }}
     >
       {theme === "dark" ? (
-        <RiSunLine aria-hidden="true" />
+        <RiSunLine aria-hidden="true" className={iconClass} key="sun" />
       ) : (
-        <RiMoonLine aria-hidden="true" />
+        <RiMoonLine aria-hidden="true" className={iconClass} key="moon" />
       )}
     </button>
   );

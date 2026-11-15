@@ -13,7 +13,7 @@ const needs = [
   },
   {
     icon: RiListCheck2,
-    title: "Less Tracking By Hand",
+    title: "Less Tracking by Hand",
     text: "Who has finished, who is still going and who may need you is kept for you while the activity runs, so you are not tallying on paper.",
   },
   {
@@ -27,7 +27,7 @@ export default function LandingNeeds() {
   return (
     <section id="needs" className="ln-privacy" aria-labelledby="needs-heading">
       <h2 id="needs-heading" data-reveal style={{ "--i": 0 } as CSSProperties}>
-        Made For Special Education (SEN) Classrooms
+        Made for Special Education (SEN) Classrooms
       </h2>
       <p data-reveal style={{ "--i": 1 } as CSSProperties}>
         Progress notes and constant check-ins take time that SEN teaching rarely
