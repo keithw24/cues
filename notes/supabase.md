@@ -1,20 +1,46 @@
 # Cues database
 
+## Status
+
+All 20 migrations below are applied to the hosted project and none are pending (checked against
+the Supabase migration ledger with `scripts/supabase-migrations.py list` on 2026-11-14). Every
+migration passes a fresh replay on a local PostgreSQL with minimal Auth stubs
+(`supabase/tests/test_migration_replay.py`; this is SQL replay, not full Auth/Realtime
+emulation). Per-feature SQL tests are in `supabase/tests/`; they need PostgreSQL's `initdb`,
+`pg_ctl` and `psql` on the PATH and are run by the `supabase` CI workflow.
+
+| Migration | Adds |
+|---|---|
+| `000100_initial_schema` | Core tables (activities, stations, seats, sessions, seat_state, events, alerts, interventions, support_preferences) and read-only demo policies |
+| `000200_align_demo_activity` | Aligns the original `raise_hand` activity with the shared contract |
+| `000300_teacher_reviews` | Persistent `teacher_reviews` and the one-way pending-to-resolved guard |
+| `000310_session_controls` | Session lifecycle (`station_id`, `ended_at`, `revision`), `station_teachers`, and the read/start/end station-session functions |
+| `000400_resolve_teacher_review` | The authenticated review-resolution function |
+| `000500_add_seat_state_tracking_valid` | `seat_state.tracking_valid` |
+| `000510_person_observations` | Simulated person slots `S1-P1` to `S1-P4` |
+| `000520_station_session_sync` | `station_runtime`, `report_station_session`, and the stale-write guard for managed stations |
+| `000600_teacher_ownership` | `teacher_profiles`, `sessions.teacher_id`, owner-only review reads and resolution |
+| `000700_session_owner_on_start` | A started session is owned by the signed-in caller |
+| `000800_station_pairing` | Single-use station pairing codes |
+| `000900_notification_registration` | Notification consent and registration state |
+| `001000_notification_send_result` | Backend-only acknowledgement of a notification send |
+| `001100_default_station` | One default station per teacher (`get_or_create_my_default_station`) |
+| `001200_live_progress` | `seat_state.evaluated_progress` and the guarded publish function |
+| `001300_review_lifecycle` | Reviews close with their session; one open review per person; status `expired` |
+| `001400_builtin_gestures` | The built-in gestures in `activities` |
+| `001500_review_marks` | Mark as reviewed (`seat_review_marks`, `mark_seat_reviewed`); reviews close when the task is done; status `reviewed` |
+| `001600_station_flags` | `read_station_flags` for the dashboard timeline's data |
+| `001700_station_writers` | One camera per station (`station_writers`, `claim_station_writer`, `release_station_writer`) |
+
 ## Reconciled migration history
 
 On November 14, 2026 the local chain was made unique without changing SQL:
-session_controls moved from 20261114000300 to 20261114000310;
-person_observations moved from 20261114000400 to 20261114000510;
-station_session_sync moved from 20261114000500 to 20261114000520.
-This orders the unconditional tracking_valid addition before person observations'
-IF NOT EXISTS addition. All eleven migrations passed fresh local PostgreSQL replay
-with minimal Supabase Auth stubs; this is SQL replay, not full Auth/Realtime emulation.
-
-Hosted effects through 007 were audited before repair. Official Supabase CLI
-3.1.0 migration repair marked the ten predecessors applied without replaying SQL.
-The official list now matches through 007; 008 remains pending. Dry-run selected
-only 20261114000800_station_pairing.sql, with no seed or role execution.
-No application schema was deployed during reconciliation.
+session_controls moved from 20261114000300 to 20261114000310; person_observations from
+20261114000400 to 20261114000510; station_session_sync from 20261114000500 to 20261114000520.
+This orders the unconditional `tracking_valid` addition before person observations'
+IF NOT EXISTS addition. The Supabase CLI's migration repair marked the earlier ten migrations
+applied without replaying SQL; later migrations were applied with `db push`. The earlier
+duplicate-history warnings in the historical notes are superseded by this reconciliation.
 
 No project dependency installation is needed for the pinned CLI. The repo-local
 config is supabase/config.toml. The helper below loads the saved database URL,
@@ -41,7 +67,7 @@ Never print the connection URL, enable shell tracing, or run a remote db reset.
 The earlier duplicate-history warnings in historical notes are superseded by
 this reconciliation. Fresh projects should apply the current unique sorted chain.
 
-## One camera per station (migration 017, local only)
+## One camera per station (migration 017)
 
 `20261114001700_station_writers.sql`. Seat rows are named by station and person number
 (`S1-P1`), so two cameras working for the same station overwrite each other and show up as
@@ -62,9 +88,9 @@ phantom people. Each camera process claims its station with a random writer id:
 - The guard is enforced by vision, so a laptop on older code ignores it. Enforcing it in the
   database on `seat_state` writes needs a shared-table change; see `notes/outstanding-work.md`.
 
-Local tests: `supabase/tests/test_station_writers.py`. Not deployed.
+Tests: `supabase/tests/test_station_writers.py`.
 
-## Mark as reviewed (migration 015, local only)
+## Mark as reviewed (migration 015)
 
 `20261114001500_review_marks.sql`:
 
@@ -81,9 +107,9 @@ Local tests: `supabase/tests/test_station_writers.py`. Not deployed.
   who have already completed their task.
 - The dashboard button is under the existing `web.teacher_review_actions` flag.
 
-Local tests: `supabase/tests/test_review_marks.py`. Not deployed.
+Tests: `supabase/tests/test_review_marks.py`.
 
-## Review lifecycle (migration 013, local only)
+## Review lifecycle (migration 013)
 
 `20261114001300_review_lifecycle.sql`:
 
@@ -100,10 +126,9 @@ Local tests: `supabase/tests/test_review_marks.py`. Not deployed.
   `expired`, and in running sessions the newer duplicates of an open review become `expired`
   (the oldest stays open). Teachers' own confirmed/dismissed decisions are never changed.
 
-Local tests: `supabase/tests/test_review_lifecycle.py` (needs PostgreSQL, see below).
-Not deployed.
+Local tests: `supabase/tests/test_review_lifecycle.py` (needs PostgreSQL; see Status above).
 
-## Default station per teacher (migration 011, local only)
+## Default station per teacher (migration 011)
 
 `20261114001100_default_station.sql` adds `station_teachers.is_default` (at most one
 default per teacher, enforced by a partial unique index) and
@@ -111,17 +136,16 @@ default per teacher, enforced by a partial unique index) and
 `auth.uid()`. A teacher whose single existing assignment is a station keeps it as their
 default (backfilled; Keith → S1). A teacher with none gets a new `S<n>` station with
 simulated `S<n>-P1..P4` person slots. Existing stations, sessions and their owners are
-not modified. Nothing here has been deployed.
+not modified.
 
 Local tests (need PostgreSQL's `initdb`, `pg_ctl` and `psql`; skipped otherwise):
 `uv run pytest supabase/tests/test_default_station.py supabase/tests/test_migration_replay.py`.
 
-## Station pairing (migration 008, local only)
+## Station pairing (migration 008)
 
 `20261114000800_station_pairing.sql` adds private, single-use station invitations.
 Apply through the reviewed migration sequence; the duplicate history is now
-reconciled as described above. A verified push will apply pending migrations only.
-Nothing in this pairing implementation has been deployed by this change.
+reconciled as described above.
 
 Trusted operator SQL (database owner, or a backend service-role client):
 
@@ -166,7 +190,7 @@ These tests start/remove a temporary local PostgreSQL cluster and never read
 DATABASE_URL or contact hosted Supabase. They validate migration 008 against a
 minimal station/Auth prerequisite schema, not a replay of all historical migrations.
 
-`migrations/20261114000100_initial_schema.sql` implements PRD §17.3 without changing
+`supabase/migrations/20261114000100_initial_schema.sql` implements PRD §17.3 without changing
 the shared table/event fields. Apply it once in a new Supabase project's SQL
 Editor, apply subsequent migrations in filename order, then run `seed.sql`. The seed uses only simulated data and can be rerun
 without resetting existing rows. Do not reapply the migration to an existing schema.
@@ -223,32 +247,36 @@ Verified against the hosted `cues` project on November 13, 2026:
 
 The database verification above predates the teacher dashboard implementation.
 The dashboard now reads simulated state when `web.dashboard` is enabled; see
-`../web/README.md` for app setup and its separate acceptance checks.
+`notes/web.md` for app setup and its separate acceptance checks.
 
 ## Authenticated resolution RPC
 
-Migration 004 adds `resolve_teacher_review(review_id uuid, action text)` returning
-one teacher_reviews row as an array. Actions are confirmed/dismissed; timestamps
-are generated by the database. Applied and hosted-tested November 14, 2026.
-Only authenticated Auth users may execute it, and only for simulated-seat reviews.
-There is no session-owner relationship yet: any authenticated user may resolve
-demo reviews. This must be replaced by session authorization before classroom use.
-Direct browser writes remain denied. SQL smoke: supabase/tests/resolve_teacher_review.sql.
-See notes/michelle.md for non-service authenticated RPC and Realtime verification.
+`resolve_teacher_review(review_id uuid, action text)` returns the resolved teacher_reviews row
+as an array. Migration 004 added it with demo-only authorization; migration 006 replaced that:
+the caller must be signed in and must own the review's session (`sessions.teacher_id =
+auth.uid()`). Reviews are readable only by that owner, and a historical session with no owner
+cannot be resolved from a browser. The only actions are `confirmed` and `dismissed`: the
+statuses `expired` (closed when the session ended or the task was completed) and `reviewed`
+(a teacher used Mark as reviewed) are set only by the database. Timestamps are generated by
+the database, and direct browser writes remain denied. SQL smoke:
+`supabase/tests/resolve_teacher_review.sql`. See `notes/michelle.md` for non-service
+authenticated RPC and Realtime verification.
 
 ## Teacher reviews
 
-Apply `migrations/20261114000300_teacher_reviews.sql` after the first two migrations
+Apply `supabase/migrations/20261114000300_teacher_reviews.sql` after the first two migrations
 using the Supabase SQL Editor (or `supabase db push` for a linked CLI project).
 This adds `public.teacher_reviews`, its indexes, RLS and lifecycle trigger, and
 membership in `supabase_realtime`. Applied and verified on the hosted `cues`
 project on November 14, 2026; do not reapply it there. See
-`../notes/michelle.md` for the hosted verification results.
+`notes/michelle.md` for the hosted verification results.
 
 The table persists the existing Python `TeacherReview`: UUID, creation time,
 session/seat/activity, priority, complete evaluation JSON, assessment decision,
 rationale, structured evidence labels, status, and resolution time. Only status
-and resolved_at may change, and only once from pending to confirmed or dismissed.
+and resolved_at may change, and only once, from pending to confirmed, dismissed, expired or
+reviewed (the last two are set only by the database: see Review lifecycle and Mark as
+reviewed).
 The database guard applies to service-role updates too. An identical evaluation
 is unique across backend instances; duplicate inserts do not rewrite an assessment
 or reopen a resolved review.
@@ -263,7 +291,7 @@ persistence configuration. Write failures never silently fall back to memory.
 The core agent factory remains in-memory by default for direct unit/offline use;
 the runtime exposes offline=True, and the live Groq runner has --offline-reviews.
 The continuous agent.worker polls seat_state through create_seat_state_runtime.
-FastAPI serves vision/video; there is no agent API server. See ../STARTUP.md.
+FastAPI serves vision/video; there is no agent API server. See STARTUP.md.
 
 Optional runtime/action smoke (scripted model, real Supabase, isolated probe cleanup):
 
@@ -272,20 +300,17 @@ uv run python -m agent.hosted_review_smoke
 ```
 
 This passed against the hosted project on November 14, 2026. Normal unit tests
-remain network-independent. Details are in `../notes/michelle.md`.
+remain network-independent. Details are in `notes/michelle.md`.
 
-Evan can fetch initial rows and subscribe to INSERT/UPDATE Postgres Changes on
-`public.teacher_reviews`. Existing demo RLS permits read access only where the
-matching `seats` row has is_simulated=true. A review with an unknown seat ID remains
-server-only until that simulated seat is provisioned. Demo rationale/evidence are
-publicly readable: use synthetic data only. There is no frontend subscription in
-this change. See [Supabase Postgres Changes](https://supabase.com/docs/guides/realtime/postgres-changes)
+The dashboard fetches its initial rows and subscribes to INSERT/UPDATE Postgres Changes on
+`public.teacher_reviews`. Since migration 006 a review is readable only by the teacher who owns
+its session (`own_teacher_reviews_read`); the earlier demo read policy was dropped and anonymous
+reads were revoked. See [Supabase Postgres Changes](https://supabase.com/docs/guides/realtime/postgres-changes)
 for publication and subscriber read-permission requirements.
 
-Anon/authenticated clients receive no direct INSERT/UPDATE/DELETE privileges.
-Authenticated users may call resolve_teacher_review for simulated-seat reviews;
-anonymous callers cannot. Never send a service-role key to the frontend. Teacher identity/authorization and real classroom
-read policies remain future work; do not broaden the demo policy for deployment.
+Anon/authenticated clients receive no direct INSERT/UPDATE/DELETE privileges. A signed-in
+teacher may call `resolve_teacher_review` for reviews of their own sessions; anonymous callers
+cannot. Never send a service-role key to the frontend.
 
 Optional SQL smoke, after applying migrations, with a database-owner connection:
 
@@ -293,8 +318,8 @@ Optional SQL smoke, after applying migrations, with a database-owner connection:
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/teacher_reviews.sql
 ```
 
-This creates synthetic fixtures inside a transaction and rolls them back. It
-checks demo RLS, denied anonymous writes, immutable trusted fields, both resolution
+This creates synthetic fixtures inside a transaction and rolls them back. Written against
+migration 003 (migration 006 later made reads owner-only), it checks demo RLS, denied anonymous writes, immutable trusted fields, both resolution
 statuses, rejected re-resolution, and Realtime publication membership. Validated
 locally on PostgreSQL 14 and against the hosted project. A public-key subscription
 received real INSERT/pending and UPDATE/confirmed or dismissed events; the

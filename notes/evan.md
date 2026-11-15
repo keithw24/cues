@@ -1,7 +1,7 @@
 # Evan — work completed and handoff
 
 Updated November 14, 2026. This records work from our session, rather than claiming
-that every planned Cues capability is implemented. `PRD-cues.md` remains the product
+that every planned Cues capability is implemented. `notes/PRD-cues.md` remains the product
 source of truth; source code determines current capabilities.
 
 ## Ownership and workflow
@@ -36,7 +36,7 @@ Key files:
 - `supabase/migrations/20261114000100_initial_schema.sql`
 - `supabase/migrations/20261114000200_align_demo_activity.sql`
 - `supabase/seed.sql`
-- `supabase/README.md`
+- `notes/supabase.md`
 
 ## Teacher dashboard implementation
 
@@ -138,7 +138,7 @@ border animation, stock imagery and decorative fonts were not installed.
 - `web/app/layout.tsx`, `web/app/globals.css`, `web/app/icon.svg` — font, theme and branding.
 - `web/components.json`, `web/package.json`, `web/package-lock.json` — UI paths and dependencies.
 - `web/tests/` — contract, feed lifecycle, flag and dismissal tests.
-- `DESIGN.md`, `PRODUCT.md`, `.impeccable/design.json`, `web/README.md` — design/product/setup notes.
+- `notes/DESIGN.md`, `notes/PRODUCT.md`, `.impeccable/design.json`, `notes/web.md` — design/product/setup notes.
 
 ## Flags and local setup
 
@@ -154,7 +154,7 @@ npm ci
 npm run dev
 ```
 
-See `web/README.md` and `.env.example` for configuration. Never commit `.env.local`
+See `notes/web.md` and `.env.example` for configuration. Never commit `.env.local`
 or expose privileged keys in `NEXT_PUBLIC_*` variables.
 
 ## Verification completed
@@ -259,7 +259,7 @@ and the historical seat-derived/local-dismiss attention behavior above.
   trusted persistence, scoped read RLS, Realtime publication and authenticated
   teacher authorization. No table, grant, backend API or shared contract invented.
   Trusted fields remain read-only in the client; server policies must enforce this.
-- See web/TEACHER_REVIEWS.md for the exact expected column mapping and rollout.
+- See notes/web-teacher-reviews.md for the exact expected column mapping and rollout.
 - User also requested 4:3 landscape video: .video-stage now preserves that aspect
   ratio on desktop and mobile without the previous height/min-height overrides.
 - No commit, merge or push was performed. Remote refs were fetched read-only.
@@ -298,7 +298,7 @@ CUES_FLAG_WEB_TEACHER_REVIEWS=1 and rebuild when the backend prerequisites are r
 - Files for this increment: web/lib/teacher-review-actions.ts,
   web/components/teacher-review-actions.tsx, web/components/dashboard.tsx,
   web/app/page.tsx, web/app/globals.css, web/tests/teacher-review-actions.test.ts,
-  flags.json, web/.env.example, web/TEACHER_REVIEWS.md, web/README.md, notes/evan.md.
+  flags.json, web/.env.example, notes/web-teacher-reviews.md, notes/web.md, notes/evan.md.
 - Verification: 21 frontend tests and lint passed. Deployed write/refresh and
   unauthorized/stale/concurrent server rejection require the real backend RPC.
 - No commit, merge or push.
@@ -363,7 +363,7 @@ build restriction remains recorded above; no deployed action calls were made.
 - Files in this increment: web/components/teacher-review-details.tsx,
   web/components/dashboard.tsx, web/lib/teacher-reviews.ts, web/app/globals.css,
   web/tests/teacher-reviews.test.ts, web/tests/teacher-review-actions.test.ts,
-  web/TEACHER_REVIEWS.md and notes/evan.md.
+  notes/web-teacher-reviews.md and notes/evan.md.
 - Verification: 24 frontend tests, lint, TypeScript, and production webpack builds
   with review reads both off and on pass. The webpack fallback avoids the earlier
   local Turbopack limitation. Deployed Supabase projection/Realtime remains a
@@ -397,11 +397,11 @@ reviews were created or resolved. Review flag restored off in the production bui
   expose persisted summaries; no separate WebSocket, raw-frame score dump, or new
   evaluator is needed. Last recorded state needs an as-of timestamp and must not be
   called current unless recording covers the latest evaluation.
-- Documented full handoff and expected display rules in web/PROGRESS_CONTEXT.md.
+- Documented full handoff and expected display rules in notes/web-progress-context.md.
 - Files: web/components/progress-context.tsx, web/lib/progress-context.ts,
   web/components/dashboard.tsx, web/components/teacher-review-details.tsx,
   web/app/globals.css, web/tests/progress-context.test.ts,
-  web/PROGRESS_CONTEXT.md, notes/evan.md.
+  notes/web-progress-context.md, notes/evan.md.
 - No changes to agent/, shared contracts, schema, evaluator logic or review states.
   No commit, merge or push.
 Verification: 26 frontend tests, lint, TypeScript and the review-enabled webpack
@@ -415,7 +415,7 @@ Progress-context follow-up: rechecked the working tree and refreshed origin refs
 for the repeated request. The existing detail-panel implementation remains in
 place. origin/main still exposes get_recent_progress_history only as a backend
 store/agent tool; no Supabase projection or frontend read endpoint was found.
-The minimal read dependency in web/PROGRESS_CONTEXT.md is still required before
+The minimal read dependency in notes/web-progress-context.md is still required before
 real trend sequences or stalled_seconds can appear. Both targeted progress-context
 tests pass. No duplicate frontend history, new transport, evaluator changes,
 commit, merge or push were added.
@@ -435,10 +435,10 @@ commit, merge or push were added.
 - Requested the existing backend session/activity contract or branch from Evan.
   Until supplied, did not invent lifecycle states or bypass authorization with
   direct browser table writes/service-role exposure.
-- Added web/SESSION_CONTROLS.md describing verified source, smallest missing
+- Added notes/web-session-controls.md describing verified source, smallest missing
   lifecycle/action/read contracts, catalog access, concurrency/idempotency,
   expected loading/error behavior and station/vision integration requirements.
-- Files this investigation changes: web/SESSION_CONTROLS.md and notes/evan.md.
+- Files this investigation changes: notes/web-session-controls.md and notes/evan.md.
   No runtime code changed or tests needed for documentation-only changes.
 - No commit, merge or push. Working controls remain pending the backend contract.
 
@@ -463,7 +463,7 @@ commit, merge or push were added.
   web/components/session-controls.tsx, web/lib/session-controls.ts,
   web/tests/session-controls.test.ts, web/components/dashboard.tsx,
   web/lib/supabase.ts, web/app/page.tsx, web/app/globals.css, flags.json,
-  web/.env.example, web/SESSION_CONTROLS.md, PRD-cues.md, notes/evan.md.
+  web/.env.example, notes/web-session-controls.md, notes/PRD-cues.md, notes/evan.md.
 - Integration gap: vision still uses fixed CUES_SESSION_ID and ignores session
   end. End persists real session state but does not stop perception; new sessions
   require vision lifecycle propagation/reset. No seat observations/timestamps were
@@ -509,7 +509,7 @@ lifecycle integration remain pending; no remote state was modified.
   transport/security. History/stall duration and vision session-end propagation
   remain the previously documented gaps. No migrations or remote writes were applied.
 - Files: dashboard.tsx, local-classroom-feed.tsx, app/globals.css, app/layout.tsx,
-  lib/dashboard.ts, tests/dashboard.test.ts, migration 004, README, PRD, DESIGN.md,
+  lib/dashboard.ts, tests/dashboard.test.ts, migration 004, README, PRD, notes/DESIGN.md,
   .impeccable/design.json and notes/evan.md. Prior uncommitted feature work preserved.
 - Checks: 33 frontend tests, lint, TypeScript/build; isolated PostgreSQL migration
   004 and demo read-policy test. Browser verified actual local fake-camera frames,
@@ -533,13 +533,13 @@ lifecycle integration remain pending; no remote state was modified.
 - Lint and production build pass. Browser fixture checks verify requested removals,
   labels, keyboard return, review resolution/retry, and layout at 1440/768/390/320px.
   Fresh review disposition: ship for the requested refinements. No video transport
-  or backend lifecycle changes. DESIGN.md/sidecar updated to the revised surface.
+  or backend lifecycle changes. notes/DESIGN.md/sidecar updated to the revised surface.
 - No commit, merge or push.
 
 ## Realtime teacher review synchronization — November 14
 
 - Changed only web/lib/teacher-review-feed.ts, web/tests/teacher-reviews.test.ts,
-  web/TEACHER_REVIEWS.md and this notes file for this request. Preserved the other
+  notes/web-teacher-reviews.md and this notes file for this request. Preserved the other
   uncommitted frontend/design/session work. No commit, merge or push.
 - Reused Supabase channel teacher-reviews:<incrementing subscription ID>, with
   postgres_changes event=* on public.teacher_reviews. No second transport and no
@@ -602,7 +602,7 @@ lifecycle integration remain pending; no remote state was modified.
 - Fresh finish review: ship for this refinement; visibly closer to the screenshot,
   not a measured pixel-exact reproduction. Camera text ink darkened for contrast
   against the now-visible cyan field. No backend or review decision logic changes.
-- DESIGN.md and .impeccable/design.json updated with source/material/control facts.
+- notes/DESIGN.md and .impeccable/design.json updated with source/material/control facts.
 - No commit, merge or push.
 
 ## Feature one: tracking-aware person observations
@@ -631,7 +631,7 @@ observation times; show Updates paused after five seconds without fresh data.
 - Files for this slice: observation-presentation.ts and its tests, dashboard.ts,
   dashboard-feed.ts and feed tests, dashboard.tsx, progress-context.tsx,
   teacher-review-details.tsx, app/page.tsx, globals.css (timestamp styling only),
-  flags.json, .env.example, PERSON_OBSERVATIONS.md, README, PRD and these notes.
+  flags.json, .env.example, notes/web-person-observations.md, README, PRD and these notes.
 - Checks include pure boundary/validity tests and browser fixtures for realtime
   recovery, score suppression, lost-row retention, ID reuse, backend deletion and
   failed reconnect retention. Actual hosted reads are verified separately from
@@ -685,15 +685,15 @@ Files for this feature:
 - web/lib/session-controls.ts, components/session-controls.tsx and its unit tests;
   app/globals.css adds only compact acknowledgement metadata styling this turn.
 - shared/contracts.py adds Session and optional SeatState.session_revision;
-  shared/README.md documents revision/reset semantics.
+  notes/shared-contracts.md documents revision/reset semantics.
 - vision/session_sync.py, stages/s00_session.py, activity_sync.py, events.py,
   stages/s30_gestures.py, s35_raise_hand.py, s50_status.py, watch.py and
   tests/test_session_sync.py. These cross Keith's ownership boundary because the
   feature needs the real station to follow teacher session changes.
 - supabase/migrations/20261114000310_session_controls.sql,
   20261114000520_station_session_sync.sql and tests/session_controls.sql;
-  flags.json, PRD-cues.md, web/SESSION_CONTROLS.md, vision/SESSION_LIFECYCLE.md,
-  web/README.md and these notes. Other design/login work was preserved.
+  flags.json, notes/PRD-cues.md, notes/web-session-controls.md, notes/session-lifecycle.md,
+  notes/web.md and these notes. Other design/login work was preserved.
 
 Actions/contracts:
 - read_station_session(station) -> active/latest session, runtime and catalog.

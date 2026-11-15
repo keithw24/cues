@@ -1,6 +1,6 @@
 # Cues
 
-Cues helps a special-education teacher see which students need help. A local camera pipeline watches simple tasks (raise hand, thumbs up, teacher-recorded gestures), a rules engine decides when an event matters, an AI agent suggests support, and the teacher approves every change. The full spec is `PRD-cues.md`.
+Cues helps a special-education teacher see which students need help. A local camera pipeline watches simple tasks (raise hand, thumbs up, teacher-recorded gestures), a rules engine decides when an event matters, an AI agent suggests support, and the teacher approves every change. The full spec is `notes/PRD-cues.md`.
 
 ## Repo layout and owners
 
@@ -15,7 +15,7 @@ Only edit another owner's folder when the task needs it, and say so in the PR.
 
 ## Environment
 
-One shared Python environment for the whole repo, set up by Michelle: `pyproject.toml` and `uv.lock` at the root, Python 3.11 (`.python-version`). Run `uv sync` once. Add Python dependencies only to the root `pyproject.toml` with `uv add`; don't create per-folder Python projects. Secrets go in the root `.env`; copy `.env.example`. The vision service reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from it. Optional vision settings, also in `.env` or the shell: `CUES_CAMERA_INDEX` (webcam number, default 0), `CUES_CAMERA=fake`, `CUES_STATION_ID` (dev/test override only: normally the signed-in teacher's dashboard sends the station to `POST 127.0.0.1:8000/config`; with the override set, vision refuses any other station) and `CUES_SESSION_ID` (default: a new id on each start). The web app has its own `web/package.json`.
+One shared Python environment for the whole repo, set up by Michelle: `pyproject.toml` and `uv.lock` at the root, Python 3.11 (`.python-version`). Run `uv sync` once. Add Python dependencies only to the root `pyproject.toml` with `uv add`; don't create per-folder Python projects. Secrets go in the root `.env`; copy `.env.example`. The vision service reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from it. Optional vision settings, also in `.env` or the shell: `CUES_CAMERA_INDEX` (webcam number, default 0), `CUES_CAMERA=fake`, `CUES_STATION_ID` (dev/test override only: normally the signed-in teacher's dashboard sends the station to `POST 127.0.0.1:8000/config`; with the override set, vision refuses any other station) and `CUES_SESSION_ID` (legacy/smoke commands only: with the session lifecycle on, which the launcher does by default, vision follows the station's active session from Supabase). The web app has its own `web/package.json`.
 
 ## Commands (vision)
 
@@ -43,12 +43,12 @@ PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH" LC_ALL=en_US.UTF-8 uv run pytes
 
 Fix formatting (rewrites files): `uv run ruff format vision`
 
-Run the service and tools (these modules arrive with T1, T2 and T3; until those PRs merge they exist only on their branches):
+Run the service and tools:
 
 ```bash
-uv run uvicorn vision.app:app          # (after T1) service: /stream, /health
-uv run python -m vision.bench          # (after T2) laptop benchmark
-uv run python -m vision.events --demo  # (after T3) send one test event
+uv run uvicorn vision.app:app          # service: /stream, /health, /config, /gestures, /templates
+uv run python -m vision.bench          # laptop benchmark
+uv run python -m vision.events --demo  # send one test event
 ```
 
 
@@ -93,7 +93,7 @@ Every feature can be turned on and off without a code change. This lets the team
 
 **Reading flags.** Each area has one helper and only reads flags through it: `vision/flags.py`, `agent/flags.py`, `web/lib/flags.ts`. Each helper reads `flags.json`, applies the overrides, and treats an unknown flag name as an error.
 
-**Status:** `vision/flags.py` exists. The vision stage and route loaders skip modules whose `FLAG` is off, and `/health` lists every vision flag's current value. `agent/flags.py` and `web/lib/flags.ts` are not built yet; until an area's helper exists, don't merge a feature PR in that area that has a flag.
+**Status:** `vision/flags.py` exists. The vision stage and route loaders skip modules whose `FLAG` is off, and `/health` lists every vision flag's current value. `web/lib/flags.ts` exists too. `agent/flags.py` is not built yet: the agent worker reads its flag (`agent.live_progress`) through `vision/flags.py`. Until `agent/flags.py` exists, an agent feature either reuses that helper or ships with a flag-off fallback path.
 
 **Rules for every feature PR:**
 1. Add the feature's flag to `flags.json` in the same PR.
@@ -133,6 +133,10 @@ If the PR has a risk none of these reviewers covers (for example concurrency, pe
 - Only non-blocking findings: the PR author decides whether to fix them now or later.
 - Merge only after CI passes, no blocking findings are open, and a person on the team has said to merge.
 
+## Where the docs live
+
+Every document except `README.md`, `STARTUP.md` and the tool-bound instruction files (`CLAUDE.md`, `AGENTS.md`, `.github/pull_request_template.md`, `.claude/`) lives in `notes/`; the index is `notes/README.md`. When a change alters behaviour, a command, a flag or a table, update the doc that describes it in the same PR: `STARTUP.md` for setup and environment, `notes/supabase.md` for migrations, `notes/PRD-cues.md` §17 for shared data, `notes/outstanding-work.md` for what is still open.
+
 ## Product rules every change must respect
 
 These come from the PRD and are not optional.
@@ -140,7 +144,7 @@ These come from the PRD and are not optional.
 **Privacy**
 - Camera frames, images and raw camera data never leave the station laptop. Only structured events go to Supabase, the LLM, or Photon. The privacy claim is "student camera images and video stay local". Don't claim that all audio stays on-device (teacher voice may use a hosted speech service).
 - No face recognition or other biometric identification. A seat is identified only by its position in the camera frame.
-- Gesture templates stay on the laptop in `vision/templates/` and are git-ignored. One exception: `vision/templates/thumbs_up.json` is the built-in thumbs-up, recorded by a developer, and contains no student data.
+- Gesture templates stay on the laptop in `vision/templates/` and are git-ignored, with no exceptions. The built-in gestures (thumbs up, open palm, pointing, peace, fist) use MediaPipe's own recogniser and need no template file; a teacher-recorded gesture and its catalog entry (`custom_gestures.catalog.json`) are stored there too.
 - Only simulated student data during the hackathon, never real student data.
 - No secrets in git, and no secrets in browser-visible variables (`NEXT_PUBLIC_*`).
 
@@ -154,7 +158,7 @@ These come from the PRD and are not optional.
 - The agent never sees camera frames, never diagnoses, and never claims anything about a child's internal state.
 - The agent picks only from the approved intervention menu.
 - Teacher approval is needed before Cues changes a student's task, an instruction, or a support intervention. A teacher notification does not need approval.
-- If the LLM call fails or times out, the agent falls back to a deterministic, rule-based alert.
+- If the LLM call fails or times out, the failure is logged and isolated: no review is fabricated and nothing is written for it (PRD §12). The teacher still sees the child's vision status; a later, stronger evaluation can try again.
 
 **Photon**
 - Messages contain the minimum necessary information only: no images or raw camera data, no expression labels, no diagnoses, no unnecessary personal details.
