@@ -3,28 +3,37 @@ import CuesMark from "@/components/cues-mark";
 
 // Site footer, laid out like LionPlan's: brand and a line about Cues, then
 // three link columns.
-export default function LandingFooter({ start }: { start: string }) {
+export default function LandingFooter({
+  start,
+  needs = false,
+}: {
+  start: string;
+  /** web.landing_needs: the special-education section replaces the privacy section. */
+  needs?: boolean;
+}) {
   const columns = [
     {
       title: "Product",
       links: [
-        { label: "How it works", href: "#how" },
-        { label: "Teacher control", href: "#control" },
-        { label: "Get started", href: start },
+        { label: "How It Works", href: "#how" },
+        { label: "Teacher Control", href: "#control" },
+        { label: "Get Started", href: start },
       ],
     },
     {
       title: "About",
       links: [
-        { label: "Privacy", href: "#privacy" },
+        needs
+          ? { label: "Special Education", href: "#needs" }
+          : { label: "Privacy", href: "#privacy" },
         { label: "FAQ", href: "#faq" },
       ],
     },
     {
       title: "Teachers",
       links: [
-        { label: "Sign in", href: "/login" },
-        { label: "Open the classroom", href: "/dashboard" },
+        { label: "Sign In", href: "/login" },
+        { label: "Open The Classroom", href: "/dashboard" },
       ],
     },
   ];
