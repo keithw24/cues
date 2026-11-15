@@ -139,6 +139,38 @@ h3,
 p {
   margin-top: 0;
 }
+/* Headings break into even lines; body text avoids a lone last word. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+/* The theme icon cross-fades in after a switch (never on page load). */
+@media (prefers-reduced-motion: no-preference) {
+  .theme-icon-in {
+    animation: theme-icon-in 300ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-icon-in {
+    animation: theme-icon-fade 200ms ease-out both;
+  }
+}
+@keyframes theme-icon-in {
+  from {
+    opacity: 0;
+    scale: 0.25;
+    filter: blur(4px);
+  }
+}
+@keyframes theme-icon-fade {
+  from {
+    opacity: 0;
+  }
+}
 h1 {
   margin-bottom: 0;
   font-size: clamp(28px, 3vw, 36px);

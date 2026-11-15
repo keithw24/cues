@@ -90,7 +90,7 @@ export default function Landing() {
                 data-reveal
                 style={{ "--i": 0 } as CSSProperties}
               >
-                <h2 id="how-heading">Simple Tasks, Watched For You</h2>
+                <h2 id="how-heading">Simple Tasks, Watched for You</h2>
                 <p>
                   Pick a task: a raised hand or a thumbs up. One camera
                   follows each student by their place in the frame, and
@@ -138,11 +138,11 @@ export default function Landing() {
                 data-reveal
                 style={{ "--i": 0 } as CSSProperties}
               >
-                <p className="ln-card-label">Waiting For You</p>
+                <p className="ln-card-label">Waiting for You</p>
                 <div className="ln-approval">
                   <p className="ln-seat-meta">Seat 2 · Raise hand</p>
                   <p className="ln-approval-title">
-                    Break The Task Into Two Steps
+                    Break the Task Into Two Steps
                   </p>
                   <p className="ln-approval-why">
                     <RiLightbulbLine />
@@ -175,7 +175,7 @@ export default function Landing() {
               data-reveal
               style={{ "--i": 0 } as CSSProperties}
             >
-              The Camera Stays In The Classroom
+              The Camera Stays in the Classroom
             </h2>
             <p data-reveal style={{ "--i": 1 } as CSSProperties}>
               Student camera images and video stay on the classroom laptop. Only structured status updates,
@@ -194,7 +194,7 @@ export default function Landing() {
               </li>
               <li data-reveal style={{ "--i": 4 } as CSSProperties}>
                 <RiLock2Line />
-                <strong>You Stay In Control</strong>
+                <strong>You Stay in Control</strong>
                 <span>
                   Every change to a task, instruction or support waits for your
                   approval.
@@ -214,7 +214,7 @@ export default function Landing() {
               <RiArrowRightLine aria-hidden="true" />
             </Link>
             <Link className="ln-button ln-button-ghost" href="/dashboard">
-              Open The Classroom
+              Open the Classroom
             </Link>
           </div>
         </section>

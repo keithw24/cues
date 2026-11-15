@@ -33,7 +33,7 @@ export default function LandingFooter({
       title: "Teachers",
       links: [
         { label: "Sign In", href: "/login" },
-        { label: "Open The Classroom", href: "/dashboard" },
+        { label: "Open the Classroom", href: "/dashboard" },
       ],
     },
   ];

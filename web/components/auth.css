@@ -56,9 +56,10 @@
   display: inline-flex;
   align-items: center;
   height: 40px;
-  padding: 0 14px;
+  padding: 0 16px;
   border: 1px solid #ebebeb;
-  border-radius: 12px;
+  /* A pill, like the landing page's Get Started. */
+  border-radius: 999px;
   background: #ffffff;
   color: var(--auth-ink-soft);
   font-size: 14px;
@@ -73,7 +74,7 @@
   min-height: 32px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #ffffff;
   color: var(--auth-ink-soft);
 }
@@ -141,7 +142,8 @@
 .auth-hint {
   min-height: 18px;
   margin: 0;
-  color: var(--auth-ink-faint);
+  /* ink-soft, not faint: the hint is read before typing (4.5:1 or better). */
+  color: var(--auth-ink-soft);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -399,7 +401,8 @@
   min-height: 40px;
   padding: 0;
   border: 1px solid #ebebeb;
-  border-radius: 12px;
+  /* A circle, like the landing page's theme switch. */
+  border-radius: 50%;
   background: #ffffff;
   color: var(--auth-ink-soft);
   transition-property: scale, background-color, color;

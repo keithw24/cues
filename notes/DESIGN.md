@@ -116,6 +116,11 @@ Corners are concentric: an outer radius equals the inner radius plus the padding
 - Hover styles apply only on hover-capable pointers.
 - Under `prefers-reduced-motion: reduce`, movement and blur are removed.
 - The theme toggle turns transitions off for the swap so colors change at once.
+- After a switch (not on page load) the theme icon cross-fades in: scale 0.25→1, blur 4px→0, 300ms; opacity only under reduced motion.
+- The landing page's Get Started arrow leans 2px toward its target on hover (real pointers only).
+- Headings use `text-wrap: balance` and paragraphs `text-wrap: pretty` site-wide.
+- Header controls are a matched pair everywhere: a 40px round theme switch beside a pill (Get Started on the landing page, Sign up / Log in on the sign-in pages).
+- Landing copy is Title Case with small words (a, the, or, for, to, by…) in lower case.
 - **Landing hero glow drift.** The blurred glow behind the landing headline (`.ln-hero::before`) slowly turns and swells (`ln-drift`: up to 8° rotation, 1.08 scale, starting from the untransformed glow, a few percent of travel, 26s each way, `cubic-bezier(0.77, 0, 0.175, 1)`, alternating). Transform only. It runs only with `web.landing_motion`, only while the hero is on screen in a visible tab (`landing-ambient.tsx` sets `data-drift`; otherwise the animation pauses in place), and never under reduced motion. The landing page's main navy background does not move.
 - The logo does not move between the landing and sign-in pages: both headers are 72px tall with a `clamp(16px, 4vw, 40px)` side gutter and a 28px mark.
 

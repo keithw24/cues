@@ -24,21 +24,27 @@ export default function LandingHero({
         </h1>
         <p className="ln-lede ln-enter">
           Cues watches for{" "}
-          <span className="ln-inline-chip">
-            <RiHand aria-hidden="true" />
-            raised hands
-          </span>
-          ,{" "}
+          {/* Each chip keeps its comma: a line never starts with one. */}
+          <span className="ln-chip-group">
+            <span className="ln-inline-chip">
+              <RiHand aria-hidden="true" />
+              raised hands
+            </span>
+            ,
+          </span>{" "}
           <span className="ln-inline-chip">
             <RiThumbUpLine aria-hidden="true" />
             thumbs up
           </span>{" "}
           and{" "}
-          <span className="ln-inline-chip">
-            <RiRepeatLine aria-hidden="true" />
-            who keeps trying
-          </span>
-          , then suggests support you approve.
+          <span className="ln-chip-group">
+            <span className="ln-inline-chip">
+              <RiRepeatLine aria-hidden="true" />
+              who keeps trying
+            </span>
+            ,
+          </span>{" "}
+          then suggests support you approve.
         </p>
         <div className="ln-actions ln-enter">
           <Link className="ln-button ln-button-dark" href={start}>

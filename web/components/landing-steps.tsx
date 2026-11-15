@@ -8,7 +8,7 @@ const steps = [
   {
     id: undefined,
     icon: RiHand,
-    title: "Pick A Task",
+    title: "Pick a Task",
     text: "Choose a raised hand or a thumbs up from the list, then press Start. The whole class works on it.",
   },
   {
