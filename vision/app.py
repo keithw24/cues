@@ -70,13 +70,20 @@ def create_app(pipeline: Pipeline | None = None) -> FastAPI:
 
         p = pipeline or Pipeline(camera_from_env(), discover_stages())
         app.state.pipeline = p
+        from vision.review_marks import sync_from_env as review_marks_from_env
+
         sync = sync_from_env() if pipeline is None else None
+        marks_sync = review_marks_from_env() if pipeline is None else None
         p.start()
         if sync is not None:
             sync.start()
+        if marks_sync is not None:
+            marks_sync.start()
         try:
             yield
         finally:
+            if marks_sync is not None:
+                marks_sync.stop()
             if sync is not None:
                 sync.stop()
             p.stop()

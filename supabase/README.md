@@ -41,6 +41,25 @@ Never print the connection URL, enable shell tracing, or run a remote db reset.
 The earlier duplicate-history warnings in historical notes are superseded by
 this reconciliation. Fresh projects should apply the current unique sorted chain.
 
+## Mark as reviewed (migration 015, local only)
+
+`20261114001500_review_marks.sql`:
+
+- **`mark_seat_reviewed(session, seat)`** (signed-in teachers of the station only; the
+  browser names just the session and the person). It records a mark in
+  `seat_review_marks` and closes that person's open review requests as `reviewed`.
+  Vision reads the mark to put the child back to working and restart the no-progress
+  timer (flag `vision.review_marks`); the agent reads it to restart stall detection.
+  Marking works even when the child has no open review.
+- **Completing the task closes the review request.** A trigger on `seat_state` closes
+  that person's open reviews for the activity as `expired` when the status becomes `done`.
+- `reviewed` is a new review status (a teacher marked the child reviewed); like `expired`
+  it is not a decision on the review. A one-time cleanup closes open reviews of children
+  who have already completed their task.
+- The dashboard button is under the existing `web.teacher_review_actions` flag.
+
+Local tests: `supabase/tests/test_review_marks.py`. Not deployed.
+
 ## Review lifecycle (migration 013, local only)
 
 `20261114001300_review_lifecycle.sql`:

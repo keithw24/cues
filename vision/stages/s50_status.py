@@ -63,10 +63,12 @@ class StatusStage:
     name = "status"
     rate_hz = None
 
-    def __init__(self, emitter=None, tasks=TASKS, zones=GROUPING, station=None) -> None:
+    def __init__(self, emitter=None, tasks=TASKS, zones=GROUPING, station=None, marks=None) -> None:
         from vision import station as station_module
+        from vision.review_marks import MARKS
 
         self.station = station or station_module.STATION
+        self.marks = marks or MARKS
         self._station_generation = self.station.generation
         self.tasks = tasks
         self.zones = zones
@@ -135,8 +137,15 @@ class StatusStage:
                 continue
             activity = activities.get(activity_id)
             tracker = self._trackers.get(seat)
+            marked = self.marks.get(session_id, seat)
             if tracker is None or tracker.activity.id != activity.id:
                 tracker = self._trackers[seat] = SeatTracker(seat, activity)
+                tracker.acknowledged_at = marked  # a mark from before this tracker is old news
+            elif marked is not None and (
+                tracker.acknowledged_at is None or marked > tracker.acknowledged_at
+            ):
+                # The teacher marked this child reviewed: back to working, timers restart.
+                tracker.acknowledge(marked)
             match = matches.get(seat)
             score = match.score if match is not None and match.activity_id == activity.id else None
             visible = seat in faces or seat in ctx.get("people", {})

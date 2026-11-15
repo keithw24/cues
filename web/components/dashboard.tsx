@@ -17,6 +17,12 @@ import { createDashboardClient } from "@/lib/supabase";
 import { startLocalVisionSync } from "@/lib/local-vision";
 import { Card } from "@/components/ui/card";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
+import { MarkReviewedButton } from "@/components/mark-reviewed-button";
+import {
+  flagLabel,
+  readStationFlags,
+  type StationFlag,
+} from "@/lib/station-flags";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import {
@@ -70,8 +76,11 @@ function SeatDetails({
   close,
   headingRef,
   observationOptions,
+  actions,
 }: {
   observationOptions?: ObservationOptions;
+  /** Shown while this person needs review (for example "Mark as reviewed"). */
+  actions?: React.ReactNode;
   seat: SeatView;
   close: () => void;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
@@ -102,6 +111,7 @@ function SeatDetails({
           {presentation.label}
         </p>
         <p className="detail-description">{seat.activity}</p>
+        {presentation.needsReview ? actions : null}
       </div>
     </section>
   );
@@ -397,6 +407,30 @@ export default function Dashboard({
       else attentionHeading.current?.focus();
     });
   };
+  // "Mark as reviewed": close this person's review requests here at once (every page reads
+  // the same table, so they leave the others too) and let vision reset them to working.
+  const markReviewedButton = (sessionId: string | null, seatId: string) =>
+    reviewActionsEnabled && client && sessionId ? (
+      <MarkReviewedButton
+        key={seatId}
+        client={client}
+        sessionId={sessionId}
+        seatId={seatId}
+        onMarked={(marked) =>
+          setReviews((state) => {
+            const closed = (state.reviews ?? []).filter(
+              (item) => item.seat_id === marked,
+            );
+            for (const item of closed) resolvedReviewIds.current.add(item.id);
+            return {
+              ...state,
+              reviews:
+                state.reviews?.filter((item) => item.seat_id !== marked) ?? null,
+            };
+          })
+        }
+      />
+    ) : null;
   const closeDetails = () => {
     setSelectedId(null);
     const opener = detailOpener.current;
@@ -498,11 +532,43 @@ export default function Dashboard({
     if (detailOpener.current?.closest(".room-drawer")) inside();
     else closeDrawer();
   };
-  const timelineMarks = queue.map((review) => ({
-    id: review.id,
-    at: review.created_at,
-    label: `${reviewName(review.seat_id)} flagged`,
+  // The "Last hour" timeline: every moment someone was flagged in the last hour, from the
+  // teacher's own sessions (reviews of any status, and vision's own flags). Refreshed every
+  // 30 s and as soon as the review queue changes. Null until it loads (or when it cannot):
+  // then the pending queue is shown, as before.
+  const [flags, setFlags] = useState<StationFlag[] | null>(null);
+  const waiting = queue.length;
+  useEffect(() => {
+    if (!client || !station || !reviewsEnabled) return;
+    let disposed = false;
+    const load = () => {
+      void readStationFlags(client, station, Date.now() - 60 * 60 * 1000)
+        .then((rows) => {
+          if (!disposed) setFlags(rows);
+        })
+        .catch(() => {
+          if (!disposed) setFlags(null);
+        });
+    };
+    load();
+    const timer = setInterval(load, 30_000);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, [client, station, reviewsEnabled, waiting]);
+  const flagMarks = flags?.map((flag) => ({
+    id: flag.id,
+    at: flag.at,
+    label: flagLabel(flag.kind, reviewName(flag.seat_id)),
   }));
+  const timelineMarks =
+    flagMarks ??
+    queue.map((review) => ({
+      id: review.id,
+      at: review.created_at,
+      label: `${reviewName(review.seat_id)} flagged`,
+    }));
 
   return (
     <div className="dashboard-shell">
@@ -725,6 +791,12 @@ export default function Dashboard({
                           }}
                         />
                       ) : null}
+                      {selectedReview
+                        ? markReviewedButton(
+                            selectedReview.session_id,
+                            selectedReview.seat_id,
+                          )
+                        : null}
                     </TeacherReviewDetails>
                   ) : selected ? (
                     <SeatDetails
@@ -732,6 +804,10 @@ export default function Dashboard({
                       observationOptions={observationOptions}
                       close={() => closeInDrawer(closeDetails)}
                       headingRef={detailsHeading}
+                      actions={markReviewedButton(
+                        selected.state?.session_id ?? null,
+                        selected.id,
+                      )}
                     />
                   ) : (
                     <section aria-labelledby="attention-heading">
@@ -961,6 +1037,12 @@ export default function Dashboard({
                         }}
                       />
                     ) : null}
+                    {selectedReview
+                      ? markReviewedButton(
+                          selectedReview.session_id,
+                          selectedReview.seat_id,
+                        )
+                      : null}
                   </TeacherReviewDetails>
                 ) : selected ? (
                   <SeatDetails
@@ -968,6 +1050,10 @@ export default function Dashboard({
                     observationOptions={observationOptions}
                     close={closeDetails}
                     headingRef={detailsHeading}
+                    actions={markReviewedButton(
+                      selected.state?.session_id ?? null,
+                      selected.id,
+                    )}
                   />
                 ) : (
                   <section aria-labelledby="attention-heading">
