@@ -109,13 +109,20 @@ export function reviewQueue<T extends { id: string }>({
  * restores Needs Review when a lost person comes back). */
 const STILL_FLAGGED = new Set(["review", "needs_help", "tracking_lost"]);
 
+/** How long a flagged person who dropped out of view keeps the companion
+ * resting: vision's own release time for a person it lost (RELEASE_SECONDS in
+ * vision/people.py). After that they are gone, not a queue that was cleared. */
+export const DROP_REST_MS = 10_000;
+
 /**
- * Flagged people who left the waiting count without a reason the teacher
- * would recognise: not marked reviewed, no request now, and the camera has not
- * moved them on (their last status still reads flagged or lost, or their row
- * went stale). While any remain, the companion rests instead of "eating" a
- * queue nobody cleared. `status` is the seat's raw status, or undefined when
- * the seat is no longer listed (another classroom), which counts as resolved.
+ * Flagged people who left the waiting count in the last few seconds without a
+ * reason the teacher would recognise: not marked reviewed, no request now, and
+ * the camera has not moved them on (their row still reads flagged or lost).
+ * While any remain, the companion rests instead of "eating" a queue nobody
+ * cleared. `row` is the seat's latest row, or undefined when the seat is no
+ * longer listed (another classroom); `clock` is the page's time in ms, or null
+ * when it is not ticking. Both of those count as resolved, and so does a row
+ * older than DROP_REST_MS, so the rest always ends.
  */
 export function unexplainedDrops(
   before: readonly string[],
@@ -123,17 +130,21 @@ export function unexplainedDrops(
   {
     marked,
     asked,
-    status,
+    row,
+    clock,
   }: {
     marked: ReadonlySet<string>;
     asked: ReadonlySet<string>;
-    status: (id: string) => string | undefined;
+    row: (id: string) => { status: string; updated_at: string } | undefined;
+    clock: number | null;
   },
 ): string[] {
   return before.filter((id) => {
     if (now.has(id) || marked.has(id) || asked.has(id)) return false;
-    const raw = status(id);
-    return raw !== undefined && STILL_FLAGGED.has(raw);
+    const latest = row(id);
+    if (!latest || clock === null || !STILL_FLAGGED.has(latest.status)) return false;
+    const age = clock - Date.parse(latest.updated_at);
+    return Number.isFinite(age) && age < DROP_REST_MS;
   });
 }
 

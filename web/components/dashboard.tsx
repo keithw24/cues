@@ -200,20 +200,26 @@ export default function Dashboard({
   // Marks are shared with the other page through this tab's storage, per
   // classroom, so a person marked on To review is not offered again (or named
   // in Attention) on the classroom page while the camera catches up.
+  // Write only once this classroom's saved marks are in memory, so neither a
+  // station switch nor a re-run effect (Strict Mode) writes the wrong set.
+  const [marksLoadedFor, setMarksLoadedFor] = useState("");
   useEffect(() => {
     if (!station) return;
     let saved: string[] = [];
     try {
       saved = readMarked(window.sessionStorage, station);
     } catch {}
-    queueMicrotask(() => setMarkedSeats(new Set(saved)));
+    queueMicrotask(() => {
+      setMarkedSeats(new Set(saved));
+      setMarksLoadedFor(station);
+    });
   }, [station]);
   useEffect(() => {
-    if (!station) return;
+    if (!station || marksLoadedFor !== station) return;
     try {
       writeMarked(window.sessionStorage, station, markedSeats);
     } catch {}
-  }, [station, markedSeats]);
+  }, [station, marksLoadedFor, markedSeats]);
   // Tell this laptop's vision service the signed-in teacher's resolved station.
   // The result isn't shown as a caption: the camera card itself says when the
   // camera can't be reached.
@@ -481,8 +487,8 @@ export default function Dashboard({
   const dropReasons = {
     marked: markedSeats,
     asked: new Set(reviewGroups.map((group) => group.seat_id)),
-    // A stale row keeps its last status, so a camera that went quiet stays unexplained.
-    status: (id: string) => seats.find((seat) => seat.id === id)?.state?.status,
+    row: (id: string) => seats.find((seat) => seat.id === id)?.state ?? undefined,
+    clock: observationNow,
   };
   if (flaggedIds !== countedFlagged) {
     setCountedFlagged(flaggedIds);
@@ -500,6 +506,13 @@ export default function Dashboard({
     );
   }
   const unexplained = unexplainedDrops(droppedFlagged, nowFlagged, dropReasons);
+  // Forget anyone who has since been resolved (or timed out), so a later loss
+  // of someone no longer flagged never makes the companion rest.
+  if (
+    flaggedIds === countedFlagged &&
+    unexplained.length !== droppedFlagged.length
+  )
+    setDroppedFlagged(unexplained);
   const companionCount =
     reviewsLive &&
     (!reviewWaitingEnabled || (feed.snapshot && unexplained.length === 0))
@@ -759,10 +772,13 @@ export default function Dashboard({
                               seatIds: reviewGroups.map((group) => group.seat_id),
                               // Flagged people without a request have nothing to close, but
                               // their "No suggestion yet" card goes with everyone else's.
-                              onReset: (ids) =>
+                              onReset: (ids) => {
                                 [...ids, ...flaggedOnly.map((seat) => seat.id)].forEach(
                                   applyMarked,
-                                ),
+                                );
+                                // Everyone starts over: nobody is still "just lost".
+                                setDroppedFlagged([]);
+                              },
                             }
                           : null
                       }

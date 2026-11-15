@@ -87,20 +87,28 @@ test("the rail and the header show the same count, and reset clears waiting card
   assert.match(waiting, /No suggestion yet/);
 });
 
-test("a flagged person who just left the camera is not a cleared queue", async () => {
-  const { unexplainedDrops } = await import("../lib/classroom-view.ts");
+test("a flagged person who just left the camera is not a cleared queue, for a while", async () => {
+  const { unexplainedDrops, DROP_REST_MS } = await import("../lib/classroom-view.ts");
   const none = new Set<string>();
-  const status = (statuses: Record<string, string>) => (id: string) => statuses[id];
-  // Lost by the camera, or the camera went quiet (the stale row still reads flagged).
-  assert.deepEqual(unexplainedDrops(["S1-P1"], none, { marked: none, asked: none, status: status({ "S1-P1": "tracking_lost" }) }), ["S1-P1"]);
-  assert.deepEqual(unexplainedDrops(["S1-P1"], none, { marked: none, asked: none, status: status({ "S1-P1": "needs_help" }) }), ["S1-P1"]);
-  // Real reasons: marked reviewed, a request arrived, the camera reset them, or another classroom.
-  assert.deepEqual(unexplainedDrops(["S1-P1"], none, { marked: new Set(["S1-P1"]), asked: none, status: status({ "S1-P1": "review" }) }), []);
-  assert.deepEqual(unexplainedDrops(["S1-P1"], none, { marked: none, asked: new Set(["S1-P1"]), status: status({ "S1-P1": "review" }) }), []);
-  assert.deepEqual(unexplainedDrops(["S1-P1"], none, { marked: none, asked: none, status: status({ "S1-P1": "in_progress" }) }), []);
-  assert.deepEqual(unexplainedDrops(["S1-P1"], none, { marked: none, asked: none, status: status({}) }), []);
+  const at = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
+  const rows = (status: string, secondsAgo = 1) => (id: string) =>
+    id === "S1-P1" ? { status, updated_at: at(secondsAgo) } : undefined;
+  const reasons = (row: ReturnType<typeof rows>, extra = {}) => ({
+    marked: none, asked: none, row, clock: NOW, ...extra,
+  });
+  // Lost by the camera, or the camera went quiet (the row still reads flagged).
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("tracking_lost"))), ["S1-P1"]);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("needs_help", 4))), ["S1-P1"]);
+  // Lost and never back: the rest ends after vision's release time.
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("tracking_lost", DROP_REST_MS / 1000))), []);
+  // Real reasons: marked, a request, the camera reset them, another classroom, no clock.
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("review"), { marked: new Set(["S1-P1"]) })), []);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("review"), { asked: new Set(["S1-P1"]) })), []);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("in_progress"))), []);
+  assert.deepEqual(unexplainedDrops(["S1-P9"], none, reasons(rows("review"))), []);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("review"), { clock: null })), []);
   // Back in the count: nothing to explain.
-  assert.deepEqual(unexplainedDrops(["S1-P1"], new Set(["S1-P1"]), { marked: none, asked: none, status: status({ "S1-P1": "review" }) }), []);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], new Set(["S1-P1"]), reasons(rows("review"))), []);
 });
 
 test("marks are kept per classroom for this tab and forgotten on sign-out", async () => {
@@ -133,5 +141,9 @@ test("the dashboard shares marks between pages and rests the companion on unexpl
   // Kept marks survive until the seats load.
   assert.match(dashboard, /if \(stillFlagged === null\) return;/);
   assert.match(dashboard, /feed\.snapshot && unexplained\.length === 0/);
+  // Resolved or timed-out drops are forgotten; Reset clears them; marks wait for their load.
+  assert.match(dashboard, /setDroppedFlagged\(unexplained\)/);
+  assert.match(dashboard, /setDroppedFlagged\(\[\]\)/);
+  assert.match(dashboard, /if \(!station \|\| marksLoadedFor !== station\) return;/);
   assert.match(read("../components/profile-account.tsx"), /forgetMarked\(window\.sessionStorage\)/);
 });
