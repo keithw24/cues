@@ -137,3 +137,12 @@ test("scroll reveal defaults on; without it every section is visible", () => {
     /\.landing\[data-reveal-ready\] \[data-reveal\] \{\s*opacity: 0;/,
   );
 });
+
+test("the landing header keeps only the theme switch and Get Started", async () => {
+  const { readFileSync } = await import("node:fs");
+  const landing = readFileSync(new URL("../components/landing.tsx", import.meta.url), "utf8");
+  const nav = landing.slice(landing.indexOf('<nav aria-label="Main">'), landing.indexOf("</nav>"));
+  for (const href of ["#how", "#control", "#needs", "#privacy"])
+    assert.ok(!nav.includes(`href="${href}"`), `no ${href} link in the header`);
+  assert.ok(nav.includes("Get Started"));
+});

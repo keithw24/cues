@@ -57,13 +57,6 @@ export default function Landing() {
           <CuesMark className="ln-brand-mark" />
         </Link>
         <nav aria-label="Main">
-          <a href="#how">How It Works</a>
-          <a href="#control">Teacher Control</a>
-          {needs ? (
-            <a href="#needs">Special Education</a>
-          ) : (
-            <a href="#privacy">Privacy</a>
-          )}
           {themeToggle ? (
             <ThemeToggle pageDefault="light" className="ln-theme-toggle" />
           ) : null}
