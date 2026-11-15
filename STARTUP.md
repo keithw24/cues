@@ -222,3 +222,19 @@ After deployment, enable `CUES_FLAG_AGENT_LIVE_PROGRESS=1` in root `.env` and
 Both flags default off for safe rollout. Vision status remains separate from evaluated
 trend. Missing/stale/invalid-tracking evaluations display unavailable rather than invented
 stall time. See `notes/pipeline-audit.md` for the complete connection audit.
+
+### Hosted dashboard with a local camera
+
+The hosted UI can connect directly to this laptop's loopback vision service when
+`web.hosted_local_feed` is enabled. Set
+`NEXT_PUBLIC_CUES_FLAG_WEB_HOSTED_LOCAL_FEED=1` in Vercel Production and redeploy.
+The allowed frontend origin defaults to `https://cues.nyc`; override explicitly with
+`NEXT_PUBLIC_CUES_HOSTED_ORIGIN` when using another trusted production domain.
+In the laptop's root `.env`, set
+`CUES_DASHBOARD_ORIGINS=http://localhost:3000,https://cues.nyc` and restart vision.
+Keep the service bound to 127.0.0.1. Run dev/demo on the same laptop as the browser,
+open cues.nyc, and click Turn on video. Allow the browser's Local Network Access
+permission if prompted; if denied, change the site's permission and retry.
+Hosted video never autoconnects from a remembered setting. Frames go directly from
+loopback to the browser, never through Vercel. No wildcard origins, public camera
+endpoint, or tunnel is configured. Vercel does not host the camera or agent process.

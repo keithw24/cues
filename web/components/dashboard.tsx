@@ -105,6 +105,8 @@ export default function Dashboard({
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
   themeToggleEnabled = false,
+  hostedLocalFeedEnabled = false,
+  hostedDashboardOrigin = "https://cues.nyc",
   visionStationConfigEnabled = false,
   healthStripEnabled = false,
   interventionsEnabled = false,
@@ -123,6 +125,8 @@ export default function Dashboard({
   reviewActionsEnabled?: boolean;
   teacherLoginEnabled?: boolean;
   themeToggleEnabled?: boolean;
+  hostedLocalFeedEnabled?: boolean;
+  hostedDashboardOrigin?: string;
   visionStationConfigEnabled?: boolean;
   /** web.health_strip: camera on/off, classroom set, updates arriving, other cameras. */
   healthStripEnabled?: boolean;
@@ -707,7 +711,7 @@ export default function Dashboard({
             ) : (
               <>
             <div className="monitor-workspace">
-              <LocalClassroomFeed />
+              <LocalClassroomFeed hostedEnabled={hostedLocalFeedEnabled} hostedOrigin={hostedDashboardOrigin} />
               <section
                 className="ws-panel class-panel"
                 aria-labelledby="class-heading"

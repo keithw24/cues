@@ -202,5 +202,11 @@
     "default": false,
     "owner": "evan",
     "ticket": "interventions"
+  },
+  "web.hosted_local_feed": {
+    "description": "Allow the configured hosted dashboard origin to connect directly to local vision; local-network permission and explicit backend CORS required.",
+    "default": false,
+    "owner": "michelle",
+    "ticket": "hosted-local-feed"
   }
 }
