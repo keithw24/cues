@@ -23,6 +23,11 @@ import {
   readStationFlags,
   type StationFlag,
 } from "@/lib/station-flags";
+import {
+  CAMERA_CONFLICT_MESSAGE,
+  cameraConflict,
+  readStationWriter,
+} from "@/lib/station-writer";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import {
@@ -443,6 +448,27 @@ export default function Dashboard({
   // Live session controls get their own row in the room view; the
   // not-connected fallback stays a small pill in the header.
   const sessionLive = Boolean(sessionControlsEnabled && client);
+  // One camera per station: while a second camera is being refused (and paused), say so.
+  const [conflict, setConflict] = useState(false);
+  useEffect(() => {
+    if (!client || !station || !sessionControlsEnabled) return;
+    let disposed = false;
+    const check = () => {
+      void readStationWriter(client, station)
+        .then((writer) => {
+          if (!disposed) setConflict(cameraConflict(writer, Date.now()));
+        })
+        .catch(() => {
+          if (!disposed) setConflict(false);
+        });
+    };
+    check();
+    const timer = setInterval(check, 5000);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, [client, station, sessionControlsEnabled]);
   const activityPopover =
     sessionLive && client ? (
       <section className="session-toolbar" aria-label="Session controls">
@@ -453,6 +479,11 @@ export default function Dashboard({
           onActivity={setSessionActivity}
           teacherLoginEnabled={teacherLoginEnabled}
         />
+        {conflict ? (
+          <p className="station-busy" role="status">
+            {CAMERA_CONFLICT_MESSAGE}
+          </p>
+        ) : null}
       </section>
     ) : (
       <details className="activity-popover">
