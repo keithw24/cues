@@ -425,12 +425,58 @@
   line-height: 1.4;
 }
 
-/* Camera health: four words, and one sentence only when something needs the teacher. */
+/* Camera health: one pill with a status dot; the four words and the sentence
+   open underneath it. */
+.dashboard-shell .health-strip summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 14px;
+  border-radius: 999px;
+  background: var(--ws-surface);
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+  line-height: 1.4;
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dashboard-shell .health-strip summary::-webkit-details-marker {
+  display: none;
+}
+.dashboard-shell .health-strip summary svg {
+  width: 16px;
+  height: 16px;
+}
+.dashboard-shell .health-strip[open] summary svg {
+  rotate: 180deg;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-shell .health-strip summary svg {
+    transition: rotate 150ms ease-out;
+  }
+}
+.dashboard-shell .health-summary {
+  color: var(--ws-ink);
+  font-weight: 600;
+}
+.dashboard-shell .health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ws-ink-faint);
+}
+.dashboard-shell .health-dot.is-good {
+  background: var(--ws-done);
+}
+.dashboard-shell .health-dot.is-warn {
+  background: var(--ws-review);
+}
 .dashboard-shell .health-strip ul {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0;
+  margin: 8px 0 0;
   padding: 0;
   list-style: none;
 }

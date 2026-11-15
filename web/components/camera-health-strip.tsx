@@ -7,6 +7,7 @@ import {
   updatesFresh,
   type LocalVisionReading,
 } from "@/lib/camera-health";
+import { WorkspaceIcon } from "@/components/workspace-icon";
 import { mayConnectLocalFeed } from "@/lib/local-feed-policy";
 
 const POLL_MS = 3000;
@@ -70,8 +71,23 @@ export function CameraHealthStrip({
     conflict,
     localReadable: localReadable ?? undefined,
   });
+  // Closed by default: one pill with a dot that turns amber when any check
+  // needs a look. The four checks and the sentence open underneath.
+  const tone = health.items.some((item) => item.tone === "warn")
+    ? "warn"
+    : health.items.every((item) => item.tone === "good")
+      ? "good"
+      : "quiet";
+  const summary =
+    tone === "warn" ? "Needs a look" : tone === "good" ? "All good" : "Checking";
   return (
-    <section className="health-strip" aria-label="Camera health">
+    <details className="health-strip">
+      <summary>
+        <span className={`health-dot is-${tone}`} aria-hidden="true" />
+        Camera status
+        <span className="health-summary">{summary}</span>
+        <WorkspaceIcon name="chevronDown" />
+      </summary>
       <ul>
         {health.items.map((item) => (
           <li key={item.key} className={`health-item is-${item.tone}`}>
@@ -85,6 +101,6 @@ export function CameraHealthStrip({
           {health.problem}
         </p>
       ) : null}
-    </section>
+    </details>
   );
 }
