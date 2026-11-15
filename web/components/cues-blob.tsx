@@ -167,14 +167,15 @@ export default function CuesBlob({
           height="130%"
           colorInterpolationFilters="sRGB"
         >
-          {/* A feathered edge: the body fades out over its last few pixels. */}
-          <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="soft" />
+          {/* A clean edge: just enough softening to anti-alias, so the body stays
+              as crisp as the eyes at any size. */}
+          <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="soft" />
           {/* A light band inside the edge, so the rim reads paler than the middle. */}
           <feGaussianBlur in="SourceAlpha" stdDeviation="26" result="deep" />
           <feComposite in="soft" in2="deep" operator="out" result="rim" />
           <feFlood floodColor="#cdc8f6" floodOpacity="0.85" />
           <feComposite in2="rim" operator="in" result="rimLight" />
-          {/* Fine light and dark grain, as on a soft felt ball. */}
+          {/* Fine, faint light and dark grain: a texture, not visible noise. */}
           <feTurbulence
             type="fractalNoise"
             baseFrequency="0.75"
@@ -186,13 +187,13 @@ export default function CuesBlob({
           <feColorMatrix
             in="noise"
             type="matrix"
-            values="0 0 0 0 0.9  0 0 0 0 0.88  0 0 0 0 1  1.2 0 0 0 -0.62"
+            values="0 0 0 0 0.9  0 0 0 0 0.88  0 0 0 0 1  0.7 0 0 0 -0.4"
             result="light"
           />
           <feColorMatrix
             in="noise"
             type="matrix"
-            values="0 0 0 0 0.11  0 0 0 0 0.16  0 0 0 0 0.42  -1.2 0 0 0 0.5"
+            values="0 0 0 0 0.11  0 0 0 0 0.16  0 0 0 0 0.42  -0.7 0 0 0 0.26"
             result="dark"
           />
           <feMerge result="painted">
