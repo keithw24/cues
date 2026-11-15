@@ -71,5 +71,6 @@ test("the classroom wires the flagged line from the same list as To review", asy
   const dash = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
   // Built from reviewQueue's flagged list (marked people already left out).
   assert.match(dash, /attentionFlaggedLine\(\s*flaggedOnly\.map\(\(seat\) => seat\.display_name\),/);
-  assert.match(dash, /flaggedLine \?\?\s*"All clear\. Cues will ask when someone may need you\."/);
+  // All clear only when nobody is flagged and nobody marked is still catching up.
+  assert.match(dash, /flaggedLine \?\?\s*\(catchingUp\s*\?\s*"Marked as reviewed\. The camera will catch up in a moment\."\s*:\s*"All clear\. Cues will ask when someone may need you\."\)/);
 });
