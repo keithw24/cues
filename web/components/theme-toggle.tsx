@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { RiMoonLine, RiSunLine } from "@remixicon/react";
-import { THEME_KEY, type Theme } from "@/lib/theme";
+import { AUTO_THEME_ATTRIBUTE, THEME_KEY, type Theme } from "@/lib/theme";
 
 // Light/dark switch. The choice lives on <html data-theme> and in
 // localStorage; with no choice each page keeps its own default.
@@ -41,6 +41,8 @@ export function ThemeToggle({
         pause.textContent = "*,*::before,*::after{transition:none!important}";
         document.head.appendChild(pause);
         root.dataset.theme = next;
+        // From here on it is the visitor's choice, not a page default.
+        root.removeAttribute(AUTO_THEME_ATTRIBUTE);
         void getComputedStyle(root).color;
         requestAnimationFrame(() => pause.remove());
         try {
