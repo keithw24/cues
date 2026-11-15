@@ -1,9 +1,37 @@
 "use client";
 
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Avatar } from "@bible-strong/avatar-react";
 import type { AvatarCharacter } from "@bible-strong/avatar-core";
 import "./cues-blob.css";
+
+/** The body shapes the companion can take (from the avatar package). */
+export type BlobShape =
+  | "sphere"
+  | "capsule"
+  | "cube"
+  | "cylinder"
+  | "cone"
+  | "diamond"
+  | "trapezoid";
+
+// Proportions per shape, at the sphere's 240-unit scale, so every shape
+// fills the same space and keeps the same face.
+const shapes: Record<BlobShape, { width: number; height: number; depth: number; roundness: number }> = {
+  sphere: { width: 240, height: 240, depth: 240.03671875, roundness: 1 },
+  capsule: { width: 190, height: 260, depth: 190, roundness: 1 },
+  cube: { width: 230, height: 230, depth: 230, roundness: 0.55 },
+  cylinder: { width: 220, height: 250, depth: 220, roundness: 0.5 },
+  cone: { width: 240, height: 250, depth: 240, roundness: 0.5 },
+  diamond: { width: 240, height: 260, depth: 240, roundness: 0.5 },
+  trapezoid: { width: 240, height: 230, depth: 230, roundness: 0.55 },
+};
 
 // Body and face proportions adapted from the MIT-licensed Strobi example.
 // The blob is Cues' companion, never a teacher or learner identity.
@@ -42,20 +70,65 @@ export default function CuesBlob({
   wander = true,
   busy = false,
   privacy = false,
+  shape = "sphere",
+  color,
+  glance = false,
+  seed,
 }: {
+  /** Animation seed. Companions with the same seed play the same clips at the
+   * same moment, so give each one on a screen its own. */
+  seed?: number;
+  /** Look around on its own, at its own pace (several companions on one
+   * screen don't all follow the pointer together). */
+  glance?: boolean;
   size?: number;
+  /** Body shape; the sign-in companion is a sphere. */
+  shape?: BlobShape;
+  /** Body color as hex; defaults to the companion's indigo. */
+  color?: `#${string}`;
   /** Walk from side to side and look where it is going. */
   wander?: boolean;
   busy?: boolean;
   privacy?: boolean;
 }) {
   const filterId = useId().replaceAll(":", "");
+  const look = useMemo<AvatarCharacter>(
+    () =>
+      shape === "sphere" && !color
+        ? character
+        : {
+            ...character,
+            body: {
+              ...character.body,
+              primary: { ...character.body.primary, type: shape, ...shapes[shape] },
+            },
+            colors: { ...character.colors, body: color ?? character.colors.body },
+          },
+    [shape, color],
+  );
   const reduced = useSyncExternalStore(
     subscribe,
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     () => true,
   );
   const walking = wander && !reduced && !busy && !privacy;
+  // Glancing: every 1.6–4s, look somewhere new within a small range. Each
+  // instance keeps its own timer and random targets, so a group never moves
+  // in step. Off under reduced motion.
+  const [gaze, setGaze] = useState<[number, number]>([0, 0]);
+  useEffect(() => {
+    if (!glance || reduced || walking) return;
+    let timer = 0;
+    const next = () => {
+      setGaze([
+        Math.round((Math.random() * 0.5 - 0.25) * 100) / 100,
+        Math.round((Math.random() * 0.24 - 0.08) * 100) / 100,
+      ]);
+      timer = window.setTimeout(next, 1600 + Math.random() * 2400);
+    };
+    timer = window.setTimeout(next, Math.random() * 1500);
+    return () => window.clearTimeout(timer);
+  }, [glance, reduced, walking]);
   const [side, setSide] = useState(0);
   useEffect(() => {
     if (!walking) return;
@@ -133,10 +206,19 @@ export default function CuesBlob({
       </svg>
       <div className="cues-blob-walker">
         <Avatar
-          character={character}
+          character={look}
+          seed={seed}
           size={size}
           state={privacy ? "sleeping" : busy ? "thinking" : "idle"}
-          lookAt={reduced ? [0, 0] : walking ? [side * 0.16, 0.03] : null}
+          lookAt={
+            reduced
+              ? [0, 0]
+              : walking
+                ? [side * 0.16, 0.03]
+                : glance
+                  ? gaze
+                  : null
+          }
           paused={reduced}
           ariaLabel="Cues companion"
         />

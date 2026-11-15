@@ -12,9 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cues · Teacher dashboard",
+  title: "Cues",
   description: "A clear view of classroom task activity and seat observations.",
-  icons: { icon: "/icon.svg" },
   other: { "page-type": "software", "site-kind": "software" },
 };
 

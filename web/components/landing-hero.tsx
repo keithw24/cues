@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import {
   RiArrowRightLine,
   RiHand,
-  RiRecordCircleLine,
+  RiRepeatLine,
   RiThumbUpLine,
 } from "@remixicon/react";
 
@@ -35,8 +35,8 @@ export default function LandingHero({
           </span>{" "}
           and{" "}
           <span className="ln-inline-chip">
-            <RiRecordCircleLine aria-hidden="true" />
-            your own gestures
+            <RiRepeatLine aria-hidden="true" />
+            who keeps trying
           </span>
           , then suggests support you approve.
         </p>

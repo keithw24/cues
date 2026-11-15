@@ -5,7 +5,6 @@ import ProfileAccount from "@/components/profile-account";
 import "@/components/workspace.css";
 import "@/components/teacher-profile.css";
 
-export const metadata = { title: "Cues · Profile" };
 
 export default async function ProfilePage() {
   const enabled =

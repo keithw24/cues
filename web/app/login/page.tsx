@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { isEnabled } from "@/lib/flags";
 
-export const metadata = { title: "Cues · Teacher sign in" };
 
 export default async function LoginPage() {
   if (!isEnabled("web.teacher_login"))
