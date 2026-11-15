@@ -75,6 +75,13 @@ def test_full_migration_chain():
                     raise AssertionError(f"{file.name}: {error}") from error
             assert sql("select to_regclass('public.station_pairing_codes') is not null;") == "t"
             assert (
+                sql(
+                    "select count(*) from public.activities where id in "
+                    "('thumbs_up','open_palm','pointing','peace','fist');"
+                )
+                == "5"
+            )
+            assert (
                 sql("select has_table_privilege('authenticated','public.sessions','INSERT');")
                 == "f"
             )

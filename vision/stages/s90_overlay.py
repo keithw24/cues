@@ -28,8 +28,10 @@ import cv2
 import numpy as np
 
 from vision import activities
+from vision.activities import TASKS
 from vision.grouping import GROUPING
 from vision.people import person_color
+from vision.session_sync import frame_activity
 from vision.stages.s10_hands import CONNECTIONS
 
 FACE_SMOOTHING = 0.35  # weight of a new face detection (they arrive only ~5 times a second)
@@ -247,30 +249,41 @@ class OverlayStage:
                 from vision.gestures.hand_pose import palm_side
 
                 side = palm_side(hand.landmarks, hand.handedness)
-                if recognized is not None and recognized.activity_id is not None:
-                    # A completed gesture (any known gesture), always green.
-                    shown_score = "--" if recognized.score is None else f"{recognized.score:.2f}"
-                    text += f"{recognized.activity_id} {shown_score} ({side})"
-                    # Green while the gesture is completed or still close to it (held
+                # Only the selected task is checked: it alone can turn green. Any other
+                # gesture the camera sees is shown in grey, however confident.
+                task_id = (
+                    match.activity_id if match is not None else frame_activity(TASKS, pid, ctx)
+                )
+                seen = recognized
+                if (
+                    seen is not None
+                    and seen.activity_id is not None
+                    and seen.activity_id == task_id
+                ):
+                    shown_score = "--" if seen.score is None else f"{seen.score:.2f}"
+                    text += f"{seen.activity_id} {shown_score} ({side})"
+                    # Green while the task is completed or still close to it (held
                     # through a dip); grey once the live score has really fallen away.
-                    review = activities.get(recognized.activity_id).review_threshold
-                    done = recognized.score is not None and recognized.score >= review
+                    review = activities.get(seen.activity_id).review_threshold
+                    done = seen.score is not None and seen.score >= review
                     fill = GREEN if done else GREY
-                elif match is not None:  # otherwise: progress on the assigned task
+                elif match is not None:  # progress on the selected task
                     score = "--" if match.score is None else f"{match.score:.2f}"
                     text += f"{match.activity_id} {score} ({side})"
                     fill = score_color(match.activity_id, match.score)
                 else:
                     text += f"no gesture ({side})"
                 labels.append((text.strip() or short_id(pid), hx0, hy0, fill))
+                if (
+                    seen is not None
+                    and seen.activity_id is not None
+                    and seen.activity_id != task_id
+                ):
+                    other = "--" if seen.score is None else f"{seen.score:.2f}"
+                    labels.append((f"also seeing: {seen.activity_id} {other}", hx0, hy1 + 22, GREY))
                 extra = ctx.get("all_scores", {}).get(pid)
                 if extra:  # all-gestures readout (vision.all_scores), under the hand box
-                    shown_id = (
-                        recognized.activity_id
-                        if recognized is not None
-                        else (match.activity_id if match is not None else None)
-                    )
-                    others = {a: v for a, v in extra.items() if a != shown_id}
+                    others = {a: v for a, v in extra.items() if a != task_id}
                     if others:
                         from vision.stages.s45_all_scores import format_scores
 
