@@ -99,6 +99,11 @@ def create_app(pipeline: Pipeline | None = None) -> FastAPI:
         allow_origins=[o.strip() for o in origins.split(",") if o.strip()],
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["Content-Type"],
+        # A hosted dashboard (https://cues.nyc) reaching this laptop is a public-to-loopback
+        # request: Chrome and Edge first send a preflight asking for private-network access, and
+        # without this header the service answered 400, so the camera never connected. It only
+        # applies to the origins listed above; any other site is still refused.
+        allow_private_network=True,
     )
 
     @app.get("/health")
