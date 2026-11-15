@@ -1,28 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { WorkspaceIcon } from "@/components/workspace-icon";
 import {
+  OTHER_CAMERA,
   cameraHealth,
+  healthSummary,
   readLocalVision,
   updatesFresh,
+  type CameraHealth,
+  type HealthSummary,
   type LocalVisionReading,
 } from "@/lib/camera-health";
-import { WorkspaceIcon } from "@/components/workspace-icon";
 import { mayConnectLocalFeed } from "@/lib/local-feed-policy";
 
 const POLL_MS = 3000;
 
-// Four plain facts about the camera, each as a word (color only supports it), and one
-// sentence naming the most useful cause when something is wrong. It reads this laptop's
-// vision service and the station's rows; no frames, scores or claims about a child.
-export function CameraHealthStrip({
-  station,
-  updatedAt,
-  inView,
-  conflict,
-  hostedEnabled = false,
-  hostedOrigin,
-}: {
+type CameraHealthProps = {
   station: string;
   /** updated_at of each person's latest row at this station. */
   updatedAt: readonly (string | null | undefined)[];
@@ -32,7 +26,17 @@ export function CameraHealthStrip({
   /** web.hosted_local_feed: the hosted dashboard may read this laptop's service. */
   hostedEnabled?: boolean;
   hostedOrigin?: string;
-}) {
+};
+
+/** The strip's live state. */
+function useCameraHealth({
+  station,
+  updatedAt,
+  inView,
+  conflict,
+  hostedEnabled = false,
+  hostedOrigin,
+}: CameraHealthProps): { health: CameraHealth; summary: HealthSummary } {
   const [vision, setVision] = useState<LocalVisionReading | null>(null);
   // The clock starts on the first poll (in the effect), never during render.
   const [now, setNow] = useState(0);
@@ -71,36 +75,62 @@ export function CameraHealthStrip({
     conflict,
     localReadable: localReadable ?? undefined,
   });
-  // Closed by default: one pill with a dot that turns amber when any check
-  // needs a look. The four checks and the sentence open underneath.
-  const tone = health.items.some((item) => item.tone === "warn")
-    ? "warn"
-    : health.items.every((item) => item.tone === "good")
-      ? "good"
-      : "quiet";
-  const summary =
-    tone === "warn" ? "Needs a look" : tone === "good" ? "All good" : "Checking";
+  return { health, summary: healthSummary(health, inView) };
+}
+
+/** The four checks, each a label and a word. */
+function HealthPills({ health }: { health: CameraHealth }) {
   return (
-    <details className="health-strip">
-      <summary>
-        <span className={`health-dot is-${tone}`} aria-hidden="true" />
-        Camera status
-        <span className="health-summary">{summary}</span>
-        <WorkspaceIcon name="chevronDown" />
-      </summary>
-      <ul>
-        {health.items.map((item) => (
-          <li key={item.key} className={`health-item is-${item.tone}`}>
-            <span className="health-label">{item.label}</span>
-            <span className="health-value">{item.value}</span>
-          </li>
-        ))}
-      </ul>
-      {health.problem ? (
-        <p className="health-problem" role="status">
-          {health.problem}
-        </p>
-      ) : null}
-    </details>
+    <ul>
+      {health.items.map((item) => (
+        <li key={item.key} className={`health-item is-${item.tone}`}>
+          <span className="health-label">{item.label}</span>
+          <span className="health-value">{item.value}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The one sentence. A refused camera always shows, even with the strip closed;
+ * other causes show only inside it. */
+function HealthProblem({ health, open }: { health: CameraHealth; open: boolean }) {
+  if (!health.problem) return null;
+  if (!open && health.problem !== OTHER_CAMERA) return null;
+  return (
+    <p className="health-problem" role="status">
+      {health.problem}
+    </p>
+  );
+}
+
+// The team's camera checks, folded behind a round "more" button (three dots)
+// that sits in the row with the activity controls. Its badge is green when all
+// is good, amber when something needs a look, grey while checking; the four
+// checks open beside it. A refused second camera is always spelled out.
+export function CameraHealthStrip(props: CameraHealthProps) {
+  const { health, summary } = useCameraHealth(props);
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="health-strip" aria-label="Camera health" role="group">
+      <div className="health-row">
+        <button
+          type="button"
+          className="ws-icon-button health-more"
+          aria-expanded={open}
+          aria-controls="health-pills"
+          aria-label={`Camera status: ${summary.label}`}
+          title={`Camera status: ${summary.label}`}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <WorkspaceIcon name="more" />
+          <span className={`health-dot is-${summary.tone}`} aria-hidden="true" />
+        </button>
+        <div id="health-pills" hidden={!open}>
+          <HealthPills health={health} />
+        </div>
+      </div>
+      <HealthProblem health={health} open={open} />
+    </div>
   );
 }
