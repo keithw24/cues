@@ -184,5 +184,29 @@
     "default": false,
     "owner": "evan",
     "ticket": "review-page"
+  },
+  "web.health_strip": {
+    "description": "Camera health strip on the classroom page: camera service on or off, station set, updates arriving, and another camera refused, each as its own word. Reads the local vision service on 127.0.0.1:8000 (/health, /config) and the station's writer row. Off: the page shows only its single camera-off message.",
+    "default": false,
+    "owner": "keith",
+    "ticket": "health-strip"
+  },
+  "agent.interventions": {
+    "description": "The agent may attach one suggested support from the approved intervention menu to a review request. Needs migration 018; the teacher approves before anything is recorded.",
+    "default": false,
+    "owner": "michelle",
+    "ticket": "interventions"
+  },
+  "web.interventions": {
+    "description": "Show the agent's suggested support on a review and let the teacher approve it (or pick another from the menu). Needs migration 018; approving also confirms the review.",
+    "default": false,
+    "owner": "evan",
+    "ticket": "interventions"
+  },
+  "web.hosted_local_feed": {
+    "description": "Allow the configured hosted dashboard origin to connect directly to local vision; local-network permission and explicit backend CORS required.",
+    "default": false,
+    "owner": "michelle",
+    "ticket": "hosted-local-feed"
   }
 }

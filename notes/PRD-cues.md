@@ -478,7 +478,7 @@ request plus activity context and selects tools adaptively:
 |---|---|
 | get_recent_progress_history | Distinguish isolated stalls from repeated progress patterns |
 | get_prompt_history | Retrieve explicitly recorded independence/prompting outcomes |
-| request_teacher_review | Create a pending review using trusted application identity and priority |
+| request_teacher_review | Create a pending review using trusted application identity and priority. With `agent.interventions`, it may also carry one suggested support from the approved menu (below) |
 
 History is scoped to session/seat/activity and bounded to ten entries per query.
 Prompt history has no production observation producer yet; missing data remains
@@ -532,6 +532,10 @@ The minimal message directs the teacher back to Cues, for example:
 No camera data, expression labels, diagnoses or detailed reasoning are sent.
 Spectrum message acknowledgement has been verified in direct and hosted
 pipeline smoke tests; acknowledgement does not establish device read receipt.
+
+### Approved interventions
+
+The agent picks only from this menu, and only suggests: repeat the instruction, show an example, model the task, break it into smaller steps, offer a short break, check in with the student. The suggestion rides on the review (`teacher_reviews.suggested_intervention`). The teacher approves it, or picks another item, with `approve_review_intervention`, which also confirms a pending review and records the approval in `interventions`. Cues changes no task or instruction by itself. Behind `agent.interventions` and `web.interventions` (default off); needs migration 018.
 
 The teacher chooses Support needed (confirmed) or No support needed (dismissed).
 resolve_teacher_review(review_id, action) permits pending → confirmed/dismissed
@@ -1149,7 +1153,7 @@ Only attempt these after the complete core loop works.
 - Person-ID dashboard visibility/read policies and vision/activity catalog alignment.
 - Production prompt-history recording and durable longitudinal history.
 - Hardware/demo acceptance, deployment supervision and delivery recovery.
-- Instructional/support intervention workflow; voice remains optional future work.
+- Intervention workflow: the approved menu, suggestion and approval are built behind flags and need migration 018 applied and a live check; applying an approved support to a student's task is not built. Voice remains optional future work.
 
 ---
 

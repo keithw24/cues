@@ -148,5 +148,6 @@ Generated from `flags.json` (override with `CUES_FLAG_VISION_<NAME>=1|0`; the la
 | `vision.all_scores` | off | Display-only readout of every task's score for every person (overlay and vision.watch). Not sent to Supabase. |
 | `vision.custom_gestures` | off | Dashboard API to create teacher-recorded gestures (/gestures). Definitions and examples stay in vision/templates/ on this laptop. |
 | `vision.station_config` | on | Local /config endpoint: the signed-in teacher's dashboard sets this laptop's station. Vision writes nothing until a station is set. When off, the station is S1 (or CUES_STATION_ID) as before. |
+| `agent.interventions` | off | The agent may attach one suggested support from the approved intervention menu to a review request. Needs migration 018; the teacher approves before anything is recorded. |
 | `agent.live_progress` | off | Publish guarded live progress summaries after migration 012 deploys. |
 | `vision.review_marks` | on | Read the teacher's Mark as reviewed marks so a flagged child goes back to working and the no-progress timer restarts. Reads only seat ids and times from Supabase. |

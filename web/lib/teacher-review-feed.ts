@@ -3,6 +3,7 @@ import {
   parseTeacherReviews,
   pendingReviews,
   REVIEW_COLUMNS,
+  REVIEW_COLUMNS_WITH_INTERVENTIONS,
   type TeacherReview,
 } from "./teacher-reviews.ts";
 
@@ -39,6 +40,7 @@ export function watchTeacherReviews(
   notify: (state: ReviewFeedState) => void,
   enabled: boolean,
   station?: string,
+  interventions = false,
 ) {
   const scoped = station?.trim() ?? "";
   if (!enabled || (station !== undefined && !scoped)) {
@@ -102,7 +104,7 @@ export function watchTeacherReviews(
         // sessions; listing every session id would grow the URL without bound.
         const read = await client
           .from("teacher_reviews")
-          .select(REVIEW_COLUMNS)
+          .select(interventions ? REVIEW_COLUMNS_WITH_INTERVENTIONS : REVIEW_COLUMNS)
           .eq("status", "pending")
           .abortSignal(signal());
         if (read.error) throw new Error("Review read failed");

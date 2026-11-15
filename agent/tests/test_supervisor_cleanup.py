@@ -73,3 +73,51 @@ while True: time.sleep(1)
         except ProcessLookupError:
             pass
         parent.wait()
+
+
+def test_leftovers_need_a_known_command_and_this_repos_folder():
+    web, root = str(dev.REPO_ROOT / "web"), str(dev.REPO_ROOT)
+    rows = [
+        (10, "node /x/next/dist/bin/next dev --port 3000"),  # this repo's dashboard
+        (11, "node /x/next/dist/bin/next dev --port 3001"),  # another project's
+        (12, "python -m agent.worker --profile demo"),  # this repo's worker
+        (13, "python -m agent.worker --profile demo"),  # a copy in another folder
+        (14, "vim notes.md"),  # not ours at all
+        (15, "uvicorn vision.app:app --port 8000"),  # this repo's vision
+        (16, "python -m agent.worker"),  # own process: never swept
+    ]
+    folders = {10: web, 11: "/other/web", 12: root, 13: "/other", 14: root, 15: root, 16: root}
+    found = dev.find_leftovers(rows, folders.get, own={16})
+    assert [pid for pid, _ in found] == [10, 12, 15]
+
+
+def test_sweep_stops_leftovers_with_term_then_kill(monkeypatch):
+    monkeypatch.setattr(dev, "_process_table", lambda: [(40, "python -m agent.worker")])
+    monkeypatch.setattr(dev, "_working_directory", lambda pid: str(dev.REPO_ROOT))
+    monkeypatch.setattr(dev, "_own_pids", lambda: set())
+    sent = []
+    monkeypatch.setattr(dev.os, "kill", lambda pid, sig: sent.append((pid, sig)))
+    monkeypatch.setattr(dev, "_is_alive", lambda pid: True)  # ignores TERM
+    assert dev.sweep_leftovers(grace_seconds=0) == [40]
+    assert sent == [(40, signal.SIGTERM), (40, signal.SIGKILL)]
+
+
+def test_sweep_does_nothing_when_nothing_is_left(monkeypatch):
+    monkeypatch.setattr(dev, "_process_table", lambda: [(1, "launchd")])
+    monkeypatch.setattr(dev, "_own_pids", lambda: set())
+    kill = MagicMock()
+    monkeypatch.setattr(dev.os, "kill", kill)
+    assert dev.sweep_leftovers(grace_seconds=0) == []
+    kill.assert_not_called()
+
+
+def test_closing_the_terminal_stops_the_stack_cleanly(monkeypatch):
+    import threading
+
+    handlers = {}
+    monkeypatch.setattr(dev.signal, "signal", lambda sig, handler: handlers.update({sig: handler}))
+    stop = threading.Event()
+    dev.install_stop_signals(stop)
+    assert {signal.SIGINT, signal.SIGTERM, signal.SIGHUP} <= set(handlers)
+    handlers[signal.SIGHUP](signal.SIGHUP, None)
+    assert stop.is_set()

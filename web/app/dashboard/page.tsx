@@ -18,6 +18,8 @@ export default async function DashboardPage() {
   return (
     <div className={`workspace ${garamond.variable}`}>
       <Dashboard
+        hostedLocalFeedEnabled={isEnabled("web.hosted_local_feed")}
+        hostedDashboardOrigin={process.env.NEXT_PUBLIC_CUES_HOSTED_ORIGIN ?? "https://cues.nyc"}
         liveProgressEnabled={isEnabled("web.live_progress")}
         reviewPageEnabled={isEnabled("web.review_page")}
         personObservationsEnabled={isEnabled("web.person_observations")}
@@ -28,6 +30,8 @@ export default async function DashboardPage() {
         teacherLoginEnabled={isEnabled("web.teacher_login")}
         themeToggleEnabled={isEnabled("web.theme_toggle")}
         visionStationConfigEnabled={isEnabled("web.vision_station_config")}
+        interventionsEnabled={isEnabled("web.interventions")}
+        healthStripEnabled={isEnabled("web.health_strip")}
       />
     </div>
   );
