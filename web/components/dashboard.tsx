@@ -32,8 +32,8 @@ import { ReviewCompanion } from "@/components/review-companion";
 import { ReviewCard, WaitingReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
 import {
-  flaggedWithoutRequest,
   reviewIssueLine,
+  reviewQueue,
   stripEntries,
 } from "@/lib/classroom-view";
 import {
@@ -436,18 +436,14 @@ export default function Dashboard({
   // People whose row reads Needs Review but who have no request yet: listed on
   // To review so the two agree. Only once the review feed is live, so no one is
   // shown twice while requests are still loading.
-  const flaggedOnly =
-    reviewWaitingEnabled && reviewsLive
-      ? flaggedWithoutRequest(
-          inView,
-          (seat) => present(seat).needsReview,
-          new Set(reviewGroups.map((group) => group.seat_id)),
-          markedSeats,
-        )
-      : [];
-  const waitingCount = reviewsLive
-    ? reviewGroups.length + flaggedOnly.length
-    : 0;
+  const { flagged: flaggedOnly, count: waitingCount } = reviewQueue({
+    enabled: reviewWaitingEnabled,
+    live: reviewsLive,
+    people: inView,
+    flagged: (seat) => present(seat).needsReview,
+    askedSeatIds: reviewGroups.map((group) => group.seat_id),
+    marked: markedSeats,
+  });
   // A person picked from the strip who has no request opens in the side
   // panel; someone with a request opens in place in the attention list.
   const selectedPerson =
@@ -627,7 +623,7 @@ export default function Dashboard({
         accountEnabled={teacherLoginEnabled}
         themeToggle={themeToggleEnabled}
         reviewPage={reviewPageEnabled}
-        reviewCount={reviewsLive ? reviewGroups.length : 0}
+        reviewCount={waitingCount}
       />
       <main id="main-content" className="dashboard-main">
         {signedOut ? (
@@ -683,7 +679,12 @@ export default function Dashboard({
                         resetPeopleEnabled
                           ? {
                               seatIds: reviewGroups.map((group) => group.seat_id),
-                              onReset: (ids) => ids.forEach(applyMarked),
+                              // Flagged people without a request have nothing to close, but
+                              // their "No suggestion yet" card goes with everyone else's.
+                              onReset: (ids) =>
+                                [...ids, ...flaggedOnly.map((seat) => seat.id)].forEach(
+                                  applyMarked,
+                                ),
                             }
                           : null
                       }

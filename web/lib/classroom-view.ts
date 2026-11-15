@@ -77,3 +77,30 @@ export function flaggedWithoutRequest<T extends { id: string }>(
     (person) => flagged(person) && !asked.has(person.id) && !marked.has(person.id),
   );
 }
+
+/**
+ * What To review counts and lists beyond Cues's requests. Off, or while the
+ * review feed is not live, it is exactly as before: no extra people, and the
+ * count is the number of people with requests (0 until the feed is live).
+ */
+export function reviewQueue<T extends { id: string }>({
+  enabled,
+  live,
+  people,
+  flagged,
+  askedSeatIds,
+  marked,
+}: {
+  enabled: boolean;
+  live: boolean;
+  people: readonly T[];
+  flagged: (person: T) => boolean;
+  askedSeatIds: readonly string[];
+  marked: ReadonlySet<string>;
+}): { flagged: T[]; count: number } {
+  if (!live) return { flagged: [], count: 0 };
+  const extra = enabled
+    ? flaggedWithoutRequest(people, flagged, new Set(askedSeatIds), marked)
+    : [];
+  return { flagged: extra, count: askedSeatIds.length + extra.length };
+}

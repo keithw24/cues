@@ -110,6 +110,10 @@ def test_managed_session_expression_event_keeps_its_session_revision():
     event["payload"] = payload | {"session_revision": 2, "dominant_label": "neutral"}
     with pytest.raises(ValidationError):
         Event.model_validate(event)
+    for bad in ("2", -1, {"n": 2}):
+        event["payload"] = payload | {"session_revision": bad}
+        with pytest.raises(ValidationError):
+            Event.model_validate(event)
 
 
 @pytest.mark.parametrize(

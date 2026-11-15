@@ -14,11 +14,14 @@ from pydantic import (
     ConfigDict,
     Field,
     JsonValue,
+    TypeAdapter,
     model_validator,
 )
 
 Identifier = Annotated[str, Field(min_length=1, pattern=r"\S")]
 UnitScore = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
+SessionRevision = Annotated[int, Field(ge=0, strict=True)]
+_REVISION = TypeAdapter(SessionRevision)
 Duration = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 
 
@@ -126,9 +129,11 @@ class Event(_Contract):
         if self.type == EventType.EXPRESSION_CONTEXT:
             # Vision adds session_revision to every managed-session payload (the database's
             # stale-write guard reads it); it is not part of the expression context itself.
-            context = ExpressionContext.model_validate(
-                {key: value for key, value in self.payload.items() if key != "session_revision"}
-            )
+            payload = dict(self.payload)
+            revision = payload.pop("session_revision", None)
+            if revision is not None:
+                _REVISION.validate_python(revision)
+            context = ExpressionContext.model_validate(payload)
             if context.duration_seconds is None:
                 raise ValueError("expression_context events require duration_seconds")
         return self
@@ -143,7 +148,7 @@ class SeatState(_Contract):
     updated_at: AwareDatetime
     activity_id: Identifier | None = None
     tracking_valid: bool | None = None
-    session_revision: Annotated[int, Field(ge=0, strict=True)] | None = None
+    session_revision: SessionRevision | None = None
     task_score: UnitScore | None = None
     expression_context: ExpressionContext | None = None
 

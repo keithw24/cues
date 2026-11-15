@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { flaggedWithoutRequest } from "../lib/classroom-view.ts";
+import { flaggedWithoutRequest, reviewQueue } from "../lib/classroom-view.ts";
 import { observationPresentation } from "../lib/observation-presentation.ts";
 import type { SeatState } from "../lib/dashboard.ts";
 
@@ -61,12 +61,23 @@ test("web.review_waiting is registered off by default and wired from both pages"
     assert.match(read(page), /reviewWaitingEnabled=\{isEnabled\("web\.review_waiting"\)\}/);
 });
 
-test("with the flag off the To review page lists only Cues's requests, as before", () => {
+test("with the flag off the To review queue is exactly as before", () => {
+  const people = [person("S1-P1", "review"), person("S1-P2", "needs_help"), person("S1-P3", "in_progress")];
+  const base = { people, flagged, askedSeatIds: ["S1-P1"], marked: new Set<string>() };
+  assert.deepEqual(reviewQueue({ ...base, enabled: false, live: true }), { flagged: [], count: 1 });
+  assert.deepEqual(reviewQueue({ ...base, enabled: false, live: false }), { flagged: [], count: 0 });
+  // On: the flagged person without a request joins the list and the count.
+  const on = reviewQueue({ ...base, enabled: true, live: true });
+  assert.deepEqual(on.flagged.map((p) => p.id), ["S1-P2"]);
+  assert.equal(on.count, 2);
+  // Never before the review feed is live, so no one shows twice while it loads.
+  assert.deepEqual(reviewQueue({ ...base, enabled: true, live: false }), { flagged: [], count: 0 });
+});
+
+test("the rail and the header show the same count, and reset clears waiting cards", () => {
   const dashboard = read("../components/dashboard.tsx");
-  assert.match(dashboard, /reviewWaitingEnabled = false,/);
-  // Off: nothing is computed, so the count, cards and All clear behave as before.
-  assert.match(dashboard, /reviewWaitingEnabled && reviewsLive\s*\?\s*flaggedWithoutRequest\(/);
-  assert.match(dashboard, /:\s*\[\];\s*const waitingCount = reviewsLive\s*\?\s*reviewGroups\.length \+ flaggedOnly\.length/);
+  assert.match(dashboard, /reviewCount=\{waitingCount\}/);
+  assert.match(dashboard, /\[\.\.\.ids, \.\.\.flaggedOnly\.map\(\(seat\) => seat\.id\)\]\.forEach\(/);
   // Flagged people only get Mark as reviewed: nothing is written as a review for them.
   const card = read("../components/review-card.tsx");
   const waiting = card.slice(card.indexOf("export function WaitingReviewCard"));

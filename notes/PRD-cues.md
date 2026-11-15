@@ -660,6 +660,8 @@ Example:
 
 The live expression distribution does not need to be stored as historical student data.
 
+In a teacher-managed session, vision also adds `session_revision` (a non-negative integer) to every event payload, this one included, so the database can reject writes from an earlier revision. It is not part of the expression context.
+
 ### 17.3 Core tables
 
 ```sql
@@ -766,8 +768,8 @@ the full `AgentEvaluationRequest` is retained in `evaluation`, with matching
 session/seat/activity/priority columns for consumers. Decision/rationale/evidence
 come from the existing `AgentAssessment`. The exact constraints, immutable-field
 guard and Realtime publication are in migration
-`20261114000300_teacher_reviews.sql`. Only pending → confirmed (teacher's Support
-needed) or pending → dismissed (No support needed) is allowed. This records an attention decision,
+`20261114000300_teacher_reviews.sql`. A review moves only from pending, to one of: confirmed (teacher's Support
+needed), dismissed (No support needed), reviewed (the teacher's Mark as reviewed, migration 1500) or expired (closed by the system: session ended, task done or activity changed). This records an attention decision,
 not intervention approval or an automatic instructional change. Server writes
 are required; the existing simulated-seat RLS pattern permits demo-only reads.
 The live runtime injects Supabase persistence; the in-memory store remains for offline use. Migration 004 provides authenticated resolution; demo scope permits authenticated users to resolve simulated-seat reviews, without teacher/session ownership authorization.
