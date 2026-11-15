@@ -152,15 +152,18 @@ test("the health strip never reads the clock during render", async () => {
   assert.equal(updatesFresh([new Date().toISOString()], 0), false);
 });
 
-test("the collapsed summary: amber for a fault, never for an empty room; grey only while checking", async () => {
+test("the collapsed summary: amber for a fault, grey only while checking", async () => {
   const { healthSummary } = await import("../lib/camera-health.ts");
   const base = { station: "S1", conflict: false };
   const checking = cameraHealth({ ...base, vision: null, updatesFresh: false, inView: 0 });
   assert.deepEqual(healthSummary(checking, 0), { tone: "quiet", label: "Checking" });
   const fine = cameraHealth({ ...base, vision: ok(), updatesFresh: true, inView: 2 });
   assert.deepEqual(healthSummary(fine, 2), { tone: "good", label: "All good" });
-  const empty = cameraHealth({ ...base, vision: ok(), updatesFresh: false, inView: 0 });
-  assert.equal(healthSummary(empty, 0).tone, "good");
+  const quiet = cameraHealth({ ...base, vision: ok(), updatesFresh: false, inView: 0 });
+  assert.equal(healthSummary(quiet, 0).tone, "warn");
+  const refusedEarly = cameraHealth({ ...base, conflict: true, vision: null, updatesFresh: false, inView: 0 });
+  assert.equal(refusedEarly.problem, OTHER_CAMERA);
+  assert.equal(healthSummary(refusedEarly, 0).tone, "warn");
   const down = cameraHealth({ ...base, vision: { reachable: false }, updatesFresh: false, inView: 0 });
   assert.equal(healthSummary(down, 0).tone, "warn");
   const hostedQuiet = cameraHealth({ ...base, vision: null, updatesFresh: false, inView: 0, localReadable: false });

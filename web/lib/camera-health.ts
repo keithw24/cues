@@ -138,7 +138,18 @@ export function cameraHealth(input: HealthInput): CameraHealth {
     { key: "updates", label: "Updates", value: "Checking", tone: "quiet" },
     { key: "other-camera", label: "Other cameras", value: "Checking", tone: "quiet" },
   ];
-  if (vision === null) return { items: checking, problem: null };
+  // A refused camera is already known from the station's row: say so at once.
+  if (vision === null)
+    return input.conflict
+      ? {
+          items: checking.map((item) =>
+            item.key === "other-camera"
+              ? { ...item, value: "One refused", tone: "warn" as const }
+              : item,
+          ),
+          problem: OTHER_CAMERA,
+        }
+      : { items: checking, problem: null };
 
   const otherCamera: HealthItem = {
     key: "other-camera",
@@ -222,15 +233,16 @@ export function updatesFresh(
 export type HealthSummary = { tone: HealthTone; label: string };
 
 /**
- * One word for the collapsed strip. Amber only for a real fault: "updates not
- * arriving" with nobody in view is an empty room, not a fault. "Checking" only
- * while a check has not come back yet.
+ * One word for the collapsed strip: amber when any check warns or another camera
+ * is refused, grey while a check has not come back yet, green otherwise. (The
+ * page counts people in view from the same rows as "updates", so it can't tell an
+ * empty room from a stopped session; with the camera on and nothing arriving,
+ * the sentence asks the teacher to start an activity.)
  */
 export function healthSummary(health: CameraHealth, inView: number): HealthSummary {
-  const fault = health.items.some(
-    (item) => item.tone === "warn" && !(item.key === "updates" && inView === 0),
-  );
-  if (fault || health.problem === OTHER_CAMERA) return { tone: "warn", label: "Needs a look" };
+  void inView;
+  if (health.items.some((item) => item.tone === "warn") || health.problem === OTHER_CAMERA)
+    return { tone: "warn", label: "Needs a look" };
   if (health.items.some((item) => item.value === "Checking"))
     return { tone: "quiet", label: "Checking" };
   return { tone: "good", label: "All good" };

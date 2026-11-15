@@ -435,13 +435,21 @@
 .dashboard-shell .hero-controls .health-row {
   display: contents;
 }
-.dashboard-shell .hero-controls #health-pills,
-.dashboard-shell .hero-controls .health-problem {
-  flex-basis: 100%;
+.dashboard-shell .hero-controls .health-pills,
+.dashboard-shell .hero-controls .health-problem-line {
+  flex: 0 0 100%;
 }
 .dashboard-shell .hero-controls .health-problem {
-  max-width: max-content;
   margin-top: -4px;
+}
+/* A long session error wraps inside its own item instead of pushing the
+   camera button away from refresh. */
+.dashboard-shell .hero-controls > .session-controls {
+  min-width: 0;
+  max-width: 100%;
+}
+.dashboard-shell .ws-hero > .hero-controls + .station-busy {
+  margin-top: -12px;
 }
 .dashboard-shell .health-more {
   position: relative;
