@@ -1,10 +1,8 @@
-import type { ComponentProps } from "react";
-import { WorkspaceIcon } from "@/components/workspace-icon";
 import { priorityLabels } from "@/lib/teacher-reviews";
 
 // Row contents shared by the dashboard and the landing page demo, so the demo
 // shows the same rows teachers see. The caller owns the button and its state.
-type IconName = ComponentProps<typeof WorkspaceIcon>["name"];
+export type PersonTone = "working" | "done" | "review" | "quiet";
 
 // "Person 3" → "P3"; any other name → its first letter.
 export const initials = (name: string) =>
@@ -15,33 +13,29 @@ export const initials = (name: string) =>
     .slice(0, 3)
     .toUpperCase();
 
+/** A person: who, their task, and their status as a labelled pill. Color
+ * supports the label; it never carries the status alone. */
 export function PersonRowContent({
   name,
   status,
-  icon,
+  tone,
   activity,
 }: {
   name: string;
   status: string;
-  icon: IconName;
+  tone: PersonTone;
   activity: string;
 }) {
   return (
     <>
-      <span className="seat-avatar" aria-hidden="true">
+      <span className="row-avatar" aria-hidden="true">
         {initials(name)}
       </span>
-      <span className="seat-item-body">
-        <span className="seat-item-name">{name}</span>
-        <span className="seat-item-meta">
-          <span className="seat-item-status">
-            <WorkspaceIcon name={icon} />
-            {status}
-          </span>
-          <span className="seat-item-activity">{activity}</span>
-        </span>
+      <span className="row-body">
+        <span className="row-name">{name}</span>
+        {activity ? <span className="row-caption">{activity}</span> : null}
       </span>
-      <WorkspaceIcon className="seat-item-arrow" name="chevronRight" />
+      <span className={`status-pill is-${tone}`}>{status}</span>
     </>
   );
 }
@@ -62,26 +56,28 @@ export function ReviewRowContent({
 }) {
   return (
     <>
-      <span className="seat-avatar" aria-hidden="true">
+      <span className="row-avatar is-review" aria-hidden="true">
         {initials(name)}
       </span>
-      <span className="review-body">
-        <span className="review-name">{name}</span>
-        <span className="review-meta">{meta}</span>
+      <span className="row-body">
+        <span className="row-name">{name}</span>
+        {meta ? <span className="row-caption">{meta}</span> : null}
       </span>
-      <time className="review-time" dateTime={time}>
-        {timeLabel ??
-          new Intl.DateTimeFormat(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-          }).format(new Date(time))}
-      </time>
-      {elevated ? (
-        <span className="review-flag">
-          <WorkspaceIcon name="flag" />
-          <span className="sr-only">{priorityLabels.elevated}</span>
-        </span>
-      ) : null}
+      <span className="row-end">
+        {elevated ? (
+          <span className="status-pill is-review">
+            Urgent
+            <span className="sr-only"> ({priorityLabels.elevated})</span>
+          </span>
+        ) : null}
+        <time className="row-time" dateTime={time}>
+          {timeLabel ??
+            new Intl.DateTimeFormat(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            }).format(new Date(time))}
+        </time>
+      </span>
     </>
   );
 }

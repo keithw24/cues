@@ -41,21 +41,17 @@ checkout still has the gaps listed below.
 
 ## Brand Commitments
 
-The approved Columbia Catalog / LionPlan direction supersedes the earlier Courier
-Prime, Nexus mesh-tile and italic type treatments. Cues is quiet operational
-software: upright Inter, white content, cool neutral framing, navy actions and
-selection, thin borders and compact rounded controls. A persistent workspace rail
-becomes compact header navigation on mobile. Camera and teacher review context
-lead; activity management opens progressively and people use scan-friendly rows.
-Color supports explicit status text rather than implying learner state.
+The landing page, sign-in pages and teacher workspace share one visual system:
+upright Inter, EB Garamond for page titles only, big plain numbers, small spaced
+captions, pill buttons and round icon buttons, in Night (landing navy) and light
+(sign-in canvas) themes. The workspace looks like the dashboard the landing demo
+shows. Screens stay simple and uncluttered; model and technical detail waits
+behind a disclosure. Color supports explicit status text and never implies a
+learner's state.
 
-Login asks one question at a time beneath an animated illustrated Cues companion.
-The character belongs to the product, never to a teacher profile or learner
-identity. It follows the pointer with a restrained gaze, sleeps during password
-entry and honors reduced motion. The login feature defaults off with an honest
-unavailable fallback. This is a code-led reference adaptation, not a pixel-exact
-copy. `DESIGN.md` records the implemented tokens and component rules;
-`.impeccable/teacher-workspace.md` records the approved direction.
+Sign-in asks one question at a time beneath the illustrated Cues companion. The
+companion belongs to the product, never to a teacher or learner. `DESIGN.md`
+records the implemented tokens and layout.
 
 ## Current Implementation Limits
 
@@ -75,13 +71,11 @@ A new persisted pending review triggers a minimal message directing the teacher
 back to Cues; duplicates and resolution do not notify. Notification failure leaves
 the review available. No images, expression labels or detailed rationale go to messaging.
 
-Current frontend gap: seat selection opens details, but this checkout's dashboard
-still uses observation-local hiding and placeholder progress/assessment panels.
-That local dismissal is obsolete as the product review-resolution model; frontend
-agents should connect the persistent review actions rather than treating local
-hiding as teacher resolution. teacher_reviews subscription, RPC action wiring,
-and display of the available rationale/evidence/progress context remain to be
-connected in this frontend. End session is disabled.
+The dashboard subscribes to teacher_reviews, lists pending reviews first in its
+Class list, and records Support needed / No support needed through the
+resolve_teacher_review RPC (behind web.teacher_review_actions). The agent's
+rationale and evidence types appear behind "Why did Cues ask?". There is no
+local-only decision path.
 
 Further gaps include teacher login/profile, dynamic teacher phone lookup,
 teacher/session ownership authorization, person-ID dashboard/read-policy alignment,

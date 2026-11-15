@@ -57,19 +57,27 @@ export function MarkReviewedButton({
     <div className="mark-reviewed" aria-busy={saving}>
       <button
         type="button"
-        className={variant === "live" ? "live-btn" : "text-button"}
+        className={variant === "live" ? "ws-pill is-dark" : "ws-pill"}
         disabled={!authenticated || saving || done}
         onClick={() => void mark()}
       >
         {saving ? "Saving…" : done ? "Marked as reviewed" : label}
       </button>
       {!authenticated ? (
-        <p role="status">Sign in to mark this as reviewed.</p>
+        <p className="person-note" role="status">
+          Sign in to mark this as reviewed.
+        </p>
       ) : null}
       {done ? (
-        <p role="status">They’ll show as working again in a moment.</p>
+        <p className="person-note" role="status">
+          They’ll show as working again in a moment.
+        </p>
       ) : null}
-      {error ? <p role="alert">{error}</p> : null}
+      {error ? (
+        <p className="person-error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

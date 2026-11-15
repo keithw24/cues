@@ -1,65 +1,165 @@
-/* Profile cards: same surface as the Account and camera rows above them. */
-.profile-form {
+/* Profile: grouped cards with a small caption above each, soft filled
+   fields, one switch for text alerts. Same tokens as the classroom. */
+.dashboard-shell .profile-group {
   display: grid;
-  gap: 16px;
+  gap: 8px;
 }
-.dashboard-shell .profile-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.dashboard-shell .profile-group-label {
+  padding: 0 14px;
+  color: var(--ws-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
-.dashboard-shell .profile-card-head h2 {
-  margin: 0;
-  color: var(--ws-page-ink);
-  font-size: 16px;
-  font-weight: 600;
+.dashboard-shell .profile-card {
+  padding: 20px;
+  border-radius: 28px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
 }
-.dashboard-shell .profile-form p {
-  max-width: none;
-  margin: 0;
-  color: var(--ws-page-soft);
-  font-size: 14px;
+.dashboard-shell .profile-form {
+  display: grid;
+  gap: 18px;
+}
+.dashboard-shell .profile-hint {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
   line-height: 1.5;
 }
+.dashboard-shell .profile-hint:empty {
+  display: none;
+}
+.dashboard-shell .profile-error {
+  color: var(--ws-review);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Account: who is signed in, and the one place to sign out. */
+.dashboard-shell .profile-account {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.dashboard-shell .profile-account-body {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.dashboard-shell .profile-account-body strong {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-shell .profile-account-body > span {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+
+/* Fields: a light label and a filled, borderless box with a blue focus ring.
+   The faint inset line keeps the edge visible (3:1) in both themes. */
 .profile-field {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
-  border: 0;
   margin: 0;
   padding: 0;
+  border: 0;
 }
 .dashboard-shell .profile-field > span,
-.dashboard-shell .profile-field > legend {
-  margin-bottom: 0;
-  padding: 0;
-  color: var(--ws-page-ink);
-  font-size: 14px;
-  font-weight: 600;
+.dashboard-shell .profile-field > label {
+  padding: 0 4px;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
 }
 .dashboard-shell .profile-field input,
-.dashboard-shell .profile-field select {
+.dashboard-shell .phone-field {
   width: 100%;
   min-width: 0;
-  min-height: 40px;
-  padding: 0 12px;
-  /* Half the ink keeps the field edge at about 3:1 against the card. */
-  border: 1px solid color-mix(in oklab, var(--ws-page-ink) 50%, transparent);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--ws-page-ink);
+  height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--ws-tile);
+  box-shadow: inset 0 0 0 1px var(--ws-line);
+  color: var(--ws-ink);
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
+  transition-property: background-color, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .profile-field > input {
+  padding: 0 16px;
+}
+.dashboard-shell .profile-field input::placeholder {
+  color: var(--ws-ink-faint);
+}
+.dashboard-shell .profile-field > input:focus-visible,
+.dashboard-shell .phone-field:focus-within {
+  outline: none;
+  background: var(--ws-panel-solid);
+  box-shadow: inset 0 0 0 2px var(--ws-blue);
+}
+.dashboard-shell .phone-field[data-invalid] {
+  box-shadow: inset 0 0 0 2px var(--ws-review);
 }
 .dashboard-shell .profile-field input:disabled {
   opacity: 0.6;
 }
-.profile-phone {
-  display: grid;
-  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
-  gap: 8px;
+
+/* Phone: a compact "+1" chip (a real select underneath) and the number. */
+.dashboard-shell .phone-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
 }
+.dashboard-shell .phone-field input {
+  height: 100%;
+  padding: 0 10px;
+  background: transparent;
+  box-shadow: none;
+}
+.dashboard-shell .phone-field input:focus-visible {
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
+.dashboard-shell .phone-code {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  padding: 0 8px 0 12px;
+  border-radius: 10px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-shell .phone-code svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ws-ink-faint);
+}
+.dashboard-shell .phone-code select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .profile-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -69,7 +169,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--ws-page-ink);
+  color: var(--ws-ink);
   font-size: 14px;
 }
 .dashboard-shell .profile-check input {
@@ -83,48 +183,107 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px 12px;
 }
-.dashboard-shell .profile-actions button {
-  min-height: 40px;
-  font-size: 14px;
-}
-.dashboard-shell .profile-actions p:empty {
-  display: none;
+.dashboard-shell .profile-actions .profile-hint {
+  margin-right: auto;
 }
 
-/* Notification status: one pill, colored by state. */
-.dashboard-shell .profile-status {
+/* Text alerts: the switch says on or off; the line under the title says
+   what that means. */
+.dashboard-shell .alerts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dashboard-shell .alerts-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.dashboard-shell .alerts-copy strong {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.dashboard-shell .alerts-optin {
+  display: grid;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ws-line);
+}
+.dashboard-shell .alerts-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ws-line);
+}
+.dashboard-shell .text-link {
+  color: var(--ws-blue);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.dashboard-shell .text-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .text-link:not(:disabled):hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+.dashboard-shell .ws-switch {
+  position: relative;
   flex: none;
-  padding: 3px 10px;
+  width: 48px;
+  height: 28px;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.08);
-  color: var(--ws-page-soft);
-  font-size: 12px;
-  font-weight: 600;
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .profile-status.is-not-enabled {
   background: var(--ws-surface);
-  color: var(--ws-ink-soft);
+  box-shadow: inset 0 0 0 1px var(--ws-line);
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
 }
-.dashboard-shell .profile-status.is-enabled {
-  background: var(--ws-done-soft);
-  color: var(--ws-done);
+.dashboard-shell .ws-switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(11 13 18 / 0.25);
+  transition: translate 200ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-.dashboard-shell .profile-status.is-activating {
-  background: var(--ws-blue-soft);
-  color: var(--ws-blue-deep);
+.dashboard-shell .ws-switch[aria-checked="true"] {
+  background: var(--ws-blue);
+  box-shadow: none;
 }
-.dashboard-shell .profile-status.is-activation-failed {
-  background: var(--ws-review-soft);
-  color: var(--ws-review);
+.dashboard-shell .ws-switch[aria-checked="true"] span {
+  translate: 20px 0;
+}
+.dashboard-shell .ws-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell .ws-switch span {
+    transition: none;
+  }
 }
 
 @media (max-width: 520px) {
-  .profile-pair,
-  .profile-phone {
+  .profile-pair {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .dashboard-shell .profile-card {
+    padding: 16px;
+    border-radius: 24px;
   }
 }

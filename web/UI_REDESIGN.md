@@ -1,45 +1,31 @@
 # Teacher workspace redesign
 
-The Columbia Catalog / LionPlan reference guides the neutral surfaces, Inter type,
-navy selection, compact controls and focused sign-in flow. The earlier colorful
-Nexus tiles and repeated top navigation have been replaced by a workspace rail,
-compact people rows, and a camera/review layout. Manage activity retains the
-existing session controls in a disclosure.
+The workspace now matches the landing page demo and shares tokens with the
+landing (Night) and sign-in (light) pages. `DESIGN.md` at the repo root records
+the system; `.plans/teacher-workspace-alignment-spec.md` records the decisions.
 
-## Login companion
+## What changed
 
-`/login` has welcome → email → password steps, reversible navigation, sanitized
-errors and disabled submission during requests. It signs into existing Supabase
-teacher accounts. It does not create accounts or assign station permissions.
-The animated character is Cues' companion, not the teacher's avatar. It uses the
-MIT-licensed `@bible-strong/avatar-react` and `@bible-strong/avatar-core` packages,
-with a restrained pointer-following gaze, a resting password state and reduced
-motion support. Rendering stays in the browser.
-
-Enable `CUES_FLAG_WEB_TEACHER_LOGIN=1` alongside `CUES_FLAG_WEB_DASHBOARD=1` when
-building or running the preview. Both registry defaults remain off. With login off,
-`/login` shows an unavailable page and does not load the companion or sign-in code.
-Flags are resolved when Next.js prerenders: rebuild a production preview after
-changing them. Existing `web.session_controls` permissions and gates still apply.
-
-## Photon
-
-`/settings/notifications` provides a dedicated destination and reports Photon as
-coming soon, not connected, with delivery unavailable. Actual routing remains
-Michelle's integration work. There are no notification writes or credentials in
-this frontend change.
+- `/dashboard`: plain header (title and session controls), then the
+  camera (16:9) beside one Class list. Needs you is pinned first; rows open in
+  place with the review decision and a "Why did Cues ask?" disclosure.
+- Signed out, `/dashboard` shows a sign-in card instead of errors.
+- `/live` and `/settings/stations` (camera pairing) redirect to `/dashboard`;
+  `/settings/notifications` redirects to `/settings/profile#notifications`.
+- The rail holds Classroom, Profile and the theme toggle.
+- The login and sign-up header uses the landing nav's box, so the logo does not
+  move between pages.
+- Fixed: the Profile form stayed on "Loading your profile…" when signed out.
+- Removed flags: `web.room_view`, `web.live_view`.
 
 ## Verification
 
-- `npm run lint`
-- `npm run test` (48 passing at verification time, including the login-off gate)
-- `CUES_FLAG_WEB_DASHBOARD=1 CUES_FLAG_WEB_TEACHER_LOGIN=1 npm run build`
-- Safari: reference inspection, welcome/email/password navigation, classroom and
-  notifications destinations. Used a simulated email; no sign-in request sent.
-- Isolated Chrome: desktop (1440) and mobile (390) captures under
-  `.impeccable/review/`; production preview on `http://127.0.0.1:3001`.
-- Impeccable mechanical scan: no findings on changed UI targets.
+- `npm run lint`, `npm run test` (141 passing), `npm run build`.
+- Browser (dev server, flags from `.env.local`): signed-out dashboard, profile,
+  redirects, landing demo, logo position on `/`, `/login`, `/signup` at 1440px.
+  Signed-in states were checked on a temporary page with simulated people
+  (deleted): light and dark, 4 and 18 students, an opened request, 375px.
 
-Still needed: successful sign-in with an existing authorized test teacher account,
-real station session writes under the existing controls flag, and Photon delivery
-once its backend integration exists. No student camera frames were used or sent.
+Still needed: a check with a signed-in test teacher (review decision buttons
+against the RPC), and the live MJPEG feed in the new 16:9 card with
+`uv run uvicorn vision.app:app` running.

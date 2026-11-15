@@ -57,34 +57,32 @@ test("the saved theme applies only for known values", () => {
   assert.equal(run(null), undefined);
 });
 
-test("/live defaults on and always shows what the camera reports", () => {
-  assert.equal(isEnabled("web.live_view", {}), true);
-  assert.equal(
-    isEnabled("web.live_view", { CUES_FLAG_WEB_LIVE_VIEW: "0" }),
-    false,
-  );
-  const page = read("../app/live/page.tsx");
-  assert.match(page, /if \(!isEnabled\("web\.live_view"\)\)/);
-  assert.match(page, /await import\(\s*"@\/components\/live-connected"\s*\)/);
-  // No fixed, made-up class anywhere in the Live screen.
-  assert.doesNotMatch(page, /live-mock|web\.live_data/);
-  assert.throws(() => isEnabled("web.live_data", {}));
-  // Decisions follow the dashboard and PRD §13: Support needed saves the
-  // model review as confirmed and No support needed as dismissed, only when
-  // the review action flag is on, keyed by the review and its seat.
-  const connected = read("../components/live-connected.tsx");
-  assert.match(connected, /if \(reviewActionsEnabled && client\)/);
-  assert.match(connected, /resolveTeacherReview\(client, lead, decision\)/);
+test("/live and /settings/notifications fold into the pages that do the work", () => {
+  // The Live screen's people, counts and requests live on Classroom now.
+  assert.throws(() => isEnabled("web.live_view", {}));
+  assert.throws(() => isEnabled("web.room_view", {}));
+  assert.match(read("../app/live/page.tsx"), /redirect\("\/dashboard"\)/);
+  // Photon alerts are set up on Profile, next to the alert phone.
   assert.match(
-    connected,
-    /decide\("confirmed"\)[\s\S]*resolutionLabels\.confirmed/,
+    read("../app/settings/notifications/page.tsx"),
+    /redirect\("\/settings\/profile#notifications"\)/,
   );
-  assert.match(
-    connected,
-    /decide\("dismissed"\)[\s\S]*resolutionLabels\.dismissed/,
+  assert.match(read("../components/demo-notifications.tsx"), /id="notifications"/);
+});
+
+test("a person's request is in plain words; model details wait behind Why", () => {
+  const panel = read("../components/person-panel.tsx");
+  assert.match(panel, /<details className="person-why">/);
+  assert.match(panel, /teacherRationale\(review\.rationale\)/);
+  // Expression never reaches the teacher's panel.
+  assert.doesNotMatch(
+    panel.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, ""),
+    /expression/i,
   );
-  assert.match(connected, /reviewId: lead\.id,\s*seatId: lead\.seat_id/);
-  assert.doesNotMatch(connected, /item\.name ===/);
+  const dashboard = read("../components/dashboard.tsx");
+  // Signed out, the classroom asks to sign in instead of showing errors.
+  assert.match(dashboard, /\{signedOut \? \(\s*<SignInCard \/>/);
+  assert.match(dashboard, /href="\/login"/);
 });
 
 test("review decisions read as support needed or not, on the same statuses", async () => {
@@ -112,43 +110,24 @@ test("review decisions read as support needed or not, on the same statuses", asy
   assert.doesNotMatch(actions, /"Needs attention"|"Dismiss"/);
 });
 
-test("the rail links to /live only when the live view is on", () => {
+test("the rail keeps only Classroom and Profile", () => {
   const rail = read("../components/workspace-sidebar.tsx");
-  assert.match(rail, /\{liveView \? \(\s*<Link href="\/live"/);
   // The current entry follows the URL, not a fixed page.
   assert.match(rail, /usePathname\(\)/);
-  for (const page of [
-    "../app/dashboard/page.tsx",
-    "../app/settings/profile/page.tsx",
-    "../app/settings/notifications/page.tsx",
-  ])
-    assert.match(read(page), /isEnabled\("web\.live_view"\)/);
-});
-
-test("the rail keeps only Teacher profile, Classroom and Live", () => {
-  const rail = read("../components/workspace-sidebar.tsx");
   const links = new Set(
     [...rail.matchAll(/<Link\s+href="([^"]+)"/g)]
       .map((m) => m[1])
       .filter((href) => href !== "/"),
   );
-  // The account buttons open the profile (email and sign out live there);
-  // nothing in the rail sends a signed-in teacher to the sign-in page.
-  assert.deepEqual([...links].sort(), [
-    "/dashboard",
-    "/live",
-    "/settings/profile",
-  ]);
-  assert.doesNotMatch(rail, /href="\/login"/);
-  assert.doesNotMatch(
-    rail,
-    /#seats-heading|#attention-panel|\/settings\/notifications/,
-  );
+  // The profile holds email, sign-out, the camera link and alerts; nothing in
+  // the rail sends a signed-in teacher to the sign-in page.
+  assert.deepEqual([...links].sort(), ["/dashboard", "/settings/profile"]);
+  assert.doesNotMatch(rail, /href="\/login"|\/live|\/settings\/notifications/);
 });
 
 test("people are labelled as the backend names them, never made-up names", () => {
   assert.throws(() => isEnabled("web.simulated_names", {}));
-  for (const file of ["dashboard.tsx", "live-connected.tsx"]) {
+  for (const file of ["dashboard.tsx"]) {
     const source = read(`../components/${file}`);
     assert.doesNotMatch(source, /simulated-names|displayName\(/);
     assert.match(
@@ -159,7 +138,7 @@ test("people are labelled as the backend names them, never made-up names", () =>
 });
 
 test("the workspace shows no simulated class or data labels", () => {
-  for (const file of ["dashboard.tsx", "live-connected.tsx", "live-screen.tsx"])
+  for (const file of ["dashboard.tsx", "person-panel.tsx"])
     assert.doesNotMatch(
       read(`../components/${file}`),
       /simulated class|Simulated data|Simulated seat|Simulated class/,

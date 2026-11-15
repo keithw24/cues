@@ -13,6 +13,7 @@ import LandingHero from "@/components/landing-hero";
 import LandingPreview from "@/components/landing-preview";
 import LandingDemo from "@/components/landing-demo";
 import LandingReveal from "@/components/landing-reveal";
+import LandingAmbient from "@/components/landing-ambient";
 import LandingSteps from "@/components/landing-steps";
 import { ThemeToggle } from "@/components/theme-toggle";
 import CuesMark from "@/components/cues-mark";
@@ -43,7 +44,12 @@ export default function Landing() {
   const motion = isEnabled("web.landing_motion");
   return (
     <div className={`landing ${garamond.variable}`}>
-      {motion ? <LandingReveal /> : null}
+      {motion ? (
+        <>
+          <LandingReveal />
+          <LandingAmbient />
+        </>
+      ) : null}
       <header className="ln-nav">
         <Link href="/" className="ln-brand" aria-label="Cues home">
           <CuesMark className="ln-brand-mark" />

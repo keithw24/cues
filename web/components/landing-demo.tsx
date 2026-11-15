@@ -12,28 +12,23 @@ import "./workspace.css";
 // The real dashboard's banner and rows, driven by a scripted, simulated
 // classroom. Nothing is read from or sent to Supabase.
 type Tone = "working" | "done" | "review" | "quiet";
-type Icon = "working" | "check" | "flag" | "time";
-type Person = { name: string; status: string; icon: Icon; tone: Tone };
+type Person = { name: string; status: string; tone: Tone };
 type Frame = { caption: string; people: Person[]; review: boolean };
 
 const ready: Omit<Person, "name"> = {
   status: "Ready",
-  icon: "time",
   tone: "quiet",
 };
 const working: Omit<Person, "name"> = {
   status: "Working",
-  icon: "working",
   tone: "working",
 };
 const done: Omit<Person, "name"> = {
-  status: "Completed",
-  icon: "check",
+  status: "Finished",
   tone: "done",
 };
 const review: Omit<Person, "name"> = {
-  status: "Needs Review",
-  icon: "flag",
+  status: "Needs you",
   tone: "review",
 };
 
@@ -122,14 +117,6 @@ export default function LandingDemo() {
 
   // With reduced motion, hold the frame that tells the whole story.
   const frame = frames[reduced ? 2 : index];
-  const count = (tone: Tone) =>
-    frame.people.filter((person) => person.tone === tone).length;
-  const metrics = [
-    { value: frame.people.length, label: "People in view" },
-    { value: count("working"), label: "In progress" },
-    { value: count("done"), label: "Completed" },
-    { value: frame.review ? 1 : 0, label: "Pending reviews" },
-  ];
 
   return (
     <figure ref={ref} className="ln-demo">
@@ -145,68 +132,52 @@ export default function LandingDemo() {
             <WorkspaceIcon name="classroom" />
           </span>
           <span className="ws-demo-rail-item">
-            <WorkspaceIcon name="people" />
-          </span>
-          <span className="ws-demo-rail-item">
-            <WorkspaceIcon name="review" />
+            <WorkspaceIcon name="account" />
           </span>
         </div>
         <div className="ws-demo-main">
           <div className="ws-hero">
-            <span className="ws-grain" />
             <header className="page-intro">
               <div>
                 <h1>your classroom</h1>
+                <p className="ws-subtitle">Thumbs up</p>
               </div>
-              <span className="ws-demo-sim">Simulated students</span>
+              <span className="ws-pill">Simulated students</span>
             </header>
-            <dl className="overview-metrics">
-              {metrics.map((metric) => (
-                <div key={metric.label}>
-                  <dd>{metric.value}</dd>
-                  <dt>{metric.label}</dt>
-                </div>
-              ))}
-            </dl>
           </div>
           <div className="ws-demo-grid">
-            <section className="seat-strip">
-              <header className="strip-heading">
-                <h2>People</h2>
-              </header>
-              <div className="seat-items">
-                {frame.people.map((person) => (
-                  <div
-                    key={person.name}
-                    className={`seat-item is-${person.tone}`}
-                  >
-                    <PersonRowContent
-                      name={person.name}
-                      status={person.status}
-                      icon={person.icon}
-                      activity="Thumbs up"
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
-            <section className="attention-panel">
+            <section className="ws-panel">
               <header className="panel-heading">
-                <h2>
-                  <WorkspaceIcon name="review" />
-                  Teacher reviews
-                </h2>
-                <span className="attention-count">
-                  {frame.review ? 1 : 0} pending
-                </span>
+                <h2>People</h2>
+                <span className="ws-caption">Left to right</span>
+              </header>
+              <ul className="row-list">
+                {frame.people.map((person) => (
+                  <li key={person.name}>
+                    <div className="ws-row">
+                      <PersonRowContent
+                        name={person.name}
+                        status={person.status}
+                        tone={person.tone}
+                        activity=""
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section className="ws-panel">
+              <header className="panel-heading">
+                <h2>Needs you</h2>
+                {frame.review ? <span className="ws-count">1</span> : null}
               </header>
               {frame.review ? (
-                <ul className="attention-list">
+                <ul className="row-list ws-demo-arrive">
                   <li>
-                    <div className="review-entry">
+                    <div className="ws-row">
                       <ReviewRowContent
                         name="Leo"
-                        meta="Thumbs up · 3 tries"
+                        meta=""
                         time="2026-11-14T09:41:00"
                         timeLabel="9:41 AM"
                         elevated
@@ -215,10 +186,9 @@ export default function LandingDemo() {
                   </li>
                 </ul>
               ) : (
-                <div className="queue-empty">
-                  <p>No pending reviews</p>
-                  <span>Cues will ask when someone needs you.</span>
-                </div>
+                <p className="panel-empty ws-demo-arrive">
+                  All clear. Cues will ask when someone may need you.
+                </p>
               )}
             </section>
           </div>

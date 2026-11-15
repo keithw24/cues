@@ -71,7 +71,7 @@ export function SessionControls({
       setRefreshRequired(false);
       setError(null);
       setLoadError(null);
-      onActivity(user ? "Loading session…" : "Sign in to manage activities");
+      onActivity(user ? "Loading activity…" : "Sign in to manage activities");
     });
     if (!user || !station) return;
     async function refresh() {
@@ -102,7 +102,7 @@ export function SessionControls({
             ? (next.activities.find(
                 (a) => a.id === next.session?.current_activity_id,
               )?.name ?? "Activity unavailable")
-            : "No active session",
+            : "No activity running",
         );
       } catch (cause) {
         if (
@@ -115,7 +115,7 @@ export function SessionControls({
               ? cause.message
               : "Session could not be refreshed. Check your camera link and retry.";
           if (!loaded) {
-            onActivity("Session unavailable");
+            onActivity("Activity unavailable");
             setLoadError(message);
           }
           setError(message);
@@ -210,7 +210,7 @@ export function SessionControls({
         requestAnimationFrame(() => selectRef.current?.focus());
       onActivity(
         result.ended_at
-          ? "No active session"
+          ? "No activity running"
           : (snapshot.activities.find(
               (a) => a.id === result.current_activity_id,
             )?.name ?? "Activity unavailable"),
@@ -234,13 +234,13 @@ export function SessionControls({
   }
   if (!station)
     return (
-      <span role="status">
+      <p className="session-line" role="status">
         {stationMessage || "No classroom camera is set up yet."}
-      </span>
+      </p>
     );
   if (!user && teacherLoginEnabled)
     return (
-      <Link className="primary-button session-login-link" href="/login">
+      <Link className="ws-pill is-dark" href="/login">
         Teacher sign in
       </Link>
     );
@@ -295,50 +295,42 @@ export function SessionControls({
   const controlState = sessionControlState(snapshot, refreshRequired);
   const session = snapshot?.session ?? null;
   const actions = sessionActions(snapshot, selection);
+  // One short line under the controls. Only sessions that need the teacher's
+  // attention say who owns them; ids stay out of the interface.
   const ownership = !snapshot
     ? null
     : !session
-      ? "No active session. Pick an activity to start."
-      : sessionOwnership(session, user) === "owned"
-        ? "Your session is running."
-        : sessionOwnership(session, user) === "unowned"
-          ? "An earlier session has no owner. End it, then start your own."
-          : sessionOwnership(session, user) === "other"
-            ? "This session belongs to another teacher. Changing its activity keeps its owner."
-            : "A session is running. Its owner is unavailable.";
-  // Refresh and sign out are secondary: an icon and a quiet text button.
+      ? "Pick an activity to start."
+      : sessionOwnership(session, user) === "unowned"
+        ? "An earlier session is still open. End it, then start yours."
+        : sessionOwnership(session, user) === "other"
+          ? "Another teacher started this session."
+          : null;
   const refreshButton = (
     <button
       type="button"
-      className="session-icon"
-      aria-label="Refresh session"
-      title="Refresh session"
+      className="ws-icon-button"
+      aria-label="Refresh activity"
+      title="Refresh activity"
       disabled={busy}
       onClick={() => setRefreshKey((n) => n + 1)}
     >
       <WorkspaceIcon name="refresh" />
     </button>
   );
-  // The session could not load (for example, this account is not assigned to
-  // the camera): say so plainly instead of showing controls that can't act.
+  // The session could not load: say so plainly instead of showing controls
+  // that can't act, with a way to retry.
   if (!snapshot && loadError && controlState === "refresh")
     return (
       <div className="session-controls is-blocked" aria-busy={busy}>
-        <p className="session-blocked" role="alert">
-          <WorkspaceIcon name="lock" />
-          <span>{loadError}</span>
+        <p className="session-line" role="alert">
+          {loadError}
         </p>
-        <div className="session-row">
-          <Link className="session-quiet" href="/settings/stations">
-            Classroom camera
-          </Link>
-          {refreshButton}
-        </div>
+        <div className="session-row">{refreshButton}</div>
       </div>
     );
   return (
     <div className="session-controls" aria-busy={busy}>
-      {stationMessage ? <p role="status">{stationMessage}</p> : null}
       <div className="session-row">
         <label className="sr-only" htmlFor="session-activity">
           Activity
@@ -366,7 +358,7 @@ export function SessionControls({
         {actions.primary ? (
           <button
             type="button"
-            className="session-primary"
+            className="ws-pill is-dark"
             disabled={
               busy ||
               refreshRequired ||
@@ -377,7 +369,7 @@ export function SessionControls({
             {actions.primary === "start"
               ? pendingAction === "start"
                 ? "Starting…"
-                : "Start session"
+                : "Start"
               : pendingAction === "change"
                 ? "Changing…"
                 : "Change activity"}
@@ -386,32 +378,25 @@ export function SessionControls({
         {actions.end ? (
           <button
             type="button"
-            className="session-secondary"
+            className="ws-pill"
             disabled={busy || refreshRequired}
             onClick={() => void act(null)}
           >
-            {pendingAction === "end" ? "Ending…" : "End session"}
+            {pendingAction === "end" ? "Ending…" : "End"}
           </button>
         ) : null}
         {refreshButton}
       </div>
-      {snapshot ? (
-        <div className="session-meta">
-          <span role="status">
-            {ownership}
-            {` · ${stationSyncLabel(snapshot, now)}`}
-          </span>
-          <details className="session-details">
-            <summary>Details</summary>
-            <p>Station: {station}</p>
-            <p>Session: {session?.id ?? "None"}</p>
-            <p>Activity: {session?.current_activity_id ?? "None"}</p>
-            <p>Owner: {session?.teacher_id ?? "Unowned / unavailable"}</p>
-          </details>
-        </div>
+      {stationMessage || snapshot ? (
+        <p className="session-line" role="status">
+          {stationMessage ||
+            [ownership, snapshot ? stationSyncLabel(snapshot, now) : null]
+              .filter(Boolean)
+              .join(" · ")}
+        </p>
       ) : null}
       {error ? (
-        <p className="session-error" role="alert">
+        <p className="session-line is-error" role="alert">
           {error}
         </p>
       ) : null}

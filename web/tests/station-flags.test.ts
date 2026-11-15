@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { flagLabel, parseStationFlags, readStationFlags } from "../lib/station-flags.ts";
@@ -57,9 +56,6 @@ test("errors never show provider details and a bad station is refused first", as
   assert.equal(calls.length, 1); // the bad station never reached the database
 });
 
-test("the timeline uses these flags and falls back to the queue only when unavailable", () => {
-  const dashboard = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
-  assert.ok(dashboard.includes("readStationFlags("));
-  assert.ok(dashboard.includes("flagLabel("));
-  assert.match(dashboard, /flagMarks\s*\?\?/);
-});
+// The dashboard's "Last hour" timeline was removed in the workspace redesign
+// (Evan's call, see DESIGN.md). readStationFlags stays, tested above, for a
+// timeline or history view that reads it again.

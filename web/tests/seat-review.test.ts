@@ -95,11 +95,11 @@ test("a review the teacher marked reviewed is valid but never waiting", () => {
 // The runner does not mount React: check the wiring in source.
 test("the button is wired where Needs Review shows, and only with review actions on", () => {
   const dashboard = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
-  assert.ok(dashboard.includes("{presentation.needsReview ? actions : null}"));
   assert.match(dashboard, /reviewActionsEnabled && client && sessionId/);
-  assert.equal((dashboard.match(/actions=\{markReviewedButton\(/g) ?? []).length, 2);
-  const live = readFileSync(new URL("../components/live-connected.tsx", import.meta.url), "utf8");
-  assert.ok(live.includes("MarkReviewedButton"));
+  // One place now: the opened person in the Class list (/live redirects here).
+  assert.equal((dashboard.match(/actions=\{markReviewedButton\(/g) ?? []).length, 1);
+  const person = readFileSync(new URL("../components/person-panel.tsx", import.meta.url), "utf8");
+  assert.ok(person.includes("{presentation?.needsReview && !review ? actions : null}"));
   const button = readFileSync(new URL("../components/mark-reviewed-button.tsx", import.meta.url), "utf8");
   assert.ok(button.includes("locked.current = true")); // a double click marks once
   assert.ok(button.includes("disabled={!authenticated || saving || done}"));

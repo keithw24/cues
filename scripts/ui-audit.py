@@ -70,7 +70,6 @@ def audit(root=ROOT, process=None, direct_next=False):
     controls = "web/components/session-controls.tsx"
     profile = "web/components/teacher-profile-form.tsx"
     notifications = "web/components/demo-notifications.tsx"
-    sidebar = "web/components/workspace-sidebar.tsx"
     dflags = ("web.dashboard",)
     sflags = (*dflags, "web.session_controls")
     pflags = ("web.teacher_login", "web.teacher_profile")
@@ -125,16 +124,14 @@ def audit(root=ROOT, process=None, direct_next=False):
     sm = (*dm, (dashboard, "<SessionControls"))
     pm = (("web/app/settings/profile/page.tsx", "<TeacherProfileForm"),)
     nm = (*pm, (profile, "<DemoNotifications"))
-    room = flags["web.room_view"]["effective"] is True
-    detail = "Select a person; " + ("Camera and details drawer; " if room else "")
-    camera = "Open Camera and details drawer; " if room else ""
+    detail = "Open a person in the Class list; "
     add(
         "Live camera / MJPEG",
         "/dashboard",
         "web/components/local-classroom-feed.tsx",
         "http://127.0.0.1:8000/stream",
         dflags,
-        camera + "Click Connect local feed; loopback hostname + running local vision required.",
+        "Click Turn on video; loopback hostname + running local vision required.",
         (*dm, (dashboard, "<LocalClassroomFeed")),
         needs_client=False,
     )
@@ -186,15 +183,6 @@ def audit(root=ROOT, process=None, direct_next=False):
         dm,
     )
     add(
-        "Room layout / details drawer",
-        "/dashboard",
-        "web/components/classroom-room.tsx",
-        "ClassroomRoom",
-        (*dflags, "web.room_view"),
-        "Alternate layout; standard dashboard remains available when disabled.",
-        (*dm, (dashboard, "<ClassroomRoom")),
-    )
-    add(
         "Activity picker",
         "/dashboard",
         controls,
@@ -223,19 +211,19 @@ def audit(root=ROOT, process=None, direct_next=False):
         "Pending review queue",
         "/dashboard",
         dashboard,
-        "Teacher reviews",
+        "Needs you",
         (*dflags, "web.teacher_reviews"),
-        camera + "Authenticated owner of session; pending teacher_reviews rows (RLS).",
+        "Authenticated owner of session; pending teacher_reviews rows (RLS).",
         dm,
     )
     add(
         "Review details",
         "/dashboard",
-        "web/components/teacher-review-details.tsx",
-        "Review details",
+        "web/components/person-panel.tsx",
+        "Why did Cues ask?",
         (*dflags, "web.teacher_reviews"),
-        "Select an owned pending review.",
-        (*dm, (dashboard, "<TeacherReviewDetails")),
+        "Open a person with an owned pending review.",
+        (*dm, (dashboard, "<PersonDetails")),
     )
     for name, anchor in (
         ("Support needed", "resolutionLabels.confirmed"),
@@ -317,50 +305,6 @@ def audit(root=ROOT, process=None, direct_next=False):
             "Authenticated; " + condition,
             nm,
         )
-    for name, anchor in (
-        ("Station access", "Connected stations"),
-        ("Station pairing form", "Connect station"),
-    ):
-        add(
-            name,
-            "/settings/stations",
-            "web/components/station-pairing-form.tsx",
-            anchor,
-            ("web.teacher_login",),
-            "Link from /settings/profile; authenticated; pairing via code-only RPC.",
-            (("web/app/settings/stations/page.tsx", "<Form"),),
-        )
-    add(
-        "Notifications sidebar page",
-        "/settings/notifications",
-        "web/app/settings/notifications/page.tsx",
-        "Coming soon",
-        (),
-        "Placeholder only; real activation controls are on /settings/profile.",
-        ((sidebar, 'href="/settings/notifications"'),),
-        needs_client=False,
-    )
-    features[-1]["status"] = "placeholder" if features[-1]["code"] else "not found"
-    add(
-        "Live screen",
-        "/live",
-        "web/app/live/page.tsx",
-        "<LiveConnected",
-        ("web.live_view",),
-        "web.live_data selects connected data vs simulated mock; "
-        "sidebar link also gated by web.live_view.",
-        needs_client=False,
-    )
-    add(
-        "Connected live data",
-        "/live",
-        "web/components/live-connected.tsx",
-        "watchTeacherReviews",
-        ("web.live_view", "web.live_data"),
-        "Authenticated ownership applies to reviews.",
-        (("web/app/live/page.tsx", "<LiveConnected"),),
-    )
-
     catalog = json.loads(source(root, "vision/activities.json"))
     selector = "snapshot?.activities.map" in source(root, controls)
     notes = []
@@ -420,11 +364,6 @@ def audit(root=ROOT, process=None, direct_next=False):
             ],
         )
     )
-    if "Coming soon" in source(root, "web/app/settings/notifications/page.tsx"):
-        notes.append(
-            "The /settings/notifications route remains a stale Coming soon/Not connected placeholder; "
-            "DemoNotifications is mounted on Profile instead."
-        )
     if not creation:
         notes.append(
             "Landing says record your own gesture, but no frontend /gestures caller was found. "

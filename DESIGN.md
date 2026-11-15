@@ -1,229 +1,140 @@
 ---
 name: Cues
-description: A quiet teacher workspace with a local camera, structured observations and teacher-led review.
+description: A calm teacher workspace that shares one visual system with the landing and sign-in pages.
 colors:
-  background: "#ffffff"
-  foreground: "#20252d"
-  paper: "#ffffff"
-  muted: "#f2f4f7"
-  muted-foreground: "#626b78"
-  line: "#e6e9ee"
-  surface-hover: "#f5f7fa"
-  accent: "#edf3fb"
-  accent-foreground: "#173f72"
-  primary: "#173f72"
-  primary-foreground: "#ffffff"
-  ring: "#245899"
+  night-bg: "#111a3a"
+  night-panel: "rgb(255 255 255 / 0.045)"
+  night-ink: "#eef1fb"
+  night-ink-soft: "#aeb6cc"
+  night-ink-faint: "#7c86a3"
+  night-accent: "#8fa3ff"
+  light-bg: "#f7f7f7"
+  light-panel: "#ffffff"
+  light-tile: "#f6f6f8"
+  light-ink: "#0b0d12"
+  light-ink-soft: "#6b6f78"
+  light-ink-faint: "#9a9da5"
+  blue: "#425cc8"
+  done: "#1d6b45"
+  done-soft: "#e7f5ed"
   review: "#934d31"
   review-soft: "#fcf0e9"
-  workspace: "#f8f9fb"
-  video-stage: "#f0f3f7"
 typography:
   display:
-    fontFamily: "Inter, Arial, sans-serif"
-    fontSize: "clamp(28px, 4vw, 38px)"
-    fontWeight: 400
-    lineHeight: 1.25
-    letterSpacing: "-0.03em"
-  headline:
-    fontFamily: "Inter, Arial, sans-serif"
-    fontSize: "clamp(28px, 3vw, 36px)"
+    fontFamily: "EB Garamond, Georgia, serif"
+    fontSize: "clamp(40px, 5.5vw, 60px)"
     fontWeight: 500
-    lineHeight: 1.2
-    letterSpacing: "-0.035em"
-  wordmark:
-    fontFamily: "Inter, Arial, sans-serif"
-    fontSize: "25px"
-    fontWeight: 600
-    letterSpacing: "-0.04em"
-  metric:
-    fontFamily: "Inter, Arial, sans-serif"
-    fontSize: "26px"
-    fontWeight: 500
-    lineHeight: 1.3
-    letterSpacing: "-0.03em"
-  heading:
-    fontFamily: "Inter, Arial, sans-serif"
-    fontSize: "15px"
-    fontWeight: 600
     letterSpacing: "-0.015em"
+  panel-heading:
+    fontFamily: "Inter"
+    fontSize: "20px"
+    fontWeight: 500
   body:
-    fontFamily: "Inter, Arial, sans-serif"
+    fontFamily: "Inter"
     fontSize: "14px"
     fontWeight: 400
-    lineHeight: 1.5
-  navigation:
-    fontFamily: "Inter, Arial, sans-serif"
-    fontSize: "13px"
-    fontWeight: 500
-  control:
-    fontFamily: "Inter, Arial, sans-serif"
-    fontSize: "12px"
-    fontWeight: 500
   caption:
-    fontFamily: "Inter, Arial, sans-serif"
+    fontFamily: "Inter"
     fontSize: "11px"
-    fontWeight: 400
+    fontWeight: 500
+    letterSpacing: "0.08em"
+    textTransform: "uppercase"
 rounded:
-  surface: "12px"
-  control: "8px"
-  login-input: "10px"
-  badge: "5px"
-  count: "6px"
+  panel: "28px"
+  row: "16px"
+  pill: "999px"
 spacing:
-  compact: "8px"
-  control: "12px"
-  row: "14px"
-  section: "16px"
-  panel: "20px"
-  workspace: "24px"
-  page: "40px"
-components:
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.control}"
-    padding: "10px 16px"
-    height: "40px"
-  button-secondary:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.foreground}"
-    rounded: "{rounded.control}"
-    padding: "8px 12px"
-    height: "38px"
-  nav-active:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.primary-foreground}"
-    rounded: "{rounded.control}"
-    padding: "10px 12px"
-  login-input:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.foreground}"
-    rounded: "{rounded.login-input}"
-    padding: "12px 15px"
-    height: "48px"
-  panel:
-    backgroundColor: "{colors.paper}"
-    rounded: "{rounded.surface}"
-  person-row:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.foreground}"
-    padding: "14px 12px"
-  review-label:
-    backgroundColor: "{colors.muted}"
-    textColor: "{colors.muted-foreground}"
-    rounded: "{rounded.badge}"
-    padding: "2px 6px"
-  review-label-elevated:
-    backgroundColor: "{colors.review-soft}"
-    textColor: "{colors.review}"
-    rounded: "{rounded.badge}"
-    padding: "2px 6px"
+  panel-padding: "12px"
+  gap: "20px"
+  gutter: "clamp(20px, 4vw, 48px)"
 ---
 # Design System: Cues
 
 ## Overview
 
-**Creative North Star: "The Classroom in View"**
+Cues has three surfaces that share one look: the landing page (`/`), the sign-in pages (`/login`, `/signup`) and the teacher workspace (`/dashboard`, `/settings/*`). The workspace follows the dashboard that the landing page demo shows, so the product looks the way the marketing promises.
 
-Cues uses the Columbia Catalog / LionPlan reference as the authority for quiet operational software: white content, cool neutral framing, upright Inter, navy selection and compact rounded controls. A persistent workspace rail gives classroom monitoring, people, teacher reviews and notifications a clear home. The camera and review queue carry the work; activity controls open only when requested. This code-led reference adaptation supersedes the earlier Nexus mesh tiles and italic type, and makes no pixel-exact reproduction claim.
+The direction is **very simple and uncluttered**. A screen has few surfaces, small spaced captions, pill buttons and round icon buttons. Model and technical detail waits behind a disclosure. Sources: `web/components/workspace.css`, `dashboard.tsx`, `local-classroom-feed.tsx`, `person-panel.tsx`, `workspace-rows.tsx`, `workspace-sidebar.tsx`, `landing.css`, `auth.css`. The interview that set these decisions is in `.plans/teacher-workspace-alignment-spec.md`.
 
-The sign-in surface is focused and friendly: one question at a time beneath an illustrated Cues companion. The character belongs to the product, never to a teacher profile or learner identity. Its animation supports the interaction without changing what the system knows. Structured state, honest unavailable states, position-based identification and teacher authorization remain product boundaries rather than decorative implications.
+## Themes
 
-**Key Characteristics:**
-- White and cool-neutral surfaces with navy actions and selection.
-- Upright Inter, fine borders and compact rectangular controls.
-- A persistent desktop rail that becomes a compact mobile header/navigation.
-- Scan-friendly people rows and progressive activity disclosure.
-- A browser-rendered login companion with restrained gaze and a sleeping password state.
+Every page has a light/dark toggle (`web.theme_toggle`). The choice is saved per browser in `localStorage` (`cues-theme`). With no saved choice, each page keeps its default: Night for the landing page and the workspace, light for sign-in.
 
-Sources: `web/app/globals.css`, `web/app/layout.tsx`, `web/components/dashboard.tsx`, `workspace-sidebar.tsx`, `local-classroom-feed.tsx`, `teacher-login.tsx`, `login-companion.tsx` and `web/app/login/page.tsx`. The approved direction is `.impeccable/teacher-workspace.md`; functional boundaries are in `web/UI_REDESIGN.md`. `PRD-cues.md` remains product authority. This document records the implemented visual system.
+- **Night** uses the landing page navy (`#111a3a`), see-through panels and light ink.
+- **Light** uses the sign-in canvas (`#f7f7f7`), white panels and near-black ink.
 
-## Colors
-
-The frontmatter owns reusable color values. Navy is the primary action, wordmark and selected-navigation color; the pale blue accent marks selected people rows. White content sits beside a cool near-white workspace rail and login canvas. Neutral ink carries primary text, muted foreground supports context and privacy copy, and fine cool-gray lines separate rows and panels. The video placeholder uses its own quiet neutral field; connected frames use a dark contained viewport.
-
-Warm brown review text on a pale warm fill distinguishes elevated review priority. Normal badges remain neutral. Live-connection green is specific to connection status and is not a learner-status scale. There are no colored person tiles or mesh gradients in the current interface.
-
-**The State Comes From Text Rule.** Color supports explicit labels; it never establishes task difficulty, learner identity or an emotional diagnosis.
+`workspace.css` defines every color as a `--ws-*` token on `.dashboard-shell`, and redefines the tokens under `:root[data-theme="light"]`. The landing demo window (`.ws-demo`) always uses the light tokens.
 
 ## Typography
 
-Inter is loaded through `next/font/google` at weights 400, 500, 600 and 700, with Arial and sans-serif fallbacks. All visible operational and login type is upright. The frontmatter records the implemented roles: a regular login display, a medium workspace headline, semibold section headings, medium tabular summary counts, compact navigation and small supporting captions. No separate display or monospace face is used.
-
-Workspace titles use tight tracking; body copy stays plain. Main panel headings are compact (14px overrides within panels), while the camera toolbar inherits the heading role. Login questions use the display scale; at the mobile breakpoint they settle at 29px. Person labels use medium 13px text, state uses 12px, and activity uses 11px. Match scores and timestamps belong in selected details rather than competing with the principal status.
-
-**The One Typeface Rule.** Use upright Inter throughout the workspace and login; hierarchy comes from size, weight and spacing.
+Inter carries all interface text. EB Garamond (`--font-garamond`) is used only for page titles ("your classroom", "Profile"), as on the landing page. Times use tabular figures. Captions are 11px, uppercase, with 0.08em spacing.
 
 ## Layout
 
-The desktop workspace has a fixed left rail (232px), with a matching shell inset. Main content has a maximum width of 1420px and page padding of 30px 40px 28px. A breadcrumb and title precede four observed-state summary counts, separated from the working area by a rule. Current activity stays visible; Manage activity opens a right-aligned disclosure containing existing session controls and unavailable feedback.
+**Rail.** A 76px column of 44px round buttons: Classroom and Profile, with the theme toggle at the bottom. Each button shows its name on hover and keyboard focus. Below 700px the rail becomes a sticky top bar.
 
-The camera/people column and review/detail panel use a 1.8:1 grid with a minimum 290px right column and 24px gap. The camera retains a 4:3 viewport and contains frames without cropping. People appear as full-width divided rows: position label, task state, activity and SIM provenance. The right panel alternates between queue, person details and review evidence. Long facts wrap rather than expand the page.
+**Classroom (`/dashboard`)**, top to bottom:
 
-At 1200px the rail narrows to 210px, main padding becomes 28px, and the grid tightens to 1.45:1 with an 18px gap. At 1000px the monitor becomes one column and the review panel follows the camera/people content. At 700px the rail becomes a non-fixed, wrapping header with wordmark, account shortcut when enabled, Notifications and horizontal classroom/people/review links. Desktop workspace identity, account detail and privacy block are hidden; the camera footer and page copy retain privacy context. Mobile main padding is 24px 20px. Metrics remain four compact columns; people rows move activity below label and state, with SIM alongside.
+1. **Header.** No banner: the page background with one soft blue glow, the "your classroom" title and the session controls (activity picker, Start or Change activity, End, refresh).
+2. **Camera and Class, side by side.** The camera card takes about 60% of the width, and the Class list sits beside it. Below 1000px they stack, with the Class list first.
 
-Login is a full-height column with top navigation, a centered content region (maximum 680px), a companion, one question and a form (maximum 340px). The companion reserves 132px square. Mobile header padding is 22px 24px; content remains a single centered column. Notifications has its own workspace destination and an honest coming-soon integration description.
+**Camera card.** The stage is always 16:9, the camera's own shape, so a live frame fills it with no black bars. The column sets the size; the video never does. Off, the stage shows "Turn on video". Live, it shows the vision service's MJPEG (Motion JPEG) stream from `http://127.0.0.1:8000/stream`, including the service's own overlay (a box and label per person, hand points). The header shows only "Camera", plus a Turn off button while live. The browser remembers in `localStorage` (`cues-video`) that the teacher turned the video on.
 
-## Elevation & Depth
+**Class list.** One list replaces the earlier People and Needs you panels:
 
-The system is flat: white panels, cool framing, thin borders and subtle selected/hover fills establish containment. The activity disclosure sits above the workspace through positioning and stacking, with a border rather than a cast shadow. Keyboard focus is a two-pixel ring with a four-pixel offset; review-row focus is inset, and selected people rows have a thin inset outline.
+- **Needs you** comes first. It holds one row per person with a pending review, in queue order (elevated priority first, then oldest). A person stays here even after leaving the camera's view, and the row then says "Not in view".
+- **Everyone else** follows: the other people the camera sees, left to right, each with a status pill. This label appears only when a Needs you group exists.
+- When nobody needs the teacher and reviews are connected, one green "All clear" line replaces the Needs you group.
+- Rows show the activity name only when the class is on more than one activity.
+- On desktop the list stays in view, keeps to the screen's height and scrolls inside itself, so a large class never makes the page long.
 
-Buttons transition background, border and press transform over 160ms with `ease`. Pressing moves a button down one pixel. Login steps arrive over 240ms using `cubic-bezier(0.23, 1, 0.32, 1)`, fading from 0.7 opacity, moving up from 8px and clearing a 1px blur. Reduced motion removes smooth scrolling, button transitions and the login entrance; the companion animation pauses and gaze centers.
+**Opening a person.** A row opens in place and closes with a second click or Escape. It shows the status in one sentence. For a pending review it also shows "Student may need support", a short plain explanation, the two decisions (Support needed, No support needed) and a closed "Why did Cues ask?" disclosure. The disclosure holds the agent's rationale and the evidence types it used.
 
-**The Flat Surface Rule.** Use borders and tonal separation for containment; the current interface has no cast-shadow vocabulary.
+**Signed out.** The Classroom shows one centered card with the Cues companion, "Sign in to see your classroom" and a Sign in button. It shows no error banner and no empty panels.
+
+**Profile (`/settings/profile`).** A Garamond title and a single column of panels: account and sign-out, name and alert phone, and Photon text alerts (`#notifications`).
 
 ## Shapes
 
-Controls and navigation use compact rounded rectangles, not full pills. Panels and the local feed use the surface radius; fields have the slightly softer login-input radius. Small badges use tighter corners. People and review rows are square-edged, divided surfaces. The workspace account icon is circular; the product companion is an illustrated sphere. These exceptions express identity or character rather than a card system.
+Corners are concentric: an outer radius equals the inner radius plus the padding. A 28px panel holds 16px rows with 12px of padding. Buttons are full pills; icon buttons and avatars are circles.
 
-## Components
+## Motion
 
-### Buttons
+- Buttons scale to 0.96 when pressed (150ms, ease-out). Disabled buttons do not scale.
+- On first load, the title, activity controls, camera and list arrive 100ms apart: opacity, 12px rise and 4px blur over 300ms.
+- An opened row fades and rises 6px over 200ms.
+- Hover styles apply only on hover-capable pointers.
+- Under `prefers-reduced-motion: reduce`, movement and blur are removed.
+- The theme toggle turns transitions off for the swap so colors change at once.
+- **Landing hero glow drift.** The blurred glow behind the landing headline (`.ln-hero::before`) slowly turns and swells (`ln-drift`: ±5° rotation, 1.08 scale, a few percent of travel, 26s each way, `cubic-bezier(0.77, 0, 0.175, 1)`, alternating). Transform only. It runs only with `web.landing_motion`, only while the hero is on screen in a visible tab (`landing-ambient.tsx` sets `data-drift`; otherwise the animation pauses in place), and never under reduced motion. The landing page's main navy background does not move.
+- The logo does not move between the landing and sign-in pages: both headers are 72px tall with a `clamp(16px, 4vw, 40px)` side gutter and a 28px mark.
 
-Primary controls use navy with white text; base secondary controls are white with neutral ink and a thin line. Primary camera actions have a 40px minimum height, login welcome 44px, login submit 46px and base controls 38px. Hover deepens navy for primary actions and uses the surface-hover fill for secondary actions. Focus remains visible; disabled controls use half opacity and a blocked cursor. Selected mobile operational actions retain a 40px minimum target.
+## The Cues companion
 
-### Inputs / Fields
+The ball on the sign-in pages (`web/components/cues-blob.tsx`) uses the workspace palette rather than a flat accent: an indigo body (`#5763d2`) that leans toward the lavender in the page glow, a pale lavender rim (`#cdc8f6`), dark grain in the workspace navy (`#1d2a6a`) and a lavender drop shadow on Night. It is decorative and hidden from screen readers.
 
-Login fields are white with a cool border, 48px minimum height, 12px 15px padding and soft rectangular corners. Email and password have explicit accessible labels and autocomplete. Forms advance welcome → email → password, with reversible back/change navigation. Requests disable conflicting controls; authentication errors are sanitized. Sign-in uses existing Supabase teacher accounts, without account creation or permission assignment.
+## Sign-in background
 
-### Navigation
+The sign-in pages (`/login`, `/signup`, `/auth/confirmed`) have a faint 22px dot grid (`.auth-page::before` in `web/components/auth.css`): 1px dots at 13% ink on light and 12% white on Night. A radial mask fades it out behind the companion and the question, so it only shows toward the edges. It does not move. The classroom stays plain.
 
-The rail uses compact icon/text links and a solid navy current destination. Classroom opens the dashboard, People and Teacher reviews lead to actual in-page sections, and Notifications opens `/settings/notifications`. Account access leads to `/login` only when enabled; on mobile it has a distinct accessible icon button. Inline SVG icons accompany text or accessible labels. The brand symbol is a small pair of tilted rounded bars, not a teacher avatar.
+## Color rules
 
-### Chips
+- **Text names the state.** Status pills always carry a word (Working, Finished, Needs you, Urgent). Color only supports the word.
+- **Blue** marks Working. **Green** marks Finished and "All clear". **Warm brown** marks requests and Urgent. No color implies a learner's feelings or ability.
 
-Neutral outlined status chips communicate provenance or integration state. Review labels use a compact neutral fill by default and the warm review pair for elevated priority. SIM remains explicit text, including on mobile. Badge color never substitutes for a state name.
+## Product boundaries the design keeps
 
-### Cards / Containers
+- Video stays on the laptop. The browser reads the loopback stream directly, and no frame passes through the app server or Supabase.
+- Expression output never appears in the teacher's panels.
+- Teacher decisions go through the `resolve_teacher_review` RPC (remote procedure call). The dashboard does not hide reviews locally as a stand-in for a decision.
+- People are named as the backend names them ("Person 1"). Only simulated students are used.
 
-Camera and review panels are white bordered containers without shadows. The camera toolbar and footer have restrained padding around a fixed-ratio video stage. The review panel uses a divided heading and clickable whole-row entries; selected evidence and structured facts replace the queue in place. Close/back actions, Escape and focus restoration support keyboard use.
+## Removed in this redesign
 
-### People Rows and Activity Disclosure
-
-People are compact divided buttons (68px minimum on desktop) rather than large colored tiles. Selection uses the pale accent fill and an inset outline. Task status and tracking availability remain explicit; match scores mean gesture similarity, not probability. Manage activity uses a native details/summary disclosure and reveals only the existing gated controls. Failed writes retain confirmed state; this presentation does not deploy permissions or migrations.
-
-### Login Companion
-
-The Cues companion is a navy illustrated sphere with white eyes, rendered in the browser by the MIT-licensed `@bible-strong/avatar-react` and `avatar-core` packages. It is decorative and hidden from the accessibility tree. Idle gaze follows pointer position with restrained bounds and throttled updates, returning to center when the pointer leaves. Password entry puts it to sleep; busy handling requests a thinking state. Password privacy takes precedence while submitting from that step. Reduced motion pauses the character and centers its gaze. It is neither a teacher profile image nor a learner model, and no avatar builder is part of this flow.
-
-`web.teacher_login` defaults off. With the flag off, `/login` renders an unavailable page and a classroom link without loading the companion or sign-in implementation. `web.dashboard` and existing session/review integration flags retain their separate gates. Login does not imply that persistent controls or delivery integrations are available.
-
-The local feed loads MJPEG directly from `http://127.0.0.1:8000/stream` on the station browser. Camera frames do not traverse Supabase or the Next.js server. Only structured state feeds the workspace. Use simulated data and position labels, keep expression context from independently establishing difficulty, and require teacher approval before task or support changes. Photon is a future notification destination: no connection, delivery or credentials are implemented by this redesign.
-
-## Do's and Don'ts
-
-### Do:
-- **Do** use navy for selected navigation and consequential actions, with explicit text labels.
-- **Do** preserve the 4:3 local video viewport, SIM provenance and separate connection feedback.
-- **Do** keep activity controls inside their disclosure and people in compact rows.
-- **Do** retain keyboard focus, mobile account access, wrapping and reduced-motion behavior.
-- **Do** treat the login companion as a product character, with password privacy and flag-off fallback.
-- **Do** show only observed counts and backend-supplied reviews, with honest loading, empty, error and unavailable states.
-
-### Don't:
-- **Don't** restore glass, gradients, giant rounded tiles, heroes or oversized counts.
-- **Don't** add decorative charts, imagery or an icon to every label.
-- **Don't** imply dismissal resolves an alert, changes task state or applies support.
-- **Don't** imply that backend history/agent assessments are already wired into the current detail panels. MJPEG is the intentional local demo transport; WebRTC is not required.
-- **Don't** style tracking loss as student failure or match scores as probabilities.
+- **`/live`** now redirects to `/dashboard`. Its people, counts and review decision now live on Classroom. Its "decision noted on this screen only" path is gone, because a decision that is not saved contradicts the review model.
+- **`/settings/notifications`** said "Coming soon" although Photon alerts already work. It now redirects to `/settings/profile#notifications`.
+- **Room view, "Who needs you next" card and "Last hour" timeline.** The timeline plotted only pending reviews, so resolved items disappeared and it read like history when it was not.
+- **Raw station, session and owner IDs** in the session controls.
+- **The numbers row** (In view, Working, Finished, Need you). The Class list already shows each of these: the Needs you group and its count, each person's status pill, and who is in view.
+- **Camera pairing.** `/settings/stations` (a pairing-code form) now redirects to `/dashboard`. A teacher's classroom is created on first sign-in, and the dashboard tells this laptop's vision service which classroom it belongs to (`POST 127.0.0.1:8000/config`), so a code adds nothing. The Supabase pairing RPC is left in place; no schema change.
+- **Flags `web.room_view` and `web.live_view`.** Their features no longer exist.

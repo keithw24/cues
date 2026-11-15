@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { seatViews, type SeatView } from "@/lib/dashboard";
 import {
@@ -8,28 +10,21 @@ import {
   watchTeacherReviews,
   type ReviewFeedState,
 } from "@/lib/teacher-review-feed";
-import { activityLabel, groupReviewsBySeat } from "@/lib/teacher-reviews";
-import { TeacherReviewDetails } from "@/components/teacher-review-details";
+import {
+  groupReviewsBySeat,
+  type TeacherReview,
+} from "@/lib/teacher-reviews";
 import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
-import { resolveDefaultStation } from "@/lib/default-station";
-import { StationSignInRequired } from "@/lib/station-pairing";
+import {
+  resolveDefaultStation,
+  StationSignInRequired,
+} from "@/lib/default-station";
 import { createDashboardClient } from "@/lib/supabase";
 import { startLocalVisionSync } from "@/lib/local-vision";
-import { Card } from "@/components/ui/card";
-import { TeacherReviewActions } from "@/components/teacher-review-actions";
-import { MarkReviewedButton } from "@/components/mark-reviewed-button";
-import {
-  flagLabel,
-  readStationFlags,
-  type StationFlag,
-} from "@/lib/station-flags";
-import {
-  CAMERA_CONFLICT_MESSAGE,
-  cameraConflict,
-  readStationWriter,
-} from "@/lib/station-writer";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
+import { PersonDetails } from "@/components/person-panel";
+import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import {
   inCameraView,
   isFresh,
@@ -38,15 +33,18 @@ import {
 } from "@/lib/observation-presentation";
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { WorkspaceIcon } from "@/components/workspace-icon";
-import { ClassroomRoom, type RoomPerson } from "@/components/classroom-room";
-import { NextUpCard } from "@/components/next-up";
-import { LessonTimeline } from "@/components/lesson-timeline";
-import { nextUp } from "@/lib/next-up";
 import {
   PersonRowContent,
   ReviewRowContent,
+  type PersonTone,
 } from "@/components/workspace-rows";
 
+// The companion is decorative and only shown signed out: load it on demand.
+const Companion = dynamic(() => import("@/components/login-companion"), {
+  ssr: false,
+});
+
+const ignoreActivity = () => {};
 const INITIAL: FeedState = {
   snapshot: null,
   connection: "connecting",
@@ -54,7 +52,7 @@ const INITIAL: FeedState = {
   error: null,
 };
 type Presentation = ReturnType<typeof observationPresentation>;
-const statusTone = (presentation: Presentation): RoomPerson["tone"] =>
+const statusTone = (presentation: Presentation): PersonTone =>
   presentation.needsReview
     ? "review"
     : presentation.currentStatus === "done"
@@ -62,62 +60,26 @@ const statusTone = (presentation: Presentation): RoomPerson["tone"] =>
       : presentation.currentStatus === "in_progress"
         ? "working"
         : "quiet";
-const statusIcon = (presentation: Presentation) =>
-  presentation.needsReview
-    ? "flag"
-    : presentation.currentStatus === "done"
-      ? "check"
-      : presentation.currentStatus === "in_progress"
-        ? "working"
-        : presentation.currentStatus === "tracking_lost" ||
-            presentation.label.startsWith("Tracking")
-          ? "hidden"
-          : presentation.unavailable
-            ? "paused"
-            : "time";
 
-function SeatDetails({
-  seat,
-  close,
-  headingRef,
-  observationOptions,
-  actions,
-}: {
-  observationOptions?: ObservationOptions;
-  /** Shown while this person needs review (for example "Mark as reviewed"). */
-  actions?: React.ReactNode;
-  seat: SeatView;
-  close: () => void;
-  headingRef: React.RefObject<HTMLHeadingElement | null>;
-}) {
-  // What a teacher needs about one person: their status and task. Scores,
-  // ids, tracking and expression internals stay out of the way.
-  const presentation = observationPresentation(seat.state, observationOptions);
+/** Who the dashboard is for: unknown until the sign-in check returns. */
+type Account =
+  | { state: "checking" }
+  | { state: "signed-out" }
+  | { state: "finding" }
+  | { state: "ready"; station: string }
+  | { state: "error"; message: string };
+
+/** The signed-out classroom: one calm question, as on the sign-in page. */
+function SignInCard() {
   return (
-    <section
-      className="seat-details"
-      aria-labelledby="detail-heading"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") close();
-      }}
-    >
-      <header className="panel-heading">
-        <h2 id="detail-heading" ref={headingRef} tabIndex={-1}>
-          {seat.display_name}
-        </h2>
-        <button className="text-button" onClick={close} type="button">
-          Back
-        </button>
-      </header>
-      <div className="detail-body">
-        <p
-          className={`detail-status ${presentation.needsReview ? "needs-review" : ""}`}
-        >
-          {presentation.label}
-        </p>
-        <p className="detail-description">{seat.activity}</p>
-        {presentation.needsReview ? actions : null}
-      </div>
+    <section className="ws-signin" aria-labelledby="signin-heading">
+      <Companion size={96} />
+      <h1 id="signin-heading">Sign in to see your classroom</h1>
+      <p>Cues shows the people your classroom camera sees and who needs you.</p>
+      <Link className="ws-pill is-dark" href="/login">
+        Sign in
+        <WorkspaceIcon name="arrow" />
+      </Link>
     </section>
   );
 }
@@ -130,9 +92,7 @@ export default function Dashboard({
   reviewsEnabled = false,
   reviewActionsEnabled = false,
   teacherLoginEnabled = false,
-  roomViewEnabled = false,
   themeToggleEnabled = false,
-  liveViewEnabled = false,
   visionStationConfigEnabled = false,
 }: {
   liveProgressEnabled?: boolean;
@@ -144,9 +104,7 @@ export default function Dashboard({
   reviewsEnabled?: boolean;
   reviewActionsEnabled?: boolean;
   teacherLoginEnabled?: boolean;
-  roomViewEnabled?: boolean;
   themeToggleEnabled?: boolean;
-  liveViewEnabled?: boolean;
   visionStationConfigEnabled?: boolean;
 }) {
   const [observationNow, setObservationNow] = useState<number | null>(null);
@@ -165,23 +123,15 @@ export default function Dashboard({
       document.removeEventListener("visibilitychange", visible);
     };
   }, [personObservationsEnabled]);
-  const [sessionActivity, setSessionActivity] = useState("Session unavailable");
   const [feed, setFeed] = useState<FeedState>(INITIAL);
   const [attempt, setAttempt] = useState(0);
-  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
-  const attentionHeading = useRef<HTMLHeadingElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const drawerToggle = useRef<HTMLButtonElement>(null);
-  const drawerClose = useRef<HTMLButtonElement>(null);
+  const listHeading = useRef<HTMLHeadingElement>(null);
   const [reviews, setReviews] = useState<ReviewFeedState>(
     reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS,
   );
   const resolvedReviewIds = useRef(new Set<string>());
   const [reviewAttempt, setReviewAttempt] = useState(0);
-  const detailsHeading = useRef<HTMLHeadingElement>(null);
-  const detailOpener = useRef<HTMLButtonElement | null>(null);
-  const seatButtons = useRef(new Map<string, HTMLButtonElement>());
   const [client] = useState(() => {
     try {
       return createDashboardClient(
@@ -197,41 +147,46 @@ export default function Dashboard({
   const stationOverride = stationId.trim();
   const resolvesStation =
     !stationOverride && (sessionControlsEnabled || teacherLoginEnabled);
-  const [defaultStation, setDefaultStation] = useState<{
-    id: string | null;
-    message: string;
-  }>({ id: null, message: "Sign in to manage activities" });
-  const station = stationOverride || defaultStation.id || "";
+  const [account, setAccount] = useState<Account>({ state: "checking" });
+  const station =
+    stationOverride || (account.state === "ready" ? account.station : "");
   const [visionMessage, setVisionMessage] = useState("");
   // Tell this laptop's vision service the signed-in teacher's resolved station.
   useEffect(() => {
     if (!visionStationConfigEnabled || !client || !station) return;
-    return startLocalVisionSync(client, station, {onResult: result => setVisionMessage(
-      result === "pinned" ? "This laptop's camera is set to another classroom. Remove CUES_STATION_ID from the root .env." :
-      result === "unavailable" ? "Couldn't link this laptop's camera. Check that the vision service is running and allows this dashboard." : "")});
+    return startLocalVisionSync(client, station, {
+      onResult: (result) =>
+        setVisionMessage(
+          result === "pinned"
+            ? "This laptop’s camera is set to another classroom. Remove CUES_STATION_ID from the root .env."
+            : result === "unavailable"
+              ? "Couldn’t link this laptop’s camera. Check that the vision service is running."
+              : "",
+        ),
+    });
   }, [client, station, visionStationConfigEnabled]);
   useEffect(() => {
     if (!client || !resolvesStation) return;
     let disposed = false;
     let latest = 0;
-    const signedOut = { id: null, message: "Sign in to manage activities" };
     const resolve = async (signedIn: boolean) => {
       const mine = ++latest;
       if (!signedIn) {
-        setDefaultStation(signedOut);
+        setAccount({ state: "signed-out" });
         return;
       }
+      setAccount({ state: "finding" });
       try {
         const found = await resolveDefaultStation(client);
         if (!disposed && mine === latest)
-          setDefaultStation({ id: found.id, message: "" });
+          setAccount({ state: "ready", station: found.id });
       } catch (cause) {
         if (disposed || mine !== latest) return;
-        setDefaultStation(
+        setAccount(
           cause instanceof StationSignInRequired
-            ? signedOut
+            ? { state: "signed-out" }
             : {
-                id: null,
+                state: "error",
                 message:
                   cause instanceof Error
                     ? cause.message
@@ -243,24 +198,17 @@ export default function Dashboard({
     const initial = latest;
     void client.auth.getSession().then(({ data }) => {
       if (disposed || latest !== initial) return;
-      if (data.session)
-        setDefaultStation({
-          id: null,
-          message: "Finding your classroom camera…",
-        });
       void resolve(Boolean(data.session));
     });
     const { data } = client.auth.onAuthStateChange((event, session) => {
       if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
       ++latest; // Immediately invalidate in-flight work for the previous identity.
       // A different account: never keep the previous teacher's station on screen.
-      setDefaultStation(
-        session
-          ? { id: null, message: "Finding your classroom camera…" }
-          : signedOut,
-      );
+      setAccount(session ? { state: "finding" } : { state: "signed-out" });
       // Defer: Supabase calls inside this callback can deadlock the auth lock.
-      setTimeout(() => { if (!disposed) void resolve(Boolean(session)); }, 0);
+      setTimeout(() => {
+        if (!disposed) void resolve(Boolean(session));
+      }, 0);
     });
     return () => {
       disposed = true;
@@ -274,6 +222,7 @@ export default function Dashboard({
     shownStation.current = station;
     queueMicrotask(() => {
       setFeed(INITIAL);
+      setSelectedId(null);
       setReviews(reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS);
     });
   }, [station, reviewsEnabled]);
@@ -285,7 +234,7 @@ export default function Dashboard({
         if (personObservationsEnabled)
           setFeed((previous) => ({
             ...state,
-            snapshot: station ? state.snapshot ?? previous.snapshot : null,
+            snapshot: station ? (state.snapshot ?? previous.snapshot) : null,
           }));
         else setFeed(state);
       },
@@ -328,43 +277,28 @@ export default function Dashboard({
       subscription.dispose();
     };
   }, [client, reviewsEnabled, reviewAttempt, station]);
-  useEffect(() => {
-    if (selectedId || selectedReviewId) detailsHeading.current?.focus();
-  }, [selectedId, selectedReviewId]);
+
+  const signedOut =
+    teacherLoginEnabled && resolvesStation && account.state === "signed-out";
+  // Without a station there is nothing to load yet: say why, not "error".
+  const waitingForStation = resolvesStation && !station;
 
   // People are labelled as the backend names them (seats.display_name,
   // "Person 1", "Person 2"…): no made-up names.
   const seats = feed.snapshot ? seatViews(feed.snapshot) : [];
-  const reviewActivity = (id: string) =>
-    activityLabel(
-      id,
-      feed.snapshot?.activities.find((item) => item.id === id)?.name,
-    );
-  const reviewName = (seatId: string) =>
-    seats.find((seat) => seat.id === seatId)?.display_name ?? seatId;
+  const nameOf = (seatId: string) =>
+    seats.find((seat) => seat.id === seatId)?.display_name ?? "A student";
   const observationOptions: ObservationOptions = {
     enabled: personObservationsEnabled,
     now: observationNow,
     connected: feed.connection === "connected" && !feed.error,
   };
-  const selected = seats.find((seat) => seat.id === selectedId);
-  const hasCurrentTaskObservations =
-    !personObservationsEnabled ||
-    seats.some(
-      (seat) =>
-        observationPresentation(seat.state, observationOptions)
-          .currentStatus !== null,
-    );
+  const present = (seat: SeatView) =>
+    observationPresentation(seat.state, observationOptions);
   const queue = reviews.reviews ?? [];
   const reviewGroups = groupReviewsBySeat(queue);
-  const countStatus = (status: string) =>
-    feed.snapshot && hasCurrentTaskObservations
-      ? seats.filter(
-          (seat) =>
-            observationPresentation(seat.state, observationOptions)
-              .currentStatus === status,
-        ).length
-      : "—";
+  const reviewsFor = (seatId: string): TeacherReview[] =>
+    reviewGroups.find((group) => group.seat_id === seatId)?.reviews ?? [];
   // People come from the camera: only those it sees right now are listed.
   const inView = seats.filter((seat) =>
     inCameraView(seat.state, observationOptions),
@@ -372,45 +306,47 @@ export default function Dashboard({
   const cameraReporting = seats.some((seat) =>
     isFresh(seat.state, observationOptions),
   );
-  // With no live connection we can't tell whether the camera is on.
-  const cameraOffMessage = observationOptions.connected
-    ? "The camera is off. People appear here when your classroom camera sees them."
-    : "Updates paused. Reconnecting…";
-  const peopleCount = feed.snapshot ? inView.length : "—";
-  const workingCount = countStatus("in_progress");
-  const completedCount = countStatus("done");
-  const reviewCount =
-    reviews.reviews && !reviews.error && reviews.connection === "connected"
-      ? queue.length
-      : "—";
-  const selectedReview = queue.find((item) => item.id === selectedReviewId);
+  const reviewsLive =
+    reviewsEnabled &&
+    !configurationError &&
+    reviews.reviews !== null &&
+    !reviews.error &&
+    reviews.connection === "connected";
   const activityNames = [
     ...new Set(
-      seats
-        .filter((seat) => seat.state?.activity_id)
-        .map((seat) => seat.activity),
+      seats.filter((seat) => seat.state?.activity_id).map((s) => s.activity),
     ),
   ];
+  // Each row names its task only when the class is on more than one.
+  const mixedActivities = activityNames.length > 1;
   const observationActivity = !feed.snapshot
-    ? "Activity unavailable"
+    ? "Waiting for the camera"
     : activityNames.length > 1
-      ? "Multiple activities"
-      : (activityNames[0] ?? "No activity assigned");
-  const activity = sessionControlsEnabled
-    ? sessionActivity
-    : observationActivity;
-  const selectSeat = (seat: SeatView, opener: HTMLButtonElement) => {
-    detailOpener.current = opener;
-    setSelectedReviewId(null);
-    setSelectedId(seat.id);
+      ? "Several activities"
+      : (activityNames[0] ?? "No activity yet");
+  const sessionLive = Boolean(sessionControlsEnabled && client);
+  // With session controls, the activity picker itself shows the activity.
+  const activity = observationActivity;
+
+  // One list: whoever Cues asked about first (even out of view), then
+  // everyone else the camera sees, left to right.
+  const others = inView.filter((seat) => reviewsFor(seat.id).length === 0);
+  const closeDetails = () => {
+    const id = selectedId;
+    setSelectedId(null);
+    requestAnimationFrame(() =>
+      (id
+        ? document.querySelector<HTMLButtonElement>(`[aria-controls="more-${id}"]`)
+        : listHeading.current
+      )?.focus(),
+    );
   };
-  const closeReview = () => {
-    setSelectedReviewId(null);
-    requestAnimationFrame(() => {
-      const opener = document.getElementById(`review-${selectedReviewId}`);
-      if (opener instanceof HTMLButtonElement) opener.focus();
-      else attentionHeading.current?.focus();
-    });
+  const resolved = (review: TeacherReview) => {
+    resolvedReviewIds.current.add(review.id);
+    setReviews((state) => ({
+      ...state,
+      reviews: state.reviews?.filter((item) => item.id !== review.id) ?? null,
+    }));
   };
   // "Mark as reviewed": close this person's review requests here at once (every page reads
   // the same table, so they leave the others too) and let vision reset them to working.
@@ -436,784 +372,220 @@ export default function Dashboard({
         }
       />
     ) : null;
-  const closeDetails = () => {
-    setSelectedId(null);
-    const opener = detailOpener.current;
-    if (opener?.isConnected) opener.focus();
-    else if (selectedId) seatButtons.current.get(selectedId)?.focus();
+  const row = (
+    seatId: string,
+    content: React.ReactNode,
+    presentation: Presentation | null,
+    pending: readonly TeacherReview[],
+  ) => {
+    const open = selectedId === seatId;
+    return (
+      <li key={seatId} className={open ? "is-open" : undefined}>
+        <button
+          type="button"
+          className="ws-row"
+          aria-expanded={open}
+          aria-controls={`more-${seatId}`}
+          onClick={() => setSelectedId(open ? null : seatId)}
+        >
+          {content}
+        </button>
+        {open ? (
+          <PersonDetails
+            id={`more-${seatId}`}
+            presentation={presentation}
+            reviews={pending}
+            stale={!!reviews.error || reviews.connection === "disconnected"}
+            client={reviewActionsEnabled ? client : null}
+            onResolved={resolved}
+            actions={markReviewedButton(
+              pending[0]?.session_id ??
+                seats.find((seat) => seat.id === seatId)?.state?.session_id ??
+                null,
+              seatId,
+            )}
+          />
+        ) : null}
+      </li>
+    );
   };
 
-  // Session controls sit in the toolbar (main, PR #48); the popover is only
-  // the fallback when they are not connected.
-  // Live session controls get their own row in the room view; the
-  // not-connected fallback stays a small pill in the header.
-  const sessionLive = Boolean(sessionControlsEnabled && client);
-  // One camera per station: while a second camera is being refused (and paused), say so.
-  const [conflict, setConflict] = useState(false);
-  useEffect(() => {
-    if (!client || !station || !sessionControlsEnabled) return;
-    let disposed = false;
-    const check = () => {
-      void readStationWriter(client, station)
-        .then((writer) => {
-          if (!disposed) setConflict(cameraConflict(writer, Date.now()));
-        })
-        .catch(() => {
-          if (!disposed) setConflict(false);
-        });
-    };
-    check();
-    const timer = setInterval(check, 5000);
-    return () => {
-      disposed = true;
-      clearInterval(timer);
-    };
-  }, [client, station, sessionControlsEnabled]);
-  const activityPopover =
-    sessionLive && client ? (
-      <section className="session-toolbar" aria-label="Session controls">
-        <SessionControls
-          client={client}
-          station={station}
-          stationMessage={visionMessage || (resolvesStation ? defaultStation.message : undefined)}
-          onActivity={setSessionActivity}
-          teacherLoginEnabled={teacherLoginEnabled}
-        />
-        {conflict ? (
-          <p className="station-busy" role="status">
-            {CAMERA_CONFLICT_MESSAGE}
-          </p>
-        ) : null}
-      </section>
-    ) : (
-      <details className="activity-popover">
-        <summary>
-          Session controls
-          <WorkspaceIcon name="chevronDown" />
-        </summary>
-        <div className="activity-popover-body">
-          <p>Session controls are not connected in this environment.</p>
-        </div>
-      </details>
-    );
-  const roomPeople: RoomPerson[] = inView.map((seat) => {
-    const presentation = observationPresentation(
-      seat.state,
-      observationOptions,
-    );
-    return {
-      id: seat.id,
-      name: seat.display_name,
-      status: presentation.label,
-      tone: statusTone(presentation),
-      activity: seat.activity,
-      selected: selected?.id === seat.id,
-    };
-  });
-  const next = nextUp({
-    reviews: reviewGroups.map((group) => ({
-      name: reviewName(group.seat_id),
-      activity: reviewActivity(group.reviews[0].activity_id),
-      count: group.reviews.length,
-      elevated: group.elevated,
-    })),
-    flagged: inView
-      .filter(
-        (seat) =>
-          observationPresentation(seat.state, observationOptions).needsReview,
-      )
-      .map((seat) => ({ name: seat.display_name, activity: seat.activity })),
-    inView: inView.length,
-    cameraReporting,
-  });
-  const openNext = () => {
-    detailOpener.current =
-      document.activeElement instanceof HTMLButtonElement
-        ? document.activeElement
-        : null;
-    const lead = reviewGroups[0];
-    if (lead) {
-      setSelectedId(null);
-      setSelectedReviewId(lead.reviews[0].id);
-    } else {
-      const seat = inView.find(
-        (item) =>
-          observationPresentation(item.state, observationOptions).needsReview,
-      );
-      if (!seat) return;
-      setSelectedReviewId(null);
-      setSelectedId(seat.id);
-    }
-    setDrawerOpen(true);
-  };
-  // Closing returns focus to whatever opened the drawer: a person in the room,
-  // the next-up card, or the toggle.
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setSelectedId(null);
-    setSelectedReviewId(null);
-    const opener = detailOpener.current;
-    requestAnimationFrame(() =>
-      (opener?.isConnected ? opener : drawerToggle.current)?.focus(),
-    );
-  };
-  // Details opened from the room or the next-up card close the whole drawer;
-  // ones opened from the drawer's own lists go back to those lists.
-  const closeInDrawer = (inside: () => void) => {
-    if (detailOpener.current?.closest(".room-drawer")) inside();
-    else closeDrawer();
-  };
-  // The "Last hour" timeline: every moment someone was flagged in the last hour, from the
-  // teacher's own sessions (reviews of any status, and vision's own flags). Refreshed every
-  // 30 s and as soon as the review queue changes. Null until it loads (or when it cannot):
-  // then the pending queue is shown, as before.
-  const [flags, setFlags] = useState<StationFlag[] | null>(null);
-  const waiting = queue.length;
-  useEffect(() => {
-    if (!client || !station || !reviewsEnabled) return;
-    let disposed = false;
-    const load = () => {
-      void readStationFlags(client, station, Date.now() - 60 * 60 * 1000)
-        .then((rows) => {
-          if (!disposed) setFlags(rows);
-        })
-        .catch(() => {
-          if (!disposed) setFlags(null);
-        });
-    };
-    load();
-    const timer = setInterval(load, 30_000);
-    return () => {
-      disposed = true;
-      clearInterval(timer);
-    };
-  }, [client, station, reviewsEnabled, waiting]);
-  const flagMarks = flags?.map((flag) => ({
-    id: flag.id,
-    at: flag.at,
-    label: flagLabel(flag.kind, reviewName(flag.seat_id)),
-  }));
-  const timelineMarks =
-    flagMarks ??
-    queue.map((review) => ({
-      id: review.id,
-      at: review.created_at,
-      label: `${reviewName(review.seat_id)} flagged`,
-    }));
+  const peopleEmpty = !feed.snapshot
+    ? waitingForStation
+      ? account.state === "error"
+        ? account.message
+        : "Finding your classroom…"
+      : feed.loading && !configurationError
+        ? "Loading…"
+        : "People aren’t available right now."
+    : cameraReporting
+      ? "No one is in view right now."
+      : observationOptions.connected
+        ? "The camera is off. People appear here when it sees them."
+        : "Updates paused. Reconnecting…";
+
+  const connectionProblem =
+    !waitingForStation &&
+    (configurationError || feed.error || feed.connection === "disconnected");
 
   return (
     <div className="dashboard-shell">
       <WorkspaceSidebar
         accountEnabled={teacherLoginEnabled}
         themeToggle={themeToggleEnabled}
-        liveView={liveViewEnabled}
       />
       <main id="main-content" className="dashboard-main">
-        {roomViewEnabled ? (
-          <>
-            <header className="room-header">
-              <div>
-                <h1>your classroom</h1>
-                <p className="room-subtitle">{activity}</p>
-              </div>
-              <div className="room-actions">
-                {sessionLive ? null : activityPopover}
-                <button
-                  type="button"
-                  className="room-details-toggle"
-                  aria-expanded={drawerOpen}
-                  aria-controls="room-drawer"
-                  ref={drawerToggle}
-                  onClick={() => {
-                    detailOpener.current = drawerToggle.current;
-                    setDrawerOpen(true);
-                    requestAnimationFrame(() => drawerClose.current?.focus());
-                  }}
-                >
-                  <WorkspaceIcon name="camera" />
-                  Camera and details
-                </button>
-              </div>
-            </header>
-            {sessionLive ? (
-              <div className="room-session">{activityPopover}</div>
-            ) : null}
-          </>
+        {signedOut ? (
+          <SignInCard />
         ) : (
           <>
-            <div className="ws-hero">
-              <span className="ws-grain" aria-hidden="true" />
+            <section className="ws-hero" aria-labelledby="classroom-heading">
               <header className="page-intro">
                 <div>
-                  <h1>your classroom</h1>
-                  <p>A clear view of who’s ready and who needs a hand.</p>
-                </div>
-                <button
-                  className="refresh-button"
-                  type="button"
-                  onClick={() => {
-                    setAttempt((n) => n + 1);
-                    setReviewAttempt((n) => n + 1);
-                  }}
-                  disabled={!client || feed.loading}
-                >
-                  <WorkspaceIcon name="refresh" />
-                  {feed.loading && client ? "Refreshing…" : "Refresh"}
-                </button>
-              </header>
-              <section
-                className="classroom-summary"
-                aria-label="Classroom summary"
-              >
-                <dl className="overview-metrics">
-                  <div>
-                    <dd>{peopleCount}</dd>
-                    <dt>People in view</dt>
-                  </div>
-                  <div>
-                    <dd>{workingCount}</dd>
-                    <dt>In progress</dt>
-                  </div>
-                  <div>
-                    <dd>{completedCount}</dd>
-                    <dt>Completed</dt>
-                  </div>
-                  <div>
-                    <dd>{reviewCount}</dd>
-                    <dt>Pending reviews</dt>
-                  </div>
-                </dl>
-              </section>
-            </div>
-            <div className="workspace-toolbar">
-              <div className="current-activity">
-                <span className="toolbar-label">Current activity</span>
-                <strong>{activity}</strong>
-              </div>
-              {activityPopover}
-            </div>
-          </>
-        )}
-        {configurationError ||
-        feed.error ||
-        feed.connection === "disconnected" ? (
-          <section className="notice" role="alert">
-            <div>
-              <h2>
-                {configurationError
-                  ? "Seat updates are not configured"
-                  : feed.error
-                    ? "Seat data could not be refreshed"
-                    : "Seat updates are disconnected"}
-              </h2>
-              <p>
-                {configurationError
-                  ? "Connect this dashboard to the classroom data source."
-                  : feed.snapshot
-                    ? "Showing the last loaded observations. Recent changes may be missing."
-                    : "Check your connection and try again."}
-              </p>
-            </div>
-            {!configurationError ? (
-              <button
-                type="button"
-                disabled={feed.loading}
-                onClick={() => setAttempt((n) => n + 1)}
-              >
-                Reconnect updates
-              </button>
-            ) : null}
-          </section>
-        ) : null}
-        {roomViewEnabled ? (
-          <>
-            <div className="room-layout">
-              <ClassroomRoom
-                people={roomPeople}
-                emptyMessage={
-                  !feed.snapshot
-                    ? "Loading the room…"
-                    : cameraReporting
-                      ? "No one is in view right now."
-                      : cameraOffMessage
-                }
-                onSelect={(id, opener) => {
-                  const seat = seats.find((item) => item.id === id);
-                  if (!seat) return;
-                  selectSeat(seat, opener);
-                  setDrawerOpen(true);
-                }}
-              />
-              <NextUpCard
-                next={next}
-                summary={
-                  typeof peopleCount === "number" &&
-                  typeof workingCount === "number" &&
-                  typeof completedCount === "number"
-                    ? `${peopleCount} in view · ${workingCount} working · ${completedCount} finished`
-                    : undefined
-                }
-                onOpen={openNext}
-              />
-            </div>
-            <LessonTimeline marks={timelineMarks} />
-            <div
-              id="room-drawer"
-              className="room-drawer"
-              data-open={drawerOpen || undefined}
-              inert={!drawerOpen}
-              onKeyDown={(event) => {
-                if (event.key === "Escape" && !selectedId && !selectedReviewId)
-                  closeDrawer();
-              }}
-            >
-              <div className="room-drawer-head">
-                <h2>Camera and details</h2>
-                <button
-                  type="button"
-                  className="text-button"
-                  ref={drawerClose}
-                  onClick={closeDrawer}
-                >
-                  Close
-                </button>
-              </div>
-              <div className="monitor-workspace">
-                <div className="monitor-main">
-                  <LocalClassroomFeed activity={activity} />
-                </div>
-                <Card
-                  role="complementary"
-                  className="attention-panel"
-                  id="attention-panel"
-                  aria-label={
-                    selectedReviewId
-                      ? "Review details"
-                      : selected
-                        ? "Seat details"
-                        : "Teacher reviews"
-                  }
-                >
-                  {selectedReviewId ? (
-                    <TeacherReviewDetails
-                      review={selectedReview}
-                      seats={seats}
-                      activities={feed.snapshot?.activities ?? []}
-                      stale={
-                        !!reviews.error || reviews.connection === "disconnected"
-                      }
-                      close={() => closeInDrawer(closeReview)}
-                      headingRef={detailsHeading}
-                    >
-                      {reviewActionsEnabled && client && selectedReview ? (
-                        <TeacherReviewActions
-                          key={selectedReviewId}
-                          client={client}
-                          review={selectedReview}
-                          onResolved={(resolved) => {
-                            resolvedReviewIds.current.add(resolved.id);
-                            setReviews((state) => ({
-                              ...state,
-                              reviews:
-                                state.reviews?.filter(
-                                  (item) => item.id !== resolved.id,
-                                ) ?? null,
-                            }));
-                          }}
-                        />
-                      ) : null}
-                      {selectedReview
-                        ? markReviewedButton(
-                            selectedReview.session_id,
-                            selectedReview.seat_id,
-                          )
-                        : null}
-                    </TeacherReviewDetails>
-                  ) : selected ? (
-                    <SeatDetails
-                      seat={selected}
-                      observationOptions={observationOptions}
-                      close={() => closeInDrawer(closeDetails)}
-                      headingRef={detailsHeading}
-                      actions={markReviewedButton(
-                        selected.state?.session_id ?? null,
-                        selected.id,
-                      )}
-                    />
-                  ) : (
-                    <section aria-labelledby="attention-heading">
-                      <header className="panel-heading">
-                        <h2
-                          id="attention-heading"
-                          ref={attentionHeading}
-                          tabIndex={-1}
-                        >
-                          <WorkspaceIcon name="review" />
-                          Teacher reviews
-                        </h2>
-                        <span
-                          className={
-                            queue.length
-                              ? "attention-count has-items"
-                              : "attention-count"
-                          }
-                        >
-                          {typeof reviewCount === "number"
-                            ? `${reviewCount} pending`
-                            : "Not connected"}
-                        </span>
-                      </header>
-                      {!reviewsEnabled || configurationError ? (
-                        <div className="queue-empty">
-                          <p>Teacher reviews not connected</p>
-                          <span>
-                            Pending reviews will appear here when the review
-                            data source is available.
-                          </span>
-                        </div>
-                      ) : (
-                        <>
-                          {reviews.error ||
-                          reviews.connection === "disconnected" ? (
-                            <div className="review-feed-notice" role="alert">
-                              <p>
-                                {reviews.error ??
-                                  "Live review updates are disconnected."}
-                              </p>
-                              {reviews.reviews ? (
-                                <p>
-                                  Showing the last loaded reviews. Resolved
-                                  items may still appear.
-                                </p>
-                              ) : null}
-                              <button
-                                type="button"
-                                disabled={reviews.loading}
-                                onClick={() => setReviewAttempt((n) => n + 1)}
-                              >
-                                Retry reviews
-                              </button>
-                            </div>
-                          ) : null}
-                          {queue.length ? (
-                            <ul className="attention-list">
-                              {reviewGroups.map((group) => {
-                                const lead = group.reviews[0];
-                                const tasks = new Set(
-                                  group.reviews.map(
-                                    (review) => review.activity_id,
-                                  ),
-                                );
-                                return (
-                                  <li key={group.seat_id}>
-                                    <button
-                                      type="button"
-                                      className="review-entry"
-                                      id={`review-${lead.id}`}
-                                      onClick={(event) => {
-                                        detailOpener.current =
-                                          event.currentTarget;
-                                        setSelectedId(null);
-                                        setSelectedReviewId(lead.id);
-                                      }}
-                                    >
-                                      <ReviewRowContent
-                                        name={reviewName(group.seat_id)}
-                                        meta={`${
-                                          tasks.size > 1
-                                            ? `${tasks.size} tasks`
-                                            : reviewActivity(lead.activity_id)
-                                        }${
-                                          group.reviews.length > 1
-                                            ? ` · ${group.reviews.length} reviews`
-                                            : ""
-                                        }`}
-                                        time={group.latest}
-                                        elevated={group.elevated}
-                                      />
-                                      <span className="sr-only">
-                                        View review
-                                      </span>
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          ) : !reviews.error &&
-                            reviews.connection !== "disconnected" ? (
-                            <div className="queue-empty" role="status">
-                              <p>
-                                {reviews.reviews === null
-                                  ? "Loading teacher reviews…"
-                                  : "No pending teacher reviews"}
-                              </p>
-                              <span>
-                                {reviews.reviews === null
-                                  ? "Checking the review queue."
-                                  : "New pending reviews will appear here automatically."}
-                              </span>
-                            </div>
-                          ) : null}
-                        </>
-                      )}
-                    </section>
+                  <h1 id="classroom-heading">your classroom</h1>
+                  {sessionLive ? null : (
+                    <p className="ws-subtitle">{activity}</p>
                   )}
-                </Card>
-              </div>
-            </div>
-            {drawerOpen ? (
-              <button
-                type="button"
-                className="room-scrim"
-                aria-label="Close camera and details"
-                onClick={closeDrawer}
-              />
+                </div>
+              </header>
+              {sessionLive && client ? (
+                <SessionControls
+                  client={client}
+                  station={station}
+                  stationMessage={
+                    visionMessage ||
+                    (account.state === "error" ? account.message : undefined)
+                  }
+                  onActivity={ignoreActivity}
+                  teacherLoginEnabled={teacherLoginEnabled}
+                />
+              ) : null}
+            </section>
+
+            {connectionProblem ? (
+              <section className="notice" role="alert">
+                <p>
+                  {configurationError
+                    ? "Cues isn’t connected to your classroom data here."
+                    : feed.snapshot
+                      ? "Live updates paused. Showing the last update."
+                      : "Couldn’t load your classroom."}
+                </p>
+                {!configurationError ? (
+                  <button
+                    type="button"
+                    className="ws-pill"
+                    disabled={feed.loading}
+                    onClick={() => setAttempt((n) => n + 1)}
+                  >
+                    Try again
+                  </button>
+                ) : null}
+              </section>
             ) : null}
-          </>
-        ) : (
-          <>
+
             <div className="monitor-workspace">
-              <div className="monitor-main">
-                <LocalClassroomFeed activity={activity} />
-                <section
-                  className="seat-strip people-card"
-                  aria-labelledby="seats-heading"
-                >
-                  <header className="strip-heading">
-                    <h2 id="seats-heading">People</h2>
-                  </header>
-                  {!feed.snapshot ? (
-                    <p className="strip-empty" role="status">
-                      {feed.loading && !configurationError
-                        ? "Loading observations…"
-                        : "Seat observations unavailable"}
-                    </p>
-                  ) : inView.length === 0 ? (
-                    <p className="strip-empty" role="status">
-                      {cameraReporting
-                        ? "No one is in view right now."
-                        : cameraOffMessage}
-                    </p>
-                  ) : (
-                    <div className="seat-items">
-                      {inView.map((seat) => {
-                        const presentation = observationPresentation(
-                          seat.state,
-                          observationOptions,
-                        );
-                        return (
-                          <button
-                            className={`seat-item is-${statusTone(presentation)} ${presentation.needsReview ? "needs-review" : ""} ${selected?.id === seat.id ? "is-selected" : ""}`}
-                            key={seat.id}
-                            ref={(node) => {
-                              if (node) seatButtons.current.set(seat.id, node);
-                              else seatButtons.current.delete(seat.id);
-                            }}
-                            type="button"
-                            aria-pressed={selected?.id === seat.id}
-                            onClick={(event) =>
-                              selectSeat(seat, event.currentTarget)
+              <LocalClassroomFeed />
+              <section
+                className="ws-panel class-panel"
+                aria-labelledby="class-heading"
+                onKeyDown={(event) => {
+                  if (event.key === "Escape" && selectedId) closeDetails();
+                }}
+              >
+                <header className="panel-heading">
+                  <h2 id="class-heading" ref={listHeading} tabIndex={-1}>
+                    Class
+                  </h2>
+                  {reviewsLive && reviewGroups.length ? (
+                    <span className="ws-count">
+                      {reviewGroups.length}
+                      <span className="sr-only"> need you</span>
+                    </span>
+                  ) : null}
+                </header>
+
+                {reviewsEnabled &&
+                !configurationError &&
+                (reviews.error || reviews.connection === "disconnected") ? (
+                  <div className="list-notice" role="alert">
+                    <p>Couldn’t check for new requests.</p>
+                    <button
+                      type="button"
+                      className="ws-pill"
+                      disabled={reviews.loading}
+                      onClick={() => setReviewAttempt((n) => n + 1)}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                ) : null}
+
+                {reviewGroups.length ? (
+                  <>
+                    <p className="list-label">Needs you</p>
+                    <ul className="row-list">
+                      {reviewGroups.map((group) => {
+                        const seat = seats.find((s) => s.id === group.seat_id);
+                        const visible = inView.some((s) => s.id === group.seat_id);
+                        return row(
+                          group.seat_id,
+                          <ReviewRowContent
+                            name={nameOf(group.seat_id)}
+                            meta={
+                              !visible
+                                ? "Not in view"
+                                : mixedActivities && seat
+                                  ? seat.activity
+                                  : ""
                             }
-                          >
-                            <PersonRowContent
-                              name={seat.display_name}
-                              status={presentation.label}
-                              icon={statusIcon(presentation)}
-                              activity={seat.activity}
-                            />
-                          </button>
+                            time={group.latest}
+                            elevated={group.elevated}
+                          />,
+                          visible && seat ? present(seat) : null,
+                          group.reviews,
                         );
                       })}
-                    </div>
-                  )}
-                </section>
-              </div>
-              <Card
-                role="complementary"
-                className="attention-panel"
-                id="attention-panel"
-                aria-label={
-                  selectedReviewId
-                    ? "Review details"
-                    : selected
-                      ? "Seat details"
-                      : "Teacher reviews"
-                }
-              >
-                {selectedReviewId ? (
-                  <TeacherReviewDetails
-                    review={selectedReview}
-                    seats={seats}
-                    activities={feed.snapshot?.activities ?? []}
-                    stale={
-                      !!reviews.error || reviews.connection === "disconnected"
-                    }
-                    close={closeReview}
-                    headingRef={detailsHeading}
-                  >
-                    {reviewActionsEnabled && client && selectedReview ? (
-                      <TeacherReviewActions
-                        key={selectedReviewId}
-                        client={client}
-                        review={selectedReview}
-                        onResolved={(resolved) => {
-                          resolvedReviewIds.current.add(resolved.id);
-                          setReviews((state) => ({
-                            ...state,
-                            reviews:
-                              state.reviews?.filter(
-                                (item) => item.id !== resolved.id,
-                              ) ?? null,
-                          }));
-                        }}
-                      />
+                    </ul>
+                  </>
+                ) : reviewsLive ? (
+                  <p className="list-clear" role="status">
+                    All clear. Cues will ask when someone may need you.
+                  </p>
+                ) : null}
+
+                {others.length ? (
+                  <>
+                    {reviewGroups.length ? (
+                      <p className="list-label">Everyone else</p>
                     ) : null}
-                    {selectedReview
-                      ? markReviewedButton(
-                          selectedReview.session_id,
-                          selectedReview.seat_id,
-                        )
-                      : null}
-                  </TeacherReviewDetails>
-                ) : selected ? (
-                  <SeatDetails
-                    seat={selected}
-                    observationOptions={observationOptions}
-                    close={closeDetails}
-                    headingRef={detailsHeading}
-                    actions={markReviewedButton(
-                      selected.state?.session_id ?? null,
-                      selected.id,
-                    )}
-                  />
-                ) : (
-                  <section aria-labelledby="attention-heading">
-                    <header className="panel-heading">
-                      <h2
-                        id="attention-heading"
-                        ref={attentionHeading}
-                        tabIndex={-1}
-                      >
-                        <WorkspaceIcon name="review" />
-                        Teacher reviews
-                      </h2>
-                      <span
-                        className={
-                          queue.length
-                            ? "attention-count has-items"
-                            : "attention-count"
-                        }
-                      >
-                        {typeof reviewCount === "number"
-                          ? `${reviewCount} pending`
-                          : "Not connected"}
-                      </span>
-                    </header>
-                    {!reviewsEnabled || configurationError ? (
-                      <div className="queue-empty">
-                        <p>Teacher reviews not connected</p>
-                        <span>
-                          Pending reviews will appear here when the review data
-                          source is available.
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        {reviews.error ||
-                        reviews.connection === "disconnected" ? (
-                          <div className="review-feed-notice" role="alert">
-                            <p>
-                              {reviews.error ??
-                                "Live review updates are disconnected."}
-                            </p>
-                            {reviews.reviews ? (
-                              <p>
-                                Showing the last loaded reviews. Resolved items
-                                may still appear.
-                              </p>
-                            ) : null}
-                            <button
-                              type="button"
-                              disabled={reviews.loading}
-                              onClick={() => setReviewAttempt((n) => n + 1)}
-                            >
-                              Retry reviews
-                            </button>
-                          </div>
-                        ) : null}
-                        {queue.length ? (
-                          <ul className="attention-list">
-                            {reviewGroups.map((group) => {
-                              const lead = group.reviews[0];
-                              const tasks = new Set(
-                                group.reviews.map(
-                                  (review) => review.activity_id,
-                                ),
-                              );
-                              return (
-                                <li key={group.seat_id}>
-                                  <button
-                                    type="button"
-                                    className="review-entry"
-                                    id={`review-${lead.id}`}
-                                    onClick={() => {
-                                      setSelectedId(null);
-                                      setSelectedReviewId(lead.id);
-                                    }}
-                                  >
-                                    <ReviewRowContent
-                                      name={reviewName(group.seat_id)}
-                                      meta={`${
-                                        tasks.size > 1
-                                          ? `${tasks.size} tasks`
-                                          : reviewActivity(lead.activity_id)
-                                      }${
-                                        group.reviews.length > 1
-                                          ? ` · ${group.reviews.length} reviews`
-                                          : ""
-                                      }`}
-                                      time={group.latest}
-                                      elevated={group.elevated}
-                                    />
-                                    <span className="sr-only">View review</span>
-                                  </button>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        ) : !reviews.error &&
-                          reviews.connection !== "disconnected" ? (
-                          <div className="queue-empty" role="status">
-                            <p>
-                              {reviews.reviews === null
-                                ? "Loading teacher reviews…"
-                                : "No pending teacher reviews"}
-                            </p>
-                            <span>
-                              {reviews.reviews === null
-                                ? "Checking the review queue."
-                                : "New pending reviews will appear here automatically."}
-                            </span>
-                          </div>
-                        ) : null}
-                      </>
-                    )}
-                  </section>
-                )}
-              </Card>
+                    <ul className="row-list">
+                      {others.map((seat) => {
+                        const presentation = present(seat);
+                        return row(
+                          seat.id,
+                          <PersonRowContent
+                            name={seat.display_name}
+                            status={presentation.label}
+                            tone={statusTone(presentation)}
+                            activity={mixedActivities ? seat.activity : ""}
+                          />,
+                          presentation,
+                          [],
+                        );
+                      })}
+                    </ul>
+                  </>
+                ) : inView.length === 0 ? (
+                  <p className="panel-empty" role="status">
+                    {peopleEmpty}
+                  </p>
+                ) : null}
+              </section>
             </div>
           </>
         )}
-        <footer className="workspace-footer">
-          <span>
-            Student camera images and video stay on the classroom laptop.
-          </span>
-          <span>
-            {sessionControlsEnabled
-              ? "Session controls use your camera's saved state."
-              : "Session controls are not connected."}
-          </span>
-        </footer>
+
       </main>
     </div>
   );

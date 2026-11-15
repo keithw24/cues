@@ -169,7 +169,7 @@ export const resolutionLabels: Record<"confirmed" | "dismissed", string> = {
 export const reviewPrompt = {
   title: "Student may need support",
   detail:
-    "Cues detected sustained lack of progress. Teacher review requested.",
+    "They haven’t made progress on this task for a while. Check in, then tell Cues what you decided.",
 } as const;
 export const priorityLabels: Record<ReviewPriority, string> = {
   normal: "Normal priority",

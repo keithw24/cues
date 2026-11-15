@@ -6,87 +6,43 @@ import { WorkspaceIcon } from "@/components/workspace-icon";
 import CuesMark from "@/components/cues-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+// A quiet rail of round buttons: Classroom, then the teacher's Profile (where
+// sign-out, the classroom camera and alerts live). Labels show on hover and
+// focus, and screen readers always hear them.
 export function WorkspaceSidebar({
   accountEnabled = false,
   themeToggle = false,
-  liveView = false,
 }: {
   accountEnabled?: boolean;
   themeToggle?: boolean;
-  /** Show the Live screen (web.live_view) in the rail. */
-  liveView?: boolean;
 }) {
-  // The current entry follows the URL, so /live, /dashboard and settings
-  // each highlight their own link.
+  // The current entry follows the URL, so each page highlights its own link.
   const pathname = usePathname();
   const current = (href: string) =>
-    pathname === href
-      ? { className: "is-current", "aria-current": "page" as const }
-      : {};
+    pathname === href || pathname.startsWith(`${href}/`)
+      ? { className: "rail-link is-current", "aria-current": "page" as const }
+      : { className: "rail-link" };
   return (
     <aside className="workspace-sidebar">
-      <Link href="/" className="wordmark" aria-label="Cues home">
-        <CuesMark className="brand-mark" />
-        <span className="nav-label">Cues</span>
+      <Link href="/" className="rail-brand" aria-label="Cues home">
+        <CuesMark className="brand-mark" size={26} />
       </Link>
-      {accountEnabled ? (
-        <Link
-          href="/settings/profile"
-          className="mobile-account"
-          aria-label="Your profile"
-        >
-          <WorkspaceIcon name="account" />
-        </Link>
-      ) : null}
       <nav className="sidebar-nav" aria-label="Workspace">
-        {accountEnabled ? (
-          <Link href="/settings/profile" {...current("/settings/profile")}>
-            <WorkspaceIcon name="account" />
-            <span className="nav-label">Teacher profile</span>
-          </Link>
-        ) : null}
         <Link href="/dashboard" {...current("/dashboard")}>
           <WorkspaceIcon name="classroom" />
           <span className="nav-label">Classroom</span>
         </Link>
-        {liveView ? (
-          <Link href="/live" {...current("/live")}>
-            <WorkspaceIcon name="live" />
-            <span className="nav-label">Live</span>
+        {accountEnabled ? (
+          <Link href="/settings/profile" {...current("/settings")}>
+            <WorkspaceIcon name="account" />
+            <span className="nav-label">Profile</span>
           </Link>
         ) : null}
       </nav>
       <div className="sidebar-bottom">
         {themeToggle ? (
-          <ThemeToggle pageDefault="dark" className="rail-theme-toggle" />
+          <ThemeToggle pageDefault="dark" className="rail-link" />
         ) : null}
-        <div className="sidebar-privacy">
-          <WorkspaceIcon name="lock" />
-          <span className="nav-label">
-            Camera stays local.
-            <br />
-            Decisions stay with you.
-          </span>
-        </div>
-        {accountEnabled ? (
-          <Link className="sidebar-account" href="/settings/profile">
-            <span className="account-monogram">
-              <WorkspaceIcon name="account" />
-            </span>
-            <span className="nav-label">
-              Your account<small>Profile, email and sign out</small>
-            </span>
-          </Link>
-        ) : (
-          <div className="sidebar-account">
-            <span className="account-monogram">
-              <WorkspaceIcon name="account" />
-            </span>
-            <span className="nav-label">
-              Teacher workspace<small>Account access unavailable</small>
-            </span>
-          </div>
-        )}
       </div>
     </aside>
   );

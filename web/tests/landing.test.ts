@@ -117,10 +117,20 @@ test("scroll reveal defaults on; without it every section is visible", () => {
     isEnabled("web.landing_motion", { CUES_FLAG_WEB_LANDING_MOTION: "1" }),
     true,
   );
+  // Both the scroll reveal and the hero glow drift mount only with the flag.
   assert.match(
     read("../components/landing.tsx"),
-    /\{motion \? <LandingReveal \/> : null\}/,
+    /\{motion \? \(\s*<>\s*<LandingReveal \/>\s*<LandingAmbient \/>\s*<\/>\s*\) : null\}/,
   );
+  // The drift is transform-only, paused unless the hero is visible, and
+  // absent under reduced motion.
+  const css = read("../components/landing.css");
+  assert.match(
+    css,
+    /@media \(prefers-reduced-motion: no-preference\) \{\s*\.ln-hero::before \{\s*animation: ln-drift[^}]*animation-play-state: paused;/,
+  );
+  assert.match(css, /\.ln-hero\[data-drift\]::before \{\s*animation-play-state: running;/);
+  assert.match(css, /@keyframes ln-drift \{\s*from \{\s*transform:[^}]*\}\s*to \{\s*transform:[^}]*\}\s*\}/);
   // Content is hidden only once the reveal script marks the page ready.
   assert.match(
     read("../components/landing.css"),

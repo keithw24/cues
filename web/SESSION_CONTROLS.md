@@ -115,8 +115,8 @@ time. After sign-in the dashboard calls `get_or_create_my_default_station()` (mi
 
 Session controls, the activity picker, seats and observations, and teacher reviews are all
 scoped to that station. Start Session still calls `start_station_activity`, which creates a
-new session owned by `auth.uid()`; it never creates a station. Pairing a station with a code
-adds a non-default assignment and does not change anyone's default.
+new session owned by `auth.uid()`; it never creates a station. The dashboard has no pairing-code
+screen: each teacher uses their own default station.
 
 The vision laptop follows the same station without configuration: once the teacher is
 signed in, the dashboard sends the resolved station to the local vision service

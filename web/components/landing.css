@@ -812,6 +812,28 @@ a.ln-button:active {
     radial-gradient(50% 40% at 50% 72%, rgb(68 89 180 / 0.26), transparent 70%);
   filter: blur(40px);
 }
+/* The glow drifts very slowly: a small turn and swell of the blurred layer,
+   so the blue and lavender pass each other. Transform only, so nothing is
+   redrawn. It runs only with web.landing_motion, while the hero is on screen
+   in a visible tab (LandingAmbient sets data-drift), and never with reduced
+   motion. Off screen it pauses where it is. */
+@media (prefers-reduced-motion: no-preference) {
+  .ln-hero::before {
+    animation: ln-drift 26s cubic-bezier(0.77, 0, 0.175, 1) infinite alternate;
+    animation-play-state: paused;
+  }
+  .ln-hero[data-drift]::before {
+    animation-play-state: running;
+  }
+}
+@keyframes ln-drift {
+  from {
+    transform: translate3d(-2%, 0, 0) rotate(-5deg) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 3%, 0) rotate(5deg) scale(1.08);
+  }
+}
 .ln-hero::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   background-size: 240px 240px;
