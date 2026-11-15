@@ -105,6 +105,81 @@ export function reviewQueue<T extends { id: string }>({
   return { flagged: extra, count: askedSeatIds.length + extra.length };
 }
 
+/** Raw camera statuses that keep a person flagged (or may hide a flag: vision
+ * restores Needs Review when a lost person comes back). */
+const STILL_FLAGGED = new Set(["review", "needs_help", "tracking_lost"]);
+
+/** How long a flagged person who dropped out of view keeps the companion
+ * resting: vision's own release time for a person it lost (RELEASE_SECONDS in
+ * vision/people.py). After that they are gone, not a queue that was cleared. */
+export const DROP_REST_MS = 10_000;
+
+/**
+ * Flagged people who left the waiting count in the last few seconds without a
+ * reason the teacher would recognise: not marked reviewed, no request now, and
+ * the camera has not moved them on (their row still reads flagged or lost).
+ * While any remain, the companion rests instead of "eating" a queue nobody
+ * cleared. `row` is the seat's latest row, or undefined when the seat is no
+ * longer listed (another classroom); `clock` is the page's time in ms, or null
+ * when it is not ticking. Both of those count as resolved, and so does a row
+ * older than DROP_REST_MS, so the rest always ends.
+ */
+export function unexplainedDrops(
+  before: readonly string[],
+  now: ReadonlySet<string>,
+  {
+    marked,
+    asked,
+    row,
+    clock,
+  }: {
+    marked: ReadonlySet<string>;
+    asked: ReadonlySet<string>;
+    row: (id: string) => { status: string; updated_at: string } | undefined;
+    clock: number | null;
+  },
+): string[] {
+  return before.filter((id) => {
+    if (now.has(id) || marked.has(id) || asked.has(id)) return false;
+    const latest = row(id);
+    if (!latest || clock === null || !STILL_FLAGGED.has(latest.status)) return false;
+    const age = clock - Date.parse(latest.updated_at);
+    return Number.isFinite(age) && age < DROP_REST_MS;
+  });
+}
+
+/** Where this tab keeps the people marked reviewed, per classroom, so the
+ * classroom and To review pages agree until the camera resets them. */
+export const MARKED_KEY = "cues-marked-reviewed";
+
+export function readMarked(storage: Storage, station: string): string[] {
+  try {
+    const value: unknown = JSON.parse(storage.getItem(`${MARKED_KEY}:${station}`) ?? "[]");
+    return Array.isArray(value) ? value.filter((id) => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeMarked(
+  storage: Storage,
+  station: string,
+  ids: Iterable<string>,
+): void {
+  const list = [...ids];
+  const key = `${MARKED_KEY}:${station}`;
+  if (list.length) storage.setItem(key, JSON.stringify(list));
+  else storage.removeItem(key);
+}
+
+/** Forget every classroom's marks in this tab (on sign-out). */
+export function forgetMarked(storage: Storage): void {
+  for (let i = storage.length - 1; i >= 0; i--) {
+    const key = storage.key(i);
+    if (key?.startsWith(MARKED_KEY)) storage.removeItem(key);
+  }
+}
+
 /** Names for a short sentence: "Keith", "Keith and Evan", "Keith, Evan and Eric",
  * "Keith, Evan and 2 more". */
 export function nameList(names: readonly string[]): string {

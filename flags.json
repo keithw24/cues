@@ -187,7 +187,7 @@
   },
   "web.review_waiting": {
     "description": "To review also lists each person the camera flagged (Needs Review) who has no request from Cues yet, as \"No suggestion yet\" with Mark as reviewed, and counts them on the To review link; the classroom Attention panel names them instead of saying All clear (or under the requests). Nothing is written for them. Off: To review and Attention cover only Cues's requests.",
-    "default": false,
+    "default": true,
     "owner": "evan",
     "ticket": "review-status-sync"
   },

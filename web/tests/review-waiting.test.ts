@@ -53,10 +53,11 @@ test("a stale observation no longer reads Needs Review, so it is not listed", ()
   assert.deepEqual(listed, []);
 });
 
-test("web.review_waiting is registered off by default and wired from both pages", () => {
+test("web.review_waiting is registered on by default and wired from both pages", () => {
   const flag = JSON.parse(read("../../flags.json"))["web.review_waiting"];
-  // Off until the live station check is recorded (CLAUDE.md flag rule 2).
-  assert.equal(flag.default, false);
+  // On at Evan's request (he owns it): a flagged person shows on To review and
+  // in Attention at once, not only after the agent's request arrives.
+  assert.equal(flag.default, true);
   assert.equal(flag.owner, "evan");
   for (const page of ["../app/review/page.tsx", "../app/dashboard/page.tsx"])
     assert.match(read(page), /reviewWaitingEnabled=\{isEnabled\("web\.review_waiting"\)\}/);
@@ -84,4 +85,65 @@ test("the rail and the header show the same count, and reset clears waiting card
   const waiting = card.slice(card.indexOf("export function WaitingReviewCard"));
   assert.doesNotMatch(waiting, /TeacherReviewActions|resolve_teacher_review/);
   assert.match(waiting, /No suggestion yet/);
+});
+
+test("a flagged person who just left the camera is not a cleared queue, for a while", async () => {
+  const { unexplainedDrops, DROP_REST_MS } = await import("../lib/classroom-view.ts");
+  const none = new Set<string>();
+  const at = (seconds: number) => new Date(NOW - seconds * 1000).toISOString();
+  const rows = (status: string, secondsAgo = 1) => (id: string) =>
+    id === "S1-P1" ? { status, updated_at: at(secondsAgo) } : undefined;
+  const reasons = (row: ReturnType<typeof rows>, extra = {}) => ({
+    marked: none, asked: none, row, clock: NOW, ...extra,
+  });
+  // Lost by the camera, or the camera went quiet (the row still reads flagged).
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("tracking_lost"))), ["S1-P1"]);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("needs_help", 4))), ["S1-P1"]);
+  // Lost and never back: the rest ends after vision's release time.
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("tracking_lost", DROP_REST_MS / 1000))), []);
+  // Real reasons: marked, a request, the camera reset them, another classroom, no clock.
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("review"), { marked: new Set(["S1-P1"]) })), []);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("review"), { asked: new Set(["S1-P1"]) })), []);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("in_progress"))), []);
+  assert.deepEqual(unexplainedDrops(["S1-P9"], none, reasons(rows("review"))), []);
+  assert.deepEqual(unexplainedDrops(["S1-P1"], none, reasons(rows("review"), { clock: null })), []);
+  // Back in the count: nothing to explain.
+  assert.deepEqual(unexplainedDrops(["S1-P1"], new Set(["S1-P1"]), reasons(rows("review"))), []);
+});
+
+test("marks are kept per classroom for this tab and forgotten on sign-out", async () => {
+  const { readMarked, writeMarked, forgetMarked } = await import("../lib/classroom-view.ts");
+  const data = new Map<string, string>();
+  const storage = {
+    get length() { return data.size; },
+    key: (i: number) => [...data.keys()][i] ?? null,
+    getItem: (k: string) => data.get(k) ?? null,
+    setItem: (k: string, v: string) => void data.set(k, v),
+    removeItem: (k: string) => void data.delete(k),
+    clear: () => data.clear(),
+  } as Storage;
+  writeMarked(storage, "S1", ["S1-P1"]);
+  writeMarked(storage, "S3", ["S3-P2"]);
+  assert.deepEqual(readMarked(storage, "S1"), ["S1-P1"]);
+  assert.deepEqual(readMarked(storage, "S2"), []);
+  writeMarked(storage, "S1", []);
+  assert.equal(storage.getItem("cues-marked-reviewed:S1"), null);
+  storage.setItem("cues-marked-reviewed:S2", "not json");
+  assert.deepEqual(readMarked(storage, "S2"), []);
+  forgetMarked(storage);
+  assert.equal(data.size, 0);
+});
+
+test("the dashboard shares marks between pages and rests the companion on unexplained drops", () => {
+  const dashboard = read("../components/dashboard.tsx");
+  assert.match(dashboard, /readMarked\(window\.sessionStorage, station\)/);
+  assert.match(dashboard, /writeMarked\(window\.sessionStorage, station, markedSeats\)/);
+  // Kept marks survive until the seats load.
+  assert.match(dashboard, /if \(stillFlagged === null\) return;/);
+  assert.match(dashboard, /feed\.snapshot && unexplained\.length === 0/);
+  // Resolved or timed-out drops are forgotten; Reset clears them; marks wait for their load.
+  assert.match(dashboard, /setDroppedFlagged\(unexplained\)/);
+  assert.match(dashboard, /setDroppedFlagged\(\[\]\)/);
+  assert.match(dashboard, /if \(!station \|\| marksLoadedFor !== station\) return;/);
+  assert.match(read("../components/profile-account.tsx"), /forgetMarked\(window\.sessionStorage\)/);
 });
