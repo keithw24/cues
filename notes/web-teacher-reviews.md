@@ -68,8 +68,8 @@ The rationale is rendered as plain text, never HTML.
 
 ## Flag and backend rollout
 
-`web.teacher_reviews` defaults false. Set `CUES_FLAG_WEB_TEACHER_REVIEWS=1` in the
-local environment after the backend hookup is ready (and rebuild production).
+`web.teacher_reviews` defaults on (since 2026-11-14). Set `CUES_FLAG_WEB_TEACHER_REVIEWS=0` to
+turn it off (and rebuild production).
 Flag off makes zero review reads/subscriptions and shows 'not connected'; it does
 not restore the removed simulated/seat-status queue. `web.dashboard` still gates
 all dashboard code as before.
@@ -117,8 +117,8 @@ fixtures, not deployed table writes. The preview was restored to the flag-off bu
 ## Persistent action adapter (supersedes read-only action notes above)
 
 The frontend now provides **Support needed** → confirmed and **No support needed** → dismissed,
-behind the additional default-off `web.teacher_review_actions` flag
-(`CUES_FLAG_WEB_TEACHER_REVIEW_ACTIONS=1`). The review feed must also be enabled.
+behind the additional `web.teacher_review_actions` flag (default on since 2026-11-14;
+`CUES_FLAG_WEB_TEACHER_REVIEW_ACTIONS=0` turns it off). The review feed must also be enabled.
 The old visit-local dismissal path remains removed. Neither localStorage nor seat
 status supplies a review resolution.
 

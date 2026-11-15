@@ -73,10 +73,10 @@ Weights may download on first use. Fake frames do not simulate student progress.
 `web/.env.local`: browser-safe `NEXT_PUBLIC_SUPABASE_URL` and
 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. The dashboard's screens are flags (see
 `flags.json` and [notes/web.md](notes/web.md)): the sign-in, landing and profile screens and the
-dashboard default on; session controls, teacher reviews, review actions and person observations
-default off and are switched on with `CUES_FLAG_WEB_SESSION_CONTROLS=1`,
-`CUES_FLAG_WEB_TEACHER_REVIEWS=1`, `CUES_FLAG_WEB_TEACHER_REVIEW_ACTIONS=1` and
-`CUES_FLAG_WEB_PERSON_OBSERVATIONS=1`. `CUES_STATION_OVERRIDE` pins the dashboard to one station
+dashboard default on, and so do session controls, teacher reviews, review actions, person
+observations, the To review page and the camera health strip. Turn one off with its
+`CUES_FLAG_WEB_…=0` (for example `CUES_FLAG_WEB_SESSION_CONTROLS=0`). Interventions, live
+progress and the hosted local feed default off. `CUES_STATION_OVERRIDE` pins the dashboard to one station
 for dev/test only. Never expose service-role, Groq, or Spectrum credentials as `NEXT_PUBLIC_*`.
 
 `cues/.env`: backend-only `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`,

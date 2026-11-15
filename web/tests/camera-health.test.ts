@@ -123,3 +123,23 @@ test("readLocalVision keeps the camera reachable when /config is refused at the 
   assert.equal(reading.reachable, true);
   assert.equal(reading.reachable && reading.stationId, "S2");
 });
+
+test("the camera health strip defaults on and turns off with =0", async () => {
+  const { isEnabled } = await import("../lib/flags.ts");
+  assert.equal(isEnabled("web.health_strip", {}), true);
+  assert.equal(isEnabled("web.health_strip", { CUES_FLAG_WEB_HEALTH_STRIP: "0" }), false);
+});
+
+test("a hosted page that can't read the laptop shows only the station's rows, never 'service down'", () => {
+  const quiet = cameraHealth({
+    vision: { reachable: false }, station: "S1", updatesFresh: true, inView: 1,
+    conflict: false, localReadable: false,
+  });
+  assert.deepEqual(quiet.items.map((item) => item.key), ["updates", "other-camera"]);
+  assert.equal(quiet.problem, null);
+  const refused = cameraHealth({
+    vision: null, station: "S1", updatesFresh: false, inView: 0,
+    conflict: true, localReadable: false,
+  });
+  assert.equal(refused.problem, OTHER_CAMERA);
+});
