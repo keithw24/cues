@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { seatViews, type SeatView } from "@/lib/dashboard";
 import {
   INITIAL_REVIEWS,
@@ -368,11 +368,17 @@ export default function Dashboard({
     // One read at a time (a read can take up to 12s, the poll is 5s), so an
     // old answer never overwrites a newer one; a failed read keeps the last.
     let inFlight = false;
+    // The last writer read; while reads fail it is re-checked against the
+    // clock, so the warning still expires once the other camera goes quiet.
+    let lastWriter: Awaited<ReturnType<typeof readStationWriter>> | null = null;
     const check = () => {
+      if (lastWriter && !disposed)
+        setConflict(cameraConflict(lastWriter, Date.now()));
       if (inFlight) return;
       inFlight = true;
       void readStationWriter(client, station)
         .then((writer) => {
+          lastWriter = writer;
           if (!disposed) setConflict(cameraConflict(writer, Date.now()));
         })
         .catch(() => {})
@@ -447,17 +453,6 @@ export default function Dashboard({
       )?.focus(),
     );
   };
-  // The groups and who is in view as last rendered, for settleRow.
-  const latest = useRef({
-    groups: reviewGroups,
-    visibleIds: new Set<string>(),
-  });
-  useEffect(() => {
-    latest.current = {
-      groups: reviewGroups,
-      visibleIds: new Set(inView.map((seat) => seat.id)),
-    };
-  });
   // After a decision or a mark: if the person has nothing left to show (no other
   // request and out of view), close their row so it can't reopen on its own later;
   // otherwise keep focus on their row, which may have moved to the other group.
@@ -468,32 +463,36 @@ export default function Dashboard({
     !configurationError &&
     Boolean(reviews.error || reviews.connection === "disconnected");
   const pageHeading = useRef<HTMLHeadingElement>(null);
-  const settleRow = (seatId: string) => {
-    // Decide on the next frame, from the data that render committed, so a
-    // request that arrived (or left) while saving is counted.
-    requestAnimationFrame(() => {
-      const { groups, visibleIds } = latest.current;
-      const remaining =
-        groups.find((group) => group.seat_id === seatId)?.reviews.length ?? 0;
-      if (view === "review") {
-        // The card stays while the person has another request: keep focus on
-        // it; otherwise the page title.
-        (remaining
-          ? document.getElementById(`review-card-${seatId}`)
-          : pageHeading.current
-        )?.focus();
-        return;
-      }
-      if (!remaining && !visibleIds.has(seatId)) {
-        setSelectedId(null);
-        listHeading.current?.focus();
-        return;
-      }
-      document
-        .querySelector<HTMLButtonElement>(`[aria-controls="more-${seatId}"]`)
-        ?.focus();
-    });
-  };
+  // Settle in a layout effect after the update that removed the review has
+  // committed, so the count is never stale and focus lands before paint.
+  const [settling, setSettling] = useState<{ seat: string } | null>(null);
+  const settleRow = (seatId: string) => setSettling({ seat: seatId });
+  useLayoutEffect(() => {
+    if (!settling) return;
+    const seatId = settling.seat;
+    const remaining =
+      reviewGroups.find((group) => group.seat_id === seatId)?.reviews.length ??
+      0;
+    if (view === "review") {
+      // The card stays while the person has another request: keep focus on
+      // it; otherwise the page title.
+      (remaining
+        ? document.getElementById(`review-card-${seatId}`)
+        : pageHeading.current
+      )?.focus();
+      return;
+    }
+    if (!remaining && !inView.some((seat) => seat.id === seatId)) {
+      queueMicrotask(() => setSelectedId(null));
+      listHeading.current?.focus();
+      return;
+    }
+    document
+      .querySelector<HTMLButtonElement>(`[aria-controls="more-${seatId}"]`)
+      ?.focus();
+    // Runs once per settle request; later data changes must not move focus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settling]);
   const resolved = (review: TeacherReview) => {
     resolvedReviewIds.current.add(review.id);
     setReviews((state) => ({

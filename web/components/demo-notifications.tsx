@@ -55,9 +55,9 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
     const {data} = client.auth.onAuthStateChange((_event, session) => {
       const user = session?.user.id ?? null;
       if (shownUser.current !== undefined && user === shownUser.current) return;
-      const first = shownUser.current === undefined;
+      const firstEvent = shownUser.current === undefined;
       shownUser.current = user;
-      if (first) return;
+      if (firstEvent) return;
       invalidate(); sequence++; setSettings(null); setConsent(false);
       setFirst(""); setLast(""); setLoading(true);
       const handle = setTimeout(() => { timers.delete(handle); if (!cancelled) void refresh(); }, 0);
