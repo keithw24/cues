@@ -12,7 +12,14 @@ from shared.contracts import Session
 from vision import activities
 
 log = logging.getLogger(__name__)
-SESSION_LEASE_SECONDS = 3.0
+# How long a confirmed session stays usable without a fresh poll. Polls run about every
+# 1.5s, but a busy laptop (models on the same Python process) can stall one for several
+# seconds; at 3s that paused task processing and the dashboard showed the camera as off.
+# Writes stay safe meanwhile: the database rejects observations for an ended session or
+# an old revision or activity (guard_managed_observation, migration 0520). It stays well
+# under the one-camera writer lease (station_lease.TTL_SECONDS, 10s), so this camera stops
+# writing before another camera can take the station over.
+SESSION_LEASE_SECONDS = 7.0
 
 
 @dataclass(frozen=True)

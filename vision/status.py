@@ -196,6 +196,19 @@ class SeatTracker:
             events.append(StatusEvent("no_progress", self.best_score))
         return events
 
+    def shift(self, seconds: float) -> None:
+        """Skip a pause: move every hold and timer forward, so time nobody observed
+        neither completes a hold (done, review, miss, tracking lost) nor counts as time
+        on task. Statuses are kept."""
+        if seconds <= 0:
+            return
+        if self._last_t is not None:
+            self._last_t += seconds
+        if self._unseen_since is not None:
+            self._unseen_since += seconds
+        if self._band_since is not None:
+            self._band_since += seconds
+
     def _band_for(self, score: float) -> str:
         if score >= self.activity.success_threshold:
             return "success"
@@ -249,6 +262,11 @@ class ExpressionTracker:
                 },
             )
         ]
+
+    def shift(self, seconds: float) -> None:
+        """Skip a pause: an expression must persist for min_seconds of observed time."""
+        if seconds > 0 and self._since is not None:
+            self._since += seconds
 
     def context(self, t: float, distribution: dict[str, float] | None) -> dict | None:
         """Expression context for SeatState, or None when nothing qualifies.
