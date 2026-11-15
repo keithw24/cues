@@ -97,17 +97,21 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
       setError("Notification settings could not be saved. Please retry.");
     } finally {locked.current = false; setSaving(false);}
   }
-  // One switch says on or off; one short line says what that means.
-  const on = Boolean(settings?.notification_opt_in) && state !== "not enabled";
+  // One switch says on or off; one short line says what that means. The switch
+  // follows the saved opt-in, so turning it off always opts out, even while a new
+  // number is being edited or activation has not finished.
+  const on = Boolean(settings?.notification_opt_in);
   const [asking, setAsking] = useState(false);
   const summary = loading ? "Loading…"
     : !phone ? "Add a mobile number above to get texts."
     : state === "enabled" ? `Notifications enabled for ${phone}.`
     : state === "activating" ? "Notifications are being activated for this phone."
     : state === "activation failed" ? "Notifications could not be activated yet."
+    : on ? "Notifications are on but not active for this number yet."
     : "Get a text when a student needs you. Texts name only the seat, never images.";
-  // Turning the switch on asks for a name and consent first; off saves at once.
+  // Opting in (or retrying) asks for a name and consent first; off saves at once.
   const showOptIn = asking && (!settings?.notification_opt_in || state === "not enabled" || state === "activation failed");
+  const retry = on && (state === "activation failed" || state === "not enabled") && !phoneDirty && !!phone;
   const toggle = () => {
     if (on) void submit(false);
     else setAsking((value) => !value);
@@ -143,6 +147,9 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
             <button type="button" className="ws-pill" onClick={() => setAsking(false)} disabled={saving}>Cancel</button>
             <button type="button" className="ws-pill is-dark" onClick={() => void submit(true)} disabled={loading || saving || profileSaving || phoneDirty || !phone || !consentValid || !first.trim() || !last.trim()}>{saving ? "Saving…" : "Enable notifications"}</button>
           </div>
+        </div> : null}
+        {retry && !showOptIn ? <div className="alerts-foot">
+          <button type="button" className="text-link" onClick={() => setAsking(true)} disabled={loading || saving || profileSaving}>Try again</button>
         </div> : null}
         {canTest ? <div className="alerts-foot">
           <button type="button" className="text-link" onClick={() => void testNotification()} disabled={loading || saving || profileSaving}>Send test notification</button>

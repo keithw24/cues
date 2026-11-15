@@ -343,6 +343,18 @@
   color: var(--ws-review);
 }
 
+/* One camera per station: a second camera is being refused and paused. */
+.dashboard-shell .station-busy {
+  justify-self: start;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
 /* A connection problem: one quiet line and a retry. */
 .dashboard-shell .notice {
   display: flex;

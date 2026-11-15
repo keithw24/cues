@@ -26,6 +26,11 @@ import LocalClassroomFeed from "@/components/local-classroom-feed";
 import { PersonDetails } from "@/components/person-panel";
 import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import {
+  CAMERA_CONFLICT_MESSAGE,
+  cameraConflict,
+  readStationWriter,
+} from "@/lib/station-writer";
+import {
   inCameraView,
   isFresh,
   observationPresentation,
@@ -126,6 +131,9 @@ export default function Dashboard({
   const [feed, setFeed] = useState<FeedState>(INITIAL);
   const [attempt, setAttempt] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [markedSeats, setMarkedSeats] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const listHeading = useRef<HTMLHeadingElement>(null);
   const [reviews, setReviews] = useState<ReviewFeedState>(
     reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS,
@@ -325,9 +333,53 @@ export default function Dashboard({
       ? "Several activities"
       : (activityNames[0] ?? "No activity yet");
   const sessionLive = Boolean(sessionControlsEnabled && client);
+  // One camera per station: while a second camera is being refused (and paused), say so.
+  const [conflict, setConflict] = useState(false);
+  useEffect(() => {
+    if (!client || !station || !sessionControlsEnabled) return;
+    let disposed = false;
+    const check = () => {
+      void readStationWriter(client, station)
+        .then((writer) => {
+          if (!disposed) setConflict(cameraConflict(writer, Date.now()));
+        })
+        .catch(() => {
+          if (!disposed) setConflict(false);
+        });
+    };
+    check();
+    const timer = setInterval(check, 5000);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+      // Never carry one classroom's warning over to the next.
+      setConflict(false);
+    };
+  }, [client, station, sessionControlsEnabled]);
   // With session controls, the activity picker itself shows the activity.
   const activity = observationActivity;
 
+  // A mark lasts until vision reports the person out of review.
+  // Read the raw status, not the on-screen one: a stale or paused observation
+  // must not drop the mark before vision has actually reset the person.
+  const stillFlagged = seats
+    .filter(
+      (seat) =>
+        markedSeats.has(seat.id) &&
+        (seat.state?.status === "review" || seat.state?.status === "needs_help"),
+    )
+    .map((seat) => seat.id)
+    .join(",");
+  useEffect(() => {
+    const keep = new Set(stillFlagged ? stillFlagged.split(",") : []);
+    queueMicrotask(() =>
+      setMarkedSeats((previous) =>
+        [...previous].every((id) => keep.has(id))
+          ? previous
+          : new Set([...previous].filter((id) => keep.has(id))),
+      ),
+    );
+  }, [stillFlagged]);
   // One list: whoever Cues asked about first (even out of view), then
   // everyone else the camera sees, left to right.
   const others = inView.filter((seat) => reviewsFor(seat.id).length === 0);
@@ -341,23 +393,50 @@ export default function Dashboard({
       )?.focus(),
     );
   };
+  // After a decision or a mark: if the person has nothing left to show (no other
+  // request and out of view), close their row so it can't reopen on its own later;
+  // otherwise keep focus on their row, which may have moved to the other group.
+  const settleRow = (seatId: string, remaining: number) => {
+    const visible = inView.some((seat) => seat.id === seatId);
+    if (!remaining && !visible) {
+      setSelectedId(null);
+      requestAnimationFrame(() => listHeading.current?.focus());
+      return;
+    }
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLButtonElement>(`[aria-controls="more-${seatId}"]`)
+        ?.focus(),
+    );
+  };
   const resolved = (review: TeacherReview) => {
     resolvedReviewIds.current.add(review.id);
     setReviews((state) => ({
       ...state,
       reviews: state.reviews?.filter((item) => item.id !== review.id) ?? null,
     }));
+    settleRow(
+      review.seat_id,
+      reviewsFor(review.seat_id).filter((item) => item.id !== review.id).length,
+    );
   };
   // "Mark as reviewed": close this person's review requests here at once (every page reads
   // the same table, so they leave the others too) and let vision reset them to working.
   const markReviewedButton = (sessionId: string | null, seatId: string) =>
-    reviewActionsEnabled && client && sessionId ? (
+    markedSeats.has(seatId) ? (
+      <p className="person-note" role="status">
+        Marked as reviewed. They’ll show as working again in a moment.
+      </p>
+    ) : reviewActionsEnabled && client && sessionId ? (
       <MarkReviewedButton
         key={seatId}
         client={client}
         sessionId={sessionId}
         seatId={seatId}
-        onMarked={(marked) =>
+        onMarked={(marked) => {
+          // Remember the mark until vision moves them out of review, so the row
+          // (which may remount in the other group) can't offer it twice.
+          setMarkedSeats((previous) => new Set(previous).add(marked));
           setReviews((state) => {
             const closed = (state.reviews ?? []).filter(
               (item) => item.seat_id === marked,
@@ -368,8 +447,9 @@ export default function Dashboard({
               reviews:
                 state.reviews?.filter((item) => item.seat_id !== marked) ?? null,
             };
-          })
-        }
+          });
+          settleRow(marked, 0);
+        }}
       />
     ) : null;
   const row = (
@@ -454,11 +534,21 @@ export default function Dashboard({
                   station={station}
                   stationMessage={
                     visionMessage ||
-                    (account.state === "error" ? account.message : undefined)
+                    (account.state === "error"
+                      ? account.message
+                      : account.state === "checking" ||
+                          account.state === "finding"
+                        ? "Finding your classroom…"
+                        : undefined)
                   }
                   onActivity={ignoreActivity}
                   teacherLoginEnabled={teacherLoginEnabled}
                 />
+              ) : null}
+              {sessionLive && conflict ? (
+                <p className="station-busy" role="status">
+                  {CAMERA_CONFLICT_MESSAGE}
+                </p>
               ) : null}
             </section>
 

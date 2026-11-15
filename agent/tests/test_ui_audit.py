@@ -95,7 +95,9 @@ def test_hosted_catalog_is_required_not_just_vision_capability():
 
 def test_placeholder_and_creation_gaps_are_not_reported_as_functional_ui():
     data = ui.audit(process={})
-    assert feature(data, "Notifications sidebar page")["status"] == "placeholder"
+    # /settings/notifications now redirects to Profile, where alerts are set up,
+    # so the audit no longer lists it as a placeholder page.
+    assert all(f["feature"] != "Notifications sidebar page" for f in data["features"])
     assert feature(data, "Custom gesture creation/recording UI")["code"] is False
 
 

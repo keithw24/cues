@@ -13,7 +13,7 @@ backend actually does.
 | /live | Folded into Classroom. `/live` redirects to `/dashboard`. The local-only "decision" path (noted on screen only, never saved) is removed: it contradicts the persistent review model. |
 | Theme | Keep the light/dark toggle on every page. Both themes must look finished. Page defaults stay as they are (night for landing + workspace, light for login). |
 | Signed out | A calm sign-in card with the Cues companion and one Sign in button. No error banner, no empty panels. |
-| Review detail | Plain teacher language only: who, which task, when, "may need support", and the two decisions. Model internals (rationale, evidence) sit behind a "Why did Cues flag this?" disclosure, in plain words. Expression is never shown. |
+| Review detail | Plain teacher language only: who, which task, when, "may need support", and the two decisions. Model internals (rationale, evidence) sit behind a "Why did Cues ask?" disclosure, in plain words. No expression labels or scores are shown. |
 | Timeline | Removed (it plotted only pending reviews, so it read like history but wasn't). |
 | Activity / session | Lives in the banner: the subtitle is the current activity, with the session controls under it. Raw station/session/owner UUIDs are removed from the UI. |
 | Notifications page | `/settings/notifications` ("Coming soon") is stale: Photon works and is set up in Profile. It redirects to `/settings/profile#notifications`. |
