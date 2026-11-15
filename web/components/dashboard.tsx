@@ -18,6 +18,11 @@ import { startLocalVisionSync } from "@/lib/local-vision";
 import { Card } from "@/components/ui/card";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
 import { MarkReviewedButton } from "@/components/mark-reviewed-button";
+import {
+  flagLabel,
+  readStationFlags,
+  type StationFlag,
+} from "@/lib/station-flags";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import {
@@ -527,11 +532,43 @@ export default function Dashboard({
     if (detailOpener.current?.closest(".room-drawer")) inside();
     else closeDrawer();
   };
-  const timelineMarks = queue.map((review) => ({
-    id: review.id,
-    at: review.created_at,
-    label: `${reviewName(review.seat_id)} flagged`,
+  // The "Last hour" timeline: every moment someone was flagged in the last hour, from the
+  // teacher's own sessions (reviews of any status, and vision's own flags). Refreshed every
+  // 30 s and as soon as the review queue changes. Null until it loads (or when it cannot):
+  // then the pending queue is shown, as before.
+  const [flags, setFlags] = useState<StationFlag[] | null>(null);
+  const waiting = queue.length;
+  useEffect(() => {
+    if (!client || !station || !reviewsEnabled) return;
+    let disposed = false;
+    const load = () => {
+      void readStationFlags(client, station, Date.now() - 60 * 60 * 1000)
+        .then((rows) => {
+          if (!disposed) setFlags(rows);
+        })
+        .catch(() => {
+          if (!disposed) setFlags(null);
+        });
+    };
+    load();
+    const timer = setInterval(load, 30_000);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, [client, station, reviewsEnabled, waiting]);
+  const flagMarks = flags?.map((flag) => ({
+    id: flag.id,
+    at: flag.at,
+    label: flagLabel(flag.kind, reviewName(flag.seat_id)),
   }));
+  const timelineMarks =
+    flagMarks ??
+    queue.map((review) => ({
+      id: review.id,
+      at: review.created_at,
+      label: `${reviewName(review.seat_id)} flagged`,
+    }));
 
   return (
     <div className="dashboard-shell">
