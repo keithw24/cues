@@ -106,7 +106,7 @@ Corners are concentric: an outer radius equals the inner radius plus the padding
 - Hover styles apply only on hover-capable pointers.
 - Under `prefers-reduced-motion: reduce`, movement and blur are removed.
 - The theme toggle turns transitions off for the swap so colors change at once.
-- **Landing hero glow drift.** The blurred glow behind the landing headline (`.ln-hero::before`) slowly turns and swells (`ln-drift`: ±5° rotation, 1.08 scale, a few percent of travel, 26s each way, `cubic-bezier(0.77, 0, 0.175, 1)`, alternating). Transform only. It runs only with `web.landing_motion`, only while the hero is on screen in a visible tab (`landing-ambient.tsx` sets `data-drift`; otherwise the animation pauses in place), and never under reduced motion. The landing page's main navy background does not move.
+- **Landing hero glow drift.** The blurred glow behind the landing headline (`.ln-hero::before`) slowly turns and swells (`ln-drift`: up to 8° rotation, 1.08 scale, starting from the untransformed glow, a few percent of travel, 26s each way, `cubic-bezier(0.77, 0, 0.175, 1)`, alternating). Transform only. It runs only with `web.landing_motion`, only while the hero is on screen in a visible tab (`landing-ambient.tsx` sets `data-drift`; otherwise the animation pauses in place), and never under reduced motion. The landing page's main navy background does not move.
 - The logo does not move between the landing and sign-in pages: both headers are 72px tall with a `clamp(16px, 4vw, 40px)` side gutter and a 28px mark.
 
 ## The Cues companion
@@ -125,7 +125,7 @@ The sign-in pages (`/login`, `/signup`, `/auth/confirmed`) have a faint 22px dot
 ## Product boundaries the design keeps
 
 - Video stays on the laptop. The browser reads the loopback stream directly, and no frame passes through the app server or Supabase.
-- Expression output never appears in the teacher's panels.
+- No expression labels or scores appear in the teacher's panels. The agent's rationale (behind "Why did Cues ask?") is free text written under the agent's no-diagnosis, no-internal-state rules; the dashboard does not filter it.
 - Teacher decisions go through the `resolve_teacher_review` RPC (remote procedure call). The dashboard does not hide reviews locally as a stand-in for a decision.
 - People are named as the backend names them ("Person 1"). Only simulated students are used.
 
