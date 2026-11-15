@@ -54,7 +54,6 @@ For example:
 ```bash
 CUES_FLAG_VISION_EXPRESSION=0 ./scripts/demo.sh
 CUES_CAMERA=fake ./scripts/dev.sh
-CUES_MODE=recognize ./scripts/demo.sh
 ```
 For the current Logitech setup use `CUES_CAMERA_INDEX=1`; other machines may need
 0 or 2. Gesture detection (every known gesture, shown green on the video when
