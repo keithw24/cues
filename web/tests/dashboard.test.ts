@@ -193,3 +193,12 @@ test("with no flag variables set, the dashboard page wires the classroom feature
     assert.equal(isEnabled(flag, {}), true, `${flag} defaults on`);
   }
 });
+
+test("with the health strip off, session controls still render and a conflict uses the fallback note", async () => {
+  const { readFileSync } = await import("node:fs");
+  const dash = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
+  // The shared row renders for session controls alone, not only for the strip.
+  assert.match(dash, /\(sessionLive && client\) \|\| \(healthStripEnabled && station\)/);
+  assert.match(dash, /\{healthStripEnabled && station \? \(\s*<CameraHealthStrip/);
+  assert.match(dash, /sessionLive && conflict && !healthStripEnabled \? \(\s*<p className="station-busy"/);
+});

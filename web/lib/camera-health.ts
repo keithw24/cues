@@ -239,8 +239,7 @@ export type HealthSummary = { tone: HealthTone; label: string };
  * empty room from a stopped session; with the camera on and nothing arriving,
  * the sentence asks the teacher to start an activity.)
  */
-export function healthSummary(health: CameraHealth, inView: number): HealthSummary {
-  void inView;
+export function healthSummary(health: CameraHealth): HealthSummary {
   if (health.items.some((item) => item.tone === "warn") || health.problem === OTHER_CAMERA)
     return { tone: "warn", label: "Needs a look" };
   if (health.items.some((item) => item.value === "Checking"))

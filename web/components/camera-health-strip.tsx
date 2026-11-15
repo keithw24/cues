@@ -75,7 +75,7 @@ function useCameraHealth({
     conflict,
     localReadable: localReadable ?? undefined,
   });
-  return { health, summary: healthSummary(health, inView) };
+  return { health, summary: healthSummary(health) };
 }
 
 /** The four checks, each a label and a word. */
