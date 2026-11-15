@@ -138,6 +138,7 @@ def create_seat_state_runtime(
     progress_window_seconds: float = 4,
     escalation_config=None,
     poll_seconds: float = 1.0,
+    publish_progress: bool = False,
 ) -> SeatStateRuntime:
     """Build the continuous SeatState path using explicit, replaceable dependencies.
 
@@ -166,10 +167,17 @@ def create_seat_state_runtime(
         from agent.seat_state_runtime import local_station
 
         source = SupabaseSeatStateSource(agent.reviews.client, station_provider=local_station)
+    from agent.live_progress import SupabaseProgressPublisher
+
     pipeline = SeatStatePipeline(
         activities,
         agent,
         progress_history,
+        publisher=(
+            SupabaseProgressPublisher(agent.reviews.client)
+            if publish_progress and isinstance(agent.reviews, SupabaseTeacherReviewStore)
+            else None
+        ),
         progress_window_seconds=progress_window_seconds,
         escalation_config=(
             DEFAULT_ESCALATION_CONFIG if escalation_config is None else escalation_config

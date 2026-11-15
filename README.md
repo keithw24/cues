@@ -13,7 +13,10 @@ flowchart TD
     D --> E["Supabase seat_state"]
     E --> F["ProgressEvaluator"]
     F --> G["ProgressHistoryStore"]
-    G --> H["EscalationEvaluator"]
+    F --> H["EscalationEvaluator"]
+    G -. optional history tool .-> K
+    F --> LP["Live progress summary on seat_state (migration 012)"]
+    LP --> N
     H --> I["EvaluationRouter"]
     I --> J["ContextEnricher"]
     J --> K["Deep Agent"]
@@ -27,11 +30,9 @@ flowchart TD
     N --> P{"Teacher review"}
     O --> P
 
-    P -->|Needs attention| Q["confirmed"]
-    P -->|Dismiss| R["dismissed"]
-
-    Q --> S["resolve_teacher_review RPC"]
-    R --> S
+    P -->|Support needed / No support needed| S["resolve_teacher_review RPC"]
+    S --> Q["confirmed"]
+    S --> R["dismissed"]
 ```
 
 The continuous agent worker polls structured state and selects information/action
@@ -70,9 +71,10 @@ agent worker, and dashboard together. Photon runs on demand. Voice is not requir
 by this startup flow. Current person-ID dashboard/read-policy and activity catalog
 alignment gaps are documented in [vision handoff](notes/vision-data.md).
 
-The backend review/RPC path is implemented. In this checkout, dashboard activity
-writes and persistent review controls still need frontend wiring; the diagram
-describes the product handoff rather than claiming those controls are connected.
+Dashboard activity writes and persistent teacher review controls are connected.
+Live progress requires migration 012 and explicit `agent.live_progress` /
+`web.live_progress` activation. Migration 012 is deployed and both flags are enabled locally.
+See [pipeline audit](notes/pipeline-audit.md) for every connection and remaining limits.
 MJPEG `/stream` is the intentional local demo transport; WebRTC is not required.
 
 Python dependencies use root uv; Node packages use their npm lockfiles. Follow

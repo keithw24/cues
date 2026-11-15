@@ -48,7 +48,7 @@ export function liveStatus(
     return ["checking", resolutionLabels.confirmed];
   if (presentation.needsReview) return ["needs", "Needs you"];
   if (presentation.currentStatus === "in_progress")
-    return ["working", "Working"];
+    return ["working", presentation.label];
   if (presentation.currentStatus === "idle") return ["ready", "Ready"];
   return ["quiet", presentation.label];
 }

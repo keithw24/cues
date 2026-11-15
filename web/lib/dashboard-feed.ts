@@ -18,6 +18,7 @@ export function watchDashboard(
   notify: (state: FeedState) => void,
   personObservationsEnabled = false,
   station?: string,
+  liveProgressEnabled = false,
 ) {
   const scoped = station?.trim() ?? "";
   if (station !== undefined && !scoped) {
@@ -65,8 +66,9 @@ export function watchDashboard(
         client
           .from("seat_state")
           .select(
-            "seat_id,session_id,activity_id,status,task_score,updated_at" +
-              (personObservationsEnabled ? ",tracking_valid,expression_context" : ""),
+            "seat_id,session_id,activity_id,status,task_score,updated_at,session_revision" +
+              (liveProgressEnabled ? ",evaluated_progress" : "") +
+              ((personObservationsEnabled || liveProgressEnabled) ? ",tracking_valid,expression_context" : ""),
           )
           .abortSignal(signal),
         client.from("activities").select("id,name").abortSignal(signal),
@@ -90,7 +92,7 @@ export function watchDashboard(
           activities: activities.data,
           stations: stations.data,
         },
-        personObservationsEnabled,
+        personObservationsEnabled || liveProgressEnabled,
       );
       publish({ snapshot, error: null });
     } catch {

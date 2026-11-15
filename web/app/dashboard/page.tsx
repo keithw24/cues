@@ -18,6 +18,7 @@ export default async function DashboardPage() {
   return (
     <div className={`workspace ${garamond.variable}`}>
       <Dashboard
+        liveProgressEnabled={isEnabled("web.live_progress")}
         personObservationsEnabled={isEnabled("web.person_observations")}
         sessionControlsEnabled={isEnabled("web.session_controls")}
         stationId={process.env.CUES_STATION_OVERRIDE ?? ""}
