@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { mayConnectLocalFeed } from "@/lib/local-feed-policy";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 
 // Remembers, in this browser only, that the teacher turned the video on.
 const VIDEO_KEY = "cues-video";
-const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
+
 
 /** The classroom camera, center of the dashboard, with the vision service's own
  * overlay (a box and label per person, hand points). The browser reads this
  * laptop's loopback stream directly; frames never cross the app server or
  * leave the laptop. Off, it is one slim strip. */
-export default function LocalClassroomFeed() {
+export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin = "https://cues.nyc"}: {hostedEnabled?: boolean; hostedOrigin?: string}) {
   const [connection, setConnection] = useState<
     "off" | "connecting" | "live" | "error"
   >("off");
@@ -22,7 +23,7 @@ export default function LocalClassroomFeed() {
     } catch {}
   };
   const connect = () => {
-    if (!LOCAL_HOSTS.includes(window.location.hostname)) {
+    if (!mayConnectLocalFeed(window.location.origin, hostedEnabled, hostedOrigin)) {
       setConnection("error");
       return;
     }
@@ -39,7 +40,7 @@ export default function LocalClassroomFeed() {
     try {
       on = localStorage.getItem(VIDEO_KEY) === "on";
     } catch {}
-    if (on && LOCAL_HOSTS.includes(window.location.hostname)) {
+    if (on && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname)) {
       const timer = setTimeout(() => setConnection("connecting"), 0);
       return () => clearTimeout(timer);
     }
@@ -66,6 +67,7 @@ export default function LocalClassroomFeed() {
           <img
             className="local-stream"
             src="http://127.0.0.1:8000/stream"
+            crossOrigin="anonymous"
             alt="Your classroom camera, with a box around each person Cues is tracking"
             onLoad={() => setConnection("live")}
             onError={() => setConnection("error")}
@@ -75,7 +77,7 @@ export default function LocalClassroomFeed() {
           <div className="video-placeholder">
             <WorkspaceIcon name="camera" />
             {connection === "error" ? (
-              <p>Can’t reach this laptop’s camera. Check that Cues vision is running, then try again.</p>
+              <p>Can’t reach this laptop’s camera. Start Cues vision on this laptop and allow Local network access in your browser’s site permissions, then try again.</p>
             ) : connection === "connecting" ? (
               <p>Connecting to this laptop’s camera…</p>
             ) : null}

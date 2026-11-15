@@ -484,3 +484,29 @@ def test_signout_clears_unpinned_station_and_pauses_writes(api, unconfigured):
     assert api.post("/config", json={"station_id": None}).status_code == 200
     assert unconfigured.get() is None
     assert api.get("/health").json()["station_id"] is None
+
+
+def test_explicit_hosted_origin_can_configure_loopback_but_other_sites_cannot(
+    monkeypatch, unconfigured
+):
+    monkeypatch.setenv("CUES_DASHBOARD_ORIGINS", "http://localhost:3000,https://cues.nyc")
+    with TestClient(create_app(Pipeline(FakeCamera(fps=30), [])), **LOCAL) as client:
+        preflight = client.options(
+            "/config",
+            headers={
+                "Origin": "https://cues.nyc",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert preflight.status_code == 200
+        assert preflight.headers["access-control-allow-origin"] == "https://cues.nyc"
+        accepted = client.post(
+            "/config", json={"station_id": "S2"}, headers={"Origin": "https://cues.nyc"}
+        )
+        assert accepted.status_code == 200
+        rejected = client.post(
+            "/config", json={"station_id": "S1"}, headers={"Origin": "https://evil.example"}
+        )
+        assert rejected.status_code == 403
+        assert unconfigured.get() == "S2"
