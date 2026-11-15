@@ -211,7 +211,7 @@ def audit(root=ROOT, process=None, direct_next=False):
         "Pending review queue",
         "/dashboard",
         dashboard,
-        "Needs you",
+        "Attention",
         (*dflags, "web.teacher_reviews"),
         "Authenticated owner of session; pending teacher_reviews rows (RLS).",
         dm,
