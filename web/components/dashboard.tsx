@@ -110,6 +110,7 @@ export default function Dashboard({
   visionStationConfigEnabled = false,
   healthStripEnabled = false,
   interventionsEnabled = false,
+  resetPeopleEnabled = false,
 }: {
   /** "classroom" (the default) or "review", the To review page. */
   view?: "classroom" | "review";
@@ -132,6 +133,8 @@ export default function Dashboard({
   healthStripEnabled?: boolean;
   /** web.interventions: the agent's suggested support, and approving one (migration 018). */
   interventionsEnabled?: boolean;
+  /** web.reset_people: switching or restarting the activity puts everyone back to working. */
+  resetPeopleEnabled?: boolean;
 }) {
   const [observationNow, setObservationNow] = useState<number | null>(null);
   useEffect(() => {
@@ -503,6 +506,22 @@ export default function Dashboard({
   };
   // "Mark as reviewed": close this person's review requests here at once (every page reads
   // the same table, so they leave the others too) and let vision reset them to working.
+  // Remember the mark until vision moves them out of review, so the row (which may remount in
+  // the other group) can't offer it twice, and drop their open requests from the queue now.
+  const applyMarked = (marked: string) => {
+    setMarkedSeats((previous) => new Set(previous).add(marked));
+    setReviews((state) => {
+      const closed = (state.reviews ?? []).filter(
+        (item) => item.seat_id === marked,
+      );
+      for (const item of closed) resolvedReviewIds.current.add(item.id);
+      return {
+        ...state,
+        reviews:
+          state.reviews?.filter((item) => item.seat_id !== marked) ?? null,
+      };
+    });
+  };
   const markReviewedButton = (sessionId: string | null, seatId: string) =>
     markedSeats.has(seatId) ? (
       <p className="person-note" role="status">
@@ -515,20 +534,7 @@ export default function Dashboard({
         sessionId={sessionId}
         seatId={seatId}
         onMarked={(marked) => {
-          // Remember the mark until vision moves them out of review, so the row
-          // (which may remount in the other group) can't offer it twice.
-          setMarkedSeats((previous) => new Set(previous).add(marked));
-          setReviews((state) => {
-            const closed = (state.reviews ?? []).filter(
-              (item) => item.seat_id === marked,
-            );
-            for (const item of closed) resolvedReviewIds.current.add(item.id);
-            return {
-              ...state,
-              reviews:
-                state.reviews?.filter((item) => item.seat_id !== marked) ?? null,
-            };
-          });
+          applyMarked(marked);
           settleRow(marked);
         }}
       />
@@ -636,6 +642,14 @@ export default function Dashboard({
                   station={station}
                   onActivity={ignoreActivity}
                   teacherLoginEnabled={teacherLoginEnabled}
+                  resetPeople={
+                    resetPeopleEnabled
+                      ? {
+                          seatIds: reviewGroups.map((group) => group.seat_id),
+                          onReset: (ids) => ids.forEach(applyMarked),
+                        }
+                      : null
+                  }
                 />
               ) : null}
               {view !== "review" && healthStripEnabled && station ? (

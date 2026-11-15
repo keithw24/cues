@@ -208,5 +208,11 @@
     "default": false,
     "owner": "michelle",
     "ticket": "hosted-local-feed"
+  },
+  "web.reset_people": {
+    "description": "Switching or restarting the activity puts everyone back to working: the refresh button beside Start/End restarts the current activity (finished and flagged people start over) and the requests still open are closed. Off: the button only reloads the session and switching leaves open requests alone.",
+    "default": true,
+    "owner": "keith",
+    "ticket": "reset-people"
   }
 }
