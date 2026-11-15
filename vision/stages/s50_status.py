@@ -168,7 +168,12 @@ class StatusStage:
             score = match.score if match is not None and match.activity_id == activity.id else None
             visible = seat in faces or seat in ctx.get("people", {})
             in_hand = seat in hands
-            events = tracker.update(t, score, in_hand, visible)
+            # A gesture task counts toward no progress only if Cues can score it (gestures
+            # and hands on, examples recorded); rule tasks always can.
+            judgeable = activity.check_type != "gesture" or ctx.get("scorable", {}).get(
+                activity.id, False
+            )
+            events = tracker.update(t, score, in_hand, visible, judgeable=judgeable)
             expr_tracker = self._expression.setdefault(seat, ExpressionTracker())
             events += expr_tracker.update(t, expressions.get(seat))
             when = observed_at(t)

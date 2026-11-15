@@ -106,8 +106,15 @@ class GesturesStage:
         self.cache = cache or MatcherCache()
 
     def process(self, frame, ctx) -> None:
+        # Cleared first, so a frame that fails part-way never leaves a task "scorable".
+        ctx["scorable"] = {}
         hands = ctx.get("hands", {})
+        hands_on = "hands" in ctx  # the hands stage ran (vision.hands on)
         result: dict[str, Match] = {}
+        # Per gesture task: can Cues score it at all this frame? Built-in gestures need the
+        # hands stage; recorded ones also need usable examples. The status stage counts
+        # no-progress time only for tasks it can score, so "can't tell" is never a failure.
+        scorable: dict[str, bool] = {}
         for seat in self.zones.ids(ctx):
             activity_id = frame_activity(self.tasks, seat, ctx)
             if activity_id is None:  # session paused or ended: no task to score
@@ -115,11 +122,16 @@ class GesturesStage:
             activity = activities.get(activity_id)
             if activity.check_type != "gesture":
                 continue
+            if activity_id not in scorable:
+                scorable[activity_id] = hands_on and (
+                    activity.builtin is not None or self.cache.get(activity_id)[0] is not None
+                )
             if seat not in hands:
                 continue
             score, hand, reason, detail = score_gesture(activity, hands[seat], self.cache)
             result[seat] = Match(activity_id, score, reason, detail=detail, hand=hand)
         ctx["match"] = result
+        ctx["scorable"] = scorable
 
     def draw(self, image, ctx) -> None:
         from vision import overlay

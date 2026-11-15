@@ -52,7 +52,8 @@ Root `.env` (backend only; never commit credentials):
 | `CUES_DASHBOARD_ORIGINS` | Optional, comma-separated browser origins allowed to call the local vision service; default `http://localhost:3000` |
 | `DATABASE_URL` | Only for `scripts/supabase-migrations.py` (applying migrations); never needed to run the stack |
 | `CUES_OVERLAY` | `debug` draws every stage's own detail on the video instead of the normal overlay |
-| `CUES_NO_PROGRESS_SECONDS` | Shortens the "no progress" wait for every task (default 30). `./scripts/demo.sh` sets it to the agent's demo stall time (4) so the Needs Review status arrives when the demo review request does |
+| `CUES_NO_PROGRESS_SECONDS` | Shortens the "no progress" wait (default 3s for gesture tasks, 30s for raise hand); it never lengthens one. `./scripts/demo.sh` sets it to the agent's demo stall time (4), so raise hand flags at 4s and gestures stay at 3s |
+| `CUES_GESTURE_NO_PROGRESS_SECONDS` | How long a person may be Working on a gesture task (built-in or recorded) before they read Needs Review (default 3). Set `30` to go back to the old wait. Only time Cues can judge counts: a hand it cannot score (no recorded examples) does not. After Mark as reviewed the child gets at least 15s before being flagged again |
 | `CUES_PALM_FLIP` | `1` swaps palm and back of hand if a camera mirrors its output |
 | `CUES_SPECTRUM_DEBUG` | Optional extra logging from the notification sender |
 

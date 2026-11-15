@@ -10,6 +10,7 @@ Thresholds are per activity; there is no single threshold for every task.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 from dataclasses import dataclass
@@ -22,7 +23,34 @@ ACTIVITIES_FILE = Path(__file__).resolve().parent / "activities.json"
 # in the name keep it apart from any <activity_id>.json example file.
 CUSTOM_FILE = ACTIVITIES_FILE.parent / "templates" / "custom_gestures.catalog.json"
 CUSTOM_PREFIX = "custom_"
+log = logging.getLogger(__name__)
+
 CUSTOM_SUCCESS, CUSTOM_REVIEW = 0.78, 0.58
+# A gesture task flags a person (Needs Review) after this much time on task without
+# any score reaching the review band. Rule tasks (raise hand) keep their own, longer wait.
+# CUES_GESTURE_NO_PROGRESS_SECONDS changes it for every gesture, built-in and recorded
+# (for example 30 to go back to the old wait without a code change).
+GESTURE_NO_PROGRESS_SECONDS = 3
+
+
+def _gesture_wait() -> int:
+    raw = os.environ.get("CUES_GESTURE_NO_PROGRESS_SECONDS", "").strip()
+    if not raw:
+        return GESTURE_NO_PROGRESS_SECONDS
+    try:
+        seconds = int(raw)
+    except ValueError:
+        seconds = 0
+    if seconds > 0:
+        return seconds
+    log.warning(
+        "CUES_GESTURE_NO_PROGRESS_SECONDS=%r is not a whole number of seconds; using %ss",
+        raw,
+        GESTURE_NO_PROGRESS_SECONDS,
+    )
+    return GESTURE_NO_PROGRESS_SECONDS
+
+
 _custom_lock = threading.Lock()
 
 
@@ -44,7 +72,8 @@ def _no_progress_override() -> int | None:
     """CUES_NO_PROGRESS_SECONDS: shorten the "no progress" wait for every task (demo mode).
 
     The demo launcher sets it so vision's Needs Review status arrives about when the
-    agent's accelerated review request does. Unset, empty or invalid: no override.
+    agent's accelerated review request does. It only ever shortens a wait: a task whose
+    own wait is already shorter (gestures, 3s) keeps it. Unset, empty or invalid: no override.
     """
     raw = os.environ.get("CUES_NO_PROGRESS_SECONDS", "").strip()
     if not raw:
@@ -60,6 +89,7 @@ def _no_progress_override() -> int | None:
 def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
     items = json.loads(Path(path).read_text()) + _read_custom()
     override = _no_progress_override()
+    gesture_wait = _gesture_wait()
     result = {}
     for item in items:
         activity = Activity(
@@ -68,7 +98,7 @@ def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
             check_type=item["check_type"],
             success_threshold=float(item["success_threshold"]),
             review_threshold=float(item["review_threshold"]),
-            no_progress_seconds=override or int(item["no_progress_seconds"]),
+            no_progress_seconds=_wait(item, gesture_wait, override),
             keywords=tuple(item.get("keywords", [])),
             builtin=item.get("builtin"),
         )
@@ -78,6 +108,13 @@ def load_activities(path: Path = ACTIVITIES_FILE) -> dict[str, Activity]:
             raise ValueError(f"{activity.id}: need 0 <= review <= success <= 1")
         result[activity.id] = activity
     return result
+
+
+def _wait(item: dict, gesture_wait: int, override: int | None) -> int:
+    """Every gesture (including one recorded before this default) uses the gesture
+    wait; a rule task keeps its own. CUES_NO_PROGRESS_SECONDS only ever shortens."""
+    base = gesture_wait if item["check_type"] == "gesture" else int(item["no_progress_seconds"])
+    return min(base, override) if override else base
 
 
 def _read_custom() -> list[dict]:
@@ -120,7 +157,7 @@ def add_custom_gesture(name: str, keywords: tuple[str, ...] = ()) -> Activity:
             "keywords": list(keywords) or [name.strip().lower()],
             "success_threshold": CUSTOM_SUCCESS,
             "review_threshold": CUSTOM_REVIEW,
-            "no_progress_seconds": 30,
+            "no_progress_seconds": GESTURE_NO_PROGRESS_SECONDS,
         }
         _write_custom(_read_custom() + [item])
     return get(aid)

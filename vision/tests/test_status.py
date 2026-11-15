@@ -177,3 +177,73 @@ def test_status_stage_emits_shared_contract_events():
     assert left[-1]["status"] == "done"
     assert left[-1]["tracking_valid"] is True
     assert {s["seat_id"] for s in em.states} == {"S1-L", "S1-R"}
+
+
+def _three_second():
+    from vision import activities
+
+    activities.load_activities.cache_clear()
+    act = activities.get("thumbs_up")
+    activities.load_activities.cache_clear()
+    return act
+
+
+def test_a_gesture_flags_after_three_seconds_of_judged_time(monkeypatch, tmp_path):
+    from vision import activities
+
+    monkeypatch.setattr(activities, "CUSTOM_FILE", tmp_path / "none.json")
+    monkeypatch.delenv("CUES_GESTURE_NO_PROGRESS_SECONDS", raising=False)
+    monkeypatch.delenv("CUES_NO_PROGRESS_SECONDS", raising=False)
+    tr = SeatTracker("S1-L", _three_second())
+    assert "no_progress" not in run(tr, ticks(0, 2.8, 0.1))
+    assert "no_progress" in run(tr, ticks(2.9, 3.2, 0.1))
+    assert tr.status == "needs_help"
+    # Hands down (nothing to score) is not doing it either: it counts.
+    tr = SeatTracker("S1-L", _three_second())
+    assert "no_progress" in run(tr, ticks(0, 3.2, None, hand=False))
+
+
+def test_a_hand_cues_cannot_score_never_counts_as_no_progress():
+    # Regression (review of #101): a recorded gesture with no examples, or the gestures
+    # stage off, gives score None with a hand up. That is not the child's failure.
+    act = Activity("custom_wave", "Wave", "gesture", 0.78, 0.58, 3)
+    tr = SeatTracker("S1-L", act)
+    assert run(tr, ticks(0, 10, None, hand=True)) == []
+    assert tr.status == "in_progress"
+
+
+def test_after_mark_as_reviewed_a_child_is_not_flagged_again_within_seconds():
+    from vision.status import REFLAG_AFTER_REVIEW_SECONDS
+
+    act = Activity("thumbs_up", "Thumbs up", "gesture", 0.78, 0.58, 3)
+    tr = SeatTracker("S1-L", act)
+    run(tr, ticks(0, 3.2, 0.1))
+    assert tr.status == "needs_help"
+    assert tr.acknowledge(3.3)
+    assert "no_progress" not in run(tr, ticks(3.3, 3.3 + REFLAG_AFTER_REVIEW_SECONDS - 0.5, 0.1))
+    assert "no_progress" in run(
+        tr,
+        ticks(
+            3.3 + REFLAG_AFTER_REVIEW_SECONDS - 0.4, 3.3 + REFLAG_AFTER_REVIEW_SECONDS + 0.3, 0.1
+        ),
+    )
+
+
+def test_raise_hand_still_waits_thirty_seconds():
+    act = Activity("raise_hand", "Raise your hand", "rule", 1.0, 1.0, 30)
+    tr = SeatTracker("S1-L", act)
+    assert "no_progress" not in run(tr, ticks(0, 29.5, 0.0))
+    assert "no_progress" in run(tr, ticks(29.6, 30.3, 0.0))
+
+
+def test_a_task_cues_cannot_score_never_flags_even_with_hands_down():
+    # From the re-review of #101: "judged" is decided per task, not per frame. A recorded
+    # gesture with no examples (or gestures or hands off) flagged children with hands
+    # down after 3s, and hand drop-outs slowly added up.
+    act = Activity("custom_wave", "Wave", "gesture", 0.78, 0.58, 3)
+    tr = SeatTracker("S1-L", act)
+    steps = ticks(0, 10, None, hand=False)
+    out = []
+    for t, score, hand, face in steps:
+        out += [e.type for e in tr.update(t, score, hand, face, judgeable=False)]
+    assert out == [] and tr.status == "in_progress"
