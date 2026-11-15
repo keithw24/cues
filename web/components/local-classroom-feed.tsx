@@ -77,7 +77,7 @@ export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin 
           <div className="video-placeholder">
             <WorkspaceIcon name="camera" />
             {connection === "error" ? (
-              <p>Can’t reach this laptop’s camera. Start Cues vision on this laptop and allow Local network access in your browser’s site permissions, then try again.</p>
+              <p>Can’t reach this laptop’s camera. Start Cues vision here and allow Local network access in your browser’s site settings.</p>
             ) : connection === "connecting" ? (
               <p>Connecting to this laptop’s camera…</p>
             ) : null}

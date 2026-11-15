@@ -390,12 +390,37 @@
 .dashboard-shell .session-line.is-error {
   color: var(--ws-review);
 }
+/* The session could not load: the reason and the retry share one row, so the
+   refresh button never sits alone under it. */
+.dashboard-shell .session-controls.is-blocked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.dashboard-shell .session-controls.is-blocked {
+  flex-wrap: nowrap;
+}
+.dashboard-shell .session-controls.is-blocked .session-line {
+  flex: 0 1 auto;
+  color: var(--ws-review);
+  font-weight: 500;
+  text-wrap: pretty;
+}
+.dashboard-shell .session-controls.is-blocked .session-row {
+  flex: none;
+}
+/* Controls and the health strip read as one group under the title. */
+.dashboard-shell .ws-hero > .session-controls + .health-strip,
+.dashboard-shell .ws-hero > .session-controls + .station-busy {
+  margin-top: -12px;
+}
 
 /* One camera per station: a second camera is being refused and paused. */
 .dashboard-shell .station-busy {
   justify-self: start;
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: 18px;
   background: var(--ws-review-soft);
   color: var(--ws-review);
   font-size: 13px;
@@ -438,7 +463,7 @@
   color: var(--ws-review);
 }
 .dashboard-shell .health-problem {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   padding: 8px 14px;
   width: fit-content;
   max-width: 100%;
@@ -1185,12 +1210,13 @@ div.ws-row {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  max-width: 32ch;
+  max-width: 42ch;
   padding: 22px 24px;
   color: var(--ws-ink-soft);
   font-size: 14px;
   line-height: 1.5;
   text-align: center;
+  text-wrap: pretty;
 }
 .dashboard-shell .video-placeholder > svg {
   width: 20px;
