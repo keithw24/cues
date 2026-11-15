@@ -96,9 +96,10 @@ test("a review the teacher marked reviewed is valid but never waiting", () => {
 test("the button is wired where Needs Review shows, and only with review actions on", () => {
   const dashboard = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
   assert.match(dashboard, /reviewActionsEnabled && client && sessionId/);
-  // An opened request in Needs you, a person opened from the strip, and each
-  // card on the To review page (/live redirects to the classroom).
-  assert.equal((dashboard.match(/actions=\{markReviewedButton\(/g) ?? []).length, 2);
+  // A person opened from the strip, an opened row in Attention (flagged people
+  // there answer with flagDecisions instead), and each card on the To review page.
+  assert.equal((dashboard.match(/actions=\{markReviewedButton\(/g) ?? []).length, 1);
+  assert.match(dashboard, /\? flagDecisions\s*: markReviewedButton\)\(/);
   assert.match(dashboard, /mark=\{markReviewedButton\(lead\.session_id, group\.seat_id\)\}/);
   const person = readFileSync(new URL("../components/person-panel.tsx", import.meta.url), "utf8");
   assert.ok(person.includes("{presentation?.needsReview && !review ? actions : null}"));

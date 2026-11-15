@@ -80,7 +80,7 @@ test("the rail and the header show the same count, and reset clears waiting card
   const dashboard = read("../components/dashboard.tsx");
   assert.match(dashboard, /reviewCount=\{waitingCount\}/);
   assert.match(dashboard, /\[\.\.\.ids, \.\.\.flaggedOnly\.map\(\(seat\) => seat\.id\)\]\.forEach\(/);
-  // Flagged people only get Mark as reviewed: nothing is written as a review for them.
+  // Flagged people answer without a request: nothing is written as a review for them.
   const card = read("../components/review-card.tsx");
   const waiting = card.slice(card.indexOf("export function WaitingReviewCard"));
   assert.doesNotMatch(waiting, /TeacherReviewActions|resolve_teacher_review/);

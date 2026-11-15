@@ -52,25 +52,30 @@ test("a To review card says the task, then not in view, then the request count",
   );
 });
 
-test("Attention names camera-flagged people instead of All clear, or under the requests", async () => {
-  const { attentionFlaggedLine, nameList } = await import("../lib/classroom-view.ts");
-  assert.equal(attentionFlaggedLine([], false), null);
-  assert.equal(
-    attentionFlaggedLine(["Keith"], false),
-    "No requests from Cues. The camera flagged Keith for a look.",
-  );
-  assert.equal(attentionFlaggedLine(["Keith"], true), "Also flagged by the camera: Keith.");
-  assert.doesNotMatch(attentionFlaggedLine(["Keith"], false) ?? "", /All clear/);
-  assert.equal(nameList(["Keith", "Evan"]), "Keith and Evan");
-  assert.equal(nameList(["Keith", "Evan", "Eric"]), "Keith, Evan and Eric");
-  assert.equal(nameList(["Keith", "Evan", "Eric", "Michelle"]), "Keith, Evan and 2 more");
-});
-
-test("the classroom wires the flagged line from the same list as To review", async () => {
+test("Attention lists camera-flagged people as rows until the teacher answers", async () => {
   const { readFileSync } = await import("node:fs");
   const dash = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
-  // Built from reviewQueue's flagged list (marked people already left out).
-  assert.match(dash, /attentionFlaggedLine\(\s*flaggedOnly\.map\(\(seat\) => seat\.display_name\),/);
+  // The rows come from reviewQueue's flagged list (marked people already left out).
+  assert.match(dash, /\{reviewGroups\.length \|\| flaggedOnly\.length \? \(\s*<ul className="row-list">/);
+  assert.match(dash, /\{flaggedOnly\.map\(\(seat\) =>\s*row\(/);
+  // A flagged person opens in place there, not in the side panel.
+  assert.match(dash, /!flaggedIdSet\.has\(selectedId\)/);
   // All clear only when nobody is flagged and nobody marked is still catching up.
-  assert.match(dash, /flaggedLine \?\?\s*\(catchingUp\s*\?\s*"Marked as reviewed\. The camera will catch up in a moment\."\s*:\s*"All clear\. Cues will ask when someone may need you\."\)/);
+  assert.match(dash, /catchingUp\s*\?\s*"Marked as reviewed\. The camera will catch up in a moment\."\s*:\s*"All clear\. Cues will ask when someone may need you\."/);
+});
+
+test("a flagged person without a request gets Support needed / No support needed", async () => {
+  const { readFileSync } = await import("node:fs");
+  const dash = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
+  assert.match(dash, /flaggedIdSet\.has\(seatId\) && pending\.length === 0\s*\? flagDecisions/);
+  assert.match(dash, /mark=\{flagDecisions\(/);
+  assert.match(dash, /reviewActionsEnabled && client && sessionId \? \(\s*<FlagDecisionButtons/);
+  const button = readFileSync(new URL("../components/mark-reviewed-button.tsx", import.meta.url), "utf8");
+  const decisions = button.slice(button.indexOf("export function FlagDecisionButtons"));
+  assert.match(decisions, /resolutionLabels\.confirmed/);
+  assert.match(decisions, /resolutionLabels\.dismissed/);
+  // Either answer closes the flag; nothing is written as a review.
+  assert.match(decisions, /markSeatReviewed\(client, sessionId, seatId\)/);
+  assert.doesNotMatch(decisions, /resolve_teacher_review|resolveTeacherReview/);
+  assert.ok(decisions.includes("locked.current = true")); // a double click saves once
 });
