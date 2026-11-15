@@ -98,18 +98,23 @@ test("dashboard defaults on, server override wins, invalid and unknown flags fai
   assert.throws(() => isEnabled("web.unknown", {}));
 });
 
-test("teacher review transport defaults off independently of the seat dashboard", () => {
-  assert.equal(isEnabled("web.teacher_reviews", {}), false);
+test("teacher review transport defaults on and can be turned off on its own", () => {
+  assert.equal(isEnabled("web.teacher_reviews", {}), true);
+  assert.equal(
+    isEnabled("web.teacher_reviews", { CUES_FLAG_WEB_TEACHER_REVIEWS: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.teacher_reviews", { CUES_FLAG_WEB_TEACHER_REVIEWS: "1" }),
     true,
   );
 });
 
-test("review actions stay disabled independently of review reads", () => {
+test("review actions turn off independently of review reads", () => {
   assert.equal(
     isEnabled("web.teacher_review_actions", {
       CUES_FLAG_WEB_TEACHER_REVIEWS: "1",
+      CUES_FLAG_WEB_TEACHER_REVIEW_ACTIONS: "0",
     }),
     false,
   );
@@ -170,4 +175,21 @@ test("teacher login defaults on and turns off independently of classroom access"
     }),
     false,
   );
+});
+
+test("with no flag variables set, the dashboard page wires the classroom features on", async () => {
+  const { readFileSync } = await import("node:fs");
+  const page = readFileSync(new URL("../app/dashboard/page.tsx", import.meta.url), "utf8");
+  const wired: Record<string, string> = {
+    sessionControlsEnabled: "web.session_controls",
+    reviewsEnabled: "web.teacher_reviews",
+    reviewActionsEnabled: "web.teacher_review_actions",
+    personObservationsEnabled: "web.person_observations",
+    reviewPageEnabled: "web.review_page",
+    healthStripEnabled: "web.health_strip",
+  };
+  for (const [prop, flag] of Object.entries(wired)) {
+    assert.ok(page.includes(`${prop}={isEnabled("${flag}")}`), `${prop} reads ${flag}`);
+    assert.equal(isEnabled(flag, {}), true, `${flag} defaults on`);
+  }
 });

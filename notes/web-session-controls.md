@@ -1,7 +1,7 @@
 # Teacher session controls
 
 Start activity and End session use saved Supabase state, never a browser-only
-session. `web.session_controls` defaults off. Migration 003 and migration 005
+session. `web.session_controls` defaults on (since 2026-11-14; `=0` turns it off). Migration 003 and migration 005
 were applied to the team's Supabase project on November 14, 2026. The original
 S1 UUID was preserved, revision remains 0, and its session has not been ended.
 
@@ -99,8 +99,7 @@ Remaining:
 5. Keith/Evan/Michelle contract review is still required before a requested merge.
 
 Evan requested a commit/push of the accumulated app work to `evan`. No merge to
-`main` is included. The live feature remains default off until
-teacher setup and Keith-side verification are complete.
+`main` is included. The feature has defaulted on since 2026-11-14.
 
 ## Default station per teacher
 

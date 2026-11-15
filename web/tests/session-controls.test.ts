@@ -35,8 +35,12 @@ function mock(data: unknown, error: unknown = null) {
     } as unknown as SupabaseClient,
   };
 }
-test("session controls default off", () => {
-  assert.equal(isEnabled("web.session_controls", {}), false);
+test("session controls default on and can be turned off", () => {
+  assert.equal(isEnabled("web.session_controls", {}), true);
+  assert.equal(
+    isEnabled("web.session_controls", { CUES_FLAG_WEB_SESSION_CONTROLS: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.session_controls", { CUES_FLAG_WEB_SESSION_CONTROLS: "1" }),
     true,

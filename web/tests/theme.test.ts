@@ -126,8 +126,12 @@ test("the rail keeps Classroom, To review (when on) and Profile", () => {
   assert.doesNotMatch(rail, /href="\/login"|\/live|\/settings\/notifications/);
 });
 
-test("the To review page is off by default and redirects when off", () => {
-  assert.equal(isEnabled("web.review_page", {}), false);
+test("the To review page is on by default and redirects when off", () => {
+  assert.equal(isEnabled("web.review_page", {}), true);
+  assert.equal(
+    isEnabled("web.review_page", { CUES_FLAG_WEB_REVIEW_PAGE: "0" }),
+    false,
+  );
   assert.equal(
     isEnabled("web.review_page", { CUES_FLAG_WEB_REVIEW_PAGE: "1" }),
     true,

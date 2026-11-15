@@ -644,6 +644,8 @@ export default function Dashboard({
                   updatedAt={seats.map((seat) => seat.state?.updated_at)}
                   inView={inView.length}
                   conflict={conflict}
+                  hostedEnabled={hostedLocalFeedEnabled}
+                  hostedOrigin={hostedDashboardOrigin}
                 />
               ) : null}
               {view !== "review" && sessionLive && conflict && !healthStripEnabled ? (

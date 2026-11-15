@@ -57,7 +57,7 @@ Supabase, the LLM, or another cloud service.
 - Existing initial reads and `seat_state` realtime subscription are preserved.
   Reconnect reloads the snapshot; failures retain it with a visible warning.
 - Attention reads only pending `teacher_reviews`, behind `web.teacher_reviews`
-  (default off). No seat-status fallback and no approval/dismissal actions.
+  (default on since 2026-11-14; `=0` turns it off). No seat-status fallback and no approval/dismissal actions.
   See [TeacherReview contract and rollout](web-teacher-reviews.md) for the expected
   projection and Michelle-side persistence/RLS/Realtime prerequisites.
 - Seats and **View details** open the same side panel. Escape/Close returns focus
@@ -153,7 +153,7 @@ that station are retired in the view. Person IDs remain temporary position IDs,
 not student identities. Reuse/release behavior remains owned by vision.
 
 Migration 003/session Auth setup and Michelle's teacher_reviews persistence are
-still independent prerequisites. Their flags remain default off. Real progress
+still independent prerequisites. Their flags default on since 2026-11-14 (`=0` turns each off). Real progress
 history remains explicitly unavailable until exposed by the backend. No missing
 backend behavior is replaced with local-only demo state.
 
@@ -180,7 +180,7 @@ Session controls now have deployed station-scoped Supabase actions and a prepare
 vision lifecycle consumer. See [SESSION_CONTROLS.md](web-session-controls.md) for the
 verified contract/security boundary and [Keith's handoff](session-lifecycle.md)
 for restart and live checks. Teacher provisioning and Keith-side rollout remain;
-keep `web.session_controls` off until those checks. Earlier missing-contract notes
+`web.session_controls` defaults on since 2026-11-14 (`=0` turns it off). Earlier missing-contract notes
 are historical. Session acknowledgement is separate from camera/model readiness.
 
 ## Web feature flags
@@ -195,10 +195,10 @@ Generated from `flags.json` (the single registry; `web/lib/flags.ts` reads it). 
 | `web.alert_phone` | on | evan | Optional sign-up step that saves the teacher's mobile number (user metadata alert_phone) for Photon alerts. |
 | `web.dashboard` | on | evan | Read-only teacher dashboard with Supabase seats and realtime state updates. |
 | `web.landing` | on | evan | Public landing page at /; the teacher dashboard moves to /dashboard. |
-| `web.teacher_reviews` | off | evan | Read-only pending TeacherReview queue via Supabase; requires Michelle-side persistence, RLS and Realtime publication. |
-| `web.teacher_review_actions` | off | evan | Persistent review transitions; enable only after authorized Supabase RPC deployment |
-| `web.session_controls` | off | evan | Authenticated station session lifecycle and activity controls |
-| `web.person_observations` | off | evan | Read tracking_valid and show fresh, invalid, lost and paused person observations |
+| `web.teacher_reviews` | on | evan | Pending TeacherReview requests via Supabase. On the dashboard they are pinned first in the Class list as Needs you (even when the person is out of view), with the agent's rationale behind "Why did Cues ask?". Off: no requests and no rationale are read or shown. |
+| `web.teacher_review_actions` | on | evan | Persistent review decisions through the resolve_teacher_review RPC (migrations 003-017, applied) |
+| `web.session_controls` | on | evan | Authenticated station session lifecycle and activity controls |
+| `web.person_observations` | on | evan | Read tracking_valid and show fresh, invalid, lost and paused person observations |
 | `web.landing_faq` | on | evan | FAQ section and the full site footer on the landing page. When off, the landing page keeps its one-line footer. |
 | `web.teacher_profile` | on | evan | Save the signed-in teacher's display name and E.164 phone number to teacher_profiles (migration 006), and move the sign-up number there after first sign-in. |
 | `web.landing_demo` | on | evan | Landing hero shows a looping demo of the real dashboard (banner, People rows, review rows) with simulated students. When off, the hero keeps the older preview card. |
@@ -207,5 +207,7 @@ Generated from `flags.json` (the single registry; `web/lib/flags.ts` reads it). 
 | `web.vision_station_config` | on | keith | Dashboard sends the signed-in teacher's station to the vision service on 127.0.0.1:8000/config. When off, nothing is sent. |
 | `web.interventions` | off | evan | Show the agent's suggested support on a review and let the teacher approve it (or pick another from the menu). Needs migration 018; approving also confirms the review. |
 | `web.live_progress` | off | michelle | Read agent-owned evaluated progress from seat_state after migration 012. |
-| `web.health_strip` | off | keith | Camera health strip on the classroom page: camera service on or off, station set, updates arriving, and another camera refused, each as its own word. Reads the local vision service on 127.0.0.1:8000 (/health, /config) and the station's writer row. Off: the page shows only its single camera-off message. |
+| `web.health_strip` | on | keith | Camera health strip on the classroom page: camera service on or off, station set, updates arriving, and another camera refused, each as its own word. Reads the local vision service on 127.0.0.1:8000 (/health, /config) and the station's writer row. Off: the page shows only its single camera-off message. |
+| `web.review_page` | on | evan | To review page at /review: each person Cues asked about as a card with the activity, time, Support needed / No support needed, Mark as reviewed and "Why did Cues ask?". Adds a To review link to the rail and the classroom header. Off: /review redirects to /dashboard and no links show. |
+| `web.hosted_local_feed` | off | michelle | Allow the configured hosted dashboard origin to connect directly to local vision; local-network permission and explicit backend CORS required. |
 
