@@ -45,12 +45,13 @@ export async function readLocalVision(
     };
     const [health, config] = await Promise.all([
       fetcher(`${base}/health`, init),
-      fetcher(`${base}/config`, init),
+      // /config may be refused at the network level; the camera facts still stand.
+      fetcher(`${base}/config`, init).catch(() => null),
     ]);
     if (!health.ok) return { reachable: false };
     const h = (await health.json()) as Record<string, unknown>;
     // /config can refuse (older vision, other origin): the camera facts still stand.
-    const c = config.ok ? ((await config.json()) as Record<string, unknown>) : {};
+    const c = config?.ok ? ((await config.json()) as Record<string, unknown>) : {};
     const age = h.frame_age_seconds;
     return {
       reachable: true,

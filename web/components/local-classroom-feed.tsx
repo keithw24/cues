@@ -40,11 +40,11 @@ export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin 
     try {
       on = localStorage.getItem(VIDEO_KEY) === "on";
     } catch {}
-    if (on && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname)) {
+    if (on && mayConnectLocalFeed(window.location.origin, hostedEnabled, hostedOrigin)) {
       const timer = setTimeout(() => setConnection("connecting"), 0);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [hostedEnabled, hostedOrigin]);
   const streaming = connection === "connecting" || connection === "live";
   return (
     <section

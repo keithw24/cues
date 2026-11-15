@@ -19,6 +19,7 @@ const clock = (at: string) =>
   }).format(new Date(at));
 
 export function ReviewCard({
+  headingId,
   index,
   name,
   issue,
@@ -27,6 +28,8 @@ export function ReviewCard({
   decisions,
   mark,
 }: {
+  /** Id for the name heading, so focus can return to this card. */
+  headingId: string;
   /** Position in the queue, from 1. */
   index: number;
   name: string;
@@ -51,7 +54,9 @@ export function ReviewCard({
       </span>
       <div className="review-card-body">
         <div className="review-card-title">
-          <h2>{name}</h2>
+          <h2 id={headingId} tabIndex={-1}>
+            {name}
+          </h2>
           {elevated ? <span className="status-pill is-review">Urgent</span> : null}
         </div>
         <p className="review-issue">{issue}</p>

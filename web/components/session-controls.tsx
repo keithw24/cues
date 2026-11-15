@@ -13,6 +13,9 @@ import {
   type SessionSnapshot,
 } from "@/lib/session-controls";
 
+// Module-wide, so a remount never reuses a topic whose channel is still leaving.
+let channelId = 0;
+
 export function SessionControls({
   client,
   station,
@@ -136,7 +139,7 @@ export function SessionControls({
     refreshAfterAction.current = () => void refresh();
     void refresh();
     const channel = client
-      .channel(`session-controls:${station}:${epoch}`)
+      .channel(`session-controls:${station}:${++channelId}`)
       .on(
         "postgres_changes",
         {

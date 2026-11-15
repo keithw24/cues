@@ -180,3 +180,18 @@ test("person flag gates tracking_valid reads and realtime replacement preserves 
   );
   enabled.feed.dispose();
 });
+
+test("each dashboard subscription joins its own realtime topic", () => {
+  const topics: string[] = [];
+  const channel = { on: () => channel, subscribe: () => channel };
+  const client = {
+    channel: (topic: string) => (topics.push(topic), channel),
+    from: () => ({ select: () => ({ abortSignal: () => new Promise(() => {}) }) }),
+    removeChannel: async () => {},
+  } as unknown as SupabaseClient;
+  const noop = () => {};
+  watchDashboard(client, noop, false, "S1", false).dispose();
+  watchDashboard(client, noop, false, "S1", false).dispose();
+  assert.equal(topics.length, 2);
+  assert.notEqual(topics[0], topics[1]);
+});

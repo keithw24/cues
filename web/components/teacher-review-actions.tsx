@@ -30,7 +30,7 @@ export function TeacherReviewActions({
     review.suggested_intervention ?? "",
   );
   const locked = useRef(false);
-  const [saving, setSaving] = useState<ReviewResolution | null>(null);
+  const [saving, setSaving] = useState<ReviewResolution | "approve" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   useEffect(() => {
@@ -61,7 +61,7 @@ export function TeacherReviewActions({
     if (!authenticated || locked.current || review.status !== "pending") return;
     if (!isInterventionKey(support)) return;
     locked.current = true;
-    setSaving("confirmed");
+    setSaving("approve");
     setError(null);
     try {
       await approveIntervention(client, review.id, support);
@@ -110,7 +110,7 @@ export function TeacherReviewActions({
               disabled={!authenticated || saving !== null || !support}
               onClick={() => void approve()}
             >
-              Approve support
+              {saving === "approve" ? "Saving…" : "Approve support"}
             </button>
           </div>
         </div>

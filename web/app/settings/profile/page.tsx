@@ -5,7 +5,6 @@ import ProfileAccount from "@/components/profile-account";
 import "@/components/workspace.css";
 import "@/components/teacher-profile.css";
 
-
 export default async function ProfilePage() {
   const enabled =
     isEnabled("web.teacher_profile") && isEnabled("web.teacher_login");

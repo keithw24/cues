@@ -13,6 +13,8 @@ export type FeedState = {
  * With a `station`, only that station's seats and their observations are read and shown
  * (the signed-in teacher's own station). With none, every readable station is shown.
  */
+let subscriptionId = 0;
+
 export function watchDashboard(
   client: SupabaseClient,
   notify: (state: FeedState) => void,
@@ -116,7 +118,9 @@ export function watchDashboard(
       void refresh();
     }, 100);
   }
-  const channel = client.channel("teacher-dashboard");
+  // A fresh topic each time: a channel still leaving under the old topic
+  // would otherwise be handed back and never report SUBSCRIBED.
+  const channel = client.channel(`teacher-dashboard:${++subscriptionId}`);
   channel.on(
     "postgres_changes",
     { event: "*", schema: "public", table: "seat_state" },

@@ -21,7 +21,7 @@ export function StudentStrip({
   empty: string | null;
   onSelect: (id: string) => void;
   /** Closes a person opened from the row (Escape on a card). */
-  onEscape?: () => void;
+  onEscape?: (card: HTMLButtonElement) => void;
 }) {
   const track = useRef<HTMLUListElement>(null);
   const [edges, setEdges] = useState({ start: true, end: true });
@@ -73,7 +73,8 @@ export function StudentStrip({
                 aria-controls={`more-${person.id}`}
                 onClick={() => onSelect(person.id)}
                 onKeyDown={(event) => {
-                  if (event.key === "Escape" && onEscape) onEscape();
+                  if (event.key === "Escape" && onEscape)
+                    onEscape(event.currentTarget);
                 }}
               >
                 <span className="row-avatar is-ring" aria-hidden="true">
