@@ -2,15 +2,14 @@ import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { isEnabled } from "@/lib/flags";
 import { garamond } from "@/components/workspace-fonts";
 import ProfileAccount from "@/components/profile-account";
+import TeacherProfileForm from "@/components/teacher-profile-form";
 import "@/components/workspace.css";
 import "@/components/teacher-profile.css";
 
 export default async function ProfilePage() {
   const enabled =
     isEnabled("web.teacher_profile") && isEnabled("web.teacher_login");
-  const { default: TeacherProfileForm } = enabled
-    ? await import("@/components/teacher-profile-form")
-    : { default: null };
+  const showForm = enabled;
   return (
     <div className={`workspace dashboard-shell ${garamond.variable}`}>
       <WorkspaceSidebar
@@ -24,7 +23,7 @@ export default async function ProfilePage() {
         </header>
         <div className="settings-list">
           {isEnabled("web.teacher_login") ? <ProfileAccount /> : null}
-          {TeacherProfileForm ? (
+          {showForm ? (
             <TeacherProfileForm />
           ) : (
             <section className="profile-group">

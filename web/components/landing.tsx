@@ -12,6 +12,7 @@ import {
 import LandingHero from "@/components/landing-hero";
 import LandingPreview from "@/components/landing-preview";
 import LandingDemo from "@/components/landing-demo";
+import LandingNeeds from "@/components/landing-needs";
 import LandingReveal from "@/components/landing-reveal";
 import LandingAmbient from "@/components/landing-ambient";
 import LandingSteps from "@/components/landing-steps";
@@ -40,6 +41,7 @@ export default function Landing() {
   const demo = isEnabled("web.landing_demo");
   const themeToggle = isEnabled("web.theme_toggle");
   const motion = isEnabled("web.landing_motion");
+  const needs = isEnabled("web.landing_needs");
   return (
     <div className={`landing ${garamond.variable}`}>
       {motion ? (
@@ -53,9 +55,13 @@ export default function Landing() {
           <CuesMark className="ln-brand-mark" />
         </Link>
         <nav aria-label="Main">
-          <a href="#how">How it works</a>
-          <a href="#control">Teacher control</a>
-          <a href="#privacy">Privacy</a>
+          <a href="#how">How It Works</a>
+          <a href="#control">Teacher Control</a>
+          {needs ? (
+            <a href="#needs">Special Education</a>
+          ) : (
+            <a href="#privacy">Privacy</a>
+          )}
           {themeToggle ? (
             <ThemeToggle pageDefault="dark" className="ln-theme-toggle" />
           ) : null}
@@ -63,7 +69,7 @@ export default function Landing() {
             className="ln-button ln-button-dark ln-button-small"
             href={start}
           >
-            Get started
+            Get Started
           </Link>
         </nav>
       </header>
@@ -88,7 +94,7 @@ export default function Landing() {
                 data-reveal
                 style={{ "--i": 0 } as CSSProperties}
               >
-                <h2 id="how-heading">Simple tasks, watched for you</h2>
+                <h2 id="how-heading">Simple Tasks, Watched For You</h2>
                 <p>
                   Pick a task: a raised hand or a thumbs up. One camera
                   follows each student by their place in the frame, and
@@ -101,7 +107,7 @@ export default function Landing() {
                 data-reveal
                 style={{ "--i": 1 } as CSSProperties}
               >
-                <p className="ln-card-label">Today’s tasks</p>
+                <p className="ln-card-label">Today’s Tasks</p>
                 <ul className="ln-rows">
                   {tasks.map((task) => (
                     <li key={task.name}>
@@ -124,7 +130,7 @@ export default function Landing() {
                 data-reveal
                 style={{ "--i": 1 } as CSSProperties}
               >
-                <h2 id="control-heading">You decide what changes</h2>
+                <h2 id="control-heading">You Decide What Changes</h2>
                 <p>
                   When a pattern matters, Cues flags who may need you and says
                   why. Nothing about a student’s task, instructions or support
@@ -136,11 +142,11 @@ export default function Landing() {
                 data-reveal
                 style={{ "--i": 0 } as CSSProperties}
               >
-                <p className="ln-card-label">Waiting for you</p>
+                <p className="ln-card-label">Waiting For You</p>
                 <div className="ln-approval">
                   <p className="ln-seat-meta">Seat 2 · Raise hand</p>
                   <p className="ln-approval-title">
-                    Break the task into two steps
+                    Break The Task Into Two Steps
                   </p>
                   <p className="ln-approval-why">
                     <RiLightbulbLine />
@@ -151,7 +157,7 @@ export default function Landing() {
                       Approve
                     </span>
                     <span className="ln-button ln-button-outline ln-button-small">
-                      Not now
+                      Not Now
                     </span>
                   </div>
                 </div>
@@ -160,43 +166,47 @@ export default function Landing() {
           </>
         )}
 
-        <section
-          id="privacy"
-          className="ln-privacy"
-          aria-labelledby="privacy-heading"
-        >
-          <h2
-            id="privacy-heading"
-            data-reveal
-            style={{ "--i": 0 } as CSSProperties}
+        {needs ? (
+          <LandingNeeds />
+        ) : (
+          <section
+            id="privacy"
+            className="ln-privacy"
+            aria-labelledby="privacy-heading"
           >
-            The camera stays in the classroom
-          </h2>
-          <p data-reveal style={{ "--i": 1 } as CSSProperties}>
-            Student camera images and video stay on the classroom laptop. Only structured status updates,
-            such as “Seat 1 finished thumbs up”, leave it.
-          </p>
-          <ul className="ln-facts">
-            <li data-reveal style={{ "--i": 2 } as CSSProperties}>
-              <RiVidiconLine />
-              <strong>Video stays local</strong>
-              <span>Frames and images never leave the laptop.</span>
-            </li>
-            <li data-reveal style={{ "--i": 3 } as CSSProperties}>
-              <RiLayoutGridLine />
-              <strong>No face recognition</strong>
-              <span>A seat is known only by its place in the frame.</span>
-            </li>
-            <li data-reveal style={{ "--i": 4 } as CSSProperties}>
-              <RiLock2Line />
-              <strong>You stay in control</strong>
-              <span>
-                Every change to a task, instruction or support waits for your
-                approval.
-              </span>
-            </li>
-          </ul>
-        </section>
+            <h2
+              id="privacy-heading"
+              data-reveal
+              style={{ "--i": 0 } as CSSProperties}
+            >
+              The Camera Stays In The Classroom
+            </h2>
+            <p data-reveal style={{ "--i": 1 } as CSSProperties}>
+              Student camera images and video stay on the classroom laptop. Only structured status updates,
+              such as “Seat 1 finished thumbs up”, leave it.
+            </p>
+            <ul className="ln-facts">
+              <li data-reveal style={{ "--i": 2 } as CSSProperties}>
+                <RiVidiconLine />
+                <strong>Video Stays Local</strong>
+                <span>Frames and images never leave the laptop.</span>
+              </li>
+              <li data-reveal style={{ "--i": 3 } as CSSProperties}>
+                <RiLayoutGridLine />
+                <strong>No Face Recognition</strong>
+                <span>A seat is known only by its place in the frame.</span>
+              </li>
+              <li data-reveal style={{ "--i": 4 } as CSSProperties}>
+                <RiLock2Line />
+                <strong>You Stay In Control</strong>
+                <span>
+                  Every change to a task, instruction or support waits for your
+                  approval.
+                </span>
+              </li>
+            </ul>
+          </section>
+        )}
 
         {faq ? <LandingFaq /> : null}
 
@@ -204,18 +214,18 @@ export default function Landing() {
           <h2 id="cta-heading">a little support. more room to teach.</h2>
           <div className="ln-actions">
             <Link className="ln-button ln-button-light" href={start}>
-              Get started
+              Get Started
               <RiArrowRightLine aria-hidden="true" />
             </Link>
             <Link className="ln-button ln-button-ghost" href="/dashboard">
-              Open the classroom
+              Open The Classroom
             </Link>
           </div>
         </section>
       </main>
 
       {faq ? (
-        <LandingFooter start={start} />
+        <LandingFooter start={start} needs={needs} />
       ) : (
         <footer className="ln-footer">
           <span>Cues</span>

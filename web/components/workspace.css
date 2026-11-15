@@ -390,12 +390,34 @@
 .dashboard-shell .session-line.is-error {
   color: var(--ws-review);
 }
+/* The session could not load: the reason and the retry share one row, so the
+   refresh button never sits alone under it. */
+.dashboard-shell .session-controls.is-blocked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dashboard-shell .session-controls.is-blocked .session-line {
+  flex: 0 1 auto;
+  color: var(--ws-review);
+  font-weight: 500;
+  text-wrap: pretty;
+}
+.dashboard-shell .session-controls.is-blocked .session-row {
+  flex: none;
+}
+/* Controls and the health strip read as one group under the title: the -12px
+   takes the .ws-hero gap (28px) down to 16px. Change both together. */
+.dashboard-shell .ws-hero > .session-controls + .health-strip,
+.dashboard-shell .ws-hero > .session-controls + .station-busy {
+  margin-top: -12px;
+}
 
 /* One camera per station: a second camera is being refused and paused. */
 .dashboard-shell .station-busy {
   justify-self: start;
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: 18px;
   background: var(--ws-review-soft);
   color: var(--ws-review);
   font-size: 13px;
@@ -403,12 +425,58 @@
   line-height: 1.4;
 }
 
-/* Camera health: four words, and one sentence only when something needs the teacher. */
+/* Camera health: one pill with a status dot; the four words and the sentence
+   open underneath it. */
+.dashboard-shell .health-strip summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 14px;
+  border-radius: 999px;
+  background: var(--ws-surface);
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+  line-height: 1.4;
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dashboard-shell .health-strip summary::-webkit-details-marker {
+  display: none;
+}
+.dashboard-shell .health-strip summary svg {
+  width: 16px;
+  height: 16px;
+}
+.dashboard-shell .health-strip[open] summary svg {
+  rotate: 180deg;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-shell .health-strip summary svg {
+    transition: rotate 150ms ease-out;
+  }
+}
+.dashboard-shell .health-summary {
+  color: var(--ws-ink);
+  font-weight: 600;
+}
+.dashboard-shell .health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ws-ink-faint);
+}
+.dashboard-shell .health-dot.is-good {
+  background: var(--ws-done);
+}
+.dashboard-shell .health-dot.is-warn {
+  background: var(--ws-review);
+}
 .dashboard-shell .health-strip ul {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0;
+  margin: 8px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -438,7 +506,7 @@
   color: var(--ws-review);
 }
 .dashboard-shell .health-problem {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   padding: 8px 14px;
   width: fit-content;
   max-width: 100%;
@@ -1185,12 +1253,13 @@ div.ws-row {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  max-width: 32ch;
+  max-width: 42ch;
   padding: 22px 24px;
   color: var(--ws-ink-soft);
   font-size: 14px;
   line-height: 1.5;
   text-align: center;
+  text-wrap: pretty;
 }
 .dashboard-shell .video-placeholder > svg {
   width: 20px;

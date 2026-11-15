@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { isEnabled } from "@/lib/flags";
+import Dashboard from "@/components/dashboard";
 import { garamond } from "@/components/workspace-fonts";
 import "@/components/workspace.css";
 
@@ -9,7 +10,6 @@ import "@/components/workspace.css";
 export default async function ReviewPage() {
   if (!isEnabled("web.review_page") || !isEnabled("web.dashboard"))
     redirect("/dashboard");
-  const { default: Dashboard } = await import("@/components/dashboard");
   return (
     <div className={`workspace ${garamond.variable}`}>
       <Dashboard

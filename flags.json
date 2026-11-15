@@ -214,5 +214,11 @@
     "default": true,
     "owner": "keith",
     "ticket": "reset-people"
+  },
+  "web.landing_needs": {
+    "description": "Landing page: the section \"Made for special education (SEN) classrooms\" (three cards in the privacy section's style) replaces \"The camera stays in the classroom\", plus two FAQ answers (SEN, workload). The privacy answers stay in the FAQ. Off: the page is as before.",
+    "default": true,
+    "owner": "keith",
+    "ticket": "landing-needs"
   }
 }

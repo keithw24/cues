@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { isEnabled } from "@/lib/flags";
+import TeacherLogin from "@/components/teacher-login";
 
 export default async function SignupPage() {
   if (!isEnabled("web.teacher_signup"))
@@ -13,7 +14,6 @@ export default async function SignupPage() {
         <Link href="/login">Teacher sign in</Link>
       </main>
     );
-  const { default: TeacherLogin } = await import("@/components/teacher-login");
   return (
     <TeacherLogin
       mode="signup"
