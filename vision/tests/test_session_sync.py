@@ -12,7 +12,12 @@ from shared.contracts import Session
 from vision.activities import CurrentTasks
 from vision.camera import Frame
 from vision.perception import Match
-from vision.session_sync import StationSessionState, StationSessionSync, frame_activity
+from vision.session_sync import (
+    SESSION_LEASE_SECONDS,
+    StationSessionState,
+    StationSessionSync,
+    frame_activity,
+)
 from vision.stages.s00_session import SessionStage
 from vision.stages.s50_status import StatusStage
 from vision.tests.test_perception import SeatZones
@@ -89,8 +94,11 @@ def test_lease_pauses_old_frames_expiry_and_end():
     clock[0] = 12
     state.confirm(s)  # heartbeat does not discard frames for the same configuration
     assert state.for_frame(11) == s
-    clock[0] = 15.1
-    assert state.for_frame(15.1) is None
+    # A stalled poll (busy laptop) does not pause frames before the lease runs out.
+    clock[0] = 12 + SESSION_LEASE_SECONDS - 0.1
+    assert state.for_frame(clock[0]) == s
+    clock[0] = 12 + SESSION_LEASE_SECONDS + 0.1
+    assert state.for_frame(clock[0]) is None
     state.confirm(s.model_copy(update={"ended_at": datetime.now(UTC), "revision": 1}))
     assert state.for_frame(16) is None
     state.confirm(None)
@@ -298,3 +306,41 @@ def test_managed_session_stores_expression_context_events():
     assert len(expression) == 1
     assert expression[0]["payload"]["session_revision"] == 3
     assert expression[0]["payload"]["label"] == "sadness"
+
+
+def test_a_sync_pause_keeps_each_persons_status_until_a_new_revision():
+    # Regression: one frame without a session (the lease lapsed while the laptop was busy)
+    # reset every tracker, so a flagged or finished child went back to working and the
+    # no-progress timer started over.
+    clock = [10.0]
+    state = StationSessionState(lambda: clock[0])
+    s = session(current_activity_id="thumbs_up")
+    pin = SessionStage(state)
+    emitter = RecordingEmitter()
+    status = StatusStage(emitter=emitter, tasks=CurrentTasks("thumbs_up"), zones=SeatZones())
+    image = np.zeros((480, 640, 3), np.uint8)
+
+    def process(t, confirm=True, current=None):
+        clock[0] = t
+        if confirm:
+            state.confirm(current or s)
+        frame = Frame(image, t, int(t * 10))
+        ctx = {"hands": {"S1-L": []}, "faces": {"S1-L": object()}}
+        pin.process(frame, ctx)
+        ctx["match"] = {"S1-L": Match("thumbs_up", 0.9)}
+        status.process(frame, ctx)
+        return ctx
+
+    for i in range(20):
+        ctx = process(10 + i / 10)
+    assert ctx["status"]["S1-L"] == "done"
+    state.invalidate()  # the sync lapsed
+    paused = process(12.1, confirm=False)
+    assert paused["status"] == {}
+    writes = len(emitter.states)
+    assert process(12.2, confirm=False)["status"] == {} and len(emitter.states) == writes
+    # Back, same session and revision: still done, not working again.
+    assert process(12.5)["status"]["S1-L"] == "done"
+    # The teacher restarts the activity (new revision): everyone starts over.
+    s = s.model_copy(update={"revision": s.revision + 1})
+    assert process(13)["status"]["S1-L"] == "in_progress"

@@ -113,13 +113,17 @@ class StatusStage:
         session = ctx.get("session") if ctx.get("session_managed") else None
         if session is not None and session.station_id != station_id:
             session = None
-        key = (session.id, session.revision) if session else None
-        if ctx.get("session_managed") and (key != self._session_key or session is None):
-            self._reset()
-            self._session_key = key
-        if ctx.get("session_managed") and session is None:
-            ctx.update(status={}, events=[], last_event={})
-            return
+        if ctx.get("session_managed"):
+            if session is None:
+                # Paused (sync lapsed, session ended, no activity): write nothing, but keep
+                # each person's status and timers. A brief sync gap must not send a flagged
+                # or finished child back to working; a new session or revision still resets.
+                ctx.update(status={}, events=[], last_event={})
+                return
+            key = (session.id, session.revision)
+            if key != self._session_key:
+                self._reset()
+                self._session_key = key
         self.emitter.station_id = station_id
         prefix = f"{station_id}-"
         session_id = session.id if session else self.emitter.session_id
