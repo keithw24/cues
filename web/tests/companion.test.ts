@@ -44,3 +44,14 @@ test("a dropped or loading feed is never a cleared queue", () => {
   assert.deepEqual(companionStep(null, 0), { kind: "sync" });
   assert.equal(initialCompanionPhase(null), "rest");
 });
+
+test("coming back to an empty queue the tab last saw with requests is an eat", () => {
+  // Cleared on the To review page, then back to the classroom.
+  assert.deepEqual(companionStep(null, 0, 2), { kind: "eat", eaten: 2 });
+  // Nothing remembered, or the queue still has requests: just show it.
+  assert.deepEqual(companionStep(null, 0, null), { kind: "sync" });
+  assert.deepEqual(companionStep(null, 0, 0), { kind: "sync" });
+  assert.deepEqual(companionStep(null, 1, 2), { kind: "sync" });
+  // Remembered only matters on the first live count.
+  assert.deepEqual(companionStep(1, 0, 5), { kind: "eat", eaten: 1 });
+});

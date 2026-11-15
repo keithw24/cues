@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import CuesBlob from "@/components/cues-blob";
 import {
+  COMPANION_COUNT_KEY,
   COMPANION_COLORS,
   DONE_MS,
   EAT_MS,
@@ -20,7 +21,25 @@ import {
 // While the review feed isn't live it just rests: a dropped feed is never
 // mistaken for a cleared queue. Decoration only (aria-hidden): the pill's
 // text and count carry the meaning.
-export function ReviewCompanion({ count }: { count: number | null }) {
+/** The last live count this tab saw, or null (private mode, first visit). */
+function rememberedCount(key: string): number | null {
+  try {
+    const value = Number(window.sessionStorage.getItem(key));
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function ReviewCompanion({
+  count,
+  remember = false,
+}: {
+  count: number | null;
+  /** Remember the live count for this tab (the dashboard only; never the
+   * landing demo, whose counts are simulated). */
+  remember?: boolean;
+}) {
   // The phase follows the count in render (not after paint), so the count it
   // eats is in place in the same frame the pill's own count goes.
   const [previous, setPrevious] = useState(count);
@@ -30,7 +49,15 @@ export function ReviewCompanion({ count }: { count: number | null }) {
   const [eaten, setEaten] = useState(0);
   const [hop, setHop] = useState(0);
   if (count !== previous) {
-    const step = companionStep(previous, count);
+    // Only the first live count after (re)mounting looks at what this tab
+    // remembered: requests cleared on To review are eaten on the way back.
+    const step = companionStep(
+      previous,
+      count,
+      remember && previous === null && count !== null
+        ? rememberedCount(COMPANION_COUNT_KEY)
+        : null,
+    );
     setPrevious(count);
     if (step.kind === "hop") {
       setPhase("waiting");
@@ -44,6 +71,14 @@ export function ReviewCompanion({ count }: { count: number | null }) {
       setPhase(initialCompanionPhase(count));
     }
   }
+
+  // Remember the live count for this tab, for the eat on the way back.
+  useEffect(() => {
+    if (!remember || count === null) return;
+    try {
+      window.sessionStorage.setItem(COMPANION_COUNT_KEY, String(count));
+    } catch {}
+  }, [count, remember]);
 
   // Only the timers live in effects; a new count cancels them.
   useEffect(() => {
