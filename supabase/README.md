@@ -41,6 +41,29 @@ Never print the connection URL, enable shell tracing, or run a remote db reset.
 The earlier duplicate-history warnings in historical notes are superseded by
 this reconciliation. Fresh projects should apply the current unique sorted chain.
 
+## One camera per station (migration 017, local only)
+
+`20261114001700_station_writers.sql`. Seat rows are named by station and person number
+(`S1-P1`), so two cameras working for the same station overwrite each other and show up as
+phantom people. Each camera process claims its station with a random writer id:
+
+- `claim_station_writer(station, writer, ttl)` (backend only) grants the station to the first
+  camera and renews its lease on each call; while that lease is fresh (default 10 s) any other
+  camera is refused and `station_writers.contested_at` is set. One statement, so concurrent
+  claims have exactly one winner.
+- `release_station_writer(station, writer)` hands the station over at once when a camera stops;
+  a crashed camera's lease simply expires.
+- Vision (`vision/station_lease.py`, in `StationSessionSync`) claims before reading the session.
+  A refused camera pauses completely (reads nothing, writes nothing), retries about once a
+  second, and takes over when the other stops. `GET 127.0.0.1:8000/config` reports
+  `station_busy`.
+- Teachers of a station can read its `station_writers` row; the dashboard uses it to warn.
+- Until the migration is applied vision keeps working with no guard (it warns once).
+- The guard is enforced by vision, so a laptop on older code ignores it. Enforcing it in the
+  database on `seat_state` writes needs a shared-table change; see `notes/outstanding-work.md`.
+
+Local tests: `supabase/tests/test_station_writers.py`. Not deployed.
+
 ## Mark as reviewed (migration 015, local only)
 
 `20261114001500_review_marks.sql`:
