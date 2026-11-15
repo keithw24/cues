@@ -202,3 +202,15 @@ test("with the health strip off, session controls still render and a conflict us
   assert.match(dash, /\{healthStripEnabled && station \? \(\s*<CameraHealthStrip/);
   assert.match(dash, /sessionLive && conflict && !healthStripEnabled \? \(\s*<p className="station-busy"/);
 });
+
+test("the companion is behind web.companion and is decoration only", async () => {
+  const { readFileSync } = await import("node:fs");
+  const dash = readFileSync(new URL("../components/dashboard.tsx", import.meta.url), "utf8");
+  const page = readFileSync(new URL("../app/dashboard/page.tsx", import.meta.url), "utf8");
+  const companion = readFileSync(new URL("../components/review-companion.tsx", import.meta.url), "utf8");
+  assert.ok(page.includes('companionEnabled={isEnabled("web.companion")}'));
+  assert.match(dash, /\{companionEnabled \? \(\s*<ReviewCompanion count=\{reviewsLive \? waitingCount : null\} \/>/);
+  assert.equal(isEnabled("web.companion", { CUES_FLAG_WEB_COMPANION: "0" }), false);
+  // Never announced: the pill's own text and count carry the meaning.
+  assert.ok((companion.match(/aria-hidden="true"/g) ?? []).length >= 2);
+});

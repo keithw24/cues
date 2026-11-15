@@ -40,6 +40,7 @@ export default function Landing() {
   const start = isEnabled("web.teacher_signup") ? "/signup" : "/login";
   const faq = isEnabled("web.landing_faq");
   const demo = isEnabled("web.landing_demo");
+  const companion = isEnabled("web.companion");
   const themeToggle = isEnabled("web.theme_toggle");
   const motion = isEnabled("web.landing_motion");
   const needs = isEnabled("web.landing_needs");
@@ -72,7 +73,7 @@ export default function Landing() {
       <main id="main-content">
         <LandingHero
           start={start}
-          preview={demo ? <LandingDemo /> : <LandingPreview />}
+          preview={demo ? <LandingDemo companion={companion} /> : <LandingPreview />}
         />
 
         {demo ? (

@@ -4,10 +4,11 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
-import { Avatar } from "@bible-strong/avatar-react";
+import { Avatar, type AvatarHandle } from "@bible-strong/avatar-react";
 import type { AvatarCharacter } from "@bible-strong/avatar-core";
 import "./cues-blob.css";
 
@@ -74,7 +75,19 @@ export default function CuesBlob({
   color,
   glance = false,
   seed,
+  face,
+  look,
+  bounce = 0,
+  mouth = false,
 }: {
+  /** Draw a small mouth (the review companion uses it to eat). */
+  mouth?: boolean;
+  /** A face to hold, e.g. "happy"; leave it out to let the companion decide. */
+  face?: string;
+  /** Look at a fixed point ([x, y], each -1 to 1) instead of glancing. */
+  look?: readonly [number, number] | null;
+  /** Change this number to make the companion hop once. */
+  bounce?: number;
   /** Animation seed. Companions with the same seed play the same clips at the
    * same moment, so give each one on a screen its own. */
   seed?: number;
@@ -92,8 +105,8 @@ export default function CuesBlob({
   privacy?: boolean;
 }) {
   const filterId = useId().replaceAll(":", "");
-  const look = useMemo<AvatarCharacter>(
-    () =>
+  const body = useMemo<AvatarCharacter>(() => {
+    const shaped: AvatarCharacter =
       shape === "sphere" && !color
         ? character
         : {
@@ -103,9 +116,26 @@ export default function CuesBlob({
               primary: { ...character.body.primary, type: shape, ...shapes[shape] },
             },
             colors: { ...character.colors, body: color ?? character.colors.body },
-          },
-    [shape, color],
-  );
+          };
+    if (!mouth) return shaped;
+    // A small closed mouth under the eyes; CSS opens it (data-part="mouth").
+    return {
+      ...shaped,
+      face: {
+        ...shaped.face,
+        mouth: {
+          enabled: true,
+          shape: "ellipse",
+          curve: 0,
+          width: 26,
+          height: 7,
+          x: 0,
+          y: 44,
+          angle: 0,
+        },
+      },
+    };
+  }, [shape, color, mouth]);
   const reduced = useSyncExternalStore(
     subscribe,
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -129,6 +159,14 @@ export default function CuesBlob({
     timer = window.setTimeout(next, Math.random() * 1500);
     return () => window.clearTimeout(timer);
   }, [glance, reduced, walking]);
+  const avatar = useRef<AvatarHandle>(null);
+  // Hop only when `bounce` changes, not when the motion setting does.
+  const lastBounce = useRef(bounce);
+  useEffect(() => {
+    if (bounce === lastBounce.current) return;
+    lastBounce.current = bounce;
+    if (!reduced) avatar.current?.poke("bounce");
+  }, [bounce, reduced]);
   const [side, setSide] = useState(0);
   useEffect(() => {
     if (!walking) return;
@@ -207,14 +245,18 @@ export default function CuesBlob({
       </svg>
       <div className="cues-blob-walker">
         <Avatar
-          character={look}
+          ref={avatar}
+          character={body}
           seed={seed}
+          face={face}
           size={size}
           state={privacy ? "sleeping" : busy ? "thinking" : "idle"}
           lookAt={
             reduced
               ? [0, 0]
-              : walking
+              : look !== undefined
+                ? look
+                : walking
                 ? [side * 0.16, 0.03]
                 : glance
                   ? gaze

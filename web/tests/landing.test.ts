@@ -70,7 +70,7 @@ test("the dashboard demo defaults on; turned off, the hero keeps the older previ
   const landing = read("../components/landing.tsx");
   assert.match(
     landing,
-    /preview=\{demo \? <LandingDemo \/> : <LandingPreview \/>\}/,
+    /preview=\{demo \? <LandingDemo[^>]*\/> : <LandingPreview \/>\}/,
   );
   // The demo reuses the dashboard's own rows and never touches Supabase.
   const demo = read("../components/landing-demo.tsx");

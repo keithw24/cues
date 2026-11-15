@@ -11,12 +11,14 @@ test("the header pill says TO REVIEW and the camera button says OFF", () => {
   assert.doesNotMatch(feed, /Turn off/);
 });
 
-test("the TO REVIEW pill is larger and has an orange border", () => {
+test("the TO REVIEW pill matches the header buttons and glows while someone waits", () => {
   const css = read("../components/workspace.css");
   const rule = css.match(/\.dashboard-shell \.review-link \{[^}]*\}/)?.[0] ?? "";
-  assert.match(rule, /height: 48px/);
-  assert.match(rule, /border: 2px solid var\(--ws-orange\)/);
-  assert.match(rule, /--ws-orange: #e8741f/);
+  assert.match(rule, /height: 44px/);
+  assert.doesNotMatch(rule, /border:/);
+  const waiting = css.match(/\.dashboard-shell \.review-link\.has-items \{[^}]*\}/)?.[0] ?? "";
+  assert.match(waiting, /0 0 22px 2px var\(--ws-glow\)/);
+  assert.doesNotMatch(waiting, /background:/);
 });
 
 test("coming back to the camera page does not hang on Connecting", () => {
