@@ -106,6 +106,8 @@ class GesturesStage:
         self.cache = cache or MatcherCache()
 
     def process(self, frame, ctx) -> None:
+        # Cleared first, so a frame that fails part-way never leaves a task "scorable".
+        ctx["scorable"] = {}
         hands = ctx.get("hands", {})
         hands_on = "hands" in ctx  # the hands stage ran (vision.hands on)
         result: dict[str, Match] = {}
