@@ -6,15 +6,21 @@ import { WorkspaceIcon } from "@/components/workspace-icon";
 import CuesMark from "@/components/cues-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-// A quiet rail of round buttons: Classroom, then the teacher's Profile (where
+// A quiet rail of round buttons: Classroom, To review (when on), then the teacher's Profile (where
 // sign-out, the classroom camera and alerts live). Labels show on hover and
 // focus, and screen readers always hear them.
 export function WorkspaceSidebar({
   accountEnabled = false,
   themeToggle = false,
+  reviewPage = false,
+  reviewCount = 0,
 }: {
   accountEnabled?: boolean;
   themeToggle?: boolean;
+  /** web.review_page: show the To review link. */
+  reviewPage?: boolean;
+  /** People waiting, shown as a dot count on the To review link. */
+  reviewCount?: number;
 }) {
   // The current entry follows the URL, so each page highlights its own link.
   const pathname = usePathname();
@@ -32,6 +38,20 @@ export function WorkspaceSidebar({
           <WorkspaceIcon name="classroom" />
           <span className="nav-label">Classroom</span>
         </Link>
+        {reviewPage ? (
+          <Link href="/review" {...current("/review")}>
+            <WorkspaceIcon name="review" />
+            <span className="nav-label">
+              To review
+              {reviewCount ? ` (${reviewCount} waiting)` : ""}
+            </span>
+            {reviewCount ? (
+              <span className="rail-badge" aria-hidden="true">
+                {reviewCount}
+              </span>
+            ) : null}
+          </Link>
+        ) : null}
         {accountEnabled ? (
           <Link href="/settings/profile" {...current("/settings")}>
             <WorkspaceIcon name="account" />

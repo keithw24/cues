@@ -2,18 +2,16 @@
    fields, one switch for text alerts. Same tokens as the classroom. */
 .dashboard-shell .profile-group {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
-.dashboard-shell .profile-group-label {
-  padding: 0 14px;
-  color: var(--ws-ink-faint);
-  font-size: 11px;
+/* Each card names itself, in the panel heading style used on the classroom. */
+.dashboard-shell .profile-card-title {
+  font-size: 19px;
   font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
 }
 .dashboard-shell .profile-card {
-  padding: 20px;
+  padding: 24px;
   border-radius: 28px;
   background: var(--ws-panel);
   box-shadow: var(--ws-shadow);
@@ -21,11 +19,11 @@
 }
 .dashboard-shell .profile-form {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 .dashboard-shell .profile-hint {
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .dashboard-shell .profile-hint:empty {
@@ -41,7 +39,12 @@
 .dashboard-shell .profile-account {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
+}
+.dashboard-shell .profile-account .row-avatar.is-large {
+  width: 56px;
+  height: 56px;
+  font-size: 18px;
 }
 .dashboard-shell .profile-account-body {
   display: grid;
@@ -51,7 +54,7 @@
 }
 .dashboard-shell .profile-account-body strong {
   overflow: hidden;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 500;
   letter-spacing: -0.01em;
   text-overflow: ellipsis;
@@ -59,7 +62,7 @@
 }
 .dashboard-shell .profile-account-body > span {
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* Fields: a light label and a filled, borderless box with a blue focus ring.
@@ -76,14 +79,14 @@
 .dashboard-shell .profile-field > label {
   padding: 0 4px;
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .dashboard-shell .profile-field input,
 .dashboard-shell .phone-field {
   width: 100%;
   min-width: 0;
-  height: 48px;
+  height: 50px;
   border: 0;
   border-radius: 14px;
   background: var(--ws-tile);
@@ -138,7 +141,7 @@
   flex: none;
   align-items: center;
   gap: 2px;
-  height: 36px;
+  height: 38px;
   padding: 0 8px 0 12px;
   border-radius: 10px;
   background: var(--ws-pill);
@@ -204,9 +207,9 @@
   min-width: 0;
 }
 .dashboard-shell .alerts-copy strong {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 .dashboard-shell .alerts-optin {
   display: grid;
@@ -271,6 +274,32 @@
 .dashboard-shell .ws-switch:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+/* The opt-in step opens with a short fade and drop, and the saved / sent
+   messages fade in, so neither just appears. The switch knob slides. */
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-shell .alerts-optin {
+    transition:
+      opacity 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      translate 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @starting-style {
+    .dashboard-shell .alerts-optin {
+      opacity: 0;
+      translate: 0 -6px;
+    }
+  }
+}
+.dashboard-shell .profile-actions .profile-hint,
+.dashboard-shell .alerts-foot .profile-hint,
+.dashboard-shell .alerts-copy .profile-hint {
+  transition: opacity 200ms ease-out;
+}
+@starting-style {
+  .dashboard-shell .profile-actions .profile-hint,
+  .dashboard-shell .alerts-foot .profile-hint {
+    opacity: 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .dashboard-shell .ws-switch span {

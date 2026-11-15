@@ -28,7 +28,7 @@ const done: Omit<Person, "name"> = {
   tone: "done",
 };
 const review: Omit<Person, "name"> = {
-  status: "Needs you",
+  status: "Attention",
   tone: "review",
 };
 
@@ -168,7 +168,7 @@ export default function LandingDemo() {
             </section>
             <section className="ws-panel">
               <header className="panel-heading">
-                <h2>Needs you</h2>
+                <h2>Attention</h2>
                 {frame.review ? <span className="ws-count">1</span> : null}
               </header>
               {frame.review ? (

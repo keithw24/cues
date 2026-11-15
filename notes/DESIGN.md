@@ -71,28 +71,27 @@ Inter carries all interface text. EB Garamond (`--font-garamond`) is used only f
 
 ## Layout
 
-**Rail.** A 76px column of 44px round buttons: Classroom and Profile, with the theme toggle at the bottom. Each button shows its name on hover and keyboard focus. Below 700px the rail becomes a sticky top bar.
+**Rail.** A 76px column of 44px round buttons: Classroom, To review (with `web.review_page`, plus a warm count badge while people are waiting) and Profile, with the theme toggle at the bottom. Each button shows its name on hover and keyboard focus. Below 700px the rail becomes a sticky top bar.
 
 **Classroom (`/dashboard`)**, top to bottom:
 
-1. **Header.** No banner: the page background with one soft blue glow, the "your classroom" title and the session controls (activity picker, Start or Change activity, End, refresh).
-2. **Camera and Class, side by side.** The camera card takes about 60% of the width, and the Class list sits beside it. Below 1000px they stack, with the Class list first.
+1. **Header.** No banner: the "your classroom" title and the session controls (activity picker, Start or Change activity, End, refresh). A status line appears under the controls only when something needs the teacher (a loading or setup message, a session another teacher owns, a camera out of step, an error); "synced" and similar captions are not shown. With `web.review_page`, a "To review" pill sits on the right with the waiting count; it turns warm while people are waiting. The header leaves 28px between the title and the 44px activity controls.
+2. **Camera and Attention, side by side.** The camera card takes about 60% of the width. **Attention** sits beside it at the camera's height and scrolls inside itself. It lists one row per person with a pending review, in queue order (elevated first, then oldest), including people who left the camera's view ("Not in view"). When nobody is waiting it says "All clear". Below 1000px they stack, with Attention first.
+3. **Students you slide through** (`student-strip.tsx`), with no heading. Everyone the camera sees, left to right as in the frame, as a row of cards under the camera, starting on the same left edge as the camera. Each card has the initials in a ring tinted by status and the status as a word. The row scrolls sideways with snap points; round arrow buttons sit on the row's ends, centered on the cards, only on a side with more cards, and that side fades out. Rows and cards show the activity name only when the class is on more than one activity.
 
 **Camera card.** The stage is always 16:9, the camera's own shape, so a live frame fills it with no black bars. The column sets the size; the video never does. Off, the stage shows "Turn on video". Live, it shows the vision service's MJPEG (Motion JPEG) stream from `http://127.0.0.1:8000/stream`, including the service's own overlay (a box and label per person, hand points). The header shows only "Camera", plus a Turn off button while live. The browser remembers in `localStorage` (`cues-video`) that the teacher turned the video on.
 
-**Class list.** One list replaces the earlier People and Needs you panels:
+**Opening a person.** A request in Attention opens in place and closes with a second click or Escape. A student card without a request opens that person in the Attention panel, with a back button. Either shows the status in one sentence. For a pending review it also shows "Student may need support", a short plain explanation, the two decisions (Support needed, No support needed), Mark as reviewed, and a closed "Why did Cues ask?" disclosure with the agent's rationale and the evidence types it used.
 
-- **Needs you** comes first. It holds one row per person with a pending review, in queue order (elevated priority first, then oldest). A person stays here even after leaving the camera's view, and the row then says "Not in view".
-- **Everyone else** follows: the other people the camera sees, left to right, each with a status pill. This label appears only when a Needs you group exists.
-- When nobody needs the teacher and reviews are connected, one green "All clear" line replaces the Needs you group.
-- Rows show the activity name only when the class is on more than one activity.
-- On desktop the list stays in view, keeps to the screen's height and scrolls inside itself, so a large class never makes the page long.
-
-**Opening a person.** A row opens in place and closes with a second click or Escape. It shows the status in one sentence. For a pending review it also shows "Student may need support", a short plain explanation, the two decisions (Support needed, No support needed) and a closed "Why did Cues ask?" disclosure. The disclosure holds the agent's rationale and the evidence types it used.
+**To review (`/review`, flag `web.review_page`, default off).** The classroom in its review view, so it reads the same data. A "to review" title (no subtitle), a Back to classroom pill, and one large card per person Cues asked about: a two-digit queue number, initials in a warm ring, the name with Urgent when elevated, the activity in warm small caps ("not in view" and the request count when they apply), "Why did Cues ask?", the two decisions with Mark as reviewed, and the time. One "All clear" line when nobody is waiting. With the flag off, `/review` redirects to `/dashboard` and no links show.
 
 **Signed out.** The Classroom shows one centered card with the Cues companion, "Sign in to see your classroom" and a Sign in button. It shows no error banner and no empty panels.
 
-**Profile (`/settings/profile`).** A Garamond title and a single column of panels: account and sign-out, name and alert phone, and Photon text alerts (`#notifications`).
+**Profile (`/settings/profile`).** A large lowercase Garamond title ("profile") and a single 820px column of roomy cards (24px padding, 28px corners), each titled inside the card in lowercase at 19px ("name and phone", "demo notifications") rather than with a caption above it and with no page subtitle: account and sign-out with a 56px initial, "Name and phone" in 50px filled fields, and "Demo notifications" (`#notifications`) with one switch.
+
+**Background gradient.** Workspace pages (classroom, To review, Profile) sit on a large, soft, blurred glow of periwinkle, lavender and a hint of mint, fixed behind the content (`.dashboard-shell::before`), as in the Figma Make reference. It is static. Night uses it at 55% strength.
+
+**Alignment.** The title, activity controls, camera, Attention, student row, review cards and Profile cards all share the page gutter (`clamp(20px, 4vw, 48px)` from the rail). Right-side header pills end on the same edge as the panels and cards below them and sit on the title's center line. The CAMERA and ATTENTION headings share one height and one style: 13px, semibold, uppercase with 0.12em spacing. Page titles stay large lowercase Garamond.
 
 ## Shapes
 
@@ -101,7 +100,11 @@ Corners are concentric: an outer radius equals the inner radius plus the padding
 ## Motion
 
 - Buttons scale to 0.96 when pressed (150ms, ease-out). Disabled buttons do not scale.
-- On first load, the title, activity controls, camera and list arrive 100ms apart: opacity, 12px rise and 4px blur over 300ms.
+- On first load, the title, activity controls, camera and list arrive 100ms apart: opacity, 12px rise and 4px blur over 300ms. On Profile the title arrives, then the cards 60ms apart (120, 180, 240ms).
+- Something new in a list (a request in ATTENTION, a person coming into view in the student row, a To review card) fades and rises 8px once (the student row slides in 8px from the side), 250ms with `cubic-bezier(0.23, 1, 0.32, 1)`, using `@starting-style` so nothing replays on later updates.
+- An opened request, a person opened in the side panel, and the alert opt-in step fade and move 6px into place over 200–220ms. "Profile saved" and test-message lines fade in.
+- High-frequency actions (hover, typing, the activity picker, switching tabs) stay instant.
+- Under reduced motion, these become opacity-only fades.
 - An opened row fades and rises 6px over 200ms.
 - Hover styles apply only on hover-capable pointers.
 - Under `prefers-reduced-motion: reduce`, movement and blur are removed.
@@ -119,7 +122,7 @@ The sign-in pages (`/login`, `/signup`, `/auth/confirmed`) have a faint 22px dot
 
 ## Color rules
 
-- **Text names the state.** Status pills always carry a word (Working, Finished, Needs you, Urgent). Color only supports the word.
+- **Text names the state.** Status pills always carry a word (Working, Finished, Attention, Urgent). Color only supports the word.
 - **Blue** marks Working. **Green** marks Finished and "All clear". **Warm brown** marks requests and Urgent. No color implies a learner's feelings or ability.
 
 ## Product boundaries the design keeps

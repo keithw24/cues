@@ -164,10 +164,10 @@ export default function TeacherProfileForm() {
   return (
     <>
       <section className="profile-group" aria-labelledby="profile-form-heading">
-        <h2 id="profile-form-heading" className="profile-group-label">
-          About you
-        </h2>
         <form className="profile-card profile-form" onSubmit={save}>
+          <h2 id="profile-form-heading" className="profile-card-title">
+            name and phone
+          </h2>
           <label className="profile-field">
             <span>Name</span>
             <input

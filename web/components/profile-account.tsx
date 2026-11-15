@@ -46,10 +46,10 @@ export default function ProfileAccount() {
   if (!client) return null;
   return (
     <section className="profile-group" aria-labelledby="account-heading">
-      <h2 id="account-heading" className="profile-group-label">
-        Account
-      </h2>
       <div className="profile-card profile-account">
+        <h2 id="account-heading" className="sr-only">
+          Account
+        </h2>
         <span className="row-avatar is-large" aria-hidden="true">
           {email ? email[0].toUpperCase() : "?"}
         </span>

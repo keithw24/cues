@@ -271,19 +271,58 @@
   min-width: 0;
   padding-bottom: 48px;
 }
-/* No banner: the page itself, a large title and one soft blue glow. */
+/* No banner: the page itself and a large title. The color comes from the
+   soft gradient behind the whole page (below). */
 .dashboard-shell .ws-hero {
   display: grid;
-  gap: 20px;
-  padding: 56px var(--ws-gutter) 32px;
-  background:
-    radial-gradient(50% 90% at 12% 0%, rgb(66 92 200 / 0.28), transparent 70%),
-    radial-gradient(40% 70% at 80% 0%, rgb(140 116 230 / 0.14), transparent 70%),
-    var(--ws-bg);
+  gap: 28px;
+  padding: 64px var(--ws-gutter) 40px;
 }
+
+/* A large, soft blue, lavender and mint glow behind the content, as on the
+   reference: fixed, blurred once, never animated. Night uses it dimmer. */
+.dashboard-shell:not(.ws-demo) {
+  position: relative;
+  isolation: isolate;
+  --ws-glow-opacity: 0.55;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) {
+  --ws-glow-opacity: 1;
+}
+.dashboard-shell:not(.ws-demo)::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 0 76px;
+  z-index: -1;
+  background:
+    radial-gradient(
+      34% 36% at 44% 62%,
+      rgb(108 130 230 / 0.62),
+      transparent 72%
+    ),
+    radial-gradient(
+      28% 32% at 64% 46%,
+      rgb(172 150 238 / 0.5),
+      transparent 72%
+    ),
+    radial-gradient(
+      28% 26% at 58% 84%,
+      rgb(146 214 222 / 0.5),
+      transparent 72%
+    ),
+    radial-gradient(
+      36% 22% at 34% 8%,
+      rgb(140 160 240 / 0.28),
+      transparent 72%
+    );
+  filter: blur(56px);
+  opacity: var(--ws-glow-opacity);
+  pointer-events: none;
+}
+/* The title and the pill on its right share one center line. */
 .dashboard-shell .page-intro {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
@@ -305,18 +344,27 @@
 /* Session controls, under the title: the same pills as everything else. */
 .dashboard-shell .session-controls {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+}
+/* Controls in the header get a little more room than pills elsewhere. */
+.dashboard-shell .session-row .ws-pill {
+  height: 44px;
+  padding: 0 22px;
+}
+.dashboard-shell .session-row .ws-icon-button {
+  width: 44px;
+  height: 44px;
 }
 .dashboard-shell .session-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 .dashboard-shell .session-controls select {
-  height: 40px;
-  min-width: 200px;
-  padding: 0 38px 0 16px;
+  height: 44px;
+  min-width: 240px;
+  padding: 0 44px 0 20px;
   border: 0;
   border-radius: 999px;
   background: var(--ws-pill) var(--ws-chevron) no-repeat right 14px center /
@@ -394,11 +442,22 @@
   gap: 12px;
   padding: 10px 10px 14px;
 }
+/* Panel titles in one case: small caps with open spacing (CAMERA,
+   ATTENTION), so they read as labels and leave the large lowercase page
+   title as the one voice. */
 .dashboard-shell .panel-heading h2 {
   color: var(--ws-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+/* A person opened in the panel keeps their name in normal case. */
+.dashboard-shell .panel-person .panel-heading h2 {
   font-size: 20px;
   font-weight: 500;
   letter-spacing: -0.02em;
+  text-transform: none;
 }
 .dashboard-shell .panel-heading h2:focus {
   outline: none;
@@ -581,17 +640,14 @@ div.ws-row {
   font-size: 13px;
   font-weight: 500;
 }
-/* Many students: on wide screens the list keeps to the screen's height,
-   stays in view and scrolls inside itself; Needs you is always on top. */
+/* Attention sits beside the camera at the camera's height: it doesn't add to
+   the row's height (contain: size) and scrolls inside itself when long. */
 @media (min-width: 1001px) {
-  .dashboard-shell .monitor-workspace > .classroom-feed {
-    position: sticky;
-    top: 20px;
+  .dashboard-shell .monitor-workspace {
+    align-items: stretch;
   }
   .dashboard-shell .class-panel {
-    position: sticky;
-    top: 20px;
-    max-height: calc(100dvh - 40px);
+    contain: size;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -613,6 +669,295 @@ div.ws-row {
   display: grid;
   gap: 12px;
   padding: 0 14px 14px 66px;
+}
+
+/* ---- Header link, rail badge, side-panel person ------------------------- */
+.dashboard-shell .review-link .ws-count {
+  min-width: 22px;
+  height: 22px;
+  margin-right: -6px;
+  font-size: 12px;
+}
+.dashboard-shell .review-link.has-items {
+  background: var(--ws-review-soft);
+  box-shadow: none;
+  color: var(--ws-review);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .review-link.has-items:hover {
+    background: var(--ws-review-soft);
+    color: var(--ws-review);
+    opacity: 0.85;
+  }
+}
+.dashboard-shell .rail-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ws-review);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-shell .panel-person .panel-heading {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding-left: 4px;
+}
+.dashboard-shell .panel-person .row-more {
+  padding: 0 10px 10px;
+}
+/* A ring in the person's status color around their initials. */
+.row-avatar.is-ring {
+  box-shadow: inset 0 0 0 2px var(--ring-color, var(--ws-line));
+}
+.row-avatar.is-ring,
+.strip-card.is-quiet .row-avatar {
+  --ring-color: var(--ws-line);
+}
+.strip-card.is-working .row-avatar {
+  --ring-color: var(--ws-blue);
+}
+.strip-card.is-done .row-avatar {
+  --ring-color: var(--ws-done);
+}
+.strip-card.is-review .row-avatar,
+.review-card .row-avatar {
+  --ring-color: var(--ws-review);
+}
+
+/* ---- Students, slid through under the camera ---------------------------- */
+.dashboard-shell .student-strip {
+  margin: 20px 0 0;
+  padding: 0 var(--ws-gutter);
+}
+/* Arrows sit on the row's ends, centered on the cards, only on a side that
+   has more. */
+.dashboard-shell .student-strip {
+  position: relative;
+}
+.dashboard-shell .strip-arrow {
+  position: absolute;
+  top: calc(50% - 4px);
+  z-index: 1;
+  translate: 0 -50%;
+  background: var(--ws-panel-solid);
+}
+.dashboard-shell .strip-arrow.is-before {
+  left: calc(var(--ws-gutter) - 14px);
+}
+.dashboard-shell .strip-arrow.is-after {
+  right: calc(var(--ws-gutter) - 14px);
+}
+.dashboard-shell .strip-arrow[hidden] {
+  display: none;
+}
+.dashboard-shell .strip-track {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
+  scrollbar-width: none;
+  list-style: none;
+}
+.dashboard-shell .strip-track::-webkit-scrollbar {
+  display: none;
+}
+/* Fade only the side that has more cards, so the row reads as scrollable. */
+.dashboard-shell .strip-track[data-more-after] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 64px), transparent);
+}
+.dashboard-shell .strip-track[data-more-before] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 64px), transparent);
+}
+.dashboard-shell .strip-track[data-more-before][data-more-after] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 64px,
+    #000 calc(100% - 64px),
+    transparent
+  );
+}
+.dashboard-shell .strip-track > li {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+.dashboard-shell .strip-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 248px;
+  min-height: 88px;
+  padding: 16px 18px;
+  border-radius: 24px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    scale 150ms ease-out;
+}
+.dashboard-shell .strip-card .row-avatar {
+  width: 48px;
+  height: 48px;
+  background: var(--ws-tile);
+  box-shadow: inset 0 0 0 2px var(--ring-color);
+  font-size: 14px;
+}
+.dashboard-shell .strip-card:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .strip-card[aria-pressed="true"] {
+  background: var(--ws-blue-soft);
+}
+.dashboard-shell .strip-status {
+  color: var(--ws-ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dashboard-shell .strip-card.is-working .strip-status {
+  color: var(--ws-blue-deep);
+}
+.dashboard-shell .strip-card.is-done .strip-status {
+  color: var(--ws-done);
+}
+.dashboard-shell .strip-card.is-review .strip-status {
+  color: var(--ws-review);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .strip-card:hover {
+    background: var(--ws-tile-hover);
+  }
+  .dashboard-shell .strip-card[aria-pressed="true"]:hover {
+    background: var(--ws-blue-soft);
+  }
+}
+.dashboard-shell .strip-empty {
+  border-radius: 24px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+}
+
+/* ---- To review page ----------------------------------------------------- */
+.dashboard-shell .review-page {
+  display: grid;
+  gap: 12px;
+  padding: 0 var(--ws-gutter);
+}
+.dashboard-shell .review-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dashboard-shell .review-card {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 26px;
+  border-radius: 28px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+}
+.dashboard-shell .review-index {
+  width: 24px;
+  color: var(--ws-ink-faint);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-shell .review-card .row-avatar {
+  background: var(--ws-tile);
+}
+.dashboard-shell .review-card-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.dashboard-shell .review-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dashboard-shell .review-card-title h2 {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .review-issue {
+  color: var(--ws-review);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dashboard-shell .review-card .person-why {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
+}
+.dashboard-shell .review-card-actions {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+.dashboard-shell .review-card-actions .review-action-buttons {
+  margin: 0;
+}
+.dashboard-shell .review-card-actions .mark-reviewed {
+  display: grid;
+  justify-items: end;
+}
+.dashboard-shell .review-card-time {
+  min-width: 64px;
+  color: var(--ws-ink-faint);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.dashboard-shell .review-clear {
+  margin: 0;
+  padding: 22px 26px;
+  border-radius: 28px;
+}
+@media (max-width: 900px) {
+  .dashboard-shell .review-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    padding: 18px;
+  }
+  .dashboard-shell .review-index {
+    display: none;
+  }
+  .dashboard-shell .review-card-actions {
+    grid-column: 1 / -1;
+    justify-items: start;
+  }
+  .dashboard-shell .review-card-actions .mark-reviewed {
+    justify-items: start;
+  }
+  .dashboard-shell .review-card-time {
+    grid-row: 1;
+    grid-column: 3;
+  }
 }
 
 /* ---- One person -------------------------------------------------------- */
@@ -725,12 +1070,21 @@ div.ws-row {
 /* ---- Camera, center of the page --------------------------------------- */
 .dashboard-shell .classroom-feed {
   display: grid;
-  gap: 4px;
+  align-content: start;
+  gap: 0;
 }
+/* Same heading box as Attention, so the two titles share a line; the Turn
+   off pill tucks into it without growing the header. */
 .dashboard-shell .classroom-feed .panel-heading {
   align-items: center;
-  min-height: 40px;
-  padding: 2px 4px 8px 10px;
+  min-height: 0;
+  padding: 10px 10px 14px;
+}
+.dashboard-shell .classroom-feed .panel-heading .ws-pill {
+  height: 32px;
+  margin: -6px 0;
+  padding: 0 14px;
+  font-size: 13px;
 }
 /* The camera's own shape, 16:9, so the frame fills it with no bars. Its
    size comes from the column, never from the video. */
@@ -774,8 +1128,8 @@ div.ws-row {
 }
 /* ---- Settings pages ---------------------------------------------------- */
 .dashboard-shell .settings-main {
-  max-width: 760px;
-  padding: 56px var(--ws-gutter) 64px;
+  max-width: 820px;
+  padding: 60px var(--ws-gutter) 64px;
 }
 .dashboard-shell .settings-main > .page-intro {
   display: grid;
@@ -785,18 +1139,18 @@ div.ws-row {
 .dashboard-shell .settings-main > .page-intro h1 {
   color: var(--ws-ink);
   font-family: var(--font-garamond), Georgia, serif;
-  font-size: clamp(40px, 5vw, 52px);
+  font-size: clamp(44px, 5.5vw, 56px);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.015em;
 }
 .dashboard-shell .settings-main > .page-intro p {
   color: var(--ws-ink-soft);
-  font-size: 15px;
+  font-size: 17px;
 }
 .dashboard-shell .settings-list {
   display: grid;
-  gap: 28px;
+  gap: 16px;
 }
 .dashboard-shell .settings-row,
 .dashboard-shell .settings-panel,
@@ -1026,13 +1380,12 @@ body .dashboard-shell.ws-demo {
   .dashboard-shell:not(.ws-demo) .page-intro,
   .dashboard-shell:not(.ws-demo) .session-controls,
   .dashboard-shell:not(.ws-demo) .monitor-workspace > *,
-  .dashboard-shell .ws-signin > *,
-  .dashboard-shell .settings-main > * {
-    animation: ws-arrive 300ms ease-out both;
+  .dashboard-shell .student-strip,
+  .dashboard-shell .ws-signin > * {
+    animation: ws-arrive 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
   }
   .dashboard-shell .session-controls,
-  .dashboard-shell .ws-signin > :nth-child(2),
-  .dashboard-shell .settings-main > :nth-child(2) {
+  .dashboard-shell .ws-signin > :nth-child(2) {
     animation-delay: 100ms;
   }
   .dashboard-shell .monitor-workspace > :first-child,
@@ -1043,14 +1396,59 @@ body .dashboard-shell.ws-demo {
   .dashboard-shell .ws-signin > :nth-child(4) {
     animation-delay: 300ms;
   }
-  /* A person opens in place: a short fade and rise. */
+  .dashboard-shell .student-strip {
+    animation-delay: 400ms;
+  }
+  .dashboard-shell .review-list > li:nth-child(2) {
+    transition-delay: 60ms;
+  }
+  .dashboard-shell .review-list > li:nth-child(n + 3) {
+    transition-delay: 120ms;
+  }
+  /* Profile and To review: cards arrive in order, 60ms apart. */
+  .dashboard-shell .settings-list > * {
+    animation: ws-arrive 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .dashboard-shell .settings-list > :nth-child(1) {
+    animation-delay: 120ms;
+  }
+  .dashboard-shell .settings-list > :nth-child(2) {
+    animation-delay: 180ms;
+  }
+  .dashboard-shell .settings-list > :nth-child(3) {
+    animation-delay: 240ms;
+  }
+  /* Something new arrives in a list (a request in Attention, a person
+     coming into view, a To review card): it fades and rises 8px once, so it
+     doesn't just appear. Transitions from @starting-style, so nothing replays
+     on later renders. */
+  .dashboard-shell .class-panel .row-list > li,
+  .dashboard-shell .strip-track > li,
+  .dashboard-shell .review-list > li {
+    transition:
+      opacity 250ms cubic-bezier(0.23, 1, 0.32, 1),
+      translate 250ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @starting-style {
+    .dashboard-shell .class-panel .row-list > li,
+    .dashboard-shell .review-list > li {
+      opacity: 0;
+      translate: 0 8px;
+    }
+    .dashboard-shell .strip-track > li {
+      opacity: 0;
+      translate: 8px 0;
+    }
+  }
+
   .dashboard-shell .row-more {
     transition:
       opacity 200ms ease-out,
       translate 200ms ease-out;
   }
   @starting-style {
-    .dashboard-shell .row-more {
+    .dashboard-shell .row-more,
+    .dashboard-shell .panel-person {
       opacity: 0;
       translate: 0 6px;
     }
@@ -1064,6 +1462,25 @@ body .dashboard-shell.ws-demo {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  /* Fewer, gentler: new items and opened details fade without moving. */
+  .dashboard-shell .class-panel .row-list > li,
+  .dashboard-shell .strip-track > li,
+  .dashboard-shell .review-list > li,
+  .dashboard-shell .row-more,
+  .dashboard-shell .panel-person,
+  .dashboard-shell .alerts-optin {
+    transition: opacity 200ms ease-out;
+  }
+  @starting-style {
+    .dashboard-shell .class-panel .row-list > li,
+    .dashboard-shell .strip-track > li,
+    .dashboard-shell .review-list > li,
+    .dashboard-shell .row-more,
+    .dashboard-shell .panel-person,
+    .dashboard-shell .alerts-optin {
+      opacity: 0;
+    }
+  }
   .dashboard-shell .rail-link .nav-label {
     translate: 0 -50%;
   }
@@ -1087,6 +1504,9 @@ body .dashboard-shell.ws-demo {
 @media (max-width: 700px) {
   .dashboard-shell {
     padding-left: 0;
+  }
+  .dashboard-shell:not(.ws-demo)::before {
+    left: 0;
   }
   .dashboard-shell .row-more {
     padding-left: 14px;
