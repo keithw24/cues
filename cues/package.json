@@ -14,5 +14,8 @@
     "typescript": "^5",
     "@types/node": "^22",
     "tsx": "^4"
+  },
+  "exports": {
+    "./send": "./src/send.ts"
   }
 }
