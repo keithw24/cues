@@ -7,6 +7,7 @@ import {
   updatesFresh,
   type LocalVisionReading,
 } from "@/lib/camera-health";
+import { mayConnectLocalFeed } from "@/lib/local-feed-policy";
 
 const POLL_MS = 3000;
 
@@ -18,6 +19,8 @@ export function CameraHealthStrip({
   updatedAt,
   inView,
   conflict,
+  hostedEnabled = false,
+  hostedOrigin,
 }: {
   station: string;
   /** updated_at of each person's latest row at this station. */
@@ -25,14 +28,26 @@ export function CameraHealthStrip({
   inView: number;
   /** Another camera is being refused on this station (from its writer row). */
   conflict: boolean;
+  /** web.hosted_local_feed: the hosted dashboard may read this laptop's service. */
+  hostedEnabled?: boolean;
+  hostedOrigin?: string;
 }) {
   const [vision, setVision] = useState<LocalVisionReading | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  // Known only in the browser; until then the strip reads "Checking".
+  const [localReadable, setLocalReadable] = useState<boolean | null>(null);
   useEffect(() => {
     let disposed = false;
+    // Only a page allowed to reach this laptop (localhost, or the hosted origin with
+    // web.hosted_local_feed) reads its vision service, as the video feed does.
+    const readable = mayConnectLocalFeed(window.location.origin, hostedEnabled, hostedOrigin);
+    queueMicrotask(() => {
+      if (!disposed) setLocalReadable(readable);
+    });
     const tick = () => {
       if (document.hidden) return;
       setNow(Date.now());
+      if (!readable) return;
       void readLocalVision().then((reading) => {
         if (!disposed) setVision(reading);
       });
@@ -45,13 +60,14 @@ export function CameraHealthStrip({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, []);
+  }, [hostedEnabled, hostedOrigin]);
   const health = cameraHealth({
     vision,
     station,
     updatesFresh: updatesFresh(updatedAt, now),
     inView,
     conflict,
+    localReadable: localReadable ?? undefined,
   });
   return (
     <section className="health-strip" aria-label="Camera health">

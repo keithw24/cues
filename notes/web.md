@@ -57,7 +57,7 @@ Supabase, the LLM, or another cloud service.
 - Existing initial reads and `seat_state` realtime subscription are preserved.
   Reconnect reloads the snapshot; failures retain it with a visible warning.
 - Attention reads only pending `teacher_reviews`, behind `web.teacher_reviews`
-  (default off). No seat-status fallback and no approval/dismissal actions.
+  (default on since 2026-11-14; `=0` turns it off). No seat-status fallback and no approval/dismissal actions.
   See [TeacherReview contract and rollout](web-teacher-reviews.md) for the expected
   projection and Michelle-side persistence/RLS/Realtime prerequisites.
 - Seats and **View details** open the same side panel. Escape/Close returns focus
@@ -153,7 +153,7 @@ that station are retired in the view. Person IDs remain temporary position IDs,
 not student identities. Reuse/release behavior remains owned by vision.
 
 Migration 003/session Auth setup and Michelle's teacher_reviews persistence are
-still independent prerequisites. Their flags remain default off. Real progress
+still independent prerequisites. Their flags default on since 2026-11-14 (`=0` turns each off). Real progress
 history remains explicitly unavailable until exposed by the backend. No missing
 backend behavior is replaced with local-only demo state.
 

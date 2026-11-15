@@ -62,8 +62,8 @@ email and password (entered privately), and the dashboard creates and assigns th
 station's emitter uses its existing service credentials independently of that login. Teachers do
 not need `station_teachers` rows provisioned by hand.
 
-Enable the dashboard's session controls with `CUES_FLAG_WEB_SESSION_CONTROLS=1` in `web/.env.local`
-(it defaults off), then restart the dashboard. Use `/dashboard`. `CUES_STATION_OVERRIDE` in
+The dashboard's session controls are on by default (since 2026-11-14); `CUES_FLAG_WEB_SESSION_CONTROLS=0`
+in `web/.env.local` turns them off, then restart the dashboard. Use `/dashboard`. `CUES_STATION_OVERRIDE` in
 `web/.env.local` pins the dashboard to one station for dev/test only. The local video can be viewed
 only from the station laptop at `http://127.0.0.1:8000/stream`; don't expose or tunnel it remotely.
 The Supabase dashboard state can be observed on another laptop without video.

@@ -86,6 +86,9 @@ export type HealthInput = {
   inView: number;
   /** Another camera is being refused on this station (from the station's writer row). */
   conflict: boolean;
+  /** This page may read the laptop's vision service. False on a hosted page (for
+   * example cues.nyc on a phone): only the station's own rows are shown. */
+  localReadable?: boolean;
 };
 
 export type CameraHealth = {
@@ -112,6 +115,23 @@ export const OTHER_CAMERA =
 /** The four checks and the one thing worth telling the teacher, in order of cause. */
 export function cameraHealth(input: HealthInput): CameraHealth {
   const { vision } = input;
+  // A hosted page can't see this laptop's camera service: show only what the
+  // station's rows say, and never claim the service is down.
+  if (input.localReadable === false) {
+    const refused = input.conflict;
+    return {
+      items: [
+        updatesItem(input),
+        {
+          key: "other-camera",
+          label: "Other cameras",
+          value: refused ? "One refused" : "None",
+          tone: refused ? "warn" : "good",
+        },
+      ],
+      problem: refused ? OTHER_CAMERA : null,
+    };
+  }
   const checking: HealthItem[] = [
     { key: "camera", label: "Camera", value: "Checking", tone: "quiet" },
     { key: "station", label: "Classroom", value: "Checking", tone: "quiet" },
