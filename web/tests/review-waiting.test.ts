@@ -53,10 +53,10 @@ test("a stale observation no longer reads Needs Review, so it is not listed", ()
   assert.deepEqual(listed, []);
 });
 
-test("web.review_waiting is registered on by default and wired from both pages", () => {
+test("web.review_waiting is registered off by default and wired from both pages", () => {
   const flag = JSON.parse(read("../../flags.json"))["web.review_waiting"];
-  // On at Evan's request: the cards and Attention must agree.
-  assert.equal(flag.default, true);
+  // Off until the live station check is recorded (CLAUDE.md flag rule 2).
+  assert.equal(flag.default, false);
   assert.equal(flag.owner, "evan");
   for (const page of ["../app/review/page.tsx", "../app/dashboard/page.tsx"])
     assert.match(read(page), /reviewWaitingEnabled=\{isEnabled\("web\.review_waiting"\)\}/);
