@@ -13,6 +13,7 @@ import LandingHero from "@/components/landing-hero";
 import LandingPreview from "@/components/landing-preview";
 import LandingDemo from "@/components/landing-demo";
 import LandingNeeds from "@/components/landing-needs";
+import LandingThemeDefault from "@/components/landing-theme-default";
 import LandingReveal from "@/components/landing-reveal";
 import LandingAmbient from "@/components/landing-ambient";
 import LandingSteps from "@/components/landing-steps";
@@ -44,6 +45,7 @@ export default function Landing() {
   const needs = isEnabled("web.landing_needs");
   return (
     <div className={`landing ${garamond.variable}`}>
+      {themeToggle ? <LandingThemeDefault /> : null}
       {motion ? (
         <>
           <LandingReveal />
@@ -63,7 +65,7 @@ export default function Landing() {
             <a href="#privacy">Privacy</a>
           )}
           {themeToggle ? (
-            <ThemeToggle pageDefault="dark" className="ln-theme-toggle" />
+            <ThemeToggle pageDefault="light" className="ln-theme-toggle" />
           ) : null}
           <Link
             className="ln-button ln-button-dark ln-button-small"

@@ -32,9 +32,9 @@ test("theme toggle defaults on; without it no script runs and no toggle shows", 
   );
 });
 
-test("the saved theme applies only for known values", () => {
+test("the saved theme applies only for known values; the landing page defaults to light", () => {
   const root = { attrs: {} as Record<string, string> };
-  const run = (stored: string | null) => {
+  const run = (stored: string | null, path = "/dashboard") => {
     root.attrs = {};
     const localStorage = {
       getItem: (key: string) => (key === THEME_KEY ? stored : null),
@@ -45,9 +45,10 @@ test("the saved theme applies only for known values", () => {
           (root.attrs[name] = value),
       },
     };
-    new Function("localStorage", "document", themeScript)(
+    new Function("localStorage", "document", "location", themeScript)(
       localStorage,
       document,
+      { pathname: path },
     );
     return root.attrs["data-theme"];
   };
@@ -55,6 +56,21 @@ test("the saved theme applies only for known values", () => {
   assert.equal(run("dark"), "dark");
   assert.equal(run("purple"), undefined);
   assert.equal(run(null), undefined);
+  // No saved choice: only the landing page starts light, and says it chose that itself.
+  assert.equal(run(null, "/"), "light");
+  assert.equal(root.attrs["data-theme-auto"], "1");
+  assert.equal(run(null, "/login"), undefined);
+  // A saved choice always wins, on the landing page too, and is not marked automatic.
+  assert.equal(run("dark", "/"), "dark");
+  assert.equal(root.attrs["data-theme-auto"], undefined);
+});
+
+test("the landing page's default does not leak to other pages, and a click makes it the visitor's", () => {
+  const defaults = read("../components/landing-theme-default.tsx");
+  assert.match(defaults, /root\.removeAttribute\("data-theme"\)/);
+  assert.match(read("../components/landing.tsx"), /themeToggle \? <LandingThemeDefault \/>/);
+  assert.match(read("../components/landing.tsx"), /pageDefault="light" className="ln-theme-toggle"/);
+  assert.match(read("../components/theme-toggle.tsx"), /root\.removeAttribute\(AUTO_THEME_ATTRIBUTE\)/);
 });
 
 test("/live and /settings/notifications fold into the pages that do the work", () => {
