@@ -29,13 +29,33 @@ export type CompanionStep =
   /** Fewer, but not zero (or no change): stay as it is. */
   | { kind: "none" };
 
-/** `null` means the review feed is not live, so the count is unknown. */
+/** Where the last live count is kept for this tab (sessionStorage), so a
+ * queue cleared on the To review page is eaten on the way back. */
+export const COMPANION_COUNT_KEY = "cues-companion-count";
+
+/** Forget every remembered count in this tab (on sign-out). */
+export function forgetCompanionCounts(storage: Storage): void {
+  for (let i = storage.length - 1; i >= 0; i--) {
+    const key = storage.key(i);
+    if (key?.startsWith(COMPANION_COUNT_KEY)) storage.removeItem(key);
+  }
+}
+
+/**
+ * `null` means the review feed is not live, so the count is unknown.
+ * `remembered` is the last live count this tab saw before the page was left
+ * (or null): coming back to an empty queue that had requests is an eat.
+ */
 export function companionStep(
   before: number | null,
   count: number | null,
+  remembered: number | null = null,
 ): CompanionStep {
   if (count === null) return { kind: "rest" };
-  if (before === null) return { kind: "sync" };
+  if (before === null)
+    return count === 0 && remembered !== null && remembered > 0
+      ? { kind: "eat", eaten: remembered }
+      : { kind: "sync" };
   if (count > before) return { kind: "hop" };
   if (count === 0 && before > 0) return { kind: "eat", eaten: before };
   return { kind: "none" };
