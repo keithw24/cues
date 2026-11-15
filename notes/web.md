@@ -26,8 +26,8 @@ Use only a publishable key, never a service-role key in browser configuration.
 Apply the migrations in `notes/supabase.md` before seeding. Then run
 `npm run dev` and open http://localhost:3000.
 
-`web.dashboard` defaults off. The server evaluates flags before importing the
-client dashboard, so the off route makes no dashboard subscriptions or video
+`web.dashboard` defaults off. The server evaluates flags before rendering the
+client dashboard (it is imported statically: a dynamic import made `next dev` log "Could not validate `instant`"), so the off route makes no dashboard subscriptions or video
 requests. Overrides accept `1`, `true`, `0`, `false`; `CUES_FLAG_WEB_DASHBOARD`
 wins over `NEXT_PUBLIC_CUES_FLAG_WEB_DASHBOARD`. Restart after configuration
 changes. Production builds evaluate flags/public configuration at build time.

@@ -20,7 +20,7 @@ export default function LandingHero({
       <div className="ln-hero-dots" aria-hidden="true" />
       <div className="ln-hero-copy">
         <h1 id="hero-heading" className="ln-enter">
-          Know who needs you next
+          know who needs you next
         </h1>
         <p className="ln-lede ln-enter">
           Cues watches for{" "}
@@ -42,11 +42,11 @@ export default function LandingHero({
         </p>
         <div className="ln-actions ln-enter">
           <Link className="ln-button ln-button-dark" href={start}>
-            Get started
+            Get Started
             <RiArrowRightLine aria-hidden="true" />
           </Link>
           <a className="ln-text-link" href="#how">
-            How it works
+            How It Works
           </a>
         </div>
       </div>

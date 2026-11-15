@@ -71,7 +71,7 @@ test("with web.teacher_profile off, the profile page skips the form and shows a 
   );
   assert.match(
     page,
-    /enabled\s*\?\s*await import\("@\/components\/teacher-profile-form"\)/,
+    /import TeacherProfileForm from "@\/components\/teacher-profile-form"[\s\S]*showForm \? \(/,
   );
   assert.match(page, /Not turned on in this environment yet\./);
   assert.match(page, /<ProfileAccount \/>/);

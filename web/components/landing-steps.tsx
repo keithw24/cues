@@ -8,20 +8,20 @@ const steps = [
   {
     id: undefined,
     icon: RiHand,
-    title: "Pick a task",
-    text: "A raised hand or a thumbs up.",
+    title: "Pick A Task",
+    text: "Choose a raised hand or a thumbs up from the list, then press Start. The whole class works on it.",
   },
   {
     id: undefined,
     icon: RiEyeLine,
-    title: "Cues watches",
-    text: "One camera follows each student by their place in the frame and keeps track of who has finished and who keeps trying.",
+    title: "Cues Watches",
+    text: "One camera follows each student by their place in the frame, tracking who has finished and who keeps trying.",
   },
   {
     id: "control",
     icon: RiCheckboxCircleLine,
-    title: "You decide",
-    text: "Cues flags who may need you and says why. Nothing about a student’s task, instructions or support changes until you approve it.",
+    title: "You Decide",
+    text: "Cues flags who may need you and says why. Nothing changes for a student until you approve it.",
   },
 ] as const;
 
@@ -29,7 +29,7 @@ export default function LandingSteps() {
   return (
     <section id="how" className="ln-steps" aria-labelledby="how-heading">
       <h2 id="how-heading" data-reveal style={{ "--i": 0 } as CSSProperties}>
-        How it works
+        How It Works
       </h2>
       <ol>
         {steps.map((step, index) => (

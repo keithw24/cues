@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { isEnabled } from "@/lib/flags";
+import SignupConfirmed from "@/components/signup-confirmed";
 
 export default async function ConfirmedPage() {
   if (!isEnabled("web.teacher_signup"))
@@ -13,9 +14,6 @@ export default async function ConfirmedPage() {
         <Link href="/login">Teacher sign in</Link>
       </main>
     );
-  const { default: SignupConfirmed } = await import(
-    "@/components/signup-confirmed"
-  );
   return <SignupConfirmed
       profileEnabled={isEnabled("web.teacher_profile")}
       themeToggleEnabled={isEnabled("web.theme_toggle")}
