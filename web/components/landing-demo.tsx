@@ -156,9 +156,6 @@ export default function LandingDemo() {
             <span className="ws-grain" />
             <header className="page-intro">
               <div>
-                <p className="page-breadcrumb">
-                  Workspace <span>/</span> Classroom
-                </p>
                 <h1>your classroom</h1>
               </div>
               <span className="ws-demo-sim">Simulated students</span>

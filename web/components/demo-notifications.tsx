@@ -104,7 +104,7 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
     : state === "enabled" ? `Notifications enabled for ${phone}.`
     : state === "activating" ? "Notifications are being activated for this phone."
     : state === "activation failed" ? "Notifications could not be activated yet."
-    : `Get a text at ${phone} when a student needs you. Texts carry only the seat and task.`;
+    : `Get a text at ${phone} when a student needs you. Texts name only the seat, never images.`;
   const showOptIn = !settings?.notification_opt_in || state === "not enabled" || state === "activation failed";
   return <section className="settings-panel profile-form" aria-labelledby="demo-notifications-heading" aria-busy={saving}>
     <header className="profile-card-head">

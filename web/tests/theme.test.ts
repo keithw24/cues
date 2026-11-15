@@ -165,3 +165,33 @@ test("the workspace shows no simulated class or data labels", () => {
       /simulated class|Simulated data|Simulated seat|Simulated class/,
     );
 });
+
+test("no page shows a Workspace / … breadcrumb", async () => {
+  const { readdirSync } = await import("node:fs");
+  const files = ["../components/", "../app/"].flatMap((dir) =>
+    readdirSync(new URL(dir, import.meta.url), { recursive: true })
+      .map(String)
+      .filter((name) => name.endsWith(".tsx"))
+      .map((name) => `${dir}${name}`),
+  );
+  assert.ok(files.length > 20, "found the components and pages");
+  for (const file of files) {
+    assert.doesNotMatch(
+      read(file),
+      /page-breadcrumb|Workspace\s*(<span>)?\s*\/\s*(<\/span>)?/,
+      file,
+    );
+  }
+});
+
+test("alert copy names only the seat, matching what Photon sends", () => {
+  for (const file of [
+    "demo-notifications.tsx",
+    "teacher-login.tsx",
+    "teacher-profile-form.tsx",
+  ]) {
+    const source = read(`../components/${file}`);
+    assert.match(source, /only the seat|seat, never images/, file);
+    assert.doesNotMatch(source, /seat\s+and\s+(the\s+)?task/, file);
+  }
+});
