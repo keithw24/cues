@@ -25,14 +25,16 @@ import { startLocalVisionSync } from "@/lib/local-vision";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import { PersonDetails } from "@/components/person-panel";
-import { MarkReviewedButton } from "@/components/mark-reviewed-button";
+import {
+  FlagDecisionButtons,
+  MarkReviewedButton,
+} from "@/components/mark-reviewed-button";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
 import { CameraHealthStrip } from "@/components/camera-health-strip";
 import { ReviewCompanion } from "@/components/review-companion";
 import { ReviewCard, WaitingReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
 import {
-  attentionFlaggedLine,
   readMarked,
   reviewIssueLine,
   reviewQueue,
@@ -518,12 +520,9 @@ export default function Dashboard({
     (!reviewWaitingEnabled || (feed.snapshot && unexplained.length === 0))
       ? waitingCount
       : null;
-  // Attention names them too (web.review_waiting): instead of "All clear", or
-  // under the requests, so the cards and Attention always agree.
-  const flaggedLine = attentionFlaggedLine(
-    flaggedOnly.map((seat) => seat.display_name),
-    reviewGroups.length > 0,
-  );
+  // Attention lists them too (web.review_waiting), under the requests, so the
+  // cards and Attention always agree. They stay until the teacher answers.
+  const flaggedIdSet = new Set(flaggedOnly.map((seat) => seat.id));
   // Marked as reviewed, but the camera hasn't reset them yet: not "All clear"
   // while their card still reads Needs Review.
   const catchingUp =
@@ -534,8 +533,11 @@ export default function Dashboard({
     );
   // A person picked from the strip who has no request opens in the side
   // panel; someone with a request opens in place in the attention list.
+  // A flagged person opens in place in the attention list too.
   const selectedPerson =
-    selectedId && reviewsFor(selectedId).length === 0
+    selectedId &&
+    reviewsFor(selectedId).length === 0 &&
+    !flaggedIdSet.has(selectedId)
       ? (inView.find((seat) => seat.id === selectedId) ?? null)
       : null;
   // A request arrives for the person open in the side panel: the panel closes
@@ -648,6 +650,29 @@ export default function Dashboard({
         }}
       />
     ) : null;
+  // Support needed / No support needed for a flagged person with no request:
+  // either answer closes the flag (as Mark as reviewed does) and they leave
+  // Attention; nothing is written as a review for them.
+  const flagDecisions = (sessionId: string | null, seatId: string) =>
+    markedSeats.has(seatId) ? (
+      <p className="person-note" role="status">
+        Saved. They’ll show as working again in a moment.
+      </p>
+    ) : reviewActionsEnabled && client && sessionId ? (
+      <FlagDecisionButtons
+        key={seatId}
+        client={client}
+        sessionId={sessionId}
+        seatId={seatId}
+        onDecided={(decided) => {
+          applyMarked(decided);
+          if (selectedId === decided) setSelectedId(null);
+          requestAnimationFrame(() =>
+            (view === "review" ? pageHeading : listHeading).current?.focus(),
+          );
+        }}
+      />
+    ) : null;
   const row = (
     seatId: string,
     content: React.ReactNode,
@@ -675,7 +700,9 @@ export default function Dashboard({
             client={reviewActionsEnabled ? client : null}
             onResolved={resolved}
             interventionsEnabled={interventionsEnabled}
-            actions={markReviewedButton(
+            actions={(flaggedIdSet.has(seatId) && pending.length === 0
+              ? flagDecisions
+              : markReviewedButton)(
               pending[0]?.session_id ??
                 seats.find((seat) => seat.id === seatId)?.state?.session_id ??
                 null,
@@ -884,7 +911,7 @@ export default function Dashboard({
                         index={reviewGroups.length + index + 1}
                         name={seat.display_name}
                         issue={reviewIssueLine(seat.activity, true, 1)}
-                        mark={markReviewedButton(
+                        mark={flagDecisions(
                           seat.state?.session_id ?? null,
                           seat.id,
                         )}
@@ -948,9 +975,9 @@ export default function Dashboard({
                   <h2 id="class-heading" ref={listHeading} tabIndex={-1}>
                     Attention
                   </h2>
-                  {reviewsLive && reviewGroups.length ? (
+                  {reviewsLive && waitingCount ? (
                     <span className="ws-count">
-                      {reviewGroups.length}
+                      {waitingCount}
                       <span className="sr-only"> waiting</span>
                     </span>
                   ) : null}
@@ -972,7 +999,7 @@ export default function Dashboard({
                   </div>
                 ) : null}
 
-                {reviewGroups.length ? (
+                {reviewGroups.length || flaggedOnly.length ? (
                   <ul className="row-list">
                     {reviewGroups.map((group) => {
                       const seat = seats.find((s) => s.id === group.seat_id);
@@ -995,29 +1022,38 @@ export default function Dashboard({
                         group.reviews,
                       );
                     })}
+                    {flaggedOnly.map((seat) =>
+                      row(
+                        seat.id,
+                        <ReviewRowContent
+                          name={seat.display_name}
+                          meta={
+                            mixedActivities
+                              ? `${seat.activity} · flagged by the camera`
+                              : "Flagged by the camera"
+                          }
+                          time={seat.state?.updated_at ?? ""}
+                          timeLabel="Now"
+                          elevated={false}
+                        />,
+                        present(seat),
+                        [],
+                      ),
+                    )}
                   </ul>
                 ) : (
                   reviewNotice ? null : (
-                    <p
-                      className={`panel-empty${flaggedLine ? " is-flagged" : ""}`}
-                      role="status"
-                    >
+                    <p className="panel-empty" role="status">
                       {!reviewsEnabled || configurationError
                         ? "Cues will ask here when someone may need you."
                         : reviewsLive
-                          ? (flaggedLine ??
-                            (catchingUp
-                              ? "Marked as reviewed. The camera will catch up in a moment."
-                              : "All clear. Cues will ask when someone may need you."))
+                          ? catchingUp
+                            ? "Marked as reviewed. The camera will catch up in a moment."
+                            : "All clear. Cues will ask when someone may need you."
                           : "Checking…"}
                     </p>
                   )
                 )}
-                {reviewGroups.length && flaggedLine ? (
-                  <p className="list-also is-flagged" role="status">
-                    {flaggedLine}
-                  </p>
-                ) : null}
                   </>
                 )}
               </section>

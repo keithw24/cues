@@ -179,30 +179,3 @@ export function forgetMarked(storage: Storage): void {
     if (key?.startsWith(MARKED_KEY)) storage.removeItem(key);
   }
 }
-
-/** Names for a short sentence: "Keith", "Keith and Evan", "Keith, Evan and Eric",
- * "Keith, Evan and 2 more". */
-export function nameList(names: readonly string[]): string {
-  if (names.length <= 1) return names[0] ?? "";
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  if (names.length === 3) return `${names[0]}, ${names[1]} and ${names[2]}`;
-  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
-}
-
-/**
- * What the classroom's Attention panel says about people the camera flagged
- * who have no request from Cues (with web.review_waiting). With no requests it
- * replaces "All clear", so a card reading Needs Review never sits next to an
- * "All clear"; with requests listed it adds one line under them. It names a
- * camera flag only: no claim about the child.
- */
-export function attentionFlaggedLine(
-  names: readonly string[],
-  hasRequests: boolean,
-): string | null {
-  if (names.length === 0) return null;
-  const who = nameList(names);
-  return hasRequests
-    ? `Also flagged by the camera: ${who}.`
-    : `No requests from Cues. The camera flagged ${who} for a look.`;
-}

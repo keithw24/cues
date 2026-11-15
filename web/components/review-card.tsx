@@ -88,9 +88,9 @@ export function ReviewCard({
 }
 
 // Someone the camera flagged whom Cues has not asked about yet
-// (web.review_waiting). There is no request to decide on, so only Mark as
-// reviewed is offered. The copy names what the camera reported, never the
-// child's state.
+// (web.review_waiting). There is no request to resolve: Support needed and No
+// support needed both close the flag, as Mark as reviewed does. The copy names
+// what the camera reported, never the child's state.
 export function WaitingReviewCard({
   headingId,
   index,
