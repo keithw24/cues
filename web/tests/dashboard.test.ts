@@ -176,3 +176,20 @@ test("teacher login defaults on and turns off independently of classroom access"
     false,
   );
 });
+
+test("with no flag variables set, the dashboard page wires the classroom features on", async () => {
+  const { readFileSync } = await import("node:fs");
+  const page = readFileSync(new URL("../app/dashboard/page.tsx", import.meta.url), "utf8");
+  const wired: Record<string, string> = {
+    sessionControlsEnabled: "web.session_controls",
+    reviewsEnabled: "web.teacher_reviews",
+    reviewActionsEnabled: "web.teacher_review_actions",
+    personObservationsEnabled: "web.person_observations",
+    reviewPageEnabled: "web.review_page",
+    healthStripEnabled: "web.health_strip",
+  };
+  for (const [prop, flag] of Object.entries(wired)) {
+    assert.ok(page.includes(`${prop}={isEnabled("${flag}")}`), `${prop} reads ${flag}`);
+    assert.equal(isEnabled(flag, {}), true, `${flag} defaults on`);
+  }
+});
