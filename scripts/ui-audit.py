@@ -356,7 +356,7 @@ def audit(root=ROOT, process=None, direct_next=False):
             gates=["vision.custom_gestures"],
             status="not implemented in frontend" if not creation else "inspect",
             reason="Vision CRUD + /templates/record exist; no frontend caller found. "
-            "Landing page advertises recording.",
+            "The website does not offer custom gestures (raised hand and thumbs up only).",
             evidence=[
                 "vision/routes/gestures.py",
                 "vision/routes/templates.py",
@@ -366,7 +366,7 @@ def audit(root=ROOT, process=None, direct_next=False):
     )
     if not creation:
         notes.append(
-            "Landing says record your own gesture, but no frontend /gestures caller was found. "
+            "No frontend /gestures caller: the website offers only raised hand and thumbs up. "
             "vision.custom_gestures controls the local backend API, not a web recording form."
         )
     notes.append(

@@ -9,7 +9,7 @@ const steps = [
     id: undefined,
     icon: RiHand,
     title: "Pick a task",
-    text: "A raised hand, a thumbs up, or a gesture you record yourself.",
+    text: "A raised hand or a thumbs up.",
   },
   {
     id: undefined,

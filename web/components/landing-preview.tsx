@@ -10,7 +10,7 @@ type Frame = { seats: Seat[]; suggest: boolean; approved: boolean };
 // A scripted, simulated classroom: no real student data.
 const seat1 = { seat: "Seat 1", task: "Thumbs up" };
 const seat2 = { seat: "Seat 2", task: "Raise hand" };
-const seat3 = { seat: "Seat 3", task: "Wave hello" };
+const seat3 = { seat: "Seat 3", task: "Raise hand" };
 const going = { status: "In progress", tone: "active" } as const;
 
 const frames: Frame[] = [
@@ -18,7 +18,7 @@ const frames: Frame[] = [
     seats: [
       { ...seat1, note: "Working on it", ...going },
       { ...seat2, note: "First attempt", ...going },
-      { ...seat3, note: "Teacher-recorded gesture", ...going },
+      { ...seat3, note: "Working on it", ...going },
     ],
     suggest: false,
     approved: false,
@@ -27,7 +27,7 @@ const frames: Frame[] = [
     seats: [
       { ...seat1, note: "Finished on the second try", status: "Completed", tone: "done" },
       { ...seat2, note: "Second attempt", ...going },
-      { ...seat3, note: "Teacher-recorded gesture", ...going },
+      { ...seat3, note: "Working on it", ...going },
     ],
     suggest: false,
     approved: false,
@@ -36,7 +36,7 @@ const frames: Frame[] = [
     seats: [
       { ...seat1, note: "Finished on the second try", status: "Completed", tone: "done" },
       { ...seat2, note: "Three attempts in two minutes", status: "Needs a look", tone: "review" },
-      { ...seat3, note: "Teacher-recorded gesture", ...going },
+      { ...seat3, note: "Working on it", ...going },
     ],
     suggest: true,
     approved: false,

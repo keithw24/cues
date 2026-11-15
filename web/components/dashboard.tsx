@@ -168,18 +168,12 @@ export default function Dashboard({
   const [account, setAccount] = useState<Account>({ state: "checking" });
   const station =
     stationOverride || (account.state === "ready" ? account.station : "");
-  const [visionMessage, setVisionMessage] = useState("");
   // Tell this laptop's vision service the signed-in teacher's resolved station.
+  // The result isn't shown as a caption: the camera card itself says when the
+  // camera can't be reached.
   useEffect(() => {
     if (!visionStationConfigEnabled || !client || !station) return;
-    return startLocalVisionSync(client, station, {
-      onResult: (result) =>
-        setVisionMessage(
-          result === "pinned"
-            ? "This laptop’s camera is set to another classroom. Remove CUES_STATION_ID from the root .env."
-            : "",
-        ),
-    });
+    return startLocalVisionSync(client, station);
   }, [client, station, visionStationConfigEnabled]);
   useEffect(() => {
     if (!client || !resolvesStation) return;
@@ -581,15 +575,6 @@ export default function Dashboard({
                 <SessionControls
                   client={client}
                   station={station}
-                  stationMessage={
-                    visionMessage ||
-                    (account.state === "error"
-                      ? account.message
-                      : account.state === "checking" ||
-                          account.state === "finding"
-                        ? "Finding your classroom…"
-                        : undefined)
-                  }
                   onActivity={ignoreActivity}
                   teacherLoginEnabled={teacherLoginEnabled}
                 />
