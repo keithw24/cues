@@ -2,6 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import CuesBlob from "@/components/cues-blob";
+import {
+  COMPANION_COLORS,
+  DONE_MS,
+  EAT_MS,
+  companionStep,
+  initialCompanionPhase,
+  type CompanionPhase,
+} from "@/lib/companion";
 
 // The Cues companion perched on the To review pill. It is always Cues itself,
 // never a student, and it reacts only to the teacher's own queue:
@@ -10,38 +18,27 @@ import CuesBlob from "@/components/cues-blob";
 //   - the queue clears: it eats the count, smiles and turns green, then
 //     settles back to blue.
 // Decoration only (aria-hidden): the pill's text and count carry the meaning.
-type Phase = "rest" | "waiting" | "eating" | "done";
-
-const COLORS = {
-  rest: "#5763d2",
-  waiting: "#e8741f",
-  eating: "#e8741f",
-  done: "#34a46a",
-} as const satisfies Record<Phase, `#${string}`>;
-
-/** The chomp runs this long; then it stays green this long before resting. */
-const EAT_MS = 700;
-const DONE_MS = 2200;
-
 export function ReviewCompanion({ count }: { count: number }) {
   const previous = useRef(count);
-  const [phase, setPhase] = useState<Phase>(count > 0 ? "waiting" : "rest");
+  const [phase, setPhase] = useState<CompanionPhase>(
+    initialCompanionPhase(count),
+  );
   const [eaten, setEaten] = useState(0);
   const [hop, setHop] = useState(0);
 
   useEffect(() => {
-    const before = previous.current;
+    const step = companionStep(previous.current, count);
     previous.current = count;
-    if (count > before) {
+    if (step.kind === "hop") {
       queueMicrotask(() => {
         setPhase("waiting");
         setHop((n) => n + 1);
       });
       return;
     }
-    if (count === 0 && before > 0) {
+    if (step.kind === "eat") {
       queueMicrotask(() => {
-        setEaten(before);
+        setEaten(step.eaten);
         setPhase("eating");
       });
       const ate = window.setTimeout(() => {
@@ -71,7 +68,7 @@ export function ReviewCompanion({ count }: { count: number }) {
             size={30}
             wander={false}
             seed={11}
-            color={COLORS[phase]}
+            color={COMPANION_COLORS[phase]}
             face={phase === "eating" || phase === "done" ? "happy" : undefined}
             look={
               phase === "eating"

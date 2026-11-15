@@ -630,13 +630,16 @@ export default function Dashboard({
                   </Link>
                 ) : reviewPageEnabled ? (
                   <Link
-                    className={`ws-pill review-link${waitingCount ? " has-items" : ""}`}
+                    className={`ws-pill review-link${waitingCount ? " has-items" : ""}${companionEnabled ? " has-companion" : ""}`}
                     href="/review"
                   >
                     TO REVIEW
                     {waitingCount ? (
-                      // Keyed so a new count pops in, not just swaps.
-                      <span className="ws-count" key={waitingCount}>
+                      // With the companion, keyed so a new count pops in.
+                      <span
+                        className="ws-count"
+                        key={companionEnabled ? waitingCount : undefined}
+                      >
                         {waitingCount}
                       </span>
                     ) : null}
