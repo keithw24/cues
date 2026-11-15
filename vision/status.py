@@ -110,6 +110,10 @@ class SeatTracker:
 
     def update(self, t: float, score: float | None, hand: bool, face: bool) -> list[StatusEvent]:
         events: list[StatusEvent] = []
+        if self._last_t is not None and t - self._last_t > MAX_STEP_SECONDS:
+            # A stall (no frames for a while): that time was not observed, so it must not
+            # complete a hold or the tracking-loss timer.
+            self.shift(t - self._last_t - MAX_STEP_SECONDS)
         dt = 0.0 if self._last_t is None else min(max(t - self._last_t, 0.0), MAX_STEP_SECONDS)
         self._last_t = t
 
@@ -182,6 +186,19 @@ class SeatTracker:
             events.append(StatusEvent("no_progress", self.best_score))
         return events
 
+    def shift(self, seconds: float) -> None:
+        """Skip a pause: move every hold and timer forward, so time nobody observed
+        neither completes a hold (done, review, miss, tracking lost) nor counts as time
+        on task. Statuses are kept."""
+        if seconds <= 0:
+            return
+        if self._last_t is not None:
+            self._last_t += seconds
+        if self._unseen_since is not None:
+            self._unseen_since += seconds
+        if self._band_since is not None:
+            self._band_since += seconds
+
     def _band_for(self, score: float) -> str:
         if score >= self.activity.success_threshold:
             return "success"
@@ -208,8 +225,12 @@ class ExpressionTracker:
         self._label: str | None = None  # sustained negative label, if any
         self._since: float | None = None
         self._sent = False
+        self._last_t: float | None = None
 
     def update(self, t: float, distribution: dict[str, float] | None) -> list[StatusEvent]:
+        if self._last_t is not None and t - self._last_t > MAX_STEP_SECONDS:
+            self.shift(t - self._last_t - MAX_STEP_SECONDS)  # a stall is not persistence
+        self._last_t = t
         label = None
         if distribution:
             candidates = [
@@ -235,6 +256,15 @@ class ExpressionTracker:
                 },
             )
         ]
+
+    def shift(self, seconds: float) -> None:
+        """Skip a pause: an expression must persist for min_seconds of observed time."""
+        if seconds <= 0:
+            return
+        if self._since is not None:
+            self._since += seconds
+        if self._last_t is not None:
+            self._last_t += seconds
 
     def context(self, t: float, distribution: dict[str, float] | None) -> dict | None:
         """Expression context for SeatState, or None when nothing qualifies.

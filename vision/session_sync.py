@@ -12,7 +12,14 @@ from shared.contracts import Session
 from vision import activities
 
 log = logging.getLogger(__name__)
-SESSION_LEASE_SECONDS = 3.0
+# How long a confirmed session stays usable without a fresh poll. Polls run about every
+# 1.5s, but a busy laptop (models on the same Python process) can stall one for several
+# seconds; at 3s that paused task processing and the dashboard showed the camera as off.
+# Writes stay safe meanwhile: the database rejects observations for an ended session or
+# an old revision or activity (guard_managed_observation, migration 0520). It stays well
+# under the one-camera writer lease (station_lease.TTL_SECONDS, 10s), so this camera stops
+# writing before another camera can take the station over.
+SESSION_LEASE_SECONDS = 7.0
 
 
 @dataclass(frozen=True)
@@ -30,12 +37,15 @@ class StationSessionState:
         self._lock = threading.Lock()
         self._lease: SessionLease | None = None
 
-    def confirm(self, session: Session | None) -> None:
+    def confirm(self, session: Session | None, checked_at: float | None = None) -> None:
+        """`checked_at`: when the check began (before the writer claim), so the lease never
+        outlasts the one-camera writer lease it was granted under. Defaults to now."""
         now = self.clock()
+        checked = now if checked_at is None else min(checked_at, now)
         with self._lock:
             previous = self._lease
             changed = previous is None or previous.session != session
-            self._lease = SessionLease(session, now, now if changed else previous.activated_at)
+            self._lease = SessionLease(session, checked, now if changed else previous.activated_at)
 
     def invalidate(self) -> None:
         with self._lock:
@@ -116,6 +126,7 @@ class StationSessionSync:
             self.state.invalidate()  # no teacher station yet: tasks stay paused
             self._release_lease()
             return None
+        started = self.state.clock()  # before the writer claim: the lease starts here
         try:
             if self.lease is not None:
                 if self._leased_station not in (None, station_id):
@@ -165,7 +176,7 @@ class StationSessionSync:
             if self._stop.is_set() or self.station.generation != generation:
                 self.state.invalidate()  # stopped, or the station changed mid-poll
                 return None
-            self.state.confirm(session)
+            self.state.confirm(session, checked_at=started)
             return session
         except Exception:
             self.state.invalidate()

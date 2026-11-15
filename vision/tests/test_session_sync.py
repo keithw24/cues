@@ -12,7 +12,12 @@ from shared.contracts import Session
 from vision.activities import CurrentTasks
 from vision.camera import Frame
 from vision.perception import Match
-from vision.session_sync import StationSessionState, StationSessionSync, frame_activity
+from vision.session_sync import (
+    SESSION_LEASE_SECONDS,
+    StationSessionState,
+    StationSessionSync,
+    frame_activity,
+)
 from vision.stages.s00_session import SessionStage
 from vision.stages.s50_status import StatusStage
 from vision.tests.test_perception import SeatZones
@@ -89,8 +94,11 @@ def test_lease_pauses_old_frames_expiry_and_end():
     clock[0] = 12
     state.confirm(s)  # heartbeat does not discard frames for the same configuration
     assert state.for_frame(11) == s
-    clock[0] = 15.1
-    assert state.for_frame(15.1) is None
+    # A stalled poll (busy laptop) does not pause frames before the lease runs out.
+    clock[0] = 12 + SESSION_LEASE_SECONDS - 0.1
+    assert state.for_frame(clock[0]) == s
+    clock[0] = 12 + SESSION_LEASE_SECONDS + 0.1
+    assert state.for_frame(clock[0]) is None
     state.confirm(s.model_copy(update={"ended_at": datetime.now(UTC), "revision": 1}))
     assert state.for_frame(16) is None
     state.confirm(None)
@@ -298,3 +306,156 @@ def test_managed_session_stores_expression_context_events():
     assert len(expression) == 1
     assert expression[0]["payload"]["session_revision"] == 3
     assert expression[0]["payload"]["label"] == "sadness"
+
+
+def test_a_sync_pause_keeps_each_persons_status_until_a_new_revision():
+    # Regression: one frame without a session (the lease lapsed while the laptop was busy)
+    # reset every tracker, so a flagged or finished child went back to working and the
+    # no-progress timer started over.
+    clock = [10.0]
+    state = StationSessionState(lambda: clock[0])
+    s = session(current_activity_id="thumbs_up")
+    pin = SessionStage(state)
+    emitter = RecordingEmitter()
+    status = StatusStage(emitter=emitter, tasks=CurrentTasks("thumbs_up"), zones=SeatZones())
+    image = np.zeros((480, 640, 3), np.uint8)
+
+    def process(t, confirm=True, current=None):
+        clock[0] = t
+        if confirm:
+            state.confirm(current or s)
+        frame = Frame(image, t, int(t * 10))
+        ctx = {"hands": {"S1-L": []}, "faces": {"S1-L": object()}}
+        pin.process(frame, ctx)
+        ctx["match"] = {"S1-L": Match("thumbs_up", 0.9)}
+        status.process(frame, ctx)
+        return ctx
+
+    for i in range(20):
+        ctx = process(10 + i / 10)
+    assert ctx["status"]["S1-L"] == "done"
+    state.invalidate()  # the sync lapsed
+    paused = process(12.1, confirm=False)
+    assert paused["status"] == {}
+    writes = len(emitter.states)
+    assert process(12.2, confirm=False)["status"] == {} and len(emitter.states) == writes
+    # Back, same session and revision: still done, not working again.
+    assert process(12.5)["status"]["S1-L"] == "done"
+    # The teacher restarts the activity (new revision): everyone starts over.
+    s = s.model_copy(update={"revision": s.revision + 1})
+    assert process(13)["status"]["S1-L"] == "in_progress"
+
+
+class _Run:
+    """One station camera on S1-L under a managed session, frame by frame."""
+
+    def __init__(self):
+        self.clock = [10.0]
+        self.state = StationSessionState(lambda: self.clock[0])
+        self.session = session(current_activity_id="thumbs_up")
+        self.pin = SessionStage(self.state)
+        self.emitter = RecordingEmitter()
+        self.zones = SeatZones()
+        self.status = StatusStage(
+            emitter=self.emitter, tasks=CurrentTasks("thumbs_up"), zones=self.zones
+        )
+        self.image = np.zeros((480, 640, 3), np.uint8)
+
+    def frame(self, t, score=None, confirm=True, expression=None):
+        self.clock[0] = t
+        if confirm:
+            self.state.confirm(self.session)
+        else:
+            self.state.invalidate()
+        frame = Frame(self.image, t, int(t * 100))
+        ctx = {"hands": {"S1-L": []}, "faces": {"S1-L": object()}}
+        if expression:
+            ctx["expression"] = {"S1-L": expression}
+        self.pin.process(frame, ctx)
+        if score is not None:
+            ctx["match"] = {"S1-L": Match("thumbs_up", score)}
+        self.status.process(frame, ctx)
+        return ctx
+
+    def events(self, kind):
+        return [e for e in self.emitter.events if e["type"] == kind]
+
+
+def test_a_pause_does_not_count_toward_a_hold():
+    # Regression (review of #100): kept trackers measured holds in wall time, so one
+    # frame after a 5s pause set done, review or expression_context unseen.
+    run = _Run()
+    run.frame(10.0, score=0.99)
+    run.frame(10.1, score=0.99)
+    for i in range(50):
+        run.frame(10.2 + i / 10, score=None, confirm=False)
+    assert run.frame(15.3, score=0.99)["status"]["S1-L"] == "in_progress"
+    assert run.events("attempt_success") == []
+    # The observed 0.1s before the pause still counts: 0.9s more of holding is enough.
+    for i in range(10):
+        ctx = run.frame(15.4 + i / 10, score=0.99)
+    assert ctx["status"]["S1-L"] == "done"
+
+
+def test_review_and_expression_holds_also_skip_the_pause():
+    run = _Run()
+    sad = {"sadness": 0.9, "neutral": 0.1}
+    run.frame(10.0, score=0.6, expression=sad)
+    run.frame(10.1, score=0.6, expression=sad)
+    for i in range(50):
+        run.frame(10.2 + i / 10, confirm=False)
+    assert run.frame(15.3, score=0.6, expression=sad)["status"]["S1-L"] == "in_progress"
+    assert run.events("review_needed") == [] and run.events("expression_context") == []
+
+
+def test_a_flagged_person_keeps_review_through_a_pause_and_a_new_session_resets():
+    run = _Run()
+    for i in range(25):
+        ctx = run.frame(10 + i / 10, score=0.6)
+    assert ctx["status"]["S1-L"] == "review"
+    for i in range(30):
+        run.frame(12.5 + i / 10, confirm=False)
+    assert run.frame(15.6, score=0.2)["status"]["S1-L"] == "review"
+    run.session = session(current_activity_id="thumbs_up")  # a new session, same revision
+    assert run.frame(15.7, score=0.2)["status"]["S1-L"] == "in_progress"
+
+
+def test_an_id_released_during_a_pause_does_not_pass_its_status_on():
+    run = _Run()
+    for i in range(25):
+        ctx = run.frame(10 + i / 10, score=0.6)
+    assert ctx["status"]["S1-L"] == "review"
+    run.zones.ids = lambda ctx=None: ["S1-R"]  # S1-L released while paused
+    run.frame(12.6, confirm=False)
+    run.zones.ids = lambda ctx=None: ["S1-L", "S1-R"]  # someone new gets S1-L
+    assert run.frame(12.7, score=0.2)["status"]["S1-L"] == "in_progress"
+
+
+def test_the_session_lease_ends_before_another_camera_can_take_the_station():
+    from vision.station_lease import TTL_SECONDS
+
+    assert SESSION_LEASE_SECONDS <= TTL_SECONDS - 2
+
+
+def test_a_camera_stall_inside_the_lease_does_not_complete_a_hold():
+    # From the re-review of #100: frames stop for 5s while the session lease stays
+    # valid. Two frames must not make a success or a review.
+    run = _Run()
+    run.frame(10.0, score=0.99)
+    assert run.frame(15.0, score=0.99)["status"]["S1-L"] == "in_progress"
+    run2 = _Run()
+    run2.frame(10.0, score=0.6)
+    assert run2.frame(12.5, score=0.6)["status"]["S1-L"] == "in_progress"
+    assert run.events("attempt_success") == [] and run2.events("review_needed") == []
+
+
+def test_the_session_lease_starts_when_the_check_began():
+    clock = [10.0]
+    state = StationSessionState(lambda: clock[0])
+    s = session()
+    clock[0] = 13.5  # the reads after the writer claim at 10.0 were slow
+    state.confirm(s, checked_at=10.0)
+    clock[0] = 10.0 + SESSION_LEASE_SECONDS - 0.1
+    assert state.for_frame(13.5) == s
+    clock[0] = 10.0 + SESSION_LEASE_SECONDS + 0.1
+    assert state.for_frame(13.5) is None  # measured from 10.0, not 13.5

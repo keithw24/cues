@@ -36,8 +36,9 @@ Vision works for one station, set by the signed-in teacher's dashboard (`POST 12
 loopback only) or pinned with `CUES_STATION_ID` for dev/test. Until a station arrives it tracks people
 for the local video only and writes nothing. With the session lifecycle on (the launcher default) it
 follows the station's active session, activity and revision from Supabase once per second
-(`vision/session_sync.py`); an ended session, a failed read or an expired three-second lease pauses
-task evaluation and writes. `CUES_SESSION_ID` is not used for managed frames.
+(`vision/session_sync.py`); an ended session, a failed read or an expired seven-second lease pauses
+task evaluation and writes. A pause keeps each person's status (holds and timers skip the paused time); only a new session or
+revision starts everyone over. `CUES_SESSION_ID` is not used for managed frames.
 
 Person ids are `<station>-P<n>`: `S1-P1` to `S1-P4`, `S2-P1` and so on, by position only (no face
 recognition). A new station starts with a fresh tracker. Simulated person slots for each station exist
