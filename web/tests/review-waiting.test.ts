@@ -53,10 +53,11 @@ test("a stale observation no longer reads Needs Review, so it is not listed", ()
   assert.deepEqual(listed, []);
 });
 
-test("web.review_waiting is registered off by default and wired from both pages", () => {
+test("web.review_waiting is registered on by default and wired from both pages", () => {
   const flag = JSON.parse(read("../../flags.json"))["web.review_waiting"];
-  // Off until the live station check is recorded (CLAUDE.md flag rule 2).
-  assert.equal(flag.default, false);
+  // On at Evan's request (he owns it): a flagged person shows on To review and
+  // in Attention at once, not only after the agent's request arrives.
+  assert.equal(flag.default, true);
   assert.equal(flag.owner, "evan");
   for (const page of ["../app/review/page.tsx", "../app/dashboard/page.tsx"])
     assert.match(read(page), /reviewWaitingEnabled=\{isEnabled\("web\.review_waiting"\)\}/);
