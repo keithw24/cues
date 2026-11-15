@@ -65,6 +65,31 @@ def clear_cues_port(port, grace_seconds=5):
                 pass
 
 
+def port_is_free(port: int) -> bool:
+    """True when nothing is listening on the port.
+
+    A plain bind() also fails while a server that just stopped has connections still
+    draining (TIME_WAIT: up to a minute on macOS, for example a browser tab left on the
+    dashboard video), although nothing is listening and the real servers start fine. So ask
+    who is listening instead. If lsof is unavailable, fall back to the strict bind test.
+    """
+    try:
+        result = subprocess.run(
+            ["lsof", "-nP", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        with socket.socket() as probe:
+            try:
+                probe.bind(("127.0.0.1", port))
+            except OSError:
+                return False
+            return True
+    return not result.stdout.split()
+
+
 def cleanup(children, grace_seconds=5):
     """Terminate only isolated groups started by this supervisor; safe to repeat."""
     groups = {child.pid for child in children}
@@ -102,14 +127,11 @@ def main():
         raise SystemExit("Configure root .env: " + ", ".join(required))
     for port in (3000, 8000):
         clear_cues_port(port)
-        with socket.socket() as probe:
-            try:
-                probe.bind(("127.0.0.1", port))
-            except OSError:
-                raise SystemExit(
-                    f"Port {port} is already in use. Stop the existing Cues "
-                    "server before running ./scripts/dev.sh or ./scripts/demo.sh."
-                ) from None
+        if not port_is_free(port):
+            raise SystemExit(
+                f"Port {port} is already in use. Stop the existing Cues "
+                "server before running ./scripts/dev.sh or ./scripts/demo.sh."
+            )
     commands = [
         (
             "vision",
