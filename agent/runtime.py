@@ -96,10 +96,6 @@ def review_store_from_env(
     log.info("Teacher review storage: Supabase")
     if notifier is None:
         notifier = spectrum_notifier(config, REPO_ROOT, client=client)
-    if notifier is None and config.get("PHOTON_API_KEY"):
-        log.warning(
-            "Photon key is configured but no Photon sender is injected; notifications disabled"
-        )
     return SupabaseTeacherReviewStore(client, notifier=notifier)
 
 

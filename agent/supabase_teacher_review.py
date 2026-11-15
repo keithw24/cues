@@ -12,7 +12,7 @@ from postgrest.exceptions import APIError
 from pydantic import TypeAdapter
 
 from agent.assessment import AgentAssessment
-from agent.notifications import ReviewNotifier
+from agent.notifications import NotificationUnavailable, ReviewNotifier
 from agent.router import AgentEvaluationRequest
 from agent.teacher_review import TeacherReview, validate_review_request
 from supabase import Client
@@ -190,10 +190,14 @@ class SupabaseTeacherReviewStore:
             try:
                 self._notifier.notify_pending_review(stored.model_copy(deep=True))
             except Exception as error:
+                # Only NotificationUnavailable carries a fixed, safe reason; any other
+                # error is reported by type, since its text may hold provider detail.
+                safe = isinstance(error, NotificationUnavailable)
+                reason = str(error) if safe else type(error).__name__
                 logging.getLogger(__name__).error(
                     "Teacher notification failed for review %s (%s); pending review retained",
                     stored.id,
-                    type(error).__name__,
+                    reason,
                 )
         return stored
 

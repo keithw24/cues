@@ -6,6 +6,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from agent.notifications import NotificationUnavailable
+
 
 def send_to_teacher(client, config: dict, root: Path, user_id: str, message: str) -> str:
     profiles = (
@@ -26,7 +28,7 @@ def send_to_teacher(client, config: dict, root: Path, user_id: str, message: str
     state = rows[0] if rows else {}
     project = config.get("SPECTRUM_PROJECT_ID")
     if not project or not config.get("SPECTRUM_PROJECT_SECRET"):
-        raise RuntimeError("Notification configuration unavailable")
+        raise NotificationUnavailable("Notification configuration unavailable")
     if (
         state.get("notification_opt_in") is not True
         or not isinstance(phone, str)
@@ -35,7 +37,7 @@ def send_to_teacher(client, config: dict, root: Path, user_id: str, message: str
         or state.get("photon_project_id") != project
         or not state.get("registration_attempt")
     ):
-        raise RuntimeError("Teacher notification consent unavailable")
+        raise NotificationUnavailable("Teacher notification consent unavailable")
     env = dict(os.environ)
     for name in ("SPECTRUM_TEACHER_PHONE", "PHOTON_TOKEN", "DASHBOARD_TOKEN"):
         env.pop(name, None)
@@ -82,12 +84,12 @@ def send_to_teacher(client, config: dict, root: Path, user_id: str, message: str
         .data
     )
     if updated is not True:
-        raise RuntimeError("Notification consent changed; send result not applied")
+        raise NotificationUnavailable("Notification consent changed; send result not applied")
     if outcome == "accepted":
         return "registered"
     if outcome == "target_not_allowed":
         return "pending"
-    raise RuntimeError(f"Notification send failed: {outcome}")
+    raise NotificationUnavailable(f"Notification send failed: {outcome}")
 
 
 def main():

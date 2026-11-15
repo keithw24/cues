@@ -88,9 +88,11 @@ and resolves review.session_id → sessions.teacher_id → teacher_profiles.phon
 Missing owner/profile/phone fails notification clearly and retains the pending review.
 There is no static fallback. Add the opted-in profile destination to active Spectrum Users.
 The sender loads this file relative to its module, independent of working directory.
-Missing/incomplete Spectrum configuration produces a warning and disables the
-notifier for that worker; persistence and review processing can still run.
-Restart after adding notification configuration.
+The agent worker reads `cues/.env` again on every send, so saving or fixing it
+takes effect on the next review without a restart. Until it is complete, the worker
+logs a startup warning and each review logs "Teacher notification failed … (Spectrum
+project credentials are missing …)"; persistence and review processing still run.
+Each failed send logs a safe reason (no phone, secret or provider detail).
 
 ## Database and demo prerequisites
 
