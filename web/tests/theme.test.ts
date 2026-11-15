@@ -192,6 +192,6 @@ test("alert copy names only the seat, matching what Photon sends", () => {
   ]) {
     const source = read(`../components/${file}`);
     assert.match(source, /only the seat|seat, never images/, file);
-    assert.doesNotMatch(source, /seat and task/, file);
+    assert.doesNotMatch(source, /seat\s+and\s+(the\s+)?task/, file);
   }
 });
