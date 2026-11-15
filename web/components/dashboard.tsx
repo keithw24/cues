@@ -352,14 +352,22 @@ export default function Dashboard({
     return () => {
       disposed = true;
       clearInterval(timer);
+      // Never carry one classroom's warning over to the next.
+      setConflict(false);
     };
   }, [client, station, sessionControlsEnabled]);
   // With session controls, the activity picker itself shows the activity.
   const activity = observationActivity;
 
   // A mark lasts until vision reports the person out of review.
+  // Read the raw status, not the on-screen one: a stale or paused observation
+  // must not drop the mark before vision has actually reset the person.
   const stillFlagged = seats
-    .filter((seat) => markedSeats.has(seat.id) && present(seat).needsReview)
+    .filter(
+      (seat) =>
+        markedSeats.has(seat.id) &&
+        (seat.state?.status === "review" || seat.state?.status === "needs_help"),
+    )
     .map((seat) => seat.id)
     .join(",");
   useEffect(() => {
