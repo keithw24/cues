@@ -33,13 +33,15 @@ function rememberedCount(key: string): number | null {
 
 export function ReviewCompanion({
   count,
-  remember = false,
+  rememberAs,
 }: {
   count: number | null;
-  /** Remember the live count for this tab (the dashboard only; never the
-   * landing demo, whose counts are simulated). */
-  remember?: boolean;
+  /** Remember the live count for this tab under this station (the dashboard
+   * only; never the landing demo, whose counts are simulated). Per station, so
+   * one classroom's count never shows up for another. */
+  rememberAs?: string;
 }) {
+  const memoryKey = rememberAs ? `${COMPANION_COUNT_KEY}:${rememberAs}` : null;
   // The phase follows the count in render (not after paint), so the count it
   // eats is in place in the same frame the pill's own count goes.
   const [previous, setPrevious] = useState(count);
@@ -48,15 +50,16 @@ export function ReviewCompanion({
   );
   const [eaten, setEaten] = useState(0);
   const [hop, setHop] = useState(0);
+  // Only the first live count after mounting looks at the memory; a feed that
+  // drops and reconnects later just shows the queue as it is.
+  const [memoryRead, setMemoryRead] = useState(false);
   if (count !== previous) {
-    // Only the first live count after (re)mounting looks at what this tab
-    // remembered: requests cleared on To review are eaten on the way back.
+    const firstLive = !memoryRead && count !== null;
+    if (firstLive) setMemoryRead(true);
     const step = companionStep(
       previous,
       count,
-      remember && previous === null && count !== null
-        ? rememberedCount(COMPANION_COUNT_KEY)
-        : null,
+      firstLive && memoryKey ? rememberedCount(memoryKey) : null,
     );
     setPrevious(count);
     if (step.kind === "hop") {
@@ -74,11 +77,11 @@ export function ReviewCompanion({
 
   // Remember the live count for this tab, for the eat on the way back.
   useEffect(() => {
-    if (!remember || count === null) return;
+    if (!memoryKey || count === null) return;
     try {
-      window.sessionStorage.setItem(COMPANION_COUNT_KEY, String(count));
+      window.sessionStorage.setItem(memoryKey, String(count));
     } catch {}
-  }, [count, remember]);
+  }, [count, memoryKey]);
 
   // Only the timers live in effects; a new count cancels them.
   useEffect(() => {

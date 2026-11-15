@@ -445,6 +445,10 @@ export default function Dashboard({
     askedSeatIds: reviewGroups.map((group) => group.seat_id),
     marked: markedSeats,
   });
+  // What the companion follows. With flagged people counted, wait for the
+  // camera data too, so a count that is about to grow never reads as cleared.
+  const companionCount =
+    reviewsLive && (!reviewWaitingEnabled || feed.snapshot) ? waitingCount : null;
   // Attention names them too (web.review_waiting): instead of "All clear", or
   // under the requests, so the cards and Attention always agree.
   const flaggedLine = attentionFlaggedLine(
@@ -677,8 +681,8 @@ export default function Dashboard({
                     ) : null}
                     {companionEnabled ? (
                       <ReviewCompanion
-                        count={reviewsLive ? waitingCount : null}
-                        remember
+                        count={companionCount}
+                        rememberAs={station}
                       />
                     ) : null}
                   </Link>

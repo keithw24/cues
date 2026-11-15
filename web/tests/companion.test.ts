@@ -55,3 +55,29 @@ test("coming back to an empty queue the tab last saw with requests is an eat", (
   // Remembered only matters on the first live count.
   assert.deepEqual(companionStep(1, 0, 5), { kind: "eat", eaten: 1 });
 });
+
+test("only the dashboard remembers, per station, and sign-out forgets", async () => {
+  const { readFileSync } = await import("node:fs");
+  const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
+  // The landing demo's simulated counts are never stored.
+  assert.doesNotMatch(read("../components/landing-demo.tsx"), /<ReviewCompanion[^>]*rememberAs/);
+  // The companion reads and writes only under its station's key.
+  const companion = read("../components/review-companion.tsx");
+  assert.match(companion, /`\$\{COMPANION_COUNT_KEY\}:\$\{rememberAs\}`/);
+  assert.match(companion, /if \(!memoryKey \|\| count === null\) return;/);
+  // Sign-out clears every remembered count in the tab.
+  assert.match(read("../components/profile-account.tsx"), /forgetCompanionCounts\(window\.sessionStorage\)/);
+  const { forgetCompanionCounts } = await import("../lib/companion.ts");
+  const store = new Map<string, string>([
+    ["cues-companion-count:S1", "2"],
+    ["cues-companion-count:S2", "1"],
+    ["other", "x"],
+  ]);
+  const storage = {
+    get length() { return store.size; },
+    key: (i: number) => [...store.keys()][i] ?? null,
+    removeItem: (k: string) => void store.delete(k),
+  } as unknown as Storage;
+  forgetCompanionCounts(storage);
+  assert.deepEqual([...store.keys()], ["other"]);
+});

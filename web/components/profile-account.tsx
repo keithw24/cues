@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { forgetCompanionCounts } from "@/lib/companion";
 import { useEffect, useRef, useState } from "react";
 import { createDashboardClient } from "@/lib/supabase";
 
@@ -40,7 +41,12 @@ export default function ProfileAccount() {
     if (failed) {
       setError("Could not sign out. Try again.");
       setState("signed-in");
+      return;
     }
+    // The next teacher in this tab starts with no remembered queue.
+    try {
+      forgetCompanionCounts(window.sessionStorage);
+    } catch {}
   }
 
   if (!client) return null;

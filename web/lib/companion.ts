@@ -33,6 +33,14 @@ export type CompanionStep =
  * queue cleared on the To review page is eaten on the way back. */
 export const COMPANION_COUNT_KEY = "cues-companion-count";
 
+/** Forget every remembered count in this tab (on sign-out). */
+export function forgetCompanionCounts(storage: Storage): void {
+  for (let i = storage.length - 1; i >= 0; i--) {
+    const key = storage.key(i);
+    if (key?.startsWith(COMPANION_COUNT_KEY)) storage.removeItem(key);
+  }
+}
+
 /**
  * `null` means the review feed is not live, so the count is unknown.
  * `remembered` is the last live count this tab saw before the page was left
