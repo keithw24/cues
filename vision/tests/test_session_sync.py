@@ -435,3 +435,27 @@ def test_the_session_lease_ends_before_another_camera_can_take_the_station():
     from vision.station_lease import TTL_SECONDS
 
     assert SESSION_LEASE_SECONDS <= TTL_SECONDS - 2
+
+
+def test_a_camera_stall_inside_the_lease_does_not_complete_a_hold():
+    # From the re-review of #100: frames stop for 5s while the session lease stays
+    # valid. Two frames must not make a success or a review.
+    run = _Run()
+    run.frame(10.0, score=0.99)
+    assert run.frame(15.0, score=0.99)["status"]["S1-L"] == "in_progress"
+    run2 = _Run()
+    run2.frame(10.0, score=0.6)
+    assert run2.frame(12.5, score=0.6)["status"]["S1-L"] == "in_progress"
+    assert run.events("attempt_success") == [] and run2.events("review_needed") == []
+
+
+def test_the_session_lease_starts_when_the_check_began():
+    clock = [10.0]
+    state = StationSessionState(lambda: clock[0])
+    s = session()
+    clock[0] = 13.5  # the reads after the writer claim at 10.0 were slow
+    state.confirm(s, checked_at=10.0)
+    clock[0] = 10.0 + SESSION_LEASE_SECONDS - 0.1
+    assert state.for_frame(13.5) == s
+    clock[0] = 10.0 + SESSION_LEASE_SECONDS + 0.1
+    assert state.for_frame(13.5) is None  # measured from 10.0, not 13.5

@@ -110,6 +110,10 @@ class SeatTracker:
 
     def update(self, t: float, score: float | None, hand: bool, face: bool) -> list[StatusEvent]:
         events: list[StatusEvent] = []
+        if self._last_t is not None and t - self._last_t > MAX_STEP_SECONDS:
+            # A stall (no frames for a while): that time was not observed, so it must not
+            # complete a hold or the tracking-loss timer.
+            self.shift(t - self._last_t - MAX_STEP_SECONDS)
         dt = 0.0 if self._last_t is None else min(max(t - self._last_t, 0.0), MAX_STEP_SECONDS)
         self._last_t = t
 
@@ -221,8 +225,12 @@ class ExpressionTracker:
         self._label: str | None = None  # sustained negative label, if any
         self._since: float | None = None
         self._sent = False
+        self._last_t: float | None = None
 
     def update(self, t: float, distribution: dict[str, float] | None) -> list[StatusEvent]:
+        if self._last_t is not None and t - self._last_t > MAX_STEP_SECONDS:
+            self.shift(t - self._last_t - MAX_STEP_SECONDS)  # a stall is not persistence
+        self._last_t = t
         label = None
         if distribution:
             candidates = [
@@ -251,8 +259,12 @@ class ExpressionTracker:
 
     def shift(self, seconds: float) -> None:
         """Skip a pause: an expression must persist for min_seconds of observed time."""
-        if seconds > 0 and self._since is not None:
+        if seconds <= 0:
+            return
+        if self._since is not None:
             self._since += seconds
+        if self._last_t is not None:
+            self._last_t += seconds
 
     def context(self, t: float, distribution: dict[str, float] | None) -> dict | None:
         """Expression context for SeatState, or None when nothing qualifies.
