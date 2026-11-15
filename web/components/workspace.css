@@ -2161,3 +2161,14 @@ body .dashboard-shell.ws-demo {
     scale: 1;
   }
 }
+
+/* One camera per station: a second camera is being refused and paused. */
+.dashboard-shell .station-busy {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}

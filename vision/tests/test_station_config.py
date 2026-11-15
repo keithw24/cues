@@ -204,14 +204,23 @@ def api(unconfigured):
 
 def test_vision_starts_without_a_station_and_reports_it(api):
     assert api.get("/health").json()["station_id"] is None
-    assert api.get("/config").json() == {"station_id": None, "pinned": False}
+    assert api.get("/config").json() == {
+        "station_id": None,
+        "pinned": False,
+        "station_busy": False,
+    }
 
 
 def test_local_dashboard_sets_the_station(api, unconfigured):
     headers = {"Origin": "http://localhost:3000"}
     r = api.post("/config", json={"station_id": "S2"}, headers=headers)
     assert r.status_code == 200
-    assert r.json() == {"station_id": "S2", "pinned": False, "changed": True}
+    assert r.json() == {
+        "station_id": "S2",
+        "pinned": False,
+        "station_busy": False,
+        "changed": True,
+    }
     assert unconfigured.get() == "S2"
     again = api.post("/config", json={"station_id": "S2"}, headers=headers)
     assert again.json()["changed"] is False
