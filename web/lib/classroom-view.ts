@@ -105,10 +105,12 @@ export function reviewQueue<T extends { id: string }>({
   return { flagged: extra, count: askedSeatIds.length + extra.length };
 }
 
-/** Names for a short sentence: "Keith", "Keith and Evan", "Keith, Evan and 2 more". */
+/** Names for a short sentence: "Keith", "Keith and Evan", "Keith, Evan and Eric",
+ * "Keith, Evan and 2 more". */
 export function nameList(names: readonly string[]): string {
   if (names.length <= 1) return names[0] ?? "";
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  if (names.length === 3) return `${names[0]}, ${names[1]} and ${names[2]}`;
   return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
 }
 

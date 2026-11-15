@@ -451,6 +451,14 @@ export default function Dashboard({
     flaggedOnly.map((seat) => seat.display_name),
     reviewGroups.length > 0,
   );
+  // Marked as reviewed, but the camera hasn't reset them yet: not "All clear"
+  // while their card still reads Needs Review.
+  const catchingUp =
+    reviewWaitingEnabled &&
+    reviewsLive &&
+    inView.some(
+      (seat) => markedSeats.has(seat.id) && present(seat).needsReview,
+    );
   // A person picked from the strip who has no request opens in the side
   // panel; someone with a request opens in place in the attention list.
   const selectedPerson =
@@ -912,14 +920,16 @@ export default function Dashboard({
                 ) : (
                   reviewNotice ? null : (
                     <p
-                      className={`panel-empty${flaggedLine && reviewsEnabled && !configurationError ? " is-flagged" : ""}`}
+                      className={`panel-empty${flaggedLine ? " is-flagged" : ""}`}
                       role="status"
                     >
                       {!reviewsEnabled || configurationError
                         ? "Cues will ask here when someone may need you."
                         : reviewsLive
                           ? (flaggedLine ??
-                            "All clear. Cues will ask when someone may need you.")
+                            (catchingUp
+                              ? "Marked as reviewed. The camera will catch up in a moment."
+                              : "All clear. Cues will ask when someone may need you."))
                           : "Checking…"}
                     </p>
                   )

@@ -62,7 +62,7 @@ test("Attention names camera-flagged people instead of All clear, or under the r
   assert.equal(attentionFlaggedLine(["Keith"], true), "Also flagged by the camera: Keith.");
   assert.doesNotMatch(attentionFlaggedLine(["Keith"], false) ?? "", /All clear/);
   assert.equal(nameList(["Keith", "Evan"]), "Keith and Evan");
-  assert.equal(nameList(["Keith", "Evan", "Eric"]), "Keith, Evan and 1 more");
+  assert.equal(nameList(["Keith", "Evan", "Eric"]), "Keith, Evan and Eric");
   assert.equal(nameList(["Keith", "Evan", "Eric", "Michelle"]), "Keith, Evan and 2 more");
 });
 
