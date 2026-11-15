@@ -448,6 +448,10 @@
   min-width: 0;
   max-width: 100%;
 }
+/* Leave room for the camera button (44px + 12px gap) so it stays on the row. */
+.dashboard-shell .hero-controls > .session-controls:has(+ .health-strip) {
+  max-width: calc(100% - 56px);
+}
 .dashboard-shell .ws-hero > .hero-controls + .station-busy {
   margin-top: -12px;
 }
