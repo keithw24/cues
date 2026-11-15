@@ -236,6 +236,8 @@ def test_credentials_do_not_enter_context_or_structured_output(tmp_path, client_
             evidence_used=["current_progress"],
         ),
     )
+    # No open review yet for this person, so the store creates one.
+    client.table.return_value.select.return_value.match.return_value.limit.return_value.execute.return_value.data = []  # noqa: E501
     client.table.return_value.upsert.return_value.execute.return_value.data = [
         review_to_row(original)
     ]
