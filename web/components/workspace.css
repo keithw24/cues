@@ -1390,47 +1390,194 @@ body .dashboard-shell.ws-demo {
   box-shadow: none;
   color: var(--ws-primary-ink);
 }
+.ws-demo-rail-item {
+  position: relative;
+}
+.ws-demo-rail-item .rail-badge {
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
 .ws-demo-main {
   min-width: 0;
-  padding: 12px 12px 16px 0;
+  padding: 0 16px 16px 4px;
+}
+/* The demo is the real classroom at window scale: same classes, no page
+   gutter, smaller type. */
+.dashboard-shell.ws-demo {
+  --ws-gutter: 0px;
 }
 .dashboard-shell.ws-demo .ws-hero {
-  gap: 20px;
-  margin-bottom: 4px;
-  padding: 24px 24px 22px;
-  border-radius: 22px 22px 0 0;
+  gap: 0;
+  padding: 22px 6px 16px;
 }
 .dashboard-shell.ws-demo .ws-hero h1 {
   font-size: 40px;
 }
-.ws-demo-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  align-items: start;
+.dashboard-shell.ws-demo .ws-subtitle {
+  margin-top: 6px;
+  font-size: 13px;
+}
+/* The activity controls, drawn as in the classroom (not interactive here). */
+.dashboard-shell.ws-demo .session-controls {
+  margin-top: 14px;
+}
+.dashboard-shell.ws-demo .session-row {
+  gap: 8px;
+}
+.dashboard-shell.ws-demo .session-row .ws-pill {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+  cursor: default;
+}
+.dashboard-shell.ws-demo .session-row .ws-icon-button {
+  width: 34px;
+  height: 34px;
+  cursor: default;
+}
+.dashboard-shell .ws-demo-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  height: 34px;
+  min-width: 170px;
+  padding: 0 12px 0 16px;
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.dashboard-shell .ws-demo-select svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ws-ink-soft);
+}
+.dashboard-shell.ws-demo .review-link {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+.dashboard-shell.ws-demo .monitor-workspace {
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
   gap: 12px;
+  align-items: stretch;
 }
 .dashboard-shell.ws-demo .ws-panel {
   padding: 10px;
   border-radius: 22px;
 }
 .dashboard-shell.ws-demo .panel-heading {
-  padding: 2px 4px 12px;
+  padding: 4px 6px 10px;
 }
-.dashboard-shell.ws-demo .panel-heading h2 {
-  font-size: 17px;
+.dashboard-shell.ws-demo .class-panel {
+  contain: none;
+  overflow: visible;
 }
 .dashboard-shell.ws-demo .ws-row {
-  min-height: 56px;
-  padding: 9px 12px;
+  min-height: 52px;
+  padding: 8px 10px;
   border-radius: 12px;
 }
 .dashboard-shell.ws-demo .row-avatar {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   font-size: 12px;
 }
 .dashboard-shell.ws-demo .panel-empty {
-  padding: 28px 12px;
+  padding: 24px 10px;
+  font-size: 13px;
+}
+/* The camera, illustrated: a dim room with one outlined box and label per
+   person, as the vision overlay draws them. Never video. */
+.dashboard-shell .ws-demo-stage {
+  border-radius: 12px;
+  background:
+    radial-gradient(60% 80% at 50% 120%, rgb(66 92 200 / 0.35), transparent 70%),
+    linear-gradient(180deg, #1a2350, #111a3a);
+}
+.dashboard-shell .ws-demo-box {
+  position: absolute;
+  bottom: 12%;
+  width: 18%;
+  height: 62%;
+  border: 2px solid var(--box-color, #8fa3ff);
+  border-radius: 10px;
+  transition: border-color 300ms ease-out;
+}
+.dashboard-shell .ws-demo-box.is-working {
+  --box-color: #8fa3ff;
+}
+.dashboard-shell .ws-demo-box.is-done {
+  --box-color: #8fdcb0;
+}
+.dashboard-shell .ws-demo-box.is-review {
+  --box-color: #f3b897;
+}
+.dashboard-shell .ws-demo-box.is-quiet {
+  --box-color: rgb(255 255 255 / 0.4);
+}
+/* A companion character stands in each box, centered near the bottom. */
+.dashboard-shell .ws-demo-figure {
+  position: absolute;
+  inset: 22% 0 4%;
+  display: grid;
+  place-items: center;
+}
+.dashboard-shell .ws-demo-figure .cues-blob {
+  width: 100%;
+  max-width: 100%;
+}
+/* The tag names the person only (the box color and the card below give the
+   status) and never runs past its box. */
+.dashboard-shell .ws-demo-tag {
+  max-width: calc(100% + 2px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  padding: 2px 6px;
+  border-radius: 8px 0 8px 0;
+  background: var(--box-color, #8fa3ff);
+  color: #0b0d12;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 300ms ease-out;
+}
+/* The student cards fit the window: four across, no scrolling. */
+.dashboard-shell .ws-demo-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  padding: 0;
+  overflow: visible;
+}
+.dashboard-shell .ws-demo-strip .strip-card {
+  width: auto;
+  min-height: 64px;
+  padding: 10px 12px;
+  gap: 10px;
+  border-radius: 18px;
+  cursor: default;
+}
+.dashboard-shell .ws-demo-strip .strip-card .row-avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 12px;
+}
+.dashboard-shell .ws-demo-strip .row-name {
+  font-size: 14px;
+}
+.dashboard-shell .ws-demo-strip .strip-status {
+  font-size: 10px;
 }
 /* A request arrives and leaves: opacity and a 6px rise, once per change. */
 .dashboard-shell.ws-demo .ws-demo-arrive {
@@ -1628,9 +1775,13 @@ body .dashboard-shell.ws-demo {
   .ws-demo-main {
     padding: 10px;
   }
-  .ws-demo-grid {
+  .dashboard-shell.ws-demo .monitor-workspace {
     grid-template-columns: minmax(0, 1fr);
   }
+  .dashboard-shell .ws-demo-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-shell.ws-demo .ws-hero {
     padding: 18px;
   }

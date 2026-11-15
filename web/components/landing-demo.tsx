@@ -1,18 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import dynamic from "next/dynamic";
+import type { BlobShape } from "@/components/cues-blob";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 import CuesMark from "@/components/cues-mark";
-import {
-  PersonRowContent,
-  ReviewRowContent,
-} from "@/components/workspace-rows";
+import { ReviewRowContent, initials } from "@/components/workspace-rows";
 import "./workspace.css";
 
-// The real dashboard's banner and rows, driven by a scripted, simulated
-// classroom. Nothing is read from or sent to Supabase.
+// The real dashboard's layout (title, camera beside ATTENTION, the student
+// cards underneath), driven by a scripted, simulated classroom. The camera
+// is an illustration of the vision overlay (a box and label per person), not
+// video. Nothing is read from or sent to Supabase.
 type Tone = "working" | "done" | "review" | "quiet";
 type Person = { name: string; status: string; tone: Tone };
+
+// Each simulated student is drawn as one of the sign-in companion's
+// characters: its own shape and color, eyes neutral. The box around it carries
+// the status, as the vision overlay does; the character never acts out a mood.
+const Character = dynamic(() => import("@/components/cues-blob"), {
+  ssr: false,
+});
+// Each has its own animation seed, so their idle moves never line up.
+const looks: Record<
+  string,
+  { shape: BlobShape; color: `#${string}`; seed: number }
+> = {
+  Michelle: { shape: "capsule", color: "#3aa58f", seed: 1103 },
+  Keith: { shape: "cube", color: "#e07a5f", seed: 2741 },
+  Evan: { shape: "sphere", color: "#5763d2", seed: 3919 },
+  Eric: { shape: "trapezoid", color: "#e2a33b", seed: 5087 },
+};
 type Frame = { caption: string; people: Person[]; review: boolean };
 
 const ready: Omit<Person, "name"> = {
@@ -37,42 +55,42 @@ const frames: Frame[] = [
     caption:
       "You start a thumbs-up task with four simulated students. Cues watches each one’s place in the frame.",
     people: [
-      { name: "Maya", ...working },
-      { name: "Leo", ...working },
-      { name: "Ava", ...working },
-      { name: "Noah", ...ready },
+      { name: "Michelle", ...working },
+      { name: "Keith", ...working },
+      { name: "Evan", ...working },
+      { name: "Eric", ...ready },
     ],
     review: false,
   },
   {
-    caption: "Maya finishes. Nothing for you to do.",
+    caption: "Michelle finishes. Nothing for you to do.",
     people: [
-      { name: "Maya", ...done },
-      { name: "Leo", ...working },
-      { name: "Ava", ...working },
-      { name: "Noah", ...working },
+      { name: "Michelle", ...done },
+      { name: "Keith", ...working },
+      { name: "Evan", ...working },
+      { name: "Eric", ...working },
     ],
     review: false,
   },
   {
     caption:
-      "Leo keeps trying without finishing, so Cues asks you to take a look.",
+      "Keith keeps trying without finishing, so Cues asks you to take a look.",
     people: [
-      { name: "Maya", ...done },
-      { name: "Leo", ...review },
-      { name: "Ava", ...working },
-      { name: "Noah", ...working },
+      { name: "Michelle", ...done },
+      { name: "Keith", ...review },
+      { name: "Evan", ...working },
+      { name: "Eric", ...working },
     ],
     review: true,
   },
   {
     caption:
-      "You check in with Leo and close the review. He’s back to working.",
+      "You check in with Keith and close the review. Keith is back to working.",
     people: [
-      { name: "Maya", ...done },
-      { name: "Leo", ...working },
-      { name: "Ava", ...done },
-      { name: "Noah", ...working },
+      { name: "Michelle", ...done },
+      { name: "Keith", ...working },
+      { name: "Evan", ...done },
+      { name: "Eric", ...working },
     ],
     review: false,
   },
@@ -121,8 +139,8 @@ export default function LandingDemo() {
   return (
     <figure ref={ref} className="ln-demo">
       <p className="sr-only">
-        A demo of the Cues dashboard with simulated students: one finishes,
-        another keeps trying, Cues asks the teacher to take a look, and the
+        Simulated students: a demo of the Cues classroom where one finishes,
+        another keeps trying, Cues asks the teacher to check in, and the
         teacher closes the review.
       </p>
       <div className="dashboard-shell ws-demo" aria-hidden="true">
@@ -132,41 +150,66 @@ export default function LandingDemo() {
             <WorkspaceIcon name="classroom" />
           </span>
           <span className="ws-demo-rail-item">
+            <WorkspaceIcon name="review" />
+            {frame.review ? <span className="rail-badge">1</span> : null}
+          </span>
+          <span className="ws-demo-rail-item">
             <WorkspaceIcon name="account" />
           </span>
         </div>
         <div className="ws-demo-main">
           <div className="ws-hero">
             <header className="page-intro">
-              <div>
-                <h1>your classroom</h1>
-                <p className="ws-subtitle">Thumbs up</p>
-              </div>
-              <span className="ws-pill">Simulated students</span>
+              <h1>your classroom</h1>
+              <span
+                className={`ws-pill review-link${frame.review ? " has-items" : ""}`}
+              >
+                To review
+                {frame.review ? <span className="ws-count">1</span> : null}
+              </span>
             </header>
+            <div className="session-controls">
+              <div className="session-row">
+                <span className="ws-demo-select">
+                  Thumbs up
+                  <WorkspaceIcon name="chevronDown" />
+                </span>
+                <span className="ws-pill is-dark">Change activity</span>
+                <span className="ws-pill">End</span>
+                <span className="ws-icon-button">
+                  <WorkspaceIcon name="refresh" />
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="ws-demo-grid">
-            <section className="ws-panel">
+          <div className="monitor-workspace">
+            <section className="ws-panel classroom-feed">
               <header className="panel-heading">
-                <h2>People</h2>
-                <span className="ws-caption">Left to right</span>
+                <h2>Camera</h2>
               </header>
-              <ul className="row-list">
-                {frame.people.map((person) => (
-                  <li key={person.name}>
-                    <div className="ws-row">
-                      <PersonRowContent
-                        name={person.name}
-                        status={person.status}
-                        tone={person.tone}
-                        activity=""
+              <div className="video-stage ws-demo-stage">
+                {frame.people.map((person, index) => (
+                  <span
+                    key={person.name}
+                    className={`ws-demo-box is-${person.tone}`}
+                    style={{ left: `${6 + index * 23.5}%` }}
+                  >
+                    <span className="ws-demo-figure">
+                      <Character
+                        size={84}
+                        wander={false}
+                        glance
+                        seed={looks[person.name].seed}
+                        shape={looks[person.name].shape}
+                        color={looks[person.name].color}
                       />
-                    </div>
-                  </li>
+                    </span>
+                    <span className="ws-demo-tag">{person.name}</span>
+                  </span>
                 ))}
-              </ul>
+              </div>
             </section>
-            <section className="ws-panel">
+            <section className="ws-panel class-panel">
               <header className="panel-heading">
                 <h2>Attention</h2>
                 {frame.review ? <span className="ws-count">1</span> : null}
@@ -176,7 +219,7 @@ export default function LandingDemo() {
                   <li>
                     <div className="ws-row">
                       <ReviewRowContent
-                        name="Leo"
+                        name="Keith"
                         meta=""
                         time="2026-11-14T09:41:00"
                         timeLabel="9:41 AM"
@@ -192,6 +235,21 @@ export default function LandingDemo() {
               )}
             </section>
           </div>
+          <ul className="strip-track ws-demo-strip">
+            {frame.people.map((person) => (
+              <li key={person.name}>
+                <div className={`strip-card is-${person.tone}`}>
+                  <span className="row-avatar is-ring">
+                    {initials(person.name)}
+                  </span>
+                  <span className="row-body">
+                    <span className="row-name">{person.name}</span>
+                    <span className="strip-status">{person.status}</span>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
       <figcaption className="ln-demo-caption" key={frame.caption}>

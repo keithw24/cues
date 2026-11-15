@@ -32,8 +32,6 @@ const garamond = EB_Garamond({
 const tasks = [
   { name: "Raise hand", kind: "Built in", count: "2 seats" },
   { name: "Thumbs up", kind: "Built in", count: "3 seats" },
-  { name: "Wave hello", kind: "Recorded by you", count: "1 seat" },
-  { name: "Touch your nose", kind: "Recorded by you", count: "Not started" },
 ] as const;
 
 export default function Landing() {
@@ -92,8 +90,8 @@ export default function Landing() {
               >
                 <h2 id="how-heading">Simple tasks, watched for you</h2>
                 <p>
-                  Pick a task from the list or record your own gesture. One
-                  camera follows each student by their place in the frame, and
+                  Pick a task: a raised hand or a thumbs up. One camera
+                  follows each student by their place in the frame, and
                   Cues keeps track of who has finished, who is still going and
                   who keeps trying.
                 </p>

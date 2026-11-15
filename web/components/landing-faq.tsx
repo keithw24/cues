@@ -6,7 +6,7 @@ import { RiAddLine } from "@remixicon/react";
 const questions = [
   {
     q: "What does Cues watch for?",
-    a: "Simple tasks you choose: a raised hand, a thumbs up, or a gesture you record yourself. One camera follows each student by their place in the frame.",
+    a: "Simple tasks you choose: a raised hand or a thumbs up. One camera follows each student by their place in the frame.",
   },
   {
     q: "Does classroom video leave the room?",

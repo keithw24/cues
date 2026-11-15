@@ -6,9 +6,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   changeSession,
   readSession,
-  sessionOwnership,
   sessionActions,
   sessionControlState,
+  sessionOwnership,
   stationSyncLabel,
   type SessionSnapshot,
 } from "@/lib/session-controls";
@@ -16,14 +16,11 @@ import {
 export function SessionControls({
   client,
   station,
-  stationMessage,
   onActivity,
   teacherLoginEnabled = false,
 }: {
   client: SupabaseClient;
   station: string;
-  /** Shown while the signed-in teacher's station is being found (or cannot be). */
-  stationMessage?: string;
   onActivity: (label: string) => void;
   teacherLoginEnabled?: boolean;
 }) {
@@ -41,12 +38,17 @@ export function SessionControls({
   const selectRef = useRef<HTMLSelectElement>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshRequired, setRefreshRequired] = useState(false);
-  const [now, setNow] = useState(0);
   const refreshAfterAction = useRef<(() => void) | null>(null);
+  // Whether the camera reports that it can't run the chosen activity, checked
+  // against the clock each time a session snapshot arrives.
+  const [cameraUnavailable, setCameraUnavailable] = useState(false);
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    const unavailable = snapshot
+      ? stationSyncLabel(snapshot, Date.now()) ===
+        "Activity unavailable on the camera"
+      : false;
+    queueMicrotask(() => setCameraUnavailable(unavailable));
+  }, [snapshot]);
   const needsRefresh = useRef(false);
   const locked = useRef(false);
   const generation = useRef(0);
@@ -232,12 +234,9 @@ export function SessionControls({
       }
     }
   }
-  if (!station)
-    return (
-      <p className="session-line" role="status">
-        {stationMessage || "No classroom camera is set up yet."}
-      </p>
-    );
+  // No station yet (still being found, or none set up): no controls and no
+  // caption; the classroom panels say what is happening.
+  if (!station) return null;
   if (!user && teacherLoginEnabled)
     return (
       <Link className="ws-pill is-dark" href="/login">
@@ -293,29 +292,20 @@ export function SessionControls({
       </details>
     );
   const controlState = sessionControlState(snapshot, refreshRequired);
-  const session = snapshot?.session ?? null;
   const actions = sessionActions(snapshot, selection);
-  // One short line under the controls. Only sessions that need the teacher's
-  // attention say who owns them; ids stay out of the interface.
-  const ownership = !snapshot
-    ? null
-    : !session
-      ? "Pick an activity to start."
-      : sessionOwnership(session, user) === "unowned"
-        ? "An earlier session is still open. End it, then start yours."
-        : sessionOwnership(session, user) === "other"
-          ? "Another teacher started this session."
+  // The two states the teacher must act on, shown like an error: a session
+  // that isn't theirs (its reviews are hidden from them) and an activity the
+  // camera can't run. Calm states ("synced", "waiting…") stay hidden.
+  const session = snapshot?.session ?? null;
+  const owner = session ? sessionOwnership(session, user) : null;
+  const warning =
+    owner === "unowned"
+      ? "An earlier session is still open. End it, then start yours."
+      : owner === "other"
+        ? "Another teacher started this session, so its requests go to them."
+        : cameraUnavailable
+          ? "The camera can’t run this activity. Pick another."
           : null;
-  const sync = snapshot ? stationSyncLabel(snapshot, now) : null;
-  // Join what needs the teacher: a session that isn't theirs, and a camera
-  // that isn't in step (with or without a session). Calm states stay hidden.
-  const attention =
-    [
-      session && ownership !== "Pick an activity to start." ? ownership : null,
-      sync && sync !== "Activity synced" && sync !== "Camera idle" ? sync : null,
-    ]
-      .filter(Boolean)
-      .join(" · ") || null;
   const refreshButton = (
     <button
       type="button"
@@ -397,12 +387,11 @@ export function SessionControls({
         ) : null}
         {refreshButton}
       </div>
-      {/* Only what needs the teacher: a loading or setup message, a session
-          that isn't theirs, or a camera that isn't in step. "Synced" and
-          "Pick an activity" say nothing the controls don't already show. */}
-      {stationMessage || attention ? (
-        <p className="session-line" role="status">
-          {stationMessage || attention}
+      {/* No status captions under the controls; only what the teacher has to
+          act on: an action or load error, or one of the warnings above. */}
+      {warning && !error ? (
+        <p className="session-line is-error" role="alert">
+          {warning}
         </p>
       ) : null}
       {error ? (
