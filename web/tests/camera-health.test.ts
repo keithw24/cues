@@ -163,6 +163,10 @@ test("the collapsed summary: amber for a fault, grey only while checking", async
   assert.equal(healthSummary(quiet).tone, "warn");
   const refusedEarly = cameraHealth({ ...base, conflict: true, vision: null, updatesFresh: false, inView: 0 });
   assert.equal(refusedEarly.problem, OTHER_CAMERA);
+  assert.deepEqual(
+    refusedEarly.items.find((item) => item.key === "other-camera"),
+    { key: "other-camera", label: "Other cameras", value: "One refused", tone: "warn" },
+  );
   assert.equal(healthSummary(refusedEarly).tone, "warn");
   const down = cameraHealth({ ...base, vision: { reachable: false }, updatesFresh: false, inView: 0 });
   assert.equal(healthSummary(down).tone, "warn");
