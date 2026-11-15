@@ -77,7 +77,13 @@ export default function Landing() {
       <main id="main-content">
         <LandingHero
           start={start}
-          preview={demo ? <LandingDemo /> : <LandingPreview />}
+          preview={
+            demo ? (
+              <LandingDemo companion={isEnabled("web.companion")} />
+            ) : (
+              <LandingPreview />
+            )
+          }
         />
 
         {demo ? (

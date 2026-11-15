@@ -824,17 +824,18 @@ div.ws-row {
 
 /* ---- Header link, rail badge, side-panel person ------------------------- */
 /* TO REVIEW in the header: larger than the other pills, with an orange border. */
+/* TO REVIEW: the same pill as the other header buttons (44px, surface and
+   shadow). While someone is waiting it glows in the Cues indigo instead of
+   turning a colour of its own. */
 .dashboard-shell .review-link {
-  --ws-orange: #e8741f;
-  height: 48px;
-  padding: 0 24px;
-  border: 2px solid var(--ws-orange);
-  font-size: 15px;
+  --ws-glow: rgb(87 99 210 / 0.4);
+  height: 44px;
+  padding: 0 22px;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
 :root:not([data-theme="light"]) .dashboard-shell .review-link {
-  --ws-orange: #f59a5a;
+  --ws-glow: rgb(143 163 255 / 0.45);
 }
 .dashboard-shell .review-link .ws-count {
   min-width: 22px;
@@ -843,16 +844,10 @@ div.ws-row {
   font-size: 12px;
 }
 .dashboard-shell .review-link.has-items {
-  background: var(--ws-review-soft);
-  box-shadow: none;
-  color: var(--ws-review);
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell .review-link.has-items:hover {
-    background: var(--ws-review-soft);
-    color: var(--ws-review);
-    opacity: 0.85;
-  }
+  box-shadow:
+    var(--ws-shadow),
+    0 0 0 1px var(--ws-glow),
+    0 0 22px 2px var(--ws-glow);
 }
 .dashboard-shell .rail-badge {
   position: absolute;
@@ -1847,6 +1842,12 @@ body .dashboard-shell.ws-demo {
       opacity: 0;
       translate: 0 4px;
     }
+  }
+  /* The glow comes on (and goes) softly rather than snapping. */
+  .dashboard-shell .review-link {
+    transition-property: scale, background-color, opacity, box-shadow;
+    transition-duration: 150ms, 150ms, 150ms, 300ms;
+    transition-timing-function: ease-out;
   }
   /* A new count pops in rather than swapping. */
   .dashboard-shell .review-link.has-companion .ws-count:not(.review-companion-crumb) {

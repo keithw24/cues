@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import type { BlobShape } from "@/components/cues-blob";
 import { WorkspaceIcon } from "@/components/workspace-icon";
+import { ReviewCompanion } from "@/components/review-companion";
 import CuesMark from "@/components/cues-mark";
 import { ReviewRowContent, initials } from "@/components/workspace-rows";
 import "./workspace.css";
@@ -103,7 +104,7 @@ const subscribe = (callback: () => void) => {
   return () => query.removeEventListener("change", callback);
 };
 
-export default function LandingDemo() {
+export default function LandingDemo({ companion = false }: { companion?: boolean }) {
   const reduced = useSyncExternalStore(
     subscribe,
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -162,10 +163,13 @@ export default function LandingDemo() {
             <header className="page-intro">
               <h1>your classroom</h1>
               <span
-                className={`ws-pill review-link${frame.review ? " has-items" : ""}`}
+                className={`ws-pill review-link${companion ? " has-companion" : ""}${frame.review ? " has-items" : ""}`}
               >
                 TO REVIEW
                 {frame.review ? <span className="ws-count">1</span> : null}
+                {companion ? (
+                  <ReviewCompanion count={frame.review ? 1 : 0} />
+                ) : null}
               </span>
             </header>
             <div className="session-controls">
