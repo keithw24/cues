@@ -394,12 +394,8 @@
    refresh button never sits alone under it. */
 .dashboard-shell .session-controls.is-blocked {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-}
-.dashboard-shell .session-controls.is-blocked {
-  flex-wrap: nowrap;
 }
 .dashboard-shell .session-controls.is-blocked .session-line {
   flex: 0 1 auto;
@@ -410,7 +406,8 @@
 .dashboard-shell .session-controls.is-blocked .session-row {
   flex: none;
 }
-/* Controls and the health strip read as one group under the title. */
+/* Controls and the health strip read as one group under the title: the -12px
+   takes the .ws-hero gap (28px) down to 16px. Change both together. */
 .dashboard-shell .ws-hero > .session-controls + .health-strip,
 .dashboard-shell .ws-hero > .session-controls + .station-busy {
   margin-top: -12px;
