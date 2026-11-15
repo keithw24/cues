@@ -26,7 +26,7 @@ Checks. CI runs three workflows, each only when its own paths change:
 | Workflow | Runs when | What it runs |
 |---|---|---|
 | `vision` | `vision/`, `shared/`, `agent/`, `flags.json`, `pyproject.toml`, `uv.lock` | `ruff check` and `ruff format --check` on `vision shared agent`, then `pytest vision shared/tests agent/tests` |
-| `web` | `web/`, `flags.json` | in `web/`: `npm ci`, `npx next typegen`, `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` |
+| `web` | `web/`, `cues/`, `flags.json` | in `web/`: `npm ci`, `npx next typegen`, `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` |
 | `supabase` | `supabase/`, `pyproject.toml`, `uv.lock` | `ruff` on `supabase`, then `pytest supabase` against a real PostgreSQL (replays every migration). A skipped database test fails the step |
 
 The same checks locally, from the repo root:

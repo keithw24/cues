@@ -8,8 +8,7 @@ Documentation lives in `notes/` (start at [notes/README.md](notes/README.md)); o
 
 ```bash
 uv sync
-npm --prefix web ci
-npm --prefix cues ci
+npm --prefix web ci   # also installs cues/ (postinstall), which the web server imports for Photon sends
 ./scripts/dev.sh
 # Short presentation timings:
 ./scripts/demo.sh

@@ -4,7 +4,7 @@ import {testDemoNotification} from "@/lib/notification-test";
 import {sendOwnTestNotification} from "@/lib/notification-send";
 import {notificationServerConfig} from "@/lib/notification-server-config";
 
-export const runtime = "nodejs";
+// Node is the default runtime; `runtime` can't be set alongside cacheComponents.
 export const maxDuration = 40;
 export async function POST(request: Request) {
   const config = notificationServerConfig();
