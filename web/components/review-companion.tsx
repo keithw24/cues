@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import CuesBlob from "@/components/cues-blob";
 import {
   COMPANION_COLORS,
@@ -17,41 +17,48 @@ import {
 //   - a request arrives: it turns orange and hops (again for each new one);
 //   - the queue clears: it eats the count, smiles and turns green, then
 //     settles back to blue.
-// Decoration only (aria-hidden): the pill's text and count carry the meaning.
-export function ReviewCompanion({ count }: { count: number }) {
-  const previous = useRef(count);
-  const [phase, setPhase] = useState<CompanionPhase>(
+// While the review feed isn't live it just rests: a dropped feed is never
+// mistaken for a cleared queue. Decoration only (aria-hidden): the pill's
+// text and count carry the meaning.
+export function ReviewCompanion({ count }: { count: number | null }) {
+  // The phase follows the count in render (not after paint), so the count it
+  // eats is in place in the same frame the pill's own count goes.
+  const [previous, setPrevious] = useState(count);
+  const [phase, setPhase] = useState<CompanionPhase>(() =>
     initialCompanionPhase(count),
   );
   const [eaten, setEaten] = useState(0);
   const [hop, setHop] = useState(0);
-
-  useEffect(() => {
-    const step = companionStep(previous.current, count);
-    previous.current = count;
+  if (count !== previous) {
+    const step = companionStep(previous, count);
+    setPrevious(count);
     if (step.kind === "hop") {
-      queueMicrotask(() => {
-        setPhase("waiting");
-        setHop((n) => n + 1);
-      });
-      return;
+      setPhase("waiting");
+      setHop((n) => n + 1);
+    } else if (step.kind === "eat") {
+      setEaten(step.eaten);
+      setPhase("eating");
+    } else if (step.kind === "rest") {
+      setPhase("rest");
+    } else if (step.kind === "sync") {
+      setPhase(initialCompanionPhase(count));
     }
-    if (step.kind === "eat") {
-      queueMicrotask(() => {
-        setEaten(step.eaten);
-        setPhase("eating");
-      });
-      const ate = window.setTimeout(() => {
-        setPhase("done");
-        setHop((n) => n + 1);
-      }, EAT_MS);
-      const rest = window.setTimeout(() => setPhase("rest"), EAT_MS + DONE_MS);
-      return () => {
-        window.clearTimeout(ate);
-        window.clearTimeout(rest);
-      };
-    }
-  }, [count]);
+  }
+
+  // Only the timers live in effects; a new count cancels them.
+  useEffect(() => {
+    if (phase !== "eating") return;
+    const timer = window.setTimeout(() => {
+      setPhase("done");
+      setHop((n) => n + 1);
+    }, EAT_MS);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
+  useEffect(() => {
+    if (phase !== "done") return;
+    const timer = window.setTimeout(() => setPhase("rest"), DONE_MS);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
 
   return (
     <>

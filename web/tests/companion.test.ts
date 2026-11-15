@@ -35,3 +35,12 @@ test("clearing the queue eats the last count, then green, then rest", () => {
   // A request arriving mid-eat is a hop: the component cancels the eat timers.
   assert.deepEqual(companionStep(0, 1), { kind: "hop" });
 });
+
+test("a dropped or loading feed is never a cleared queue", () => {
+  assert.deepEqual(companionStep(3, null), { kind: "rest" });
+  assert.deepEqual(companionStep(null, null), { kind: "rest" });
+  // Coming back shows the queue as it is: no hop, no eat.
+  assert.deepEqual(companionStep(null, 3), { kind: "sync" });
+  assert.deepEqual(companionStep(null, 0), { kind: "sync" });
+  assert.equal(initialCompanionPhase(null), "rest");
+});

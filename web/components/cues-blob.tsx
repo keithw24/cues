@@ -140,8 +140,12 @@ export default function CuesBlob({
     return () => window.clearTimeout(timer);
   }, [glance, reduced, walking]);
   const avatar = useRef<AvatarHandle>(null);
+  // Hop only when `bounce` changes, not when the motion setting does.
+  const lastBounce = useRef(bounce);
   useEffect(() => {
-    if (bounce && !reduced) avatar.current?.poke("bounce");
+    if (bounce === lastBounce.current) return;
+    lastBounce.current = bounce;
+    if (!reduced) avatar.current?.poke("bounce");
   }, [bounce, reduced]);
   const [side, setSide] = useState(0);
   useEffect(() => {

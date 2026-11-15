@@ -644,7 +644,7 @@ export default function Dashboard({
                       </span>
                     ) : null}
                     {companionEnabled ? (
-                      <ReviewCompanion count={waitingCount} />
+                      <ReviewCompanion count={reviewsLive ? waitingCount : null} />
                     ) : null}
                   </Link>
                 ) : null}

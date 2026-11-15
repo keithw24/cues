@@ -1849,13 +1849,13 @@ body .dashboard-shell.ws-demo {
     }
   }
   /* A new count pops in rather than swapping. */
-  .dashboard-shell .review-link.has-companion .ws-count {
+  .dashboard-shell .review-link.has-companion .ws-count:not(.review-companion-crumb) {
     transition:
       scale 200ms cubic-bezier(0.23, 1, 0.32, 1),
       opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   @starting-style {
-    .dashboard-shell .review-link.has-companion .ws-count {
+    .dashboard-shell .review-link.has-companion .ws-count:not(.review-companion-crumb) {
       scale: 0.8;
       opacity: 0;
     }
