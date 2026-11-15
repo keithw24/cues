@@ -411,3 +411,24 @@ def test_recording_a_built_in_gesture_is_refused():
 
     with pytest.raises(SystemExit, match="built-in"):
         main(["thumbs_up", "target"])
+
+
+def test_gesture_stage_says_which_tasks_it_can_score(tmp_path):
+    # Hands down, recorded gesture with no examples: Cues cannot judge it at all.
+    stage = GesturesStage(
+        tasks=CurrentTasks("custom_gesture_01"), zones=SeatZones(), cache=MatcherCache(tmp_path)
+    )
+    ctx = {"hands": {}}
+    stage.process(None, ctx)
+    assert ctx["scorable"] == {"custom_gesture_01": False}
+    # A built-in gesture is scorable whenever the hands stage ran, even with hands down.
+    stage = GesturesStage(
+        tasks=CurrentTasks("thumbs_up"), zones=SeatZones(), cache=MatcherCache(tmp_path)
+    )
+    ctx = {"hands": {}}
+    stage.process(None, ctx)
+    assert ctx["scorable"] == {"thumbs_up": True}
+    # The hands stage off (no "hands" in ctx): nothing can be scored.
+    ctx = {}
+    stage.process(None, ctx)
+    assert ctx["scorable"] == {"thumbs_up": False}

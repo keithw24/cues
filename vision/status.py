@@ -120,7 +120,12 @@ class SeatTracker:
         self._reset_band()
         return True
 
-    def update(self, t: float, score: float | None, hand: bool, face: bool) -> list[StatusEvent]:
+    def update(
+        self, t: float, score: float | None, hand: bool, face: bool, judgeable: bool = True
+    ) -> list[StatusEvent]:
+        """`judgeable` is False when Cues cannot score this task at all (a recorded gesture
+        with no usable examples, or the gestures or hands stage off): then no time counts
+        toward no progress, whether or not a hand is up."""
         events: list[StatusEvent] = []
         if self._last_t is not None and t - self._last_t > MAX_STEP_SECONDS:
             # A stall (no frames for a while): that time was not observed, so it must not
@@ -152,7 +157,7 @@ class SeatTracker:
         if self.status == "done":
             return events
         self.active_seconds += dt
-        if score is not None or not hand:
+        if judgeable and (score is not None or not hand):
             self.judged_seconds += dt
 
         # Track one "attempt" per continuous stretch of the hand being in view.

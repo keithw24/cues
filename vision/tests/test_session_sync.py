@@ -9,6 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from shared.contracts import Session
+from vision import activities
 from vision.activities import CurrentTasks
 from vision.camera import Frame
 from vision.perception import Match
@@ -459,3 +460,30 @@ def test_the_session_lease_starts_when_the_check_began():
     assert state.for_frame(13.5) == s
     clock[0] = 10.0 + SESSION_LEASE_SECONDS + 0.1
     assert state.for_frame(13.5) is None  # measured from 10.0, not 13.5
+
+
+def test_the_status_stage_counts_no_progress_only_for_a_scorable_task(monkeypatch, tmp_path):
+    monkeypatch.setattr(activities, "CUSTOM_FILE", tmp_path / "none.json")
+    monkeypatch.delenv("CUES_GESTURE_NO_PROGRESS_SECONDS", raising=False)
+    monkeypatch.delenv("CUES_NO_PROGRESS_SECONDS", raising=False)
+    activities.load_activities.cache_clear()
+
+    def hands_down(scorable):
+        run = _Run()
+        ctx = None
+        for i in range(50):  # 5s, face in view, no hand, no score
+            t = 10 + i / 10
+            run.clock[0] = t
+            run.state.confirm(run.session)
+            frame = Frame(run.image, t, i)
+            ctx = {"hands": {}, "faces": {"S1-L": object()}}
+            if scorable is not None:
+                ctx["scorable"] = {"thumbs_up": scorable}
+            run.pin.process(frame, ctx)
+            run.status.process(frame, ctx)
+        return ctx["status"]["S1-L"]
+
+    assert hands_down(True) == "needs_help"  # Cues can score Thumbs up: 3s counts
+    assert hands_down(False) == "in_progress"  # it cannot (no hands stage, no examples)
+    assert hands_down(None) == "in_progress"  # the gestures stage did not run at all
+    activities.load_activities.cache_clear()

@@ -10,6 +10,7 @@ Thresholds are per activity; there is no single threshold for every task.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 from dataclasses import dataclass
@@ -22,6 +23,8 @@ ACTIVITIES_FILE = Path(__file__).resolve().parent / "activities.json"
 # in the name keep it apart from any <activity_id>.json example file.
 CUSTOM_FILE = ACTIVITIES_FILE.parent / "templates" / "custom_gestures.catalog.json"
 CUSTOM_PREFIX = "custom_"
+log = logging.getLogger(__name__)
+
 CUSTOM_SUCCESS, CUSTOM_REVIEW = 0.78, 0.58
 # A gesture task flags a person (Needs Review) after this much time on task without
 # any score reaching the review band. Rule tasks (raise hand) keep their own, longer wait.
@@ -32,11 +35,20 @@ GESTURE_NO_PROGRESS_SECONDS = 3
 
 def _gesture_wait() -> int:
     raw = os.environ.get("CUES_GESTURE_NO_PROGRESS_SECONDS", "").strip()
+    if not raw:
+        return GESTURE_NO_PROGRESS_SECONDS
     try:
         seconds = int(raw)
     except ValueError:
-        return GESTURE_NO_PROGRESS_SECONDS
-    return seconds if seconds > 0 else GESTURE_NO_PROGRESS_SECONDS
+        seconds = 0
+    if seconds > 0:
+        return seconds
+    log.warning(
+        "CUES_GESTURE_NO_PROGRESS_SECONDS=%r is not a whole number of seconds; using %ss",
+        raw,
+        GESTURE_NO_PROGRESS_SECONDS,
+    )
+    return GESTURE_NO_PROGRESS_SECONDS
 
 
 _custom_lock = threading.Lock()

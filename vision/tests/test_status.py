@@ -234,3 +234,16 @@ def test_raise_hand_still_waits_thirty_seconds():
     tr = SeatTracker("S1-L", act)
     assert "no_progress" not in run(tr, ticks(0, 29.5, 0.0))
     assert "no_progress" in run(tr, ticks(29.6, 30.3, 0.0))
+
+
+def test_a_task_cues_cannot_score_never_flags_even_with_hands_down():
+    # From the re-review of #101: "judged" is decided per task, not per frame. A recorded
+    # gesture with no examples (or gestures or hands off) flagged children with hands
+    # down after 3s, and hand drop-outs slowly added up.
+    act = Activity("custom_wave", "Wave", "gesture", 0.78, 0.58, 3)
+    tr = SeatTracker("S1-L", act)
+    steps = ticks(0, 10, None, hand=False)
+    out = []
+    for t, score, hand, face in steps:
+        out += [e.type for e in tr.update(t, score, hand, face, judgeable=False)]
+    assert out == [] and tr.status == "in_progress"
