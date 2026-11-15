@@ -77,7 +77,7 @@ Inter carries all interface text. EB Garamond (`--font-garamond`) is used only f
 
 1. **Header.** No banner: the "your classroom" title and the session controls (activity picker, Start or Change activity, End, refresh). A status line appears under the controls only when something needs the teacher (a loading or setup message, a session another teacher owns, a camera out of step, an error); "synced" and similar captions are not shown. With `web.review_page`, a "To review" pill sits on the right with the waiting count; it turns warm while people are waiting. The header leaves 28px between the title and the 44px activity controls.
 2. **Camera and Attention, side by side.** The camera card takes about 60% of the width. **Attention** sits beside it at the camera's height and scrolls inside itself. It lists one row per person with a pending review, in queue order (elevated first, then oldest), including people who left the camera's view ("Not in view"). When nobody is waiting it says "All clear". Below 1000px they stack, with Attention first.
-3. **Students you slide through** (`student-strip.tsx`), with no heading. Everyone the camera sees, left to right as in the frame, as a row of cards under the camera, starting on the same left edge as the camera. Each card has the initials in a ring tinted by status and the status as a word. The row scrolls sideways with snap points; round arrow buttons sit on the row's ends, centered on the cards, only on a side with more cards, and that side fades out. Rows and cards show the activity name only when the class is on more than one activity.
+3. **Students you slide through** (`student-strip.tsx`), with no heading. Everyone the camera sees, left to right as in the frame, as a row of cards under the camera, starting on the same left edge as the camera. Each card has the initials in a ring tinted by status and the status as a word; someone Cues asked about reads "Check in". "Attention" names the teacher's queue (the ATTENTION panel), never a student's status: Cues makes no claim about a child's attention. The row scrolls sideways with snap points; round arrow buttons sit on the row's ends, centered on the cards, only on a side with more cards, and that side fades out. Rows and cards show the activity name only when the class is on more than one activity.
 
 **Camera card.** The stage is always 16:9, the camera's own shape, so a live frame fills it with no black bars. The column sets the size; the video never does. Off, the stage shows "Turn on video". Live, it shows the vision service's MJPEG (Motion JPEG) stream from `http://127.0.0.1:8000/stream`, including the service's own overlay (a box and label per person, hand points). The header shows only "Camera", plus a Turn off button while live. The browser remembers in `localStorage` (`cues-video`) that the teacher turned the video on.
 
@@ -122,7 +122,7 @@ The sign-in pages (`/login`, `/signup`, `/auth/confirmed`) have a faint 22px dot
 
 ## Color rules
 
-- **Text names the state.** Status pills always carry a word (Working, Finished, Attention, Urgent). Color only supports the word.
+- **Text names the state.** Status pills always carry a word (Working, Finished, Check in, Urgent). Color only supports the word.
 - **Blue** marks Working. **Green** marks Finished and "All clear". **Warm brown** marks requests and Urgent. No color implies a learner's feelings or ability.
 
 ## Product boundaries the design keeps

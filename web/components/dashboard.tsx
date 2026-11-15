@@ -29,6 +29,7 @@ import { MarkReviewedButton } from "@/components/mark-reviewed-button";
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
 import { ReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
+import { reviewIssueLine, stripEntries } from "@/lib/classroom-view";
 import {
   CAMERA_CONFLICT_MESSAGE,
   cameraConflict,
@@ -412,7 +413,19 @@ export default function Dashboard({
   // After a decision or a mark: if the person has nothing left to show (no other
   // request and out of view), close their row so it can't reopen on its own later;
   // otherwise keep focus on their row, which may have moved to the other group.
+  // The review feed failed or dropped: the notice says so, and no "All clear"
+  // or "Checking…" shows under it.
+  const reviewNotice =
+    reviewsEnabled &&
+    !configurationError &&
+    Boolean(reviews.error || reviews.connection === "disconnected");
+  const pageHeading = useRef<HTMLHeadingElement>(null);
   const settleRow = (seatId: string, remaining: number) => {
+    // On To review the card leaves the list: keep focus on the page.
+    if (view === "review") {
+      requestAnimationFrame(() => pageHeading.current?.focus());
+      return;
+    }
     const visible = inView.some((seat) => seat.id === seatId);
     if (!remaining && !visible) {
       setSelectedId(null);
@@ -540,7 +553,7 @@ export default function Dashboard({
             <section className="ws-hero" aria-labelledby="classroom-heading">
               <header className="page-intro">
                 <div>
-                  <h1 id="classroom-heading">
+                  <h1 id="classroom-heading" ref={pageHeading} tabIndex={-1}>
                     {view === "review" ? "to review" : "your classroom"}
                   </h1>
                   {view === "review" || sessionLive ? null : (
@@ -639,9 +652,12 @@ export default function Dashboard({
                           key={group.seat_id}
                           index={index + 1}
                           name={nameOf(group.seat_id)}
-                          issue={`${activityName(lead.activity_id)}${visible ? "" : " · not in view"}`}
+                          issue={reviewIssueLine(
+                            activityName(lead.activity_id),
+                            visible,
+                            group.reviews.length,
+                          )}
                           review={lead}
-                          count={group.reviews.length}
                           elevated={group.elevated}
                           decisions={
                             reviewActionsEnabled && client ? (
@@ -659,13 +675,15 @@ export default function Dashboard({
                     })}
                   </ol>
                 ) : (
-                  <p className="list-clear review-clear" role="status">
-                    {!reviewsEnabled || configurationError
-                      ? "Cues will list people here when someone may need you."
-                      : reviews.reviews === null
-                        ? "Checking…"
-                        : "All clear. No one needs you right now."}
-                  </p>
+                  reviewNotice ? null : (
+                    <p className="list-clear review-clear" role="status">
+                      {!reviewsEnabled || configurationError
+                        ? "Cues will list people here when someone may need you."
+                        : reviewsLive
+                          ? "All clear. No one needs you right now."
+                          : "Checking…"}
+                    </p>
+                  )
                 )}
               </section>
             ) : (
@@ -762,13 +780,15 @@ export default function Dashboard({
                     })}
                   </ul>
                 ) : (
-                  <p className="panel-empty" role="status">
-                    {!reviewsEnabled || configurationError
-                      ? "Cues will ask here when someone may need you."
-                      : reviews.reviews === null
-                        ? "Checking…"
-                        : "All clear. Cues will ask when someone may need you."}
-                  </p>
+                  reviewNotice ? null : (
+                    <p className="panel-empty" role="status">
+                      {!reviewsEnabled || configurationError
+                        ? "Cues will ask here when someone may need you."
+                        : reviewsLive
+                          ? "All clear. Cues will ask when someone may need you."
+                          : "Checking…"}
+                    </p>
+                  )
                 )}
                   </>
                 )}
@@ -777,19 +797,23 @@ export default function Dashboard({
 
             <StudentStrip
               empty={inView.length === 0 ? peopleEmpty : null}
-              people={inView.map((seat) => {
-                const presentation = present(seat);
-                const waiting = reviewsFor(seat.id).length > 0;
-                return {
-                  id: seat.id,
-                  name: seat.display_name,
-                  status: waiting ? "Attention" : presentation.label,
-                  tone: waiting ? "review" : statusTone(presentation),
-                  activity: mixedActivities ? seat.activity : "",
-                  selected: selectedId === seat.id,
-                };
-              })}
+              people={stripEntries(
+                inView.map((seat) => {
+                  const presentation = present(seat);
+                  return {
+                    id: seat.id,
+                    name: seat.display_name,
+                    label: presentation.label,
+                    tone: statusTone(presentation),
+                    activity: seat.activity,
+                  };
+                }),
+                new Set(reviewGroups.map((group) => group.seat_id)),
+                selectedId,
+                mixedActivities,
+              )}
               onSelect={(id) => setSelectedId(selectedId === id ? null : id)}
+              onEscape={selectedId ? closeDetails : undefined}
             />
               </>
             )}

@@ -1,18 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { initials, type PersonTone } from "@/components/workspace-rows";
+import { initials } from "@/components/workspace-rows";
+import type { StripEntry } from "@/lib/classroom-view";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 
-export type StripPerson = {
-  id: string;
-  name: string;
-  status: string;
-  tone: PersonTone;
-  /** Shown only when the class is on more than one activity. */
-  activity: string;
-  selected: boolean;
-};
+export type StripPerson = StripEntry;
 
 // Everyone the camera sees, left to right as in the frame, as cards you can
 // slide through under the camera. Arrows sit on the row's ends and appear only
@@ -21,11 +14,14 @@ export function StudentStrip({
   people,
   empty,
   onSelect,
+  onEscape,
 }: {
   people: StripPerson[];
   /** The message to show when no one is in view, or null. */
   empty: string | null;
   onSelect: (id: string) => void;
+  /** Closes a person opened from the row (Escape on a card). */
+  onEscape?: () => void;
 }) {
   const track = useRef<HTMLUListElement>(null);
   const [edges, setEdges] = useState({ start: true, end: true });
@@ -76,6 +72,9 @@ export function StudentStrip({
                 aria-pressed={person.selected}
                 aria-controls={`more-${person.id}`}
                 onClick={() => onSelect(person.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape" && onEscape) onEscape();
+                }}
               >
                 <span className="row-avatar is-ring" aria-hidden="true">
                   {initials(person.name)}

@@ -307,12 +307,15 @@ export function SessionControls({
           ? "Another teacher started this session."
           : null;
   const sync = snapshot ? stationSyncLabel(snapshot, now) : null;
+  // Join what needs the teacher: a session that isn't theirs, and a camera
+  // that isn't in step (with or without a session). Calm states stay hidden.
   const attention =
-    session && ownership && ownership !== "Pick an activity to start."
-      ? ownership
-      : session && sync && sync !== "Activity synced"
-        ? sync
-        : null;
+    [
+      session && ownership !== "Pick an activity to start." ? ownership : null,
+      sync && sync !== "Activity synced" && sync !== "Camera idle" ? sync : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || null;
   const refreshButton = (
     <button
       type="button"

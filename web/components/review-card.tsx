@@ -23,7 +23,6 @@ export function ReviewCard({
   name,
   issue,
   review,
-  count,
   elevated,
   decisions,
   mark,
@@ -31,12 +30,11 @@ export function ReviewCard({
   /** Position in the queue, from 1. */
   index: number;
   name: string;
-  /** What the request is about, e.g. "Raise hand" or "Raise hand · not in view". */
+  /** What the request is about, from reviewIssueLine (activity, "not in view",
+   * request count). */
   issue: string;
   /** The person's most urgent pending review. */
   review: TeacherReview;
-  /** How many requests this person has waiting. */
-  count: number;
   elevated: boolean;
   /** Support needed / No support needed, when decisions can be saved. */
   decisions: ReactNode;
@@ -56,10 +54,7 @@ export function ReviewCard({
           <h2>{name}</h2>
           {elevated ? <span className="status-pill is-review">Urgent</span> : null}
         </div>
-        <p className="review-issue">
-          {issue}
-          {count > 1 ? ` · ${count} requests` : ""}
-        </p>
+        <p className="review-issue">{issue}</p>
         <details className="person-why">
           <summary>
             Why did Cues ask?
