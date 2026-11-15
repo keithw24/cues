@@ -234,6 +234,10 @@ In the laptop's root `.env`, set
 Keep the service bound to 127.0.0.1. Run dev/demo on the same laptop as the browser,
 open cues.nyc, and click Turn on video. Allow the browser's Local Network Access
 permission if prompted; if denied, change the site's permission and retry.
+If the hosted page still says it can't reach the camera: restart Cues after editing `.env` (vision reads
+`CUES_DASHBOARD_ORIGINS` only at start), run it on the same laptop as the browser, use Chrome or Edge,
+and check Local network access for cues.nyc in the browser's site settings. Vision answers the
+browser's private-network preflight only for the origins listed there.
 Hosted video never autoconnects from a remembered setting. Frames go directly from
 loopback to the browser, never through Vercel. No wildcard origins, public camera
 endpoint, or tunnel is configured. Vercel does not host the camera or agent process.

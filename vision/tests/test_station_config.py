@@ -510,3 +510,28 @@ def test_explicit_hosted_origin_can_configure_loopback_but_other_sites_cannot(
         )
         assert rejected.status_code == 403
         assert unconfigured.get() == "S2"
+
+
+def test_private_network_preflight_is_answered_only_for_allowed_origins(monkeypatch, unconfigured):
+    """A hosted dashboard asks permission to reach loopback; vision grants it to its own origins."""
+    monkeypatch.setenv("CUES_DASHBOARD_ORIGINS", "http://localhost:3000,https://cues.nyc")
+    with TestClient(create_app(Pipeline(FakeCamera(fps=30), [])), **LOCAL) as client:
+
+        def preflight(origin, path):
+            return client.options(
+                path,
+                headers={
+                    "Origin": origin,
+                    "Access-Control-Request-Method": "GET",
+                    "Access-Control-Request-Private-Network": "true",
+                },
+            )
+
+        for path in ("/stream", "/config", "/health"):
+            ok = preflight("https://cues.nyc", path)
+            assert ok.status_code == 200, path
+            assert ok.headers["access-control-allow-origin"] == "https://cues.nyc"
+            assert ok.headers["access-control-allow-private-network"] == "true"
+        other = preflight("https://evil.example", "/stream")
+        assert other.status_code == 400
+        assert "access-control-allow-origin" not in other.headers
