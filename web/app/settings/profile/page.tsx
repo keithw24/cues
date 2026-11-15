@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
-import { WorkspaceIcon } from "@/components/workspace-icon";
 import { isEnabled } from "@/lib/flags";
 import { garamond } from "@/components/workspace-fonts";
 import ProfileAccount from "@/components/profile-account";
 import "@/components/workspace.css";
+import "@/components/teacher-profile.css";
 
 export const metadata = { title: "Cues · Profile" };
 
@@ -19,7 +18,6 @@ export default async function ProfilePage() {
       <WorkspaceSidebar
         accountEnabled={isEnabled("web.teacher_login")}
         themeToggle={isEnabled("web.theme_toggle")}
-        liveView={isEnabled("web.live_view")}
       />
       <main id="main-content" className="dashboard-main settings-main">
         <header className="page-intro">
@@ -28,21 +26,16 @@ export default async function ProfilePage() {
         </header>
         <div className="settings-list">
           {isEnabled("web.teacher_login") ? <ProfileAccount /> : null}
-          <Link className="settings-row" href="/settings/stations">
-            <span className="settings-row-body">
-              <strong>Classroom camera</strong>
-              <span>Link this account to the camera in your classroom.</span>
-            </span>
-            <WorkspaceIcon name="arrow" />
-          </Link>
           {TeacherProfileForm ? (
             <TeacherProfileForm />
           ) : (
-            <section className="settings-row is-static">
-              <span className="settings-row-body">
-                <strong>Name and alert phone</strong>
-                <span>Not turned on in this environment yet.</span>
-              </span>
+            <section className="profile-group">
+              <h2 className="profile-group-label">About you</h2>
+              <div className="profile-card">
+                <p className="profile-hint">
+                  Not turned on in this environment yet.
+                </p>
+              </div>
             </section>
           )}
         </div>

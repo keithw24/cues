@@ -75,7 +75,8 @@ test("with web.teacher_profile off, the profile page skips the form and shows a 
   );
   assert.match(page, /Not turned on in this environment yet\./);
   assert.match(page, /<ProfileAccount \/>/);
-  assert.match(page, /Classroom camera/);
+  // Cameras are no longer paired, so Profile has no camera row.
+  assert.doesNotMatch(page, /Classroom camera|settings\/stations/);
 });
 
 test("profile input keeps E.164 numbers and rejects others", () => {

@@ -2,11 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  resolutionLabels,
-  reviewPrompt,
-  type TeacherReview,
-} from "@/lib/teacher-reviews";
+import { resolutionLabels, type TeacherReview } from "@/lib/teacher-reviews";
 import {
   resolveTeacherReview,
   type ReviewResolution,
@@ -42,7 +38,7 @@ export function TeacherReviewActions({
       setError(
         cause instanceof Error
           ? cause.message
-          : "Could not save this review action.",
+          : "Couldn’t save that. Try again.",
       );
     } finally {
       locked.current = false;
@@ -52,14 +48,10 @@ export function TeacherReviewActions({
   if (review.status !== "pending") return null;
   return (
     <div className="review-actions">
-      <div className="review-prompt">
-        <p className="review-prompt-title">{reviewPrompt.title}</p>
-        <p>{reviewPrompt.detail}</p>
-      </div>
       <div className="review-action-buttons" aria-busy={saving !== null}>
         <button
           type="button"
-          className="text-button"
+          className="ws-pill is-dark"
           disabled={!authenticated || saving !== null}
           onClick={() => void resolve("confirmed")}
         >
@@ -67,7 +59,7 @@ export function TeacherReviewActions({
         </button>
         <button
           type="button"
-          className="text-button"
+          className="ws-pill"
           disabled={!authenticated || saving !== null}
           onClick={() => void resolve("dismissed")}
         >
@@ -75,9 +67,15 @@ export function TeacherReviewActions({
         </button>
       </div>
       {!authenticated ? (
-        <p role="status">Sign in to record your decision.</p>
+        <p className="person-note" role="status">
+          Sign in to record your decision.
+        </p>
       ) : null}
-      {error ? <p role="alert">{error}</p> : null}
+      {error ? (
+        <p className="person-error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

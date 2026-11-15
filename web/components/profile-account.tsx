@@ -45,36 +45,48 @@ export default function ProfileAccount() {
 
   if (!client) return null;
   return (
-    <section className="settings-row is-static" aria-label="Account">
-      <span className="settings-row-body">
-        <strong>Account</strong>
-        <span>
-          {state === "loading"
-            ? "Loading…"
-            : state === "signed-out"
-              ? "You’re signed out."
-              : (email ?? "Signed in")}
+    <section className="profile-group" aria-labelledby="account-heading">
+      <h2 id="account-heading" className="profile-group-label">
+        Account
+      </h2>
+      <div className="profile-card profile-account">
+        <span className="row-avatar is-large" aria-hidden="true">
+          {email ? email[0].toUpperCase() : "?"}
         </span>
-        {error ? (
-          <span className="settings-row-error" role="alert">
-            {error}
+        <span className="profile-account-body">
+          <strong>
+            {state === "loading"
+              ? "Loading…"
+              : state === "signed-out"
+                ? "You’re signed out"
+                : (email ?? "Signed in")}
+          </strong>
+          <span>
+            {state === "signed-out"
+              ? "Sign in to see your classroom."
+              : "Teacher account"}
           </span>
-        ) : null}
-      </span>
-      {state === "signed-out" ? (
-        <Link className="settings-row-action" href="/login">
-          Sign in
-        </Link>
-      ) : state === "loading" ? null : (
-        <button
-          type="button"
-          className="settings-row-action"
-          disabled={state === "signing-out"}
-          onClick={() => void signOut()}
-        >
-          {state === "signing-out" ? "Signing out…" : "Sign out"}
-        </button>
-      )}
+          {error ? (
+            <span className="profile-error" role="alert">
+              {error}
+            </span>
+          ) : null}
+        </span>
+        {state === "signed-out" ? (
+          <Link className="ws-pill is-dark" href="/login">
+            Sign in
+          </Link>
+        ) : state === "loading" ? null : (
+          <button
+            type="button"
+            className="ws-pill"
+            disabled={state === "signing-out"}
+            onClick={() => void signOut()}
+          >
+            {state === "signing-out" ? "Signing out…" : "Sign out"}
+          </button>
+        )}
+      </div>
     </section>
   );
 }

@@ -196,7 +196,7 @@ export default function TeacherLogin({
           </button>
         ) : (
           <Link className="auth-wordmark" href="/" aria-label="Cues home">
-            <CuesMark size={24} />
+            <CuesMark size={28} />
           </Link>
         )}
         <div className="auth-header-actions">

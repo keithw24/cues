@@ -1,1043 +1,311 @@
-/* Teacher workspace, styled like the landing page's Night design:
-   a navy page with a faint grainy aurora, Garamond headings, and soft
-   off-white cards. Page-level text is light; text inside cards is ink. */
+/* Teacher workspace. One quiet system shared with the landing page (Night,
+   the default) and the sign-in page (light): a blue gradient that fades into
+   the page, big plain numbers, small spaced captions, pills and round icon
+   buttons. Few surfaces, no decoration. The landing demo window reuses these
+   classes, always in the light palette. */
+
 .dashboard-shell {
-  /* Card colors (also used by the landing demo window). */
-  --ws-ink: #0b1a4d;
-  --ws-ink-soft: #4a5268;
-  --ws-ink-faint: #737a8f;
-  --ws-blue: #425cc8;
-  --ws-blue-deep: #2f48ad;
-  --ws-blue-soft: #d8e0fa;
-  --ws-card-bg: #dde2ee;
-  --ws-surface: #d2d8e6;
-  --ws-item: #e9ecf4;
-  --ws-line: #c9d0de;
-  --ws-chip: #d2d8e6;
-  --ws-review: #934d31;
-  --ws-review-soft: #f6dfd2;
-  --ws-done: #1d6b45;
-  --ws-done-soft: #d3ecdd;
-  /* Night page colors. */
-  --ws-night: #111a3a;
-  --ws-night-rail: #0c1430;
-  --ws-page-ink: #eef1fb;
-  --ws-page-soft: #aeb6cc;
-  --ws-page-faint: #7c86a3;
-  --ws-night-accent: #8fa3ff;
-  --ws-pill: #eef1fb;
-  --ws-pill-hover: #e3e8f8;
-  --ws-ring: 0 0 0 1px rgb(11 26 77 / 0.08);
-  --ws-card:
-    0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 50px -28px rgb(0 0 0 / 0.55),
-    0 0 60px -24px rgb(66 92 200 / 0.25);
-  --ws-control: 0 0 0 1px rgb(11 26 77 / 0.1), 0 1px 2px rgb(11 26 77 / 0.06);
-  /* Existing workspace tokens, remapped. */
-  --primary: var(--ws-ink);
-  --ring: var(--ws-night-accent);
-  --line: var(--ws-line);
-  --muted: var(--ws-surface);
-  --muted-foreground: var(--ws-ink-soft);
-  --foreground: var(--ws-ink);
-  --accent: var(--ws-blue-soft);
-  --review: var(--ws-review);
-  --review-soft: var(--ws-review-soft);
-  --surface-hover: var(--ws-surface);
-  background: var(--ws-night);
-  color: var(--ws-page-ink);
+  /* Night: the landing page's navy. */
+  --ws-bg: #111a3a;
+  --ws-panel: rgb(255 255 255 / 0.045);
+  --ws-panel-solid: #172150;
+  --ws-tile: rgb(255 255 255 / 0.05);
+  --ws-tile-hover: rgb(255 255 255 / 0.085);
+  --ws-surface: rgb(255 255 255 / 0.08);
+  --ws-line: rgb(255 255 255 / 0.08);
+  --ws-ink: #eef1fb;
+  --ws-ink-soft: #aeb6cc;
+  --ws-ink-faint: #7c86a3;
+  --ws-blue: #8fa3ff;
+  --ws-blue-deep: #c6d0ff;
+  --ws-blue-soft: rgb(143 163 255 / 0.16);
+  --ws-done: #8fdcb0;
+  --ws-done-soft: rgb(143 220 176 / 0.13);
+  --ws-review: #f3b897;
+  --ws-review-soft: rgb(243 184 151 / 0.14);
+  --ws-primary: #eef1fb;
+  --ws-primary-ink: #0b1a4d;
+  --ws-pill: rgb(255 255 255 / 0.07);
+  --ws-pill-hover: rgb(255 255 255 / 0.12);
+  --ws-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  --ws-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ws-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23eef1fb'%3E%3Cpath d='M12 13.17l4.95-4.95 1.41 1.41L12 16 5.64 9.63l1.41-1.41z'/%3E%3C/svg%3E");
+  --ws-gutter: clamp(20px, 4vw, 48px);
+  /* Older names still read by the profile form. */
+  --ws-page-ink: var(--ws-ink);
+  --ws-page-soft: var(--ws-ink-soft);
+  --ring: var(--ws-blue);
+  min-height: 100dvh;
+  padding-left: 76px;
+  background: var(--ws-bg);
+  color: var(--ws-ink);
   font-family: var(--font-inter), system-ui, sans-serif;
   overflow-x: clip;
 }
-
-/* Every card shares one surface: soft off-white on navy, ink text, and the
-   blue focus ring that reads on light backgrounds. */
-.dashboard-shell .classroom-feed,
-.dashboard-shell .people-card,
-.dashboard-shell .attention-panel,
-.dashboard-shell .notice,
-.dashboard-shell .activity-popover-body,
-.dashboard-shell .integration-section {
-  --ring: var(--ws-blue);
-  border: 1px solid transparent;
-  background: var(--ws-card-bg);
-  box-shadow: var(--ws-card);
-  color: var(--ws-ink);
+/* Light: the sign-in page's canvas and white cards. The demo window on the
+   landing page always uses it. */
+:root[data-theme="light"] .dashboard-shell,
+.dashboard-shell.ws-demo {
+  --ws-bg: #f7f7f7;
+  --ws-panel: #ffffff;
+  --ws-panel-solid: #ffffff;
+  --ws-tile: #f6f6f8;
+  --ws-tile-hover: #efeff3;
+  --ws-surface: #ececf0;
+  --ws-line: rgb(11 13 18 / 0.07);
+  --ws-ink: #0b0d12;
+  --ws-ink-soft: #6b6f78;
+  --ws-ink-faint: #9a9da5;
+  --ws-blue: #425cc8;
+  --ws-blue-deep: #2f48ad;
+  --ws-blue-soft: #e9edfb;
+  --ws-done: #1d6b45;
+  --ws-done-soft: #e7f5ed;
+  --ws-review: #934d31;
+  --ws-review-soft: #fcf0e9;
+  --ws-primary: #0b0d12;
+  --ws-primary-ink: #ffffff;
+  --ws-pill: #ffffff;
+  --ws-pill-hover: #f1f1f4;
+  --ws-shadow:
+    0 0 0 1px rgb(11 13 18 / 0.04), 0 1px 2px rgb(11 13 18 / 0.04),
+    0 12px 32px -22px rgb(11 13 18 / 0.18);
+  --ws-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230b0d12'%3E%3Cpath d='M12 13.17l4.95-4.95 1.41 1.41L12 16 5.64 9.63l1.41-1.41z'/%3E%3C/svg%3E");
+}
+.dashboard-shell :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.dashboard-shell h1,
+.dashboard-shell h2,
+.dashboard-shell p {
+  margin: 0;
 }
 
-/* Controls: pills that press to 0.96. */
+/* ---- Controls ---------------------------------------------------------- */
 .dashboard-shell button {
-  min-height: 36px;
-  padding: 0 16px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+.dashboard-shell .ws-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: var(--ws-pill);
-  box-shadow: var(--ws-control);
+  box-shadow: var(--ws-shadow);
   color: var(--ws-ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.01em;
-  transition-property: scale, background-color, box-shadow;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: scale, background-color, opacity;
   transition-duration: 150ms;
   transition-timing-function: ease-out;
 }
-.dashboard-shell button:not(:disabled):active {
-  transform: none;
-  scale: 0.96;
-}
-.dashboard-shell button svg {
+.dashboard-shell .ws-pill svg {
   width: 16px;
   height: 16px;
+  margin-right: -2px;
 }
-.dashboard-shell .refresh-button svg {
-  margin-left: -2px;
+.dashboard-shell .ws-pill.is-dark {
+  background: var(--ws-primary);
+  box-shadow: none;
+  color: var(--ws-primary-ink);
 }
-.dashboard-shell .text-button {
-  min-height: 30px;
-  padding: 0 12px;
-  font-size: 12px;
+.dashboard-shell .ws-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
-.dashboard-shell .connect-feed,
-.dashboard-shell .primary-button,
-.dashboard-shell .session-controls .session-primary,
-.dashboard-shell .review-action-buttons button:first-child {
-  min-height: 40px;
-  padding: 0 20px;
-  border-color: transparent;
+.dashboard-shell .ws-pill:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .ws-icon-button {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
-  background: var(--ws-ink);
-  box-shadow: 0 8px 20px -10px rgb(11 26 77 / 0.6);
-  color: #ffffff;
-  font-size: 14px;
-}
-/* The decision the teacher is making, stated before the two buttons. */
-.dashboard-shell .review-prompt {
-  margin-bottom: 12px;
-}
-.dashboard-shell .review-prompt p {
-  margin: 0;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
   color: var(--ws-ink-soft);
-  font-size: 14px;
-  line-height: 1.5;
+  cursor: pointer;
+  transition-property: scale, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
 }
-.dashboard-shell .review-prompt .review-prompt-title {
-  color: var(--ws-ink);
-  font-size: 15px;
-  font-weight: 600;
+.dashboard-shell .ws-icon-button svg {
+  width: 18px;
+  height: 18px;
 }
-.dashboard-shell :focus-visible {
-  outline-color: var(--ring);
+.dashboard-shell .ws-icon-button:not(:disabled):active {
+  scale: 0.96;
 }
-.dashboard-shell .session-controls select,
-.dashboard-shell .session-sign-in input {
-  border-color: var(--ws-line);
-  border-radius: 12px;
-  background: var(--ws-item);
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .ws-pill:not(:disabled):hover,
+  .dashboard-shell .ws-icon-button:not(:disabled):hover {
+    background: var(--ws-pill-hover);
+    color: var(--ws-ink);
+  }
+  .dashboard-shell .ws-pill.is-dark:not(:disabled):hover {
+    background: var(--ws-primary);
+    color: var(--ws-primary-ink);
+    opacity: 0.88;
+  }
+}
+.ws-caption {
+  color: var(--ws-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-/* Sidebar: a dark rail a shade deeper than the page. */
+/* ---- Rail -------------------------------------------------------------- */
 .dashboard-shell .workspace-sidebar {
-  border-right: 0;
-  background: var(--ws-night-rail);
-  box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.06);
-  color: var(--ws-page-ink);
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 76px;
+  padding: 22px 0 18px;
 }
-.dashboard-shell .wordmark {
-  gap: 10px;
-  color: var(--ws-page-ink);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-.brand-mark {
-  flex: none;
+.dashboard-shell .rail-brand {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   color: var(--ws-ink);
   --cues-mark-accent: var(--ws-blue);
 }
-.dashboard-shell .workspace-sidebar .brand-mark {
-  color: var(--ws-page-ink);
-  --cues-mark-accent: var(--ws-night-accent);
-}
-.dashboard-shell .sidebar-nav {
-  gap: 2px;
-  margin-top: 40px;
-}
-.dashboard-shell .sidebar-nav a {
+.dashboard-shell .sidebar-nav,
+.dashboard-shell .sidebar-bottom {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  padding: 9px 14px;
+}
+.dashboard-shell .sidebar-bottom {
+  margin-top: auto;
+}
+.dashboard-shell .rail-link {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
-  color: var(--ws-page-soft);
-  font-size: 14px;
-  letter-spacing: -0.01em;
-  transition:
-    background-color 150ms ease-out,
-    color 150ms ease-out;
-}
-.dashboard-shell .sidebar-nav svg {
-  color: var(--ws-page-faint);
-  transition: color 150ms ease-out;
-}
-.dashboard-shell .sidebar-nav .is-current {
-  background: var(--ws-page-ink);
-  box-shadow: none;
-  color: var(--ws-ink);
-}
-.dashboard-shell .sidebar-nav .is-current svg {
-  color: var(--ws-ink);
-}
-.dashboard-shell .soon-label {
-  margin-left: auto;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.08);
-  color: var(--ws-page-soft);
-  font-size: 11px;
-  font-weight: 500;
-}
-.dashboard-shell .is-current .soon-label {
-  background: var(--ws-chip);
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
   color: var(--ws-ink-soft);
+  cursor: pointer;
+  transition-property: scale, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
 }
-.dashboard-shell .sidebar-privacy {
-  color: var(--ws-page-faint);
+.dashboard-shell .rail-link svg {
+  width: 19px;
+  height: 19px;
+}
+.dashboard-shell .rail-link:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .rail-link.is-current {
+  background: var(--ws-primary);
+  box-shadow: none;
+  color: var(--ws-primary-ink);
+}
+/* The name of each destination, beside its button on hover and focus. */
+.dashboard-shell .rail-link .nav-label {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--ws-primary);
+  color: var(--ws-primary-ink);
   font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  translate: -4px -50%;
+  pointer-events: none;
+  transition-property: opacity, translate;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
 }
-.dashboard-shell .sidebar-account {
-  border-top: 0;
-  padding: 12px;
-  border-radius: 16px;
-  background: rgb(255 255 255 / 0.06);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
-  color: var(--ws-page-ink);
-  font-size: 13px;
+.dashboard-shell .rail-link:focus-visible .nav-label {
+  opacity: 1;
+  translate: 0 -50%;
 }
-.dashboard-shell .sidebar-account small {
-  color: var(--ws-page-soft);
-}
-.dashboard-shell .account-monogram {
-  border: 0;
-  background: rgb(255 255 255 / 0.08);
-  color: var(--ws-page-soft);
-}
-.dashboard-shell .mobile-account {
-  border: 0;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.08);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
-  color: var(--ws-page-ink);
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .rail-link:not(.is-current):hover {
+    background: var(--ws-pill-hover);
+    color: var(--ws-ink);
+  }
+  .dashboard-shell .rail-link:hover .nav-label {
+    opacity: 1;
+    translate: 0 -50%;
+  }
 }
 
-/* Page header */
+/* ---- Page -------------------------------------------------------------- */
 .dashboard-shell .dashboard-main {
-  padding-top: 40px;
+  min-width: 0;
+  padding-bottom: 48px;
 }
-/* A faint grainy aurora across the top of the page, behind the banner,
-   like the landing hero. The demo window is not part of the Night page. */
-.dashboard-shell:not(.ws-demo) {
-  position: relative;
-  isolation: isolate;
-}
-.dashboard-shell:not(.ws-demo)::before,
-.dashboard-shell:not(.ws-demo)::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: -1;
-  height: 560px;
-  pointer-events: none;
-}
-.dashboard-shell:not(.ws-demo)::before {
+/* No banner: the page itself, a large title and one soft blue glow. */
+.dashboard-shell .ws-hero {
+  display: grid;
+  gap: 20px;
+  padding: 56px var(--ws-gutter) 32px;
   background:
-    radial-gradient(40% 50% at 28% 22%, rgb(66 92 200 / 0.3), transparent 70%),
-    radial-gradient(34% 44% at 76% 16%, rgb(140 116 230 / 0.2), transparent 70%);
-  filter: blur(40px);
-}
-.dashboard-shell:not(.ws-demo)::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  background-size: 240px 240px;
-  mix-blend-mode: overlay;
-  opacity: 0.2;
-  mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
-}
-.ws-hero {
-  position: relative;
-  isolation: isolate;
-  margin-bottom: 28px;
+    radial-gradient(50% 90% at 12% 0%, rgb(66 92 200 / 0.28), transparent 70%),
+    radial-gradient(40% 70% at 80% 0%, rgb(140 116 230 / 0.14), transparent 70%),
+    var(--ws-bg);
 }
 .dashboard-shell .page-intro {
-  align-items: flex-end;
-  margin-bottom: 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
-.dashboard-shell .page-intro h1 {
-  margin: 0;
-  color: var(--ws-page-ink);
+.dashboard-shell .ws-hero h1 {
+  color: var(--ws-ink);
   font-family: var(--font-garamond), Georgia, serif;
-  font-size: clamp(40px, 6vw, 56px);
+  font-size: clamp(40px, 5.5vw, 60px);
   font-weight: 500;
   line-height: 0.96;
   letter-spacing: -0.015em;
 }
-.dashboard-shell .page-intro p:not(.page-breadcrumb) {
-  margin: 14px 0 0;
-  color: var(--ws-page-soft);
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-/* Summary numbers as small soft cards. */
-.dashboard-shell .classroom-summary {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.dashboard-shell .overview-metrics {
-  gap: 12px;
-  max-width: none;
-}
-.dashboard-shell .overview-metrics > div {
-  gap: 2px;
-  padding: 16px 20px;
-  border: 1px solid transparent;
-  border-radius: 20px;
-  background: var(--ws-card-bg);
-  box-shadow: var(--ws-ring);
-}
-.dashboard-shell .overview-metrics dd {
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-}
-.dashboard-shell .overview-metrics dt {
+.dashboard-shell .ws-subtitle {
+  margin-top: 10px;
   color: var(--ws-ink-soft);
-  font-size: 13px;
-}
-
-/* Toolbar: sits on the navy page, so its text is light. */
-.dashboard-shell .current-activity strong,
-.dashboard-shell .toolbar-label {
-  font-size: 13px;
-}
-.dashboard-shell .toolbar-label {
-  color: var(--ws-page-soft);
-}
-.dashboard-shell .current-activity strong,
-.dashboard-shell .workspace-toolbar > .status-chip {
-  padding: 4px 12px;
-  border: 0;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.08);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
-  color: var(--ws-page-ink);
-  font-weight: 600;
-}
-.dashboard-shell .workspace-toolbar > .status-chip {
-  padding: 3px 10px;
-  color: var(--ws-page-soft);
-  font-weight: 500;
-}
-.dashboard-shell .activity-popover > summary {
-  min-height: 36px;
-  padding: 0 14px 0 16px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--ws-pill);
-  box-shadow: var(--ws-control);
-  color: var(--ws-ink);
-  font-size: 13px;
-  font-weight: 500;
-  transition-property: scale, background-color;
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
-}
-.dashboard-shell .activity-popover > summary:active {
-  scale: 0.96;
-}
-.dashboard-shell .activity-popover summary svg {
-  width: 16px;
-  height: 16px;
-  color: var(--ws-ink-soft);
-}
-.dashboard-shell .activity-popover[open] summary {
-  background: var(--ws-pill-hover);
-}
-.dashboard-shell .activity-popover-body {
-  border-radius: 24px;
-  transform-origin: top right;
-  transition-property: opacity, scale;
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
-}
-@starting-style {
-  .dashboard-shell .activity-popover[open] .activity-popover-body {
-    opacity: 0;
-    scale: 0.97;
-  }
-}
-.dashboard-shell .activity-popover-body h2 {
   font-size: 15px;
-}
-.dashboard-shell .status-chip {
-  padding: 3px 10px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--ws-chip);
-  color: var(--ws-ink-soft);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Cards: outer radius = inner radius + padding (16 + 8). */
-.dashboard-shell .classroom-feed,
-.dashboard-shell .people-card {
-  border-radius: 24px;
-}
-.dashboard-shell .classroom-feed {
-  padding: 0 8px;
-}
-.dashboard-shell .feed-toolbar {
-  padding: 14px 10px 12px;
-}
-/* Section headings echo the landing's display face. */
-.dashboard-shell .feed-toolbar h2,
-.dashboard-shell .strip-heading h2,
-.dashboard-shell .panel-heading h2 {
-  font-family: var(--font-garamond), Georgia, serif;
-  font-size: 20px;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
-.dashboard-shell .feed-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--ws-chip);
-  color: var(--ws-ink-soft);
-  font-size: 12px;
-  font-weight: 500;
-}
-.dashboard-shell .feed-indicator.is-live {
-  background: var(--ws-done-soft);
-  color: var(--ws-done);
-}
-.dashboard-shell .feed-indicator.is-live::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #2f9e64;
-}
-.dashboard-shell .video-stage {
-  border-radius: 16px;
-  background: var(--ws-surface);
-}
-.dashboard-shell .camera-placeholder-icon {
-  border: 0;
-  border-radius: 50%;
-  background: var(--ws-item);
-  box-shadow: var(--ws-control);
-  color: var(--ws-blue);
-}
-.dashboard-shell .video-state-title {
-  font-size: 17px;
-  font-weight: 600;
-}
-.dashboard-shell .video-placeholder > p:not(.video-state-title) {
-  color: var(--ws-ink-soft);
-  font-size: 13px;
-}
-.dashboard-shell .feed-footer {
-  padding: 12px 10px 14px;
-  color: var(--ws-ink-soft);
-  font-size: 12px;
-}
-.dashboard-shell .privacy-note {
-  font-size: 12px;
-  color: var(--ws-ink-soft);
-}
-
-/* People: a card with a header and one light list, like Teacher reviews.
-   Avatars carry the position label ("P1"), never a student's initials. */
-.dashboard-shell .seat-strip {
-  margin-top: 24px;
-}
-.dashboard-shell .people-card {
-  padding: 0 8px 8px;
-}
-.dashboard-shell .strip-heading {
-  margin: 0;
-  padding: 16px 12px 14px;
-}
-.dashboard-shell .seat-items {
-  gap: 0;
-  padding: 4px;
-  border-top: 0;
-  border-radius: 20px;
-  background: var(--ws-item);
-  box-shadow: var(--ws-ring);
-}
-.dashboard-shell .seat-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 0;
-  padding: 14px 12px;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background: transparent;
-  box-shadow: none;
-  transition: background-color 150ms ease-out;
-}
-.dashboard-shell .seat-item:not(:disabled):active {
-  scale: 1;
-}
-.dashboard-shell .seat-item + .seat-item::before {
-  content: "";
-  position: absolute;
-  inset: -1px 12px auto 62px;
-  height: 1px;
-  background: var(--ws-line);
-}
-.seat-avatar {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--ws-chip);
-  color: var(--ws-ink-soft);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.seat-item.is-working .seat-avatar {
-  background: var(--ws-blue-soft);
-  color: var(--ws-blue-deep);
-}
-.seat-item.is-done .seat-avatar {
-  background: var(--ws-done-soft);
-  color: var(--ws-done);
-}
-.seat-item.is-review .seat-avatar {
-  background: var(--ws-review-soft);
-  color: var(--ws-review);
-}
-.seat-item-body {
-  display: grid;
-  flex: 1;
-  gap: 3px;
-  min-width: 0;
-}
-.dashboard-shell .seat-item-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--ws-ink);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.seat-item-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 14px;
-  color: var(--ws-ink-soft);
-  font-size: 13px;
-}
-.dashboard-shell .seat-item-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--ws-ink);
-  font-size: 13px;
-  font-weight: 500;
-}
-.dashboard-shell .seat-item-status svg {
-  width: 15px;
-  height: 15px;
-  color: var(--ws-ink-faint);
-}
-.dashboard-shell .seat-item.needs-review .seat-item-status {
-  color: var(--ws-review);
-}
-.seat-item.is-review .seat-item-status svg {
-  color: var(--ws-review);
-}
-.seat-item.is-done .seat-item-status svg {
-  color: var(--ws-done);
-}
-.seat-item.is-working .seat-item-status svg {
-  color: var(--ws-blue);
-}
-.dashboard-shell .seat-item-activity {
-  color: var(--ws-ink-soft);
-  font-size: 13px;
-}
-.dashboard-shell .seat-item-arrow {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  color: var(--ws-ink-faint);
-}
-.dashboard-shell .seat-item.is-selected {
-  outline: 0;
-  background: var(--ws-blue-soft);
-}
-.dashboard-shell .seat-item.is-selected .seat-item-arrow {
-  color: var(--ws-blue);
-}
-.dashboard-shell .seat-item.is-selected::before,
-.dashboard-shell .seat-item.is-selected + .seat-item::before {
-  display: none;
-}
-.dashboard-shell .strip-empty {
-  margin: 0;
-  padding: 20px 16px;
-  border-top: 0;
-  border-radius: 20px;
-  background: var(--ws-item);
-  box-shadow: var(--ws-ring);
-  color: var(--ws-ink-soft);
-  font-size: 13px;
-}
-
-/* Teacher reviews: a card with a header, and the reviews on one light list.
-   Each review is a row with a meta line, a title, and a time. */
-.dashboard-shell .attention-panel {
-  padding: 0 8px 8px;
-  border-radius: 28px;
-}
-.dashboard-shell .panel-heading {
-  min-height: 0;
-  padding: 16px 12px 14px;
-  border-bottom: 0;
-}
-.dashboard-shell .panel-heading h2 {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.dashboard-shell .panel-heading h2 svg {
-  width: 18px;
-  height: 18px;
-  color: var(--ws-blue);
-}
-.dashboard-shell .attention-count,
-.dashboard-shell .attention-count.has-items {
-  display: inline-flex;
-  width: auto;
-  height: auto;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--ws-item);
-  box-shadow: var(--ws-ring);
-  color: var(--ws-ink-soft);
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.dashboard-shell .attention-list {
-  display: grid;
-  gap: 0;
-  padding: 4px;
-  border-radius: 20px;
-  background: var(--ws-item);
-  box-shadow: var(--ws-ring);
-}
-.dashboard-shell .attention-list > li {
-  position: relative;
-  border: 0;
-}
-.dashboard-shell .attention-list > li + li::before {
-  content: "";
-  position: absolute;
-  inset: 0 12px auto 60px;
-  height: 1px;
-  background: var(--ws-line);
-}
-/* One calm row per review: who, which task, when. Reasoning lives in details. */
-.dashboard-shell .review-entry {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 0;
-  padding: 10px 12px;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background: transparent;
-  box-shadow: none;
-  text-align: left;
-  transition: background-color 150ms ease-out;
-}
-.dashboard-shell .review-entry:not(:disabled):active {
-  scale: 1;
-}
-.review-body {
-  display: grid;
-  flex: 1;
-  gap: 1px;
-  min-width: 0;
-}
-.review-name {
-  color: var(--ws-ink);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.review-meta,
-.review-time {
-  color: var(--ws-ink-soft);
-  font-size: 13px;
-}
-.review-time {
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
-.review-flag {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--ws-review);
-}
-.review-flag svg {
-  width: 16px;
-  height: 16px;
-}
-.dashboard-shell .queue-empty {
-  min-height: 220px;
-  border: 0;
-  border-radius: 20px;
-  background: var(--ws-item);
-  box-shadow: var(--ws-ring);
-}
-.dashboard-shell .queue-empty p {
-  font-size: 15px;
-  font-weight: 600;
-}
-.dashboard-shell .queue-empty span {
-  color: var(--ws-ink-soft);
-  font-size: 13px;
-}
-.dashboard-shell .review-feed-notice {
-  margin-bottom: 8px;
-  border: 0;
-  border-radius: 20px;
-  background: var(--ws-review-soft);
-  color: var(--ws-ink);
-  font-size: 13px;
-}
-/* Details open inside the same card, on one light panel. */
-.dashboard-shell .detail-body {
-  padding: 18px;
-  border-radius: 20px;
-  background: var(--ws-item);
-  box-shadow: var(--ws-ring);
-}
-.dashboard-shell .detail-status {
-  display: inline-flex;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--ws-blue-soft);
-  color: var(--ws-blue-deep);
-  font-size: 13px;
-  font-weight: 600;
-}
-.dashboard-shell .detail-status.needs-review {
-  background: var(--ws-review-soft);
-  color: var(--ws-review);
-}
-.dashboard-shell .detail-facts > div {
-  border-color: var(--ws-line);
-}
-.dashboard-shell .detail-facts dt,
-.dashboard-shell .detail-description,
-.dashboard-shell .detail-footnote,
-.dashboard-shell .detail-section p {
-  color: var(--ws-ink-soft);
-}
-.dashboard-shell .detail-section {
-  border-color: var(--ws-line);
-}
-
-/* Notices are cards; the heading carries the warning color. */
-.dashboard-shell .notice {
-  border-radius: 20px;
-}
-.dashboard-shell .notice h2 {
-  color: var(--ws-review);
-}
-.dashboard-shell .notice p {
-  color: var(--ws-ink-soft);
-}
-.dashboard-shell .workspace-footer {
-  border-top: 0;
-  color: var(--ws-page-faint);
-  font-size: 12px;
-}
-
-/* Notifications page: the Photon card, then notes on the navy page. */
-.dashboard-shell .integration-section {
-  padding: 20px 24px;
-  border-radius: 24px;
-}
-.dashboard-shell .integration-section p {
-  color: var(--ws-ink-soft);
-}
-.dashboard-shell .integration-icon {
-  border: 0;
-  border-radius: 50%;
-  background: var(--ws-blue-soft);
-  color: var(--ws-blue-deep);
-}
-.dashboard-shell .integration-details h3 {
-  color: var(--ws-page-ink);
-  font-family: var(--font-garamond), Georgia, serif;
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-.dashboard-shell .integration-details p,
-.dashboard-shell .integration-details dt {
-  color: var(--ws-page-soft);
-}
-.dashboard-shell .integration-details dd {
-  color: var(--ws-page-ink);
-}
-.dashboard-shell .integration-details dl > div {
-  border-color: rgb(255 255 255 / 0.1);
-}
-.dashboard-shell .quiet-link {
-  color: var(--ws-page-soft);
-  transition: color 150ms ease-out;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell button:not(:disabled):hover,
-  .dashboard-shell .activity-popover summary:hover {
-    border-color: transparent;
-    background: var(--ws-pill-hover);
-  }
-  .dashboard-shell .connect-feed:not(:disabled):hover,
-  .dashboard-shell .primary-button:not(:disabled):hover,
-  .dashboard-shell .session-controls .session-primary:not(:disabled):hover,
-  .dashboard-shell
-    .review-action-buttons
-    button:first-child:not(:disabled):hover {
-    border-color: transparent;
-    background: #1a2b66;
-  }
-  .dashboard-shell .sidebar-nav a:not(.is-current):hover {
-    background: rgb(255 255 255 / 0.06);
-    color: var(--ws-page-ink);
-  }
-  .dashboard-shell .sidebar-nav a:not(.is-current):hover svg {
-    color: var(--ws-page-ink);
-  }
-  .dashboard-shell .sidebar-account:hover {
-    color: var(--ws-page-ink);
-  }
-  .dashboard-shell .seat-item:not(:disabled, .is-selected):hover {
-    background: var(--ws-surface);
-  }
-  .dashboard-shell .review-entry:not(:disabled):hover {
-    background: var(--ws-surface);
-  }
-  .dashboard-shell .quiet-link:hover {
-    color: var(--ws-page-ink);
-  }
-}
-@media (max-width: 700px) {
-  .dashboard-shell .workspace-sidebar {
-    border-bottom: 0;
-    box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.06);
-  }
-  .dashboard-shell .sidebar-nav {
-    margin-top: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .dashboard-shell .sidebar-nav a {
-    white-space: nowrap;
-  }
-  .dashboard-shell .overview-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* First load only: the banner, then the feed, People and reviews arrive
-   100ms apart. Nothing animates again while the teacher works. */
-@keyframes ws-arrive {
-  from {
-    opacity: 0;
-    filter: blur(4px);
-    translate: 0 12px;
-  }
-}
-@keyframes ws-fade {
-  from {
-    opacity: 0;
-  }
-}
-.dashboard-shell .dashboard-main > .ws-hero,
-.dashboard-shell .dashboard-main .classroom-feed,
-.dashboard-shell .dashboard-main .people-card,
-.dashboard-shell .dashboard-main .attention-panel {
-  animation: ws-fade 300ms ease-out both;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .dashboard-shell .dashboard-main > .ws-hero,
-  .dashboard-shell .dashboard-main .classroom-feed,
-  .dashboard-shell .dashboard-main .people-card,
-  .dashboard-shell .dashboard-main .attention-panel {
-    animation-name: ws-arrive;
-  }
-}
-.dashboard-shell .dashboard-main .classroom-feed {
-  animation-delay: 100ms;
-}
-.dashboard-shell .dashboard-main .people-card {
-  animation-delay: 200ms;
-}
-.dashboard-shell .dashboard-main .attention-panel {
-  animation-delay: 300ms;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-shell button:not(:disabled):active,
-  .dashboard-shell .activity-popover > summary:active {
-    scale: 1;
-  }
-  @starting-style {
-    .dashboard-shell .activity-popover[open] .activity-popover-body {
-      scale: 1;
-    }
-  }
-}
-
-/* Icon rail and a muted, grainy blue banner. */
-@media (min-width: 701px) {
-  body .dashboard-shell {
-    padding-left: 76px;
-  }
-  .dashboard-shell .workspace-sidebar {
-    align-items: center;
-    width: 76px;
-    padding: 24px 0 16px;
-  }
-  .dashboard-shell .workspace-sidebar > .wordmark {
-    padding-left: 0;
-  }
-  .dashboard-shell .workspace-sidebar .nav-label,
-  .dashboard-shell .soon-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
-  .dashboard-shell .sidebar-nav {
-    gap: 6px;
-  }
-  .dashboard-shell .sidebar-nav a {
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    border-radius: 14px;
-  }
-  .dashboard-shell .sidebar-nav svg {
-    width: 20px;
-    height: 20px;
-  }
-  .dashboard-shell .sidebar-nav .is-current {
-    background: var(--ws-page-ink);
-    box-shadow: 0 8px 20px -10px rgb(0 0 0 / 0.6);
-  }
-  .dashboard-shell .sidebar-nav .is-current svg {
-    color: var(--ws-ink);
-  }
-  .dashboard-shell .sidebar-privacy {
-    justify-content: center;
-    margin: 16px 0;
-  }
-  .dashboard-shell .sidebar-account {
-    justify-content: center;
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-  .dashboard-shell .sidebar-bottom {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-}
-.dashboard-shell .ws-hero {
-  overflow: hidden;
-  padding: 32px 36px 36px;
-  border-radius: 28px;
-  background:
-    radial-gradient(70% 90% at 15% 10%, #33489f, transparent),
-    radial-gradient(45% 70% at 90% 0%, rgb(143 182 245 / 0.55), transparent),
-    radial-gradient(45% 80% at 70% 110%, rgb(140 116 230 / 0.45), transparent),
-    #4459b4;
-  color: #ffffff;
-}
-.ws-grain {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  background-size: 240px 240px;
-  mix-blend-mode: overlay;
-  opacity: 0.45;
-  pointer-events: none;
-}
-.dashboard-shell .ws-hero .page-intro h1 {
-  color: #ffffff;
-}
-.dashboard-shell .ws-hero .page-intro p:not(.page-breadcrumb) {
-  color: rgb(255 255 255 / 0.78);
-}
-.dashboard-shell .ws-hero .refresh-button {
-  background: rgb(255 255 255 / 0.12);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.22);
-  color: #ffffff;
-}
-.dashboard-shell .ws-hero .overview-metrics > div {
-  background: rgb(255 255 255 / 0.1);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
-}
-.dashboard-shell .ws-hero .overview-metrics dd {
-  color: #ffffff;
-}
-.dashboard-shell .ws-hero .overview-metrics dt {
-  color: rgb(255 255 255 / 0.72);
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell .ws-hero .refresh-button:not(:disabled):hover {
-    background: rgb(255 255 255 / 0.2);
-  }
-}
-@media (max-width: 700px) {
-  .dashboard-shell .ws-hero {
-    padding: 24px 20px;
-    border-radius: 24px;
-  }
-}
-
-/* Session controls: one row, one primary action. Every control is 40px
-   tall; secondary actions are a quiet pill, an icon and a text button. */
-.dashboard-shell .session-toolbar {
-  min-width: 0;
-}
+/* Session controls, under the title: the same pills as everything else. */
 .dashboard-shell .session-controls {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 .dashboard-shell .session-row {
   display: flex;
@@ -1046,152 +314,607 @@
   gap: 8px;
 }
 .dashboard-shell .session-controls select {
-  width: auto;
-  flex: 0 1 240px;
-  min-width: 180px;
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--ws-line);
+  height: 40px;
+  min-width: 200px;
+  padding: 0 38px 0 16px;
+  border: 0;
   border-radius: 999px;
-  background: var(--ws-item);
-  color: var(--ws-ink);
-  font: inherit;
-  font-size: 14px;
-}
-.dashboard-shell .session-controls .session-secondary {
-  min-height: 40px;
-  padding: 0 18px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--ws-pill);
-  box-shadow: var(--ws-control);
+  background: var(--ws-pill) var(--ws-chevron) no-repeat right 14px center /
+    16px;
+  box-shadow: var(--ws-shadow);
   color: var(--ws-ink);
   font-size: 14px;
+  font-weight: 500;
+  appearance: none;
+  cursor: pointer;
 }
-.dashboard-shell .session-controls .session-icon {
+.dashboard-shell .session-controls select option {
+  color: #0b0d12;
+}
+.dashboard-shell .session-controls select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.dashboard-shell .session-line {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .session-line.is-error {
+  color: var(--ws-review);
+}
+
+/* A connection problem: one quiet line and a retry. */
+.dashboard-shell .notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 var(--ws-gutter) 16px;
+  padding: 10px 10px 10px 18px;
+  border-radius: 999px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ---- People and requests ----------------------------------------------- */
+/* Camera on the left, the class list beside it. */
+.dashboard-shell .monitor-workspace {
   display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  align-items: start;
+  gap: 20px;
+  padding: 0 var(--ws-gutter);
+}
+/* Concentric corners: 28px panel = 16px rows + 12px padding. */
+.dashboard-shell .ws-panel {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 28px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+}
+.dashboard-shell .panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 14px;
+}
+.dashboard-shell .panel-heading h2 {
+  color: var(--ws-ink);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.dashboard-shell .panel-heading h2:focus {
+  outline: none;
+}
+.dashboard-shell .ws-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-shell .panel-empty {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 36px 16px;
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: pretty;
+}
+.dashboard-shell .row-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dashboard-shell .ws-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--ws-tile);
+  color: var(--ws-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+div.ws-row {
+  cursor: default;
+}
+.dashboard-shell .ws-row[aria-pressed="true"] {
+  background: var(--ws-blue-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell button.ws-row:hover {
+    background: var(--ws-tile-hover);
+  }
+  .dashboard-shell button.ws-row[aria-pressed="true"]:hover {
+    background: var(--ws-blue-soft);
+  }
+}
+.row-avatar {
+  display: grid;
+  flex: none;
   place-items: center;
   width: 40px;
-  min-height: 40px;
-  padding: 0;
-  border: 1px solid transparent;
+  height: 40px;
   border-radius: 999px;
+  background: var(--ws-panel-solid);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.row-avatar.is-large {
+  width: 56px;
+  height: 56px;
+  font-size: 17px;
+}
+.row-body {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+.row-name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-caption {
+  overflow: hidden;
+  color: var(--ws-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.row-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+}
+.row-time {
+  color: var(--ws-ink-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.status-pill {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--ws-surface);
+  color: var(--ws-ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color 300ms ease-out,
+    color 300ms ease-out;
+}
+.status-pill.is-working {
+  background: var(--ws-blue-soft);
+  color: var(--ws-blue-deep);
+}
+.status-pill.is-done {
+  background: var(--ws-done-soft);
+  color: var(--ws-done);
+}
+.status-pill.is-review {
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+}
+
+.dashboard-shell .list-label {
+  margin: 8px 10px 8px;
+  color: var(--ws-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dashboard-shell .list-label:first-of-type {
+  margin-top: 0;
+}
+.dashboard-shell .row-list + .list-label {
+  margin-top: 18px;
+}
+.dashboard-shell .list-clear {
+  margin: 0 0 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--ws-done-soft);
+  color: var(--ws-done);
+  font-size: 14px;
+  font-weight: 500;
+}
+.dashboard-shell .list-clear + .list-label {
+  margin-top: 18px;
+}
+.dashboard-shell .list-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 13px;
+  font-weight: 500;
+}
+/* Many students: on wide screens the list keeps to the screen's height,
+   stays in view and scrolls inside itself; Needs you is always on top. */
+@media (min-width: 1001px) {
+  .dashboard-shell .monitor-workspace > .classroom-feed {
+    position: sticky;
+    top: 20px;
+  }
+  .dashboard-shell .class-panel {
+    position: sticky;
+    top: 20px;
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+.dashboard-shell .class-panel .ws-row {
+  min-height: 56px;
+  padding: 8px 12px;
+}
+/* An open row and its details read as one tile. */
+.dashboard-shell .row-list > li.is-open {
+  border-radius: 16px;
+  background: var(--ws-tile);
+}
+.dashboard-shell .row-list > li.is-open > .ws-row {
   background: transparent;
-  box-shadow: none;
-  color: var(--ws-page-soft);
 }
-.dashboard-shell .session-controls .session-icon svg {
-  width: 18px;
-  height: 18px;
+.dashboard-shell .row-more {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px 66px;
 }
-.dashboard-shell .session-controls .session-quiet {
+
+/* ---- One person -------------------------------------------------------- */
+.dashboard-shell .person-status {
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dashboard-shell .person-request {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ws-panel-solid);
+  box-shadow: var(--ws-shadow);
+}
+.dashboard-shell .review-actions,
+.dashboard-shell .review-copy {
+  display: grid;
+  gap: 6px;
+}
+.dashboard-shell .review-prompt-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .review-prompt-detail {
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.dashboard-shell .review-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.dashboard-shell .person-note {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .person-error {
+  color: var(--ws-review);
+  font-size: 13px;
+}
+.dashboard-shell .person-why {
+  border-top: 1px solid var(--ws-line);
+  padding-top: 10px;
+}
+.dashboard-shell .person-why summary {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+}
+.dashboard-shell .person-why summary::-webkit-details-marker {
+  display: none;
+}
+.dashboard-shell .person-why summary svg {
+  width: 16px;
+  height: 16px;
+  transition: rotate 150ms ease-out;
+}
+.dashboard-shell .person-why[open] summary svg {
+  rotate: 180deg;
+}
+.dashboard-shell .person-why p {
+  margin-top: 8px;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.dashboard-shell .person-why .ws-caption {
+  letter-spacing: 0.06em;
+}
+
+/* ---- Signed out -------------------------------------------------------- */
+.dashboard-shell .ws-signin {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 14px;
+  min-height: 86dvh;
+  padding: 24px var(--ws-gutter);
+  text-align: center;
+}
+.dashboard-shell .ws-signin .login-companion {
+  margin: 0 0 14px;
+}
+.dashboard-shell .ws-signin h1 {
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: clamp(34px, 4.5vw, 46px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .ws-signin p {
+  max-width: 36ch;
+  margin-bottom: 10px;
+  color: var(--ws-ink-soft);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ---- Camera, center of the page --------------------------------------- */
+.dashboard-shell .classroom-feed {
+  display: grid;
+  gap: 4px;
+}
+.dashboard-shell .classroom-feed .panel-heading {
+  align-items: center;
   min-height: 40px;
-  padding: 0 8px;
-  border: 0;
-  background: none;
-  box-shadow: none;
-  color: var(--ws-page-soft);
+  padding: 2px 4px 8px 10px;
+}
+/* The camera's own shape, 16:9, so the frame fills it with no bars. Its
+   size comes from the column, never from the video. */
+.dashboard-shell .video-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--ws-tile);
+}
+.dashboard-shell .video-stage[data-live] {
+  background: #000000;
+}
+.dashboard-shell .local-stream {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.dashboard-shell .video-placeholder {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 32ch;
+  padding: 22px 24px;
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+.dashboard-shell .video-placeholder > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--ws-ink-faint);
+}
+/* ---- Settings pages ---------------------------------------------------- */
+.dashboard-shell .settings-main {
+  max-width: 760px;
+  padding: 56px var(--ws-gutter) 64px;
+}
+.dashboard-shell .settings-main > .page-intro {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+.dashboard-shell .settings-main > .page-intro h1 {
+  color: var(--ws-ink);
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: clamp(40px, 5vw, 52px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .settings-main > .page-intro p {
+  color: var(--ws-ink-soft);
+  font-size: 15px;
+}
+.dashboard-shell .settings-list {
+  display: grid;
+  gap: 28px;
+}
+.dashboard-shell .settings-row,
+.dashboard-shell .settings-panel,
+.dashboard-shell .integration-details {
+  border-radius: 24px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
+}
+.dashboard-shell .settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  text-decoration: none;
+  transition: background-color 150ms ease-out;
+}
+.dashboard-shell .settings-panel,
+.dashboard-shell .integration-details {
+  padding: 22px 20px;
+}
+.dashboard-shell .integration-details {
+  display: grid;
+  gap: 14px;
+}
+.dashboard-shell .integration-details h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.dashboard-shell .integration-details ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--ws-ink-soft);
+}
+.dashboard-shell .settings-row-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.dashboard-shell .settings-row-body strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+.dashboard-shell .settings-row-body span {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .settings-row > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--ws-ink-faint);
+}
+.dashboard-shell .settings-row-error {
+  color: var(--ws-review);
+  font-size: 13px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell a.settings-row:hover {
+    background: var(--ws-tile-hover);
+  }
+}
+/* Buttons inside settings: the same pills as the classroom. */
+.dashboard-shell .primary-button,
+.dashboard-shell .settings-row-action,
+.dashboard-shell .settings-panel button,
+.dashboard-shell .integration-details button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
-}
-.dashboard-shell .session-controls button:not(:disabled):active {
-  scale: 0.96;
-}
-.dashboard-shell .session-controls button {
-  transition-property: scale, background-color, color;
+  cursor: pointer;
+  transition-property: scale, opacity, background-color;
   transition-duration: 150ms;
   transition-timing-function: ease-out;
 }
-.dashboard-shell .session-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 14px;
-  color: var(--ws-page-soft);
-  font-size: 13px;
-}
-.dashboard-shell .session-details summary {
-  color: var(--ws-page-faint);
-  cursor: pointer;
-}
-.dashboard-shell .session-details p {
-  margin: 4px 0 0;
-  color: var(--ws-page-faint);
-  font-size: 12px;
-}
-.dashboard-shell .session-error {
-  margin: 0;
-  color: #f3a383;
-  font-size: 13px;
-}
-.dashboard-shell .session-blocked {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--ws-page-soft);
-  font-size: 14px;
-}
-.dashboard-shell .session-blocked svg {
-  flex: none;
-  width: 16px;
-  height: 16px;
-}
-/* Night: the primary action uses the accent so it reads on the navy page. */
-.dashboard-shell:not(.ws-demo) .session-controls .session-primary,
-.dashboard-shell:not(.ws-demo) .session-login-link {
-  background: var(--ws-night-accent);
+.dashboard-shell .primary-button {
+  justify-self: start;
+  background: var(--ws-primary);
   box-shadow: none;
-  color: #0b1a4d;
+  color: var(--ws-primary-ink);
 }
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .session-controls .session-primary,
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .session-login-link {
-  color: #ffffff;
+.dashboard-shell .primary-button:disabled,
+.dashboard-shell .settings-panel button:disabled,
+.dashboard-shell .integration-details button:disabled,
+.dashboard-shell .settings-row-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .session-error {
-  color: var(--ws-review);
+.dashboard-shell .primary-button:not(:disabled):active,
+.dashboard-shell .settings-row-action:not(:disabled):active,
+.dashboard-shell .settings-panel button:not(:disabled):active,
+.dashboard-shell .integration-details button:not(:disabled):active {
+  scale: 0.96;
 }
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell .session-controls .session-secondary:not(:disabled):hover {
-    background: var(--ws-pill-hover);
-  }
-  .dashboard-shell .session-controls .session-icon:not(:disabled):hover,
-  .dashboard-shell .session-controls .session-quiet:not(:disabled):hover {
-    color: var(--ws-page-ink);
-  }
-  .dashboard-shell:not(.ws-demo) .session-controls .session-primary:not(:disabled):hover,
-  .dashboard-shell:not(.ws-demo) .session-login-link:hover {
-    background: var(--ws-night-accent);
-    filter: brightness(1.08);
-  }
+.dashboard-shell .settings-panel .primary-button,
+.dashboard-shell .integration-details .primary-button {
+  background: var(--ws-primary);
+  box-shadow: none;
+  color: var(--ws-primary-ink);
 }
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-shell .session-controls button {
-    transition-property: background-color, color;
-  }
-  .dashboard-shell .session-controls button:not(:disabled):active {
-    scale: 1;
-  }
+.dashboard-shell .quiet-link,
+.dashboard-shell .integration-details a,
+.dashboard-shell .settings-panel a {
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  text-underline-offset: 4px;
 }
-/* In the room view the controls get their own row under the title. */
-.dashboard-shell .room-session {
-  margin: -8px 0 24px;
+:root[data-theme="light"] .dashboard-shell .profile-status.is-not-enabled {
+  background: var(--ws-surface);
+  color: var(--ws-ink-soft);
 }
-/* Landing page demo: the same banner and rows in a small framed app. It is
-   a light window (the card colors), not the navy page. */
+
+/* ---- Landing page demo window ------------------------------------------ */
 body .dashboard-shell.ws-demo {
-  --ring: var(--ws-blue);
-  background: var(--ws-card-bg);
-  color: var(--ws-ink);
   display: grid;
   grid-template-columns: 60px minmax(0, 1fr);
   min-height: 0;
   padding: 0;
   overflow: hidden;
-  border: 1px solid transparent;
   border-radius: 28px;
   box-shadow:
     0 0 0 1px rgb(255 255 255 / 0.06),
@@ -1205,118 +928,191 @@ body .dashboard-shell.ws-demo {
   align-items: center;
   gap: 8px;
   padding: 18px 0;
-  background: var(--ws-surface);
-  box-shadow: inset -1px 0 0 rgb(11 26 77 / 0.05);
 }
 .ws-demo-rail .brand-mark {
   margin-bottom: 14px;
+  color: var(--ws-ink);
+  --cues-mark-accent: var(--ws-blue);
 }
 .ws-demo-rail-item {
   display: grid;
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 12px;
-  color: var(--ws-ink-faint);
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink-soft);
 }
 .ws-demo-rail-item svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
 }
 .ws-demo-rail-item.is-current {
-  background: var(--ws-ink);
-  color: #ffffff;
+  background: var(--ws-primary);
+  box-shadow: none;
+  color: var(--ws-primary-ink);
 }
 .ws-demo-main {
   min-width: 0;
-  padding: 16px;
+  padding: 12px 12px 16px 0;
 }
 .dashboard-shell.ws-demo .ws-hero {
-  margin-bottom: 16px;
-  padding: 22px 24px 24px;
-  border-radius: 20px;
+  gap: 20px;
+  margin-bottom: 4px;
+  padding: 24px 24px 22px;
+  border-radius: 22px 22px 0 0;
 }
-.dashboard-shell.ws-demo .page-intro {
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
-.dashboard-shell.ws-demo .page-intro h1 {
+.dashboard-shell.ws-demo .ws-hero h1 {
   font-size: 40px;
-}
-.ws-demo-sim {
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.14);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.dashboard-shell.ws-demo .overview-metrics {
-  gap: 10px;
-  margin: 0;
-}
-.dashboard-shell.ws-demo .overview-metrics > div {
-  padding: 12px 14px;
-  border-radius: 16px;
-}
-.dashboard-shell.ws-demo .overview-metrics dd {
-  font-size: 24px;
-  transition: color 300ms ease-out;
 }
 .ws-demo-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   align-items: start;
-  gap: 16px;
+  gap: 12px;
 }
-.dashboard-shell.ws-demo .seat-strip {
-  margin: 0;
+.dashboard-shell.ws-demo .ws-panel {
+  padding: 10px;
+  border-radius: 22px;
 }
-.dashboard-shell.ws-demo .strip-heading {
-  padding: 4px 4px 10px;
+.dashboard-shell.ws-demo .panel-heading {
+  padding: 2px 4px 12px;
 }
-.dashboard-shell.ws-demo .seat-item {
-  padding: 10px 12px;
+.dashboard-shell.ws-demo .panel-heading h2 {
+  font-size: 17px;
 }
-.dashboard-shell.ws-demo .seat-avatar {
-  transition:
-    background-color 300ms ease-out,
-    color 300ms ease-out;
+.dashboard-shell.ws-demo .ws-row {
+  min-height: 56px;
+  padding: 9px 12px;
+  border-radius: 12px;
 }
-/* Inside the light window the reviews card is a darker tray. */
-.dashboard-shell.ws-demo .attention-panel {
-  background: var(--ws-surface);
-  box-shadow: var(--ws-ring);
+.dashboard-shell.ws-demo .row-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
 }
-.dashboard-shell.ws-demo .queue-empty {
-  min-height: 0;
-  padding: 28px 16px;
+.dashboard-shell.ws-demo .panel-empty {
+  padding: 28px 12px;
 }
-/* A review arrives and leaves: opacity and a 6px rise, once per change. */
-.dashboard-shell.ws-demo .attention-list,
-.dashboard-shell.ws-demo .queue-empty {
+/* A request arrives and leaves: opacity and a 6px rise, once per change. */
+.dashboard-shell.ws-demo .ws-demo-arrive {
   transition:
     opacity 300ms ease-out,
     translate 300ms ease-out;
 }
 @starting-style {
-  .dashboard-shell.ws-demo .attention-list,
-  .dashboard-shell.ws-demo .queue-empty {
+  .dashboard-shell.ws-demo .ws-demo-arrive {
     opacity: 0;
     translate: 0 6px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
+
+/* ---- Motion ------------------------------------------------------------ */
+/* First load only, 100ms apart: title, activity controls, camera, list. */
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-shell:not(.ws-demo) .page-intro,
+  .dashboard-shell:not(.ws-demo) .session-controls,
+  .dashboard-shell:not(.ws-demo) .monitor-workspace > *,
+  .dashboard-shell .ws-signin > *,
+  .dashboard-shell .settings-main > * {
+    animation: ws-arrive 300ms ease-out both;
+  }
+  .dashboard-shell .session-controls,
+  .dashboard-shell .ws-signin > :nth-child(2),
+  .dashboard-shell .settings-main > :nth-child(2) {
+    animation-delay: 100ms;
+  }
+  .dashboard-shell .monitor-workspace > :first-child,
+  .dashboard-shell .ws-signin > :nth-child(3) {
+    animation-delay: 200ms;
+  }
+  .dashboard-shell .monitor-workspace > :last-child,
+  .dashboard-shell .ws-signin > :nth-child(4) {
+    animation-delay: 300ms;
+  }
+  /* A person opens in place: a short fade and rise. */
+  .dashboard-shell .row-more {
+    transition:
+      opacity 200ms ease-out,
+      translate 200ms ease-out;
+  }
   @starting-style {
-    .dashboard-shell.ws-demo .attention-list,
-    .dashboard-shell.ws-demo .queue-empty {
+    .dashboard-shell .row-more {
+      opacity: 0;
+      translate: 0 6px;
+    }
+  }
+}
+@keyframes ws-arrive {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+    filter: blur(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-shell .rail-link .nav-label {
+    translate: 0 -50%;
+  }
+  @starting-style {
+    .dashboard-shell.ws-demo .ws-demo-arrive {
       translate: 0 0;
     }
   }
 }
+
+/* ---- Smaller screens --------------------------------------------------- */
+@media (max-width: 1000px) {
+  .dashboard-shell .monitor-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* What needs the teacher comes first on a narrow screen. */
+  .dashboard-shell .monitor-workspace > .class-panel {
+    order: -1;
+  }
+}
 @media (max-width: 700px) {
+  .dashboard-shell {
+    padding-left: 0;
+  }
+  .dashboard-shell .row-more {
+    padding-left: 14px;
+  }
+  .dashboard-shell .workspace-sidebar {
+    position: sticky;
+    inset: auto;
+    top: 0;
+    flex-direction: row;
+    gap: 10px;
+    width: auto;
+    padding: 12px 16px;
+    background: color-mix(in oklab, var(--ws-bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .dashboard-shell .sidebar-nav,
+  .dashboard-shell .sidebar-bottom {
+    flex-direction: row;
+  }
+  .dashboard-shell .sidebar-bottom {
+    margin: 0;
+  }
+  .dashboard-shell .sidebar-nav {
+    margin-left: auto;
+  }
+  .dashboard-shell .rail-link .nav-label {
+    display: none;
+  }
+  .dashboard-shell .ws-hero {
+    padding-top: 28px;
+  }
+  .dashboard-shell .ws-panel {
+    padding: 8px;
+    border-radius: 24px;
+  }
+  .dashboard-shell .settings-main {
+    padding-top: 32px;
+  }
   body .dashboard-shell.ws-demo {
     grid-template-columns: minmax(0, 1fr);
     border-radius: 24px;
@@ -1333,831 +1129,5 @@ body .dashboard-shell.ws-demo {
   .dashboard-shell.ws-demo .ws-hero {
     padding: 18px;
   }
-  .dashboard-shell.ws-demo .overview-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-/* Keep the demo's panel headings on one line in the narrower frame. */
-.dashboard-shell.ws-demo .panel-heading h2,
-.dashboard-shell.ws-demo .strip-heading h2 {
-  white-space: nowrap;
 }
 
-/* ---- Room view (web.room_view): the room, who needs you next, the last
-   hour, and a drawer for the camera, People and reviews. ---- */
-.room-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px 24px;
-  margin-bottom: 24px;
-}
-.dashboard-shell .room-header h1 {
-  margin: 0;
-  color: var(--ws-page-ink);
-  font-family: var(--font-garamond), Georgia, serif;
-  font-size: clamp(40px, 6vw, 56px);
-  font-weight: 500;
-  line-height: 0.96;
-  letter-spacing: -0.015em;
-}
-.room-subtitle {
-  margin: 12px 0 0;
-  color: var(--ws-page-soft);
-  font-size: 15px;
-}
-.room-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.dashboard-shell .room-details-toggle {
-  min-height: 36px;
-  background: var(--ws-pill);
-  color: var(--ws-ink);
-}
-
-.room-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-  align-items: start;
-  gap: 20px;
-}
-
-/* The room: a soft panel on the navy page with a dashed camera frame. */
-.room-stage {
-  display: flex;
-  flex-direction: column;
-  padding: 20px 22px 22px;
-  border-radius: 28px;
-  background: rgb(255 255 255 / 0.03);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
-}
-.dashboard-shell .room-stage h2 {
-  margin: 0 0 14px;
-  color: var(--ws-page-ink);
-  font-family: var(--font-garamond), Georgia, serif;
-  font-size: 22px;
-  font-weight: 500;
-}
-.room-people,
-.room-empty {
-  flex: 1;
-  min-height: 300px;
-  margin: 0;
-  border: 1.5px dashed rgb(255 255 255 / 0.12);
-  border-radius: 20px;
-}
-.room-people {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-evenly;
-  gap: 12px;
-  padding: 32px 12px;
-  list-style: none;
-}
-.room-empty {
-  display: grid;
-  place-items: center;
-  padding: 32px;
-  color: var(--ws-page-soft);
-  font-size: 15px;
-  text-align: center;
-}
-.dashboard-shell .room-person {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-height: 0;
-  padding: 14px 16px;
-  border-radius: 20px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--ws-page-ink);
-  text-align: center;
-  --tone: rgb(255 255 255 / 0.28);
-}
-.room-person.is-working {
-  --tone: #8fa3ff;
-}
-.room-person.is-done {
-  --tone: #7fd6a6;
-}
-.room-person.is-review {
-  --tone: #f3a383;
-}
-.room-avatar {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 84px;
-  height: 84px;
-  margin-bottom: 6px;
-  border-radius: 50%;
-  background: var(--ws-card-bg);
-  box-shadow: 0 0 0 3px var(--tone);
-  color: var(--ws-ink);
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  transition: box-shadow 300ms ease-out;
-}
-.room-person[aria-pressed="true"] .room-avatar {
-  outline: 2px solid var(--ws-page-ink);
-  outline-offset: 6px;
-}
-.room-name {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.room-status {
-  color: var(--tone);
-  font-size: 13px;
-  font-weight: 600;
-}
-.room-person.is-quiet .room-status {
-  color: var(--ws-page-soft);
-}
-.room-activity {
-  color: var(--ws-page-faint);
-  font-size: 12px;
-}
-/* Someone who needs you: a slow ring breathes out from the circle. */
-@media (prefers-reduced-motion: no-preference) {
-  .room-person.is-review .room-avatar::after {
-    content: "";
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px var(--tone);
-    animation: room-breathe 2400ms ease-out infinite;
-  }
-}
-@keyframes room-breathe {
-  from {
-    opacity: 0.5;
-    scale: 1;
-  }
-  to {
-    opacity: 0;
-    scale: 1.25;
-  }
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell .room-person:not(:disabled):hover {
-    background: rgb(255 255 255 / 0.05);
-  }
-}
-
-/* Who needs you next: the one light card on the page. */
-.next-up {
-  --ring: var(--ws-blue);
-  display: flex;
-  flex-direction: column;
-  padding: 24px;
-  border-radius: 28px;
-  background: var(--ws-card-bg);
-  box-shadow: var(--ws-card);
-  color: var(--ws-ink);
-}
-.dashboard-shell .next-up h2 {
-  margin: 0 0 20px;
-  color: var(--ws-ink-soft);
-  font-size: 14px;
-  font-weight: 600;
-}
-.next-up-name {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  font-family: var(--font-garamond), Georgia, serif;
-  font-size: 44px;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: -0.015em;
-}
-.next-up-flag {
-  display: inline-flex;
-  color: var(--ws-review);
-}
-.next-up-flag svg {
-  width: 22px;
-  height: 22px;
-}
-.next-up-detail {
-  margin: 10px 0 20px;
-  color: var(--ws-ink-soft);
-  font-size: 15px;
-}
-.dashboard-shell .next-up-open {
-  align-self: flex-start;
-  min-height: 40px;
-  padding: 0 18px;
-  background: var(--ws-ink);
-  box-shadow: none;
-  color: #ffffff;
-  font-size: 14px;
-}
-.next-up-then {
-  margin: 18px 0 0;
-  color: var(--ws-ink-faint);
-  font-size: 13px;
-}
-.next-up-calm {
-  margin: 0;
-  color: var(--ws-ink-soft);
-  font-family: var(--font-garamond), Georgia, serif;
-  font-size: 26px;
-  line-height: 1.2;
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell .next-up-open:not(:disabled):hover {
-    background: #1a2b66;
-  }
-}
-
-/* The last hour: a thin track with a dot per flagged review. */
-.timeline {
-  margin-top: 20px;
-  padding: 16px 22px 14px;
-  border-radius: 22px;
-  background: rgb(255 255 255 / 0.03);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
-}
-.timeline:empty {
-  min-height: 92px;
-}
-.timeline-head {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.dashboard-shell .timeline-head h2 {
-  margin: 0;
-  color: var(--ws-page-soft);
-  font-size: 14px;
-  font-weight: 600;
-}
-.timeline-head span,
-.timeline-scale,
-.timeline-empty {
-  color: var(--ws-page-faint);
-  font-size: 12px;
-}
-.timeline-track {
-  position: relative;
-  height: 24px;
-}
-.timeline-track::before {
-  content: "";
-  position: absolute;
-  inset: 50% 0 auto;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(
-    90deg,
-    rgb(255 255 255 / 0.04),
-    rgb(255 255 255 / 0.18)
-  );
-}
-.timeline-mark {
-  position: absolute;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #f3a383;
-  box-shadow: 0 0 0 3px rgb(243 163 131 / 0.25);
-  translate: -50% -50%;
-}
-.timeline-tip {
-  position: absolute;
-  bottom: 18px;
-  left: 50%;
-  padding: 4px 8px;
-  border-radius: 8px;
-  background: var(--ws-card-bg);
-  color: var(--ws-ink);
-  font-size: 12px;
-  white-space: nowrap;
-  opacity: 0;
-  translate: -50% 4px;
-  pointer-events: none;
-  transition-property: opacity, translate;
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
-}
-@media (hover: hover) and (pointer: fine) {
-  .timeline-mark:hover .timeline-tip {
-    opacity: 1;
-    translate: -50% 0;
-  }
-}
-.timeline-now {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #1b2650;
-  box-shadow: inset 0 0 0 1px rgb(143 163 255 / 0.4);
-  color: #8fa3ff;
-  font-size: 11px;
-  font-weight: 600;
-  translate: 0 -50%;
-}
-.timeline-scale {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-}
-.timeline-empty {
-  margin: 6px 0 0;
-}
-
-/* The drawer: camera, People and reviews, out of the way until asked for. */
-.room-drawer {
-  position: fixed;
-  inset: 0 0 0 auto;
-  z-index: 40;
-  width: min(640px, 100vw);
-  padding: 20px 20px 32px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--ws-night);
-  box-shadow: -30px 0 60px -20px rgb(0 0 0 / 0.6);
-  translate: 100% 0;
-  visibility: hidden;
-  transition:
-    translate 300ms cubic-bezier(0.32, 0.72, 0, 1),
-    visibility 0ms linear 300ms;
-}
-.room-drawer[data-open] {
-  translate: 0 0;
-  visibility: visible;
-  transition:
-    translate 300ms cubic-bezier(0.32, 0.72, 0, 1),
-    visibility 0ms;
-}
-.room-drawer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.dashboard-shell .room-drawer-head h2 {
-  margin: 0;
-  color: var(--ws-page-ink);
-  font-family: var(--font-garamond), Georgia, serif;
-  font-size: 26px;
-  font-weight: 500;
-}
-.dashboard-shell .room-drawer .monitor-workspace {
-  grid-template-columns: minmax(0, 1fr);
-}
-.dashboard-shell .room-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 39;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: rgb(5 8 20 / 0.5);
-  box-shadow: none;
-  cursor: default;
-  transition: opacity 300ms ease-out;
-}
-.dashboard-shell .room-scrim:not(:disabled):active {
-  scale: 1;
-}
-@starting-style {
-  .dashboard-shell .room-scrim {
-    opacity: 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .room-drawer,
-  .room-drawer[data-open] {
-    translate: 0 0;
-    opacity: 0;
-    transition:
-      opacity 200ms ease-out,
-      visibility 0ms linear 200ms;
-  }
-  .room-drawer[data-open] {
-    opacity: 1;
-    transition:
-      opacity 200ms ease-out,
-      visibility 0ms;
-  }
-}
-@media (max-width: 1000px) {
-  .room-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-@media (max-width: 700px) {
-  .room-people {
-    justify-content: center;
-  }
-  .room-avatar {
-    width: 64px;
-    height: 64px;
-    font-size: 19px;
-  }
-}
-
-/* In the drawer, a selected person or review leads, above the camera. */
-.dashboard-shell .room-drawer .attention-panel {
-  order: -1;
-}
-/* People ease into the room as the camera picks them up. */
-.dashboard-shell .room-person {
-  transition-property: opacity, scale, background-color;
-  transition-duration: 300ms;
-  transition-timing-function: ease-out;
-}
-@starting-style {
-  .dashboard-shell .room-person {
-    opacity: 0;
-    scale: 0.92;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  @starting-style {
-    .dashboard-shell .room-person {
-      scale: 1;
-    }
-  }
-}
-.next-up-summary {
-  margin: 14px 0 0;
-  color: var(--ws-ink-faint);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Room header: session controls sit beside "Camera and details" instead of
-   taking a row of their own (the toolbar rule makes them full width). */
-.dashboard-shell .room-actions {
-  justify-content: flex-end;
-}
-
-/* "Who needs you next" matches the room and timeline panels: a quiet panel
-   on Night, a white card in light mode. Page tokens flip with the theme. */
-.dashboard-shell:not(.ws-demo) .next-up {
-  --ring: var(--ws-night-accent);
-  background: rgb(255 255 255 / 0.03);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
-  color: var(--ws-page-ink);
-}
-.dashboard-shell:not(.ws-demo) .next-up h2,
-.dashboard-shell:not(.ws-demo) .next-up-detail,
-.dashboard-shell:not(.ws-demo) .next-up-calm {
-  color: var(--ws-page-soft);
-}
-.dashboard-shell:not(.ws-demo) .next-up-then,
-.dashboard-shell:not(.ws-demo) .next-up-summary {
-  color: var(--ws-page-faint);
-}
-.dashboard-shell:not(.ws-demo) .next-up-flag {
-  color: #f3a383;
-}
-.dashboard-shell:not(.ws-demo) .next-up-open {
-  background: var(--ws-night-accent);
-  color: #0b1a4d;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up {
-  background: #ffffff;
-  box-shadow: var(--ws-card);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up-flag {
-  color: var(--ws-review);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .next-up-open {
-  color: #ffffff;
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell:not(.ws-demo) .next-up-open:not(:disabled):hover {
-    background: var(--ws-night-accent);
-    filter: brightness(1.08);
-  }
-}
-
-/* ---- Theme switch in the rail ---- */
-.dashboard-shell .rail-theme-toggle {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  min-height: 40px;
-  height: 40px;
-  margin: 0 auto 12px;
-  padding: 0;
-  border-radius: 50%;
-  background: transparent;
-  box-shadow: none;
-  color: var(--ws-page-faint);
-  transition-property: scale, background-color, color;
-}
-.dashboard-shell .rail-theme-toggle svg {
-  width: 18px;
-  height: 18px;
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell .rail-theme-toggle:not(:disabled):hover {
-    background: rgb(255 255 255 / 0.08);
-    color: var(--ws-page-ink);
-  }
-}
-
-/* ---- Light theme (web.theme_toggle): the same layout on a pale page, with
-   white cards and the blue banner kept as the one strong color. ---- */
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) {
-  --ws-night: #f5f6fa;
-  --ws-night-rail: #eceff5;
-  --ws-page-ink: #0b1a4d;
-  --ws-page-soft: #4a5268;
-  --ws-page-faint: #737a8f;
-  --ws-night-accent: #425cc8;
-  --ws-pill: #ffffff;
-  --ws-pill-hover: #f1f3f9;
-  --ws-card-bg: #ffffff;
-  --ws-surface: #eef1f7;
-  --ws-item: #f6f7fb;
-  --ws-line: #e3e7ef;
-  --ws-chip: #eef1f7;
-  --ws-blue-soft: #e3e9fb;
-  --ws-card:
-    0 0 0 1px rgb(11 26 77 / 0.06), 0 14px 34px -22px rgb(11 26 77 / 0.3);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo)::before {
-  opacity: 0.45;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo)::after {
-  display: none;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .workspace-sidebar {
-  box-shadow: inset -1px 0 0 rgb(11 26 77 / 0.08);
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .sidebar-nav
-  .is-current {
-  background: var(--ws-ink);
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .sidebar-nav
-  .is-current
-  svg {
-  color: #ffffff;
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .sidebar-nav
-  .is-current {
-  color: #ffffff;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .brand-mark {
-  color: var(--ws-ink);
-  --cues-mark-accent: #425cc8;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .soon-label,
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .account-monogram {
-  background: rgb(11 26 77 / 0.06);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .sidebar-account,
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .mobile-account {
-  background: #ffffff;
-  box-shadow: 0 0 0 1px rgb(11 26 77 / 0.08);
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .current-activity
-  strong,
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .status-chip {
-  background: #ffffff;
-  box-shadow: 0 0 0 1px rgb(11 26 77 / 0.1);
-  color: var(--ws-ink);
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .activity-popover
-  > summary,
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-details-toggle {
-  box-shadow: var(--ws-control);
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .integration-details
-  dl
-  > div {
-  border-color: rgb(11 26 77 / 0.1);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-stage,
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .timeline {
-  background: #ffffff;
-  box-shadow: var(--ws-card);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-people,
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-empty {
-  border-color: rgb(11 26 77 / 0.14);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-person {
-  --tone: rgb(11 26 77 / 0.22);
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .room-person.is-working {
-  --tone: #425cc8;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-person.is-done {
-  --tone: #1d6b45;
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .room-person.is-review {
-  --tone: #b4532a;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-avatar {
-  background: var(--ws-surface);
-}
-:root[data-theme="light"]
-  .dashboard-shell:not(.ws-demo)
-  .timeline-track::before {
-  background: linear-gradient(
-    90deg,
-    rgb(11 26 77 / 0.04),
-    rgb(11 26 77 / 0.18)
-  );
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .timeline-mark {
-  background: #b4532a;
-  box-shadow: 0 0 0 3px rgb(180 83 42 / 0.2);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .timeline-now {
-  background: #e3e9fb;
-  box-shadow: inset 0 0 0 1px rgb(66 92 200 / 0.35);
-  color: #2f48ad;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-drawer {
-  box-shadow: -30px 0 60px -20px rgb(11 26 77 / 0.3);
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .room-scrim {
-  background: rgb(11 26 77 / 0.22);
-}
-@media (hover: hover) and (pointer: fine) {
-  :root[data-theme="light"]
-    .dashboard-shell:not(.ws-demo)
-    .sidebar-nav
-    a:not(.is-current):hover,
-  :root[data-theme="light"]
-    .dashboard-shell:not(.ws-demo)
-    .room-person:not(:disabled):hover,
-  :root[data-theme="light"]
-    .dashboard-shell:not(.ws-demo)
-    .rail-theme-toggle:not(:disabled):hover {
-    background: rgb(11 26 77 / 0.05);
-  }
-}
-@media (max-width: 700px) {
-  :root[data-theme="light"] .dashboard-shell:not(.ws-demo) .workspace-sidebar {
-    box-shadow: inset 0 -1px 0 rgb(11 26 77 / 0.08);
-  }
-}
-
-/* The drawer's backdrop is a button; it must not take the button hover fill. */
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell .room-scrim:not(:disabled):hover {
-    border-color: transparent;
-    background: rgb(5 8 20 / 0.5);
-  }
-  :root[data-theme="light"]
-    .dashboard-shell:not(.ws-demo)
-    .room-scrim:not(:disabled):hover {
-    background: rgb(11 26 77 / 0.22);
-  }
-}
-
-/* Settings: each item is one quiet row, a white card in light mode. */
-.dashboard-shell .settings-list {
-  display: grid;
-  gap: 10px;
-  max-width: 640px;
-}
-.dashboard-shell .settings-row,
-.dashboard-shell .settings-panel {
-  border: 1px solid transparent;
-  border-radius: 20px;
-  background: rgb(255 255 255 / 0.03);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
-  color: var(--ws-page-ink);
-}
-.dashboard-shell .settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
-  text-decoration: none;
-  transition-property: background-color;
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
-}
-.dashboard-shell .settings-panel {
-  padding: 20px;
-}
-.dashboard-shell .settings-row-body {
-  display: grid;
-  gap: 4px;
-}
-.dashboard-shell .settings-row-body strong {
-  color: var(--ws-page-ink);
-  font-size: 16px;
-  font-weight: 600;
-}
-.dashboard-shell .settings-row-body span {
-  color: var(--ws-page-soft);
-  font-size: 14px;
-}
-.dashboard-shell .settings-row > svg {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  color: var(--ws-page-faint);
-  transition-property: color, translate;
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .settings-row,
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .settings-panel {
-  background: #ffffff;
-  box-shadow: var(--ws-card);
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell a.settings-row:hover {
-    background: rgb(255 255 255 / 0.06);
-  }
-  :root[data-theme="light"] .dashboard-shell:not(.ws-demo) a.settings-row:hover {
-    background: var(--ws-pill-hover);
-  }
-  .dashboard-shell a.settings-row:hover > svg {
-    color: var(--ws-page-ink);
-    translate: 2px 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-shell .settings-row > svg {
-    transition-property: color;
-  }
-  .dashboard-shell a.settings-row:hover > svg {
-    translate: none;
-  }
-}
-
-/* The Account row's one action (Sign out / Sign in): a quiet pill. */
-.dashboard-shell .settings-row .settings-row-action {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 18px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: var(--ws-pill);
-  box-shadow: var(--ws-control);
-  color: var(--ws-ink);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition-property: scale, background-color;
-  transition-duration: 150ms;
-  transition-timing-function: ease-out;
-}
-.dashboard-shell .settings-row button.settings-row-action:not(:disabled):active {
-  scale: 0.96;
-}
-.dashboard-shell .settings-row-error {
-  color: #f3a383;
-  font-size: 13px;
-}
-:root[data-theme="light"] .dashboard-shell:not(.ws-demo) .settings-row-error {
-  color: var(--ws-review);
-}
-@media (hover: hover) and (pointer: fine) {
-  .dashboard-shell .settings-row .settings-row-action:hover {
-    background: var(--ws-pill-hover);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .dashboard-shell .settings-row button.settings-row-action:not(:disabled):active {
-    scale: 1;
-  }
-}

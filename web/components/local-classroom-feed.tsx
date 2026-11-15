@@ -1,99 +1,98 @@
 "use client";
 
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 
-/** The browser connects directly to the station's loopback stream; frames never cross the app server. */
-export default function LocalClassroomFeed({ activity }: { activity: string }) {
+// Remembers, in this browser only, that the teacher turned the video on.
+const VIDEO_KEY = "cues-video";
+const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
+
+/** The classroom camera, center of the dashboard, with the vision service's own
+ * overlay (a box and label per person, hand points). The browser reads this
+ * laptop's loopback stream directly; frames never cross the app server or
+ * leave the laptop. Off, it is one slim strip. */
+export default function LocalClassroomFeed() {
   const [connection, setConnection] = useState<
     "off" | "connecting" | "live" | "error"
   >("off");
+  const remember = (on: boolean) => {
+    try {
+      if (on) localStorage.setItem(VIDEO_KEY, "on");
+      else localStorage.removeItem(VIDEO_KEY);
+    } catch {}
+  };
   const connect = () => {
-    if (
-      !["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname)
-    ) {
+    if (!LOCAL_HOSTS.includes(window.location.hostname)) {
       setConnection("error");
       return;
     }
+    remember(true);
     setConnection("connecting");
   };
+  const turnOff = () => {
+    remember(false);
+    setConnection("off");
+  };
+  // Turn the video back on if the teacher left it on last time.
+  useEffect(() => {
+    let on = false;
+    try {
+      on = localStorage.getItem(VIDEO_KEY) === "on";
+    } catch {}
+    if (on && LOCAL_HOSTS.includes(window.location.hostname)) {
+      const timer = setTimeout(() => setConnection("connecting"), 0);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+  const streaming = connection === "connecting" || connection === "live";
   return (
-    <Card
-      className="classroom-feed"
-      role="region"
+    <section
+      className="ws-panel classroom-feed"
+      data-streaming={streaming || undefined}
       aria-labelledby="feed-heading"
     >
-      <header className="feed-toolbar">
-        <h2 id="feed-heading">Live classroom</h2>
-        <span
-          className={`feed-indicator ${connection === "live" ? "is-live" : ""}`}
-          role="status"
-        >
-          {connection === "live"
-            ? "Live video"
-            : connection === "connecting"
-              ? "Connecting"
-              : "Video disconnected"}
-        </span>
+      <header className="panel-heading">
+        <h2 id="feed-heading">Camera</h2>
+        {connection === "live" ? (
+          <button className="ws-pill" type="button" onClick={turnOff}>
+            Turn off
+          </button>
+        ) : null}
       </header>
-      <div className="video-stage">
-        {connection === "connecting" || connection === "live" ? (
+      <div className="video-stage" data-live={connection === "live" || undefined}>
+        {streaming ? (
           // MJPEG requires a native image; Next Image cannot optimize an open multipart stream.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             className="local-stream"
             src="http://127.0.0.1:8000/stream"
-            alt="Local classroom camera feed"
+            alt="Your classroom camera, with a box around each person Cues is tracking"
             onLoad={() => setConnection("live")}
             onError={() => setConnection("error")}
           />
         ) : null}
         {connection !== "live" ? (
           <div className="video-placeholder">
-            <span className="camera-placeholder-icon"><WorkspaceIcon name="camera" /></span>
-            <p className="video-state-title">
-              {connection === "error"
-                ? "Local camera unavailable"
-                : connection === "connecting"
-                  ? "Connecting to the camera"
-                  : "Connect your classroom camera"}
-            </p>
+            <WorkspaceIcon name="camera" />
             <p>
               {connection === "error"
-                ? "Check that the vision service is running on this laptop, then retry."
-                : "Connect this laptop's camera to see your classroom here."}
+                ? "Can’t reach this laptop’s camera. Check that Cues vision is running, then try again."
+                : connection === "connecting"
+                  ? "Connecting to this laptop’s camera…"
+                  : "See who Cues is tracking, live from this laptop."}
             </p>
-            {connection !== "connecting" ? (
-              <button className="connect-feed" type="button" onClick={connect}>
-                {connection === "error"
-                  ? "Retry local feed"
-                  : "Connect local feed"}
-              </button>
-            ) : null}
             {connection === "connecting" ? (
-              <button type="button" onClick={() => setConnection("off")}>
-                Cancel connection
+              <button type="button" className="ws-pill" onClick={turnOff}>
+                Cancel
               </button>
-            ) : null}
+            ) : (
+              <button type="button" className="ws-pill is-dark" onClick={connect}>
+                {connection === "error" ? "Try again" : "Turn on video"}
+              </button>
+            )}
           </div>
         ) : null}
       </div>
-      <footer className="feed-footer">
-        <span className="feed-activity">{activity}</span>
-        {connection === "live" ? (
-          <button
-            className="text-button"
-            type="button"
-            onClick={() => setConnection("off")}
-          >
-            Disconnect video
-          </button>
-        ) : null}
-        <span className="privacy-note">
-          Video stays on this laptop
-        </span>
-      </footer>
-    </Card>
+    </section>
   );
 }

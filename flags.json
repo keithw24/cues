@@ -143,23 +143,11 @@
     "owner": "evan",
     "ticket": "landing-demo"
   },
-  "web.room_view": {
-    "description": "Dashboard main page as the room: people placed as the camera sees them, a 'who needs you next' card and a one-hour timeline, with the camera and reviews in a side drawer. When off, the card layout stays.",
-    "default": true,
-    "owner": "evan",
-    "ticket": "room-view"
-  },
   "web.theme_toggle": {
     "description": "Light/dark switch on the landing page, log-in, sign-up and the dashboard. The choice is saved in the browser. When off, each page keeps its default: Night for the landing page and dashboard, white for log-in and sign-up.",
     "default": true,
     "owner": "evan",
     "ticket": "theme-toggle"
-  },
-  "web.live_view": {
-    "description": "Live screen at /live: a big count, a card for the next review, a short feed and the class as a list, all from what the station camera reports. When off, /live shows an unavailable page and the rail has no Live link.",
-    "default": true,
-    "owner": "evan",
-    "ticket": "live-view"
   },
   "vision.station_config": {
     "description": "Local /config endpoint: the signed-in teacher's dashboard sets this laptop's station. Vision writes nothing until a station is set. When off, the station is S1 (or CUES_STATION_ID) as before.",

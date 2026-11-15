@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { StationSignInRequired } from "./station-pairing.ts";
+
+/** Thrown when there is no signed-in teacher to find a classroom for. */
+export class StationSignInRequired extends Error {
+  constructor() {
+    super("Sign in to see your classroom.");
+  }
+}
 
 export type DefaultStation = { id: string; name: string | null; created: boolean };
 

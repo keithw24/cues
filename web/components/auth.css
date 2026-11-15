@@ -5,23 +5,45 @@
   --auth-chip: #ebebeb;
   --auth-blue: #425cc8;
   --auth-ease: cubic-bezier(0.2, 0, 0, 1);
+  --auth-dot: rgb(11 13 18 / 0.13);
   position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
   background: #f7f7f7;
   color: var(--auth-ink);
 }
+/* A faint dot grid, as on jmo's site. It fades out behind the companion and
+   the question, so it only shows toward the edges. Static: nothing moves. */
+.auth-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(var(--auth-dot) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  background-position: center;
+  mask-image: radial-gradient(
+    ellipse 60% 55% at 50% 40%,
+    transparent 30%,
+    #000 100%
+  );
+  pointer-events: none;
+}
+/* The same box as the landing page's nav, so the logo never moves between
+   the two pages: 72px tall, the same side gutter, a 28px mark. */
 .auth-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  height: 72px;
+  padding: 0 clamp(16px, 4vw, 40px);
 }
 .auth-wordmark {
   display: inline-flex;
   align-items: center;
-  padding: 0 4px;
+  padding: 0;
   color: var(--auth-ink);
   text-decoration: none;
 }
@@ -399,6 +421,7 @@
 /* ---- Dark theme (web.theme_toggle): Night, like the landing page and the
    dashboard. Fields stay soft off-white so typing is easy to read. ---- */
 :root[data-theme="dark"] .auth-page {
+  --auth-dot: rgb(255 255 255 / 0.12);
   --auth-ink: #eef1fb;
   --auth-ink-soft: #aeb6cc;
   --auth-ink-faint: #7c86a3;
@@ -456,7 +479,7 @@
   --cues-mark-accent: #8fa3ff;
 }
 :root[data-theme="dark"] .auth-content .login-companion {
-  filter: drop-shadow(0 12px 30px rgb(143 163 255 / 0.35));
+  filter: drop-shadow(0 12px 30px rgb(140 116 230 / 0.32));
 }
 @media (hover: hover) {
   :root[data-theme="dark"] .auth-switch:hover,

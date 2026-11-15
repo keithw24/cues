@@ -1,19 +1,8 @@
-import Link from "next/link";
-import { WorkspaceSidebar } from "@/components/workspace-sidebar";
-import { isEnabled } from "@/lib/flags";
-import { garamond } from "@/components/workspace-fonts";
-import "@/components/workspace.css";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Cues · Classroom camera" };
-
-export default async function StationsPage() {
-  const enabled = isEnabled("web.teacher_login");
-  const Form = enabled ? (await import("@/components/station-pairing-form")).default : null;
-  return <div className={`workspace dashboard-shell ${garamond.variable}`}>
-    <WorkspaceSidebar accountEnabled={enabled} />
-    <main id="main-content" className="dashboard-main settings-main">
-      <header className="page-intro"><h1>Classroom camera</h1><p>Link this account to the camera in your classroom.</p></header>
-      {Form ? <Form /> : <div className="integration-details"><p>Teacher accounts are not enabled in this environment.</p><Link href="/dashboard">Back to classroom</Link></div>}
-    </main>
-  </div>;
+// Cameras are no longer paired with a code: the signed-in teacher's classroom
+// is created on first sign-in, and the dashboard tells this laptop's camera
+// service which classroom it belongs to.
+export default function StationsPage() {
+  redirect("/dashboard");
 }

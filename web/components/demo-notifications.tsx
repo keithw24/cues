@@ -90,44 +90,66 @@ export function DemoNotifications({client, phone, phoneDirty, profileSaving}: {
       setSettings({notification_opt_in: optIn, notification_phone: optIn ? phone : null,
         photon_registration_status: result === "pending" ? "registering" : result === "registered" ? "registered" : "unregistered",
         first_name: first, last_name: last});
-      setAuthoritativePhone(phone); setConsent(false);
+      setAuthoritativePhone(phone); setConsent(false); setAsking(false);
     } catch (cause) {
       if (current !== generation.current) return;
       setSignedOut(cause instanceof NotificationSignInRequired);
       setError("Notification settings could not be saved. Please retry.");
     } finally {locked.current = false; setSaving(false);}
   }
-  // One status, said once: a pill in the header and a sentence under it.
-  const pill = loading ? "Loading…" : state === "enabled" ? "On" : state === "activating" ? "Activating"
-    : state === "activation failed" ? "Not active" : "Off";
-  const summary = !phone ? "Save a phone number in your profile first."
+  // One switch says on or off; one short line says what that means.
+  const on = Boolean(settings?.notification_opt_in) && state !== "not enabled";
+  const [asking, setAsking] = useState(false);
+  const summary = loading ? "Loading…"
+    : !phone ? "Add a mobile number above to get texts."
     : state === "enabled" ? `Notifications enabled for ${phone}.`
     : state === "activating" ? "Notifications are being activated for this phone."
     : state === "activation failed" ? "Notifications could not be activated yet."
-    : `Get a text at ${phone} when a student needs you. Texts name only the seat, never images.`;
-  const showOptIn = !settings?.notification_opt_in || state === "not enabled" || state === "activation failed";
-  return <section className="settings-panel profile-form" aria-labelledby="demo-notifications-heading" aria-busy={saving}>
-    <header className="profile-card-head">
-      <h2 id="demo-notifications-heading">Demo notifications</h2>
-      {signedOut ? null : <span className={`profile-status is-${state.replace(" ", "-")}`}>{pill}</span>}
-    </header>
-    {signedOut ? <><p>Sign in to manage demo notifications.</p><Link href="/login">Teacher sign in</Link></> : <>
-      <p className="profile-hint" role="status" aria-live="polite">{loading ? "Loading notification status…" : summary}</p>
-      {phoneDirty ? <p className="profile-hint">Save your profile phone before enabling notifications. A new phone requires fresh opt-in.</p> : null}
-      {showOptIn ? <>
-        <div className="profile-pair">
-          <label className="profile-field"><span>First name</span><input value={first} onChange={e => setFirst(e.target.value)} maxLength={80} autoComplete="given-name" disabled={saving} /></label>
-          <label className="profile-field"><span>Last name</span><input value={last} onChange={e => setLast(e.target.value)} maxLength={80} autoComplete="family-name" disabled={saving} /></label>
+    : "Get a text when a student needs you. Texts name only the seat, never images.";
+  // Turning the switch on asks for a name and consent first; off saves at once.
+  const showOptIn = asking && (!settings?.notification_opt_in || state === "not enabled" || state === "activation failed");
+  const toggle = () => {
+    if (on) void submit(false);
+    else setAsking((value) => !value);
+  };
+  return <section id="notifications" className="profile-group" aria-labelledby="demo-notifications-heading" aria-busy={saving}>
+    <h2 id="demo-notifications-heading" className="profile-group-label">Text alerts</h2>
+    <div className="profile-card profile-form">
+      {signedOut ? <div className="alerts-head">
+        <div className="alerts-copy"><strong>Demo notifications</strong><p className="profile-hint">Sign in to manage demo notifications.</p></div>
+        <Link className="ws-pill is-dark" href="/login">Sign in</Link>
+      </div> : <>
+        <div className="alerts-head">
+          <div className="alerts-copy">
+            <strong>Demo notifications</strong>
+            <p className="profile-hint" role="status" aria-live="polite">{summary}</p>
+          </div>
+          <button type="button" role="switch" className="ws-switch"
+            aria-checked={on || showOptIn}
+            aria-label={on ? "Disable notifications" : "Enable notifications"}
+            onClick={toggle}
+            disabled={loading || saving || profileSaving || (!on && (!phone || phoneDirty))}>
+            <span aria-hidden="true" />
+          </button>
         </div>
-        <label className="profile-check"><input type="checkbox" checked={consentValid && !phoneDirty} onChange={e => {setConsent(e.target.checked); setConsentPhone(phone);}} disabled={saving || phoneDirty || !phone} /> I want to receive Cues demo notifications</label>
-      </> : null}
-      <div className="profile-actions">
-        {showOptIn ? <button type="button" className="primary-button" onClick={() => void submit(true)} disabled={loading || saving || profileSaving || phoneDirty || !phone || !consentValid || !first.trim() || !last.trim()}>{saving ? "Saving…" : "Enable notifications"}</button> : null}
-        {canTest ? <button type="button" onClick={() => void testNotification()} disabled={loading || saving || profileSaving}>Send test notification</button> : null}
-        {settings?.notification_opt_in ? <button type="button" onClick={() => void submit(false)} disabled={saving || profileSaving}>Disable notifications</button> : null}
-      </div>
-      {canTest && testMessage ? <p className="profile-hint" role="status">{testMessage}</p> : null}
-    </>}
-    {error ? <div className="profile-actions"><p className="settings-row-error" role="alert">{error}</p><button type="button" disabled={saving} onClick={() => setReload(n => n + 1)}>Refresh notification status</button></div> : null}
+        {phoneDirty && phone ? <p className="profile-hint">Save your new number first. A new number needs a fresh opt-in.</p> : null}
+        {showOptIn ? <div className="alerts-optin">
+          <div className="profile-pair">
+            <label className="profile-field"><span>First name</span><input value={first} onChange={e => setFirst(e.target.value)} maxLength={80} autoComplete="given-name" disabled={saving} /></label>
+            <label className="profile-field"><span>Last name</span><input value={last} onChange={e => setLast(e.target.value)} maxLength={80} autoComplete="family-name" disabled={saving} /></label>
+          </div>
+          <label className="profile-check"><input type="checkbox" checked={consentValid && !phoneDirty} onChange={e => {setConsent(e.target.checked); setConsentPhone(phone);}} disabled={saving || phoneDirty || !phone} /> I want to receive Cues demo notifications</label>
+          <div className="profile-actions">
+            <button type="button" className="ws-pill" onClick={() => setAsking(false)} disabled={saving}>Cancel</button>
+            <button type="button" className="ws-pill is-dark" onClick={() => void submit(true)} disabled={loading || saving || profileSaving || phoneDirty || !phone || !consentValid || !first.trim() || !last.trim()}>{saving ? "Saving…" : "Enable notifications"}</button>
+          </div>
+        </div> : null}
+        {canTest ? <div className="alerts-foot">
+          <button type="button" className="text-link" onClick={() => void testNotification()} disabled={loading || saving || profileSaving}>Send test notification</button>
+          {testMessage ? <p className="profile-hint" role="status">{testMessage}</p> : null}
+        </div> : null}
+      </>}
+      {error ? <div className="alerts-foot"><p className="profile-error" role="alert">{error}</p><button type="button" className="text-link" disabled={saving} onClick={() => setReload(n => n + 1)}>Try again</button></div> : null}
+    </div>
   </section>;
 }

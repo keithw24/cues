@@ -402,16 +402,19 @@ test("the session bar offers one primary action per state", () => {
   );
 });
 
-test("the primary button style list stays one complete rule", async () => {
+test("every workspace action is one pill style that presses to 0.96", async () => {
   const { readFileSync } = await import("node:fs");
   const css = readFileSync(
     new URL("../components/workspace.css", import.meta.url),
     "utf8",
   );
-  // The pill style must reach the primary buttons; a rule pasted into the
-  // middle of this selector list once stripped it.
-  assert.match(
-    css,
-    /\.dashboard-shell \.primary-button,\n\.dashboard-shell \.session-controls \.session-primary,\n\.dashboard-shell \.review-action-buttons button:first-child \{\n  min-height: 40px;[\s\S]*?border-radius: 999px;/,
+  assert.match(css, /\.dashboard-shell \.ws-pill \{[^}]*border-radius: 999px;/);
+  assert.match(css, /\.dashboard-shell \.ws-pill:not\(:disabled\):active \{\s*scale: 0\.96;/);
+  const controls = readFileSync(
+    new URL("../components/session-controls.tsx", import.meta.url),
+    "utf8",
   );
+  // Teachers act on activities, never on ids: no station, session or owner ids on screen.
+  assert.doesNotMatch(controls, /Station: \{station\}|Session: \{|Owner: \{/);
+  assert.match(controls, /className="ws-pill is-dark"/);
 });

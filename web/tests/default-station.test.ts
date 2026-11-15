@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parseDefaultStation, resolveDefaultStation } from "../lib/default-station.ts";
-import { StationSignInRequired } from "../lib/station-pairing.ts";
+import { parseDefaultStation, resolveDefaultStation, StationSignInRequired } from "../lib/default-station.ts";
 import { watchDashboard, type FeedState } from "../lib/dashboard-feed.ts";
 import { watchTeacherReviews } from "../lib/teacher-review-feed.ts";
 

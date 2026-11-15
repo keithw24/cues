@@ -10,6 +10,7 @@ import {
 } from "@/lib/teacher-profile";
 import "./teacher-profile.css";
 import { DemoNotifications } from "@/components/demo-notifications";
+import { WorkspaceIcon } from "@/components/workspace-icon";
 
 /** Split a stored E.164 number back into a listed country code and the rest. */
 function splitPhone(phone: string | null) {
@@ -45,7 +46,8 @@ export default function TeacherProfileForm() {
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
-    let loadedFor: string | null = null;
+    // undefined until the first auth event, so a signed-out start still resolves.
+    let loadedFor: string | null | undefined = undefined;
     async function load(userId: string) {
       try {
         // Also moves a number left in sign-up metadata into the profile.
@@ -126,97 +128,117 @@ export default function TeacherProfileForm() {
 
   if (!client)
     return (
-      <div className="settings-panel profile-form">
-        <p>Teacher accounts aren’t configured in this environment.</p>
-      </div>
+      <section className="profile-group">
+        <div className="profile-card">
+          <p className="profile-hint">
+            Teacher accounts aren’t configured in this environment.
+          </p>
+        </div>
+      </section>
     );
   if (state === "loading")
     return (
-      <div className="settings-panel profile-form" role="status">
-        <p>Loading your profile…</p>
-      </div>
+      <section className="profile-group" role="status">
+        <div className="profile-card">
+          <p className="profile-hint">Loading your profile…</p>
+        </div>
+      </section>
     );
   // Signed out: the Account card above offers Sign in.
   if (state === "signed-out") return null;
   if (state === "error")
     return (
-      <div className="settings-panel profile-form">
-        <p role="alert">{message}</p>
-      </div>
-    );
-  return (
-    <>
-      <form
-        className="settings-panel profile-form"
-        aria-labelledby="profile-form-heading"
-        onSubmit={save}
-      >
-        <header className="profile-card-head">
-          <h2 id="profile-form-heading">Name and alert phone</h2>
-        </header>
-        <label className="profile-field">
-          <span>Display name</span>
-          <input
-            name="display_name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            autoComplete="name"
-            maxLength={80}
-            placeholder="Ms. Rivera"
-          />
-        </label>
-        <fieldset className="profile-field">
-          <legend>Mobile number for alerts</legend>
-          <div className="profile-phone">
-            <label className="sr-only" htmlFor="profile-country">
-              Country code
-            </label>
-            <select
-              id="profile-country"
-              value={countryCode}
-              onChange={(event) => setCountryCode(event.target.value)}
-              autoComplete="tel-country-code"
-            >
-              {countryCodes.map((country) => (
-                <option key={country.code} value={country.code}>
-                  +{country.code} {country.label}
-                </option>
-              ))}
-            </select>
-            <label className="sr-only" htmlFor="profile-phone">
-              Mobile number
-            </label>
-            <input
-              id="profile-phone"
-              type="tel"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              autoComplete="tel-national"
-              inputMode="tel"
-              maxLength={20}
-              aria-invalid={phoneInvalid || undefined}
-              aria-describedby="profile-phone-hint"
-            />
-          </div>
-          <p id="profile-phone-hint" className="profile-hint">
-            {phoneInvalid
-              ? "Check the number and its country code."
-              : "Optional. Alerts name only the seat, never images or camera data."}
-          </p>
-        </fieldset>
-        <div className="profile-actions">
-          <button
-            className="primary-button"
-            type="submit"
-            disabled={state === "saving" || phoneInvalid}
-          >
-            {state === "saving" ? "Saving…" : "Save profile"}
-          </button>
-          <p className="profile-hint" role="status" aria-live="polite">
+      <section className="profile-group">
+        <div className="profile-card">
+          <p className="profile-error" role="alert">
             {message}
           </p>
         </div>
-      </form>
+      </section>
+    );
+  const country = countryCodes.find((item) => item.code === countryCode);
+  // Save lights up only when something changed.
+  const dirty =
+    name.trim() !== (profile?.display_name ?? "") ||
+    normalizedPhone !== (profile?.phone_number ?? null);
+  return (
+    <>
+      <section className="profile-group" aria-labelledby="profile-form-heading">
+        <h2 id="profile-form-heading" className="profile-group-label">
+          About you
+        </h2>
+        <form className="profile-card profile-form" onSubmit={save}>
+          <label className="profile-field">
+            <span>Name</span>
+            <input
+              name="display_name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              autoComplete="name"
+              maxLength={80}
+              placeholder="Ms. Rivera"
+            />
+          </label>
+          <div className="profile-field">
+            <label htmlFor="profile-phone">Mobile for alerts</label>
+            <div
+              className="phone-field"
+              data-invalid={phoneInvalid || undefined}
+            >
+              {/* The native list stays for keyboards and screen readers; the
+                  chip shows only the code, so the field stays compact. */}
+              <span className="phone-code">
+                <span aria-hidden="true">+{countryCode}</span>
+                <WorkspaceIcon name="chevronDown" />
+                <select
+                  aria-label={`Country code, ${country ? `+${country.code} ${country.label}` : ""}`}
+                  value={countryCode}
+                  onChange={(event) => setCountryCode(event.target.value)}
+                  autoComplete="tel-country-code"
+                >
+                  {countryCodes.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      +{item.code} {item.label}
+                    </option>
+                  ))}
+                </select>
+              </span>
+              <input
+                id="profile-phone"
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                autoComplete="tel-national"
+                inputMode="tel"
+                maxLength={20}
+                placeholder="Optional"
+                aria-invalid={phoneInvalid || undefined}
+                aria-describedby="profile-phone-hint"
+              />
+            </div>
+            <p
+              id="profile-phone-hint"
+              className={phoneInvalid ? "profile-error" : "profile-hint"}
+            >
+              {phoneInvalid
+                ? "Check the number and its country code."
+                : "Alerts name only the seat, never images or camera data."}
+            </p>
+          </div>
+          <div className="profile-actions">
+            <p className="profile-hint" role="status" aria-live="polite">
+              {message}
+            </p>
+            <button
+              className="ws-pill is-dark"
+              type="submit"
+              disabled={state === "saving" || phoneInvalid || !dirty}
+            >
+              {state === "saving" ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </form>
+      </section>
       <DemoNotifications
         client={client}
         phone={profile?.phone_number ?? null}

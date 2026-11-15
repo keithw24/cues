@@ -19,7 +19,9 @@ const character: AvatarCharacter = {
     },
     nodes: [],
   },
-  colors: { body: "#425cc8", eyes: "#ffffff" },
+  // Cues blue leaning toward the lavender in the workspace glow, so the
+  // companion reads as part of the same palette rather than a flat accent.
+  colors: { body: "#5763d2", eyes: "#ffffff" },
   face: {
     eyes: { width: 1.05, height: 0.85, gap: 0.72, shiftY: -7 / 120 },
     perspective: 1,
@@ -97,7 +99,7 @@ export default function CuesBlob({
           {/* A light band inside the edge, so the rim reads paler than the middle. */}
           <feGaussianBlur in="SourceAlpha" stdDeviation="26" result="deep" />
           <feComposite in="soft" in2="deep" operator="out" result="rim" />
-          <feFlood floodColor="#bac6f1" floodOpacity="0.85" />
+          <feFlood floodColor="#cdc8f6" floodOpacity="0.85" />
           <feComposite in2="rim" operator="in" result="rimLight" />
           {/* Fine light and dark grain, as on a soft felt ball. */}
           <feTurbulence
@@ -111,13 +113,13 @@ export default function CuesBlob({
           <feColorMatrix
             in="noise"
             type="matrix"
-            values="0 0 0 0 0.85  0 0 0 0 0.89  0 0 0 0 1  1.2 0 0 0 -0.62"
+            values="0 0 0 0 0.9  0 0 0 0 0.88  0 0 0 0 1  1.2 0 0 0 -0.62"
             result="light"
           />
           <feColorMatrix
             in="noise"
             type="matrix"
-            values="0 0 0 0 0.17  0 0 0 0 0.25  0 0 0 0 0.62  -1.2 0 0 0 0.5"
+            values="0 0 0 0 0.11  0 0 0 0 0.16  0 0 0 0 0.42  -1.2 0 0 0 0.5"
             result="dark"
           />
           <feMerge result="painted">

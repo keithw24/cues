@@ -6,6 +6,7 @@ import {
   RiArrowRightSLine,
   RiArrowRightUpLine,
   RiCheckboxCircleLine,
+  RiCloseLine,
   RiEyeOffLine,
   RiFlag2Line,
   RiGroupLine,
@@ -46,6 +47,7 @@ const icons = {
   working: RiPlayCircleLine,
   hidden: RiEyeOffLine,
   time: RiTimeLine,
+  close: RiCloseLine,
 } as const;
 
 export function WorkspaceIcon({

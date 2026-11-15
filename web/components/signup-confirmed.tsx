@@ -80,7 +80,7 @@ export default function SignupConfirmed({
     <main id="main-content" className="auth-page">
       <header className="auth-header">
         <Link className="auth-wordmark" href="/">
-          <CuesMark size={24} />
+          <CuesMark size={28} />
           Cues
         </Link>
         {themeToggleEnabled ? (
