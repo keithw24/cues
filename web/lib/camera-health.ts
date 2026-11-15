@@ -218,3 +218,20 @@ export function updatesFresh(
     return Number.isFinite(at) && at <= now + 2000 && now - at < UPDATES_STALE_MS;
   });
 }
+
+export type HealthSummary = { tone: HealthTone; label: string };
+
+/**
+ * One word for the collapsed strip. Amber only for a real fault: "updates not
+ * arriving" with nobody in view is an empty room, not a fault. "Checking" only
+ * while a check has not come back yet.
+ */
+export function healthSummary(health: CameraHealth, inView: number): HealthSummary {
+  const fault = health.items.some(
+    (item) => item.tone === "warn" && !(item.key === "updates" && inView === 0),
+  );
+  if (fault || health.problem === OTHER_CAMERA) return { tone: "warn", label: "Needs a look" };
+  if (health.items.some((item) => item.value === "Checking"))
+    return { tone: "quiet", label: "Checking" };
+  return { tone: "good", label: "All good" };
+}

@@ -636,31 +636,36 @@ export default function Dashboard({
                   </Link>
                 ) : null}
               </header>
-              {view === "review" ? null : sessionLive && client ? (
-                <SessionControls
-                  client={client}
-                  station={station}
-                  onActivity={ignoreActivity}
-                  teacherLoginEnabled={teacherLoginEnabled}
-                  resetPeople={
-                    resetPeopleEnabled
-                      ? {
-                          seatIds: reviewGroups.map((group) => group.seat_id),
-                          onReset: (ids) => ids.forEach(applyMarked),
-                        }
-                      : null
-                  }
-                />
-              ) : null}
-              {view !== "review" && healthStripEnabled && station ? (
-                <CameraHealthStrip
-                  station={station}
-                  updatedAt={seats.map((seat) => seat.state?.updated_at)}
-                  inView={inView.length}
-                  conflict={conflict}
-                  hostedEnabled={hostedLocalFeedEnabled}
-                  hostedOrigin={hostedDashboardOrigin}
-                />
+              {view !== "review" &&
+              ((sessionLive && client) || (healthStripEnabled && station)) ? (
+                <div className="hero-controls">
+                  {sessionLive && client ? (
+                    <SessionControls
+                      client={client}
+                      station={station}
+                      onActivity={ignoreActivity}
+                      teacherLoginEnabled={teacherLoginEnabled}
+                      resetPeople={
+                        resetPeopleEnabled
+                          ? {
+                              seatIds: reviewGroups.map((group) => group.seat_id),
+                              onReset: (ids) => ids.forEach(applyMarked),
+                            }
+                          : null
+                      }
+                    />
+                  ) : null}
+                  {healthStripEnabled && station ? (
+                    <CameraHealthStrip
+                      station={station}
+                      updatedAt={seats.map((seat) => seat.state?.updated_at)}
+                      inView={inView.length}
+                      conflict={conflict}
+                      hostedEnabled={hostedLocalFeedEnabled}
+                      hostedOrigin={hostedDashboardOrigin}
+                    />
+                  ) : null}
+                </div>
               ) : null}
               {view !== "review" && sessionLive && conflict && !healthStripEnabled ? (
                 <p className="station-busy" role="status">
