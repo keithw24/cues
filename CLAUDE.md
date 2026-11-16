@@ -1,6 +1,6 @@
 # Cues
 
-Cues helps a special-education teacher see which students need help. A local camera pipeline watches simple tasks (raise hand, thumbs up, teacher-recorded gestures), a rules engine decides when an event matters, an AI agent suggests support, and the teacher approves every change. The full spec is `notes/PRD-cues.md`.
+Cues helps a special-education teacher see which students need help. A local camera pipeline watches simple tasks (raise hand, thumbs up, teacher-recorded gestures), a rules engine decides when an event matters, an AI agent suggests support, and the teacher approves every change. Setup, status and open work are in `README.md`.
 
 ## Repo layout
 
@@ -54,7 +54,7 @@ uv run python -m vision.events --demo  # send one test event
 ## Workflow
 
 Work happens on the `refactor` branch (cut from `main`). Keep each commit scoped to one change.
-There is no PR template, ticket ID or reviewer sign-off to satisfy. What does gate a change:
+What gates a change:
 
 1. The commands above pass, in particular the two cross-component suites:
    - **Contract tests** (`tests/contract/`): every producer and consumer of shared data (vision
@@ -64,7 +64,7 @@ There is no PR template, ticket ID or reviewer sign-off to satisfy. What does ga
    Both need `supabase start` (Docker). They are skipped, loudly, when it is not running.
 2. Add a contract or smoke check for anything that crosses components, not a unit test.
 3. Every new feature ships behind a feature flag (next section).
-4. Before any merge to `main`, run the pre-merge review (section after next).
+4. Merge to `main` only with CI green. `/code-review` is available when a second look helps.
 
 ## Feature flags
 
@@ -94,49 +94,20 @@ Every feature can be turned on and off without a code change. This lets the team
 
 **Rules for every feature PR:**
 1. Add the feature's flag to `flags.json` in the same PR.
-2. A new flag starts with `"default": false`. Change it to `true` once the feature's Verify step has passed (on real hardware, if the feature needs a camera or model). That can happen in the same PR if the PR records the check.
+2. A new flag starts with `"default": false`. Change it to `true` once you have checked it works (on real hardware, if the feature needs a camera or model). That can happen in the same PR if the PR records the check.
 3. When the flag is off, the feature's code does not run, and everything else still starts and works. Two patterns:
    - **A whole module** (a stage or router in `vision/`): the module sets `FLAG = "vision.<feature>"`, and the loader skips it when the flag is off.
    - **A behaviour inside code that always runs** (for example, sending events to Supabase instead of only to local files): check the flag where the choice is made. The flag-off path is the fallback.
 4. Check the flag-off path still starts and works: run `tests/smoke` with the flag set to `0`, or extend it.
 5. Infrastructure that every feature needs (the service skeleton, CI, the flag helper itself) does not get a flag.
 
-## Pre-merge review
+## Docs
 
-Before merging any PR, Claude runs a set of reviewers and reports what they find. Don't merge while a blocking finding is open.
-
-**1. Pick the reviewers from what the PR changes.** Get the changed files with `gh pr diff <N> --name-only`.
-
-| Reviewer (`.claude/agents/`) | When it runs |
-|---|---|
-| `review-correctness` | always |
-| `review-verification` | always |
-| `review-flags` | always |
-| `review-privacy-contracts` | the PR touches any of: events, `seat_state` or the Supabase schema; expression; the agent; Photon; voice; gesture templates; logs, frame or image writes; `.gitignore`; the "Product rules" section of this file; or anything that sends data off the laptop |
-
-If the PR has a risk none of these reviewers covers (for example concurrency, performance on the demo laptop, or a security-sensitive key), add one more reviewer for that risk:
-- run it as a one-off general-purpose subagent with a one-paragraph brief;
-- give it the same output format as the others;
-- don't add a file for it.
-
-**2. Run the reviewers in parallel** as subagents. Give each one the PR number and the PR's base branch; it reads the ticket and Verify step from the PR body. If the `review-*` agent types are not available in the session (they load only when a session starts), spawn a general-purpose subagent for each one, telling it to read its `.claude/agents/review-*.md` file and follow it.
-
-**3. Combine the results** into one list. Remove duplicates and sort it: blocking findings first, then non-blocking ones. Each finding has a file and line, the problem, and a suggested fix.
-
-**4. Post the summary** as a comment on the PR (`gh pr comment <N>`), so the whole team can see it.
-
-**5. Decide.**
-- Any blocking finding: don't merge. The PR author's session fixes it on the PR branch and pushes; then the affected reviewers run again. A session reviewing someone else's PR only reports.
-- Only non-blocking findings: the PR author decides whether to fix them now or later.
-- Merge only after CI passes, no blocking findings are open, and a person on the team has said to merge.
-
-## Where the docs live
-
-Every document except `README.md`, `STARTUP.md` and the tool-bound instruction files (`CLAUDE.md`, `AGENTS.md`, `.github/pull_request_template.md`, `.claude/`) lives in `notes/`; the index is `notes/README.md`. When a change alters behaviour, a command, a flag or a table, update the doc that describes it in the same PR: `STARTUP.md` for setup and environment, `notes/supabase.md` for migrations, `notes/PRD-cues.md` §17 for shared data, `notes/outstanding-work.md` for what is still open.
+Only two documents: `README.md` (what Cues is, how to run it, current status and open work) and this file (rules for working in the repo). When a change alters behaviour, a command, a flag or the open-work list, update `README.md` in the same commit. Don't add other `.md` files.
 
 ## Product rules every change must respect
 
-These come from the PRD and are not optional.
+These are the product's non-negotiables.
 
 **Privacy**
 - Camera frames, images and raw camera data never leave the station laptop. Only structured events go to Supabase, the LLM, or Photon. The privacy claim is "student camera images and video stay local". Don't claim that all audio stays on-device (teacher voice may use a hosted speech service).
@@ -155,13 +126,13 @@ These come from the PRD and are not optional.
 - The agent never sees camera frames, never diagnoses, and never claims anything about a child's internal state.
 - The agent picks only from the approved intervention menu.
 - Teacher approval is needed before Cues changes a student's task, an instruction, or a support intervention. A teacher notification does not need approval.
-- If the LLM call fails or times out, the failure is logged and isolated: no review is fabricated and nothing is written for it (PRD §12). The teacher still sees the child's vision status; a later, stronger evaluation can try again.
+- If the LLM call fails or times out, the failure is logged and isolated: no review is fabricated and nothing is written for it The teacher still sees the child's vision status; a later, stronger evaluation can try again.
 
 **Photon**
 - Messages contain the minimum necessary information only: no images or raw camera data, no expression labels, no diagnoses, no unnecessary personal details.
 
 **Shared contracts**
-- The event shape in PRD §17.1 and the tables in §17.3 are shared by vision, web and agent. A change to them updates all three and PRD §17 in one commit, and `tests/contract/` must pass: it is the sign-off.
+- The event, `seat_state`, session and review shapes in `shared/contracts.py` and the tables in `supabase/migrations/` are shared by vision, web and agent. A change to them updates all three in one commit, and `tests/contract/` must pass: it is the sign-off.
 
 ## Pushing
 

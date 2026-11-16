@@ -4,7 +4,7 @@ GET    /gestures              every gesture task, with how many examples each ha
 POST   /gestures              create a new recorded gesture: {"name": "Wave"}
 DELETE /gestures/{id}         remove a gesture created here, and its examples
 
-Flow for the dashboard (see notes/vision-data.md):
+Flow for the dashboard:
   1. POST /gestures {"name": "Wave"}           -> {"id": "custom_wave", ...}
   2. POST /templates/record {"activity_id": "custom_wave", "label": "target"}  x3
   3. POST /templates/record {..., "label": "rest"}                           x2

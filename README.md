@@ -1,94 +1,173 @@
 # Cues
 
-Cues uses local vision and structured task progress to help teachers notice when
-a student may need attention. Built by Keith, Michelle, and Evan for HackPrinceton 2026.
+Cues helps a special-education teacher see which students may need attention. A camera on the
+teacher's laptop watches simple tasks (raise a hand, thumbs up, a gesture the teacher recorded).
+A rules engine decides when a stall matters, an AI agent writes a short review request, and the
+teacher decides every outcome. Student video never leaves the laptop.
+
+Rules for working in the repo are in [CLAUDE.md](CLAUDE.md). Everything else is below.
+
+## How it works
 
 ```mermaid
 flowchart TD
-    A["Teacher selects activity"] --> B["sessions.current_activity_id"]
-
-    C["Logitech camera"] --> D["Local MediaPipe + HSEmotion"]
-    B --> D
-
     T["Teacher signs in"] --> ST["Own default station"]
-    ST --> CF["Dashboard tells local vision its station (/config)"]
-    CF --> D
-
-    D --> E["Supabase seat_state"]
-    E --> F["ProgressEvaluator"]
-    F --> G["ProgressHistoryStore"]
-    F --> H["EscalationEvaluator"]
-    G -. optional history tool .-> K
-    F --> LP["Live progress summary on seat_state (migration 012)"]
-    LP --> N
-    H --> I["EvaluationRouter"]
-    I --> J["ContextEnricher"]
-    J --> K["Deep Agent"]
-
-    K --> L["request_teacher_review()"]
-    L --> M["Supabase teacher_reviews"]
-
-    M --> N["Teacher dashboard"]
-    M --> O["Photon / Spectrum iMessage"]
-
-    N --> P{"Teacher review"}
-    O --> P
-
-    P -->|Support needed / No support needed| S["resolve_teacher_review RPC"]
-    S --> Q["confirmed"]
-    S --> R["dismissed"]
-
-    P -->|Mark as reviewed| MR["mark_seat_reviewed RPC"]
-    MR --> RV["reviews closed as reviewed"]
-    MR --> V["Vision: child back to Working, timers restart"]
-    M -. session ends or task completed .-> EX["reviews closed as expired"]
+    ST --> CF["Dashboard tells local vision its station (POST /config)"]
+    A["Teacher picks an activity"] --> SS["sessions row"]
+    C["Camera"] --> V["Vision: MediaPipe + HSEmotion (on the laptop)"]
+    CF --> V
+    SS --> V
+    V -->|"seat_state + events, ~every 1s per person"| DB[("Supabase")]
+    DB --> W["Agent worker: ProgressEvaluator, escalation, router"]
+    W --> K["Deep Agent (Groq) -> request_teacher_review"]
+    K --> R["teacher_reviews"]
+    W -->|"evaluated progress"| DB
+    R --> D["Dashboard"]
+    R --> P["Photon / Spectrum text message"]
+    D --> X{"Teacher"}
+    P --> X
+    X -->|"Support needed / No support needed"| RR["resolve_teacher_review"]
+    X -->|"Mark as reviewed"| MR["mark_seat_reviewed: child back to Working"]
 ```
 
-The continuous agent worker polls structured state and selects information/action
-tools adaptively. Groq `openai/gpt-oss-20b` is the current demo model; the core
-agent remains provider-independent through model injection. FastAPI serves local
-vision/video. Pending reviews persist in Supabase; teacher resolution records a
-human decision without automatically changing instruction.
+- **Vision** (`vision/`, FastAPI on :8000) reads the camera, tracks people by position only, scores
+  the current task and publishes structured status. `/stream` (MJPEG) is the local video, read
+  directly by the browser.
+- **Agent worker** (`agent/`) polls `seat_state` for the station's active session, tracks progress,
+  and asks the LLM only when a stall is long enough. Groq `openai/gpt-oss-20b` is the demo model;
+  the core is provider-independent. It never sees frames and only creates review requests.
+- **Dashboard** (`web/`, Next.js on :3000) is where a teacher signs in, starts a session, sees who
+  is in view, and answers review requests.
+- **Database** (`supabase/`) holds ordered migrations. Run it locally with Docker.
+- **Notifications** (`cues/`) is a nested Photon/Spectrum SDK project, run on demand to send the
+  teacher an iMessage.
+- **Contracts** (`shared/contracts.py`) are the authoritative data shapes for events, seat state,
+  sessions and reviews.
 
-Video stays local. Raw frames/images never go to the LLM. Expression context is
-supporting-only, never a diagnosis or a claim about internal emotional state.
-Tracking loss is not student failure. The teacher remains the final decision-maker.
-Use simulated data during the hackathon.
+## Run it
 
-| Component | Stack |
+You need Python 3.11 with [uv](https://docs.astral.sh/uv/), Node 22, Docker and the
+[Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started).
+
+```bash
+uv sync
+npm --prefix web ci          # also installs cues/
+supabase start               # local Postgres + Auth + Realtime; applies every migration
+supabase status              # prints the URL and keys for the next step
+```
+
+Put these in the root `.env` (backend only, never commit it; `.env.example` lists the rest):
+
+```
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SERVICE_ROLE_KEY=<secret key from supabase status>
+GROQ_API_KEY=<your key>
+```
+
+and these in `web/.env.local` (browser-safe):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key from supabase status>
+```
+
+Then:
+
+```bash
+./scripts/dev.sh             # vision + agent worker + dashboard, normal timings
+./scripts/demo.sh            # same, with short timings for presenting
+CUES_CAMERA=fake ./scripts/dev.sh   # no webcam
+```
+
+Open http://localhost:3000, sign up (confirmation mail appears at http://127.0.0.1:54324),
+start a session, and allow camera access for your terminal in System Settings. The launcher
+stops its own leftovers on start and shuts everything down on Ctrl-C. `supabase db reset` wipes
+the local database; `supabase stop` shuts it down.
+
+**Useful settings** (root `.env` or the shell):
+
+| Variable | Use |
 |---|---|
-| Dashboard | Next.js / Tailwind |
-| Perception | MediaPipe / HSEmotion ONNX / Logitech camera |
-| Local video service | FastAPI |
-| State and reviews | Supabase Postgres + Realtime |
-| Agent | LangChain Deep Agents; Groq demo model |
-| Notifications | Photon 2.0 through Spectrum iMessage |
+| `CUES_CAMERA_INDEX` | Webcam number (default 0; a USB camera is often 1) |
+| `CUES_CAMERA` | `fake` for camera-free startup |
+| `CUES_FLAG_<AREA>_<NAME>` | Override a feature flag from `flags.json` with `1` or `0` |
+| `CUES_USE_STATIC_TEACHER_PHONE` | `1` sends alerts to `SPECTRUM_TEACHER_PHONE` (testing); `0` looks up the session owner's saved phone (`demo.sh` forces 0) |
+| `CUES_OVERLAY` | `debug` draws every stage's detail on the video |
+| `CUES_PALM_FLIP` | `1` if a camera mirrors its output |
+| `CUES_STATION_ID` / `CUES_SESSION_ID` | Dev/test overrides only; normally the dashboard sends the station |
 
-| Path | Ownership / contents |
+Text messages need `SPECTRUM_PROJECT_ID` and `SPECTRUM_PROJECT_SECRET` in `cues/.env`, the
+teacher to opt in under Settings > Profile, and the number added to Users on the Spectrum
+website.
+
+## Tests
+
+There are no unit tests. Two suites check that the parts work together; both need `supabase start`:
+
+```bash
+uv run pytest tests/contract   # code, Python contracts, TypeScript parsers and the schema agree
+uv run pytest tests/smoke -s   # vision follows a session, a stalled child becomes a review,
+                               # the dashboard reads it, Mark as reviewed closes it
+```
+
+CI (`.github/workflows/ci.yml`) starts a local Supabase and runs both; a skipped test fails it.
+Web checks: `cd web && npx tsc --noEmit && npm run lint && npm run build`.
+
+## Feature flags
+
+Every feature has a flag in `flags.json`, default off unless noted there. `CUES_FLAG_VISION_HANDS=0`
+turns hand tracking off; the dashboard reads `NEXT_PUBLIC_CUES_FLAG_...` for flags the browser needs.
+Each area reads flags only through its helper (`vision/flags.py`, `web/lib/flags.ts`); an unknown
+name is an error. `/health` on vision lists its current flags.
+
+## Troubleshooting
+
+- **Camera unavailable:** allow camera access for the terminal app, check `CUES_CAMERA_INDEX`, or use fake mode.
+- **"Station is in use by another camera":** a second camera or laptop holds the station; close it or sign in with its own account.
+- **Port in use:** the launcher frees 3000 and 8000 when it can verify they are this repo's.
+- **Supabase ports taken:** another local Supabase project is running; `supabase stop --project-id <name>`.
+- **Dashboard still shows "Needs Review" after Mark as reviewed:** vision must be running with `vision.review_marks` on (the default).
+- **Missing Supabase configuration:** the backend needs the secret key in the root `.env`; public keys are not enough.
+
+## Status
+
+**Working** (checked by the contract and smoke tests): teacher sign-in and default station; session
+start/end and activity picker; one camera per station; person tracking by position; built-in gestures
+and teacher-recorded gestures on the laptop; raise-hand; stall detection and agent review requests;
+persistent reviews with Support needed / No support needed and Mark as reviewed; live evaluated
+progress; Photon text on a new review; local Docker Supabase.
+
+**Open work**
+
+| Item | Notes |
 |---|---|
-| `vision/` | Keith: local perception, camera, structured publication |
-| `agent/` | Michelle: progress/routing, agent, reviews, notifications |
-| `web/` | Evan: dashboard/app integration |
-| `shared/` | Authoritative Pydantic contracts and fixtures |
-| `supabase/` | Ordered migrations and SQL checks |
-| `cues/` | Nested Spectrum SDK project, on-demand notification sender |
-| `notes/` | All documentation: product spec, database, web, vision and agent notes (index: [notes/README.md](notes/README.md)) |
-| `.github/` | CI workflows (`vision`, `web`, `supabase`) and the PR template |
-| `STARTUP.md` | Setup, env requirements, operational troubleshooting |
+| Real-camera pass | Pointing, peace, fist; Mark as reviewed (timer restarts, new review only after a fresh stall); id stability; two laptops on two stations; the camera health strip and "waiting for review" list. Only the automated suites have run them. |
+| Write volume | Vision rewrites each person's `seat_state` row every second (about 3,600 writes an hour per person, plus lease and session reports). A 3-second heartbeat works only if the agent's observation-gap limit rises from 3s to 5s; a throttle for the dashboard's refreshes and station reports was also prototyped. Not applied. |
+| Rotate exposed keys | A Groq key and a Cursor key were shown in logs earlier in the build. |
+| "Add a gesture" screen | The vision API (`/gestures`, `/templates/record`) exists; there is no dashboard screen, and a recorded gesture is not registered in `activities`. |
+| Interventions | Menu, suggestion and approval exist behind `agent.interventions` / `web.interventions` (off). Applying an approved support to a task is not built. |
+| Database one-writer rule | The one-camera guard is enforced in vision only; add a `writer_id` check to `seat_state` writes. |
+| Review evidence | While a review is open, later evaluations are dropped, so the teacher never sees newer evidence. |
+| History | Progress and prompt history are in memory and lost on restart. |
+| Person ids | By position only, so a person who leaves for 10+ seconds or two who swap seats can change ids. |
+| Refactor leftovers | The dashboard header and hero controls are still inline in `web/components/dashboard.tsx`. |
 
-See [STARTUP.md](STARTUP.md), then run `./scripts/dev.sh` to start vision, the
-agent worker, and dashboard together. Photon runs on demand. Voice is not required
-by this startup flow. What vision writes, and how the other two areas use it, is in the
-[vision handoff](notes/vision-data.md); what is still open is ranked in
-[outstanding work](notes/outstanding-work.md).
+**Ideas:** end-of-session summary; gesture tuning screen; per-session reports; moving gestures,
+object-state tasks, voice (all optional); more than one camera per classroom (decided not now).
 
-Dashboard activity writes and persistent teacher review controls are connected.
-Live progress requires migration 012 and explicit `agent.live_progress` /
-`web.live_progress` activation. Migration 012 is deployed and both flags are enabled locally.
-See [pipeline audit](notes/pipeline-audit.md) for every connection and remaining limits.
-MJPEG `/stream` is the intentional local demo transport; WebRTC is not required.
+**Known limits:** one agent worker per station; Photon acceptance is not proof of handset delivery;
+the model call can delay polling and cause a conservative gap reset; `/stream` MJPEG is the
+intentional local transport.
 
-Python dependencies use root uv; Node packages use their npm lockfiles. Follow
-[notes/archive/TEAM_WORKFLOW.md](notes/archive/TEAM_WORKFLOW.md) for branches and ownership, and
-[notes/PRD-cues.md](notes/PRD-cues.md) for product requirements. Shared Python contracts in
-`shared/contracts.py` are authoritative.
+## Layout
+
+| Path | Contents |
+|---|---|
+| `vision/` | Camera, perception stages, task status, local API and video |
+| `agent/` | Progress evaluation, routing, Deep Agent, review store, notifications, launcher |
+| `web/` | Dashboard, sign-in, settings, landing page |
+| `shared/` | Python contracts and fixtures |
+| `supabase/` | Migrations and seed |
+| `cues/` | Spectrum SDK sender (nested project) |
+| `tests/` | Contract and smoke tests |
+| `scripts/` | `dev.sh`, `demo.sh`, cleanup tools |

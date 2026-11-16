@@ -2,7 +2,7 @@
 
 With vision.session_lifecycle on, the station follows authoritative session
 UUID/activity/revision, acknowledges configuration and pauses task processing
-on end or sync failure. See notes/session-lifecycle.md. The implementation
+on end or sync failure. The implementation
 below is the preserved legacy path when the lifecycle flag is off.
 
 The teacher picks a task on Evan's dashboard. The dashboard
