@@ -70,6 +70,10 @@ class StationSessionState:
 
 
 STATION_SESSION = StationSessionState()
+# Set to run the next station tick now instead of waiting out the poll interval: the dashboard
+# asks for it right after it changes the session, so vision follows a reset or a new activity
+# within one request instead of up to POLL_SECONDS later.
+WAKE = threading.Event()
 
 
 def frame_activity(tasks, seat_id: str, ctx: dict) -> str | None:
@@ -115,6 +119,7 @@ class StationSessionSync:
         self.lease = lease
         self._leased_station: str | None = None
         self._stop = threading.Event()
+        self._wake = WAKE
         self._thread: threading.Thread | None = None
 
     def _tick(self, station_id: str) -> dict:
@@ -197,6 +202,7 @@ class StationSessionSync:
 
     def stop(self) -> None:
         self._stop.set()
+        self._wake.set()
         self.state.invalidate()
         if self._thread:
             self._thread.join(timeout=2)
@@ -208,7 +214,8 @@ class StationSessionSync:
                 self.check_once()
             except Exception:
                 pass  # Already sanitized/logged; retry without blocking the camera.
-            self._stop.wait(self.poll_seconds)
+            self._wake.wait(self.poll_seconds)
+            self._wake.clear()
 
 
 def sync_from_env() -> StationSessionSync | None:

@@ -220,6 +220,22 @@ def test_vision_takes_the_station_and_follows_the_teachers_session(vision, teach
     )[0]["result"]
     assert other["granted"] is False
 
+    # A reset (same activity, new revision) is followed at once when the dashboard asks, not
+    # at the next poll: vision's writes for the old revision are rejected until it does.
+    session = teacher.start_activity("raise_hand", session)
+    nudge = urllib.request.Request(
+        f"{vision}/config",
+        json.dumps({"station_id": teacher.station, "refresh": True}).encode(),
+        {"Content-Type": "application/json"},
+    )
+    urllib.request.urlopen(nudge, timeout=5)
+    wait_for(
+        "vision follows the reset within half a second of being asked",
+        lambda: (r := runtime_row(teacher.station)) and r["revision"] == session["revision"],
+        0.5,
+        interval=0.05,
+    )
+
     ended = teacher.end_session(session)
     assert ended["ended_at"] is not None
     wait_for(

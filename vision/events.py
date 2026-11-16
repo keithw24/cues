@@ -168,6 +168,11 @@ class Emitter:
         with self._lock:
             self._seat_states[str(row["seat_id"])] = row
 
+    def send_soon(self) -> None:
+        """Send what is queued now instead of at the next flush (after a session change)."""
+        with self._wake:
+            self._wake.notify_all()
+
     def flush(self, timeout: float = 5.0) -> None:
         """Wait until everything queued so far has been written (for tests and shutdown)."""
         deadline = time.monotonic() + timeout

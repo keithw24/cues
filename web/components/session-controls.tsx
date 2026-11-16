@@ -4,6 +4,7 @@ import { WorkspaceIcon } from "@/components/workspace-icon";
 import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { markSeatReviewed } from "@/lib/seat-review";
+import { configureLocalVision, LOCAL_VISION_URL } from "@/lib/local-vision";
 import {
   changeSession,
   readSession,
@@ -247,6 +248,9 @@ export function SessionControls({
         user,
       );
       if (epoch !== generation.current) return;
+      // Make this laptop's vision follow the change now, not at its next poll: until it does,
+      // everything it writes belongs to the old revision and is rejected.
+      void configureLocalVision(station, fetch, LOCAL_VISION_URL, true);
       // A new revision already starts every person over in vision; close what was still open
       // for them so the queue and the people row agree.
       if (activityId !== null && !result.ended_at) await clearRequests(result.id);

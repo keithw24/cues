@@ -96,6 +96,7 @@ class StatusStage:
         # Time of the last frame processed, and whether frames since then were paused.
         self._last_processed_t: float | None = None
         self._paused = False
+        self._new_session = False
         self.recent: deque[str] = deque(maxlen=RECENT_EVENTS)
         self._last_event: dict[str, tuple[str, float]] = {}  # seat -> (event type, time)
 
@@ -156,6 +157,9 @@ class StatusStage:
         for seat in self.zones.ids(ctx):
             if seat.startswith(prefix):  # an id from another station's tracker is never written
                 self._update_seat(seat, ctx, seen)
+        if self._new_session:
+            self._new_session = False
+            self.emitter.send_soon()
         self._drop_released(ctx)
         ctx["status"] = {seat: tr.status for seat, tr in self._trackers.items()}
         ctx["events"] = list(self.recent)
@@ -179,6 +183,7 @@ class StatusStage:
         if key != self._session_key:
             self._reset()
             self._session_key = key
+            self._new_session = True  # send this frame's rows at once, not at the next flush
         elif self._paused and self._last_processed_t is not None:
             # Same session after a pause: the paused time was not observed.
             gap = frame.timestamp - self._last_processed_t

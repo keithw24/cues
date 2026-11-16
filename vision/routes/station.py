@@ -2,6 +2,7 @@
 
 GET  /config   {"station_id": "S1" | null, "pinned": bool}
 POST /config   {"station_id": "S2"}  -> {"station_id": "S2", "changed": true}
+POST /config   {"station_id": "S2", "refresh": true}  -> also runs the station tick now
 
 The signed-in teacher's dashboard resolves the teacher's station and sends it
 here from the browser. Vision does not sign in as the teacher, and no
@@ -36,6 +37,8 @@ router = APIRouter(tags=["station"])
 class StationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     station_id: Any  # validated by vision.station.validate for one clear message
+    # The dashboard just changed this station's session: check it now, not at the next poll.
+    refresh: bool = False
 
 
 def _dashboard_origins() -> set[str]:
@@ -89,4 +92,8 @@ def write_config(request: Request, body: StationConfig) -> dict:
         raise HTTPException(422, str(exc)) from None
     except station_module.StationPinnedError as exc:
         raise HTTPException(409, str(exc)) from None
+    if body.refresh:
+        from vision.session_sync import WAKE
+
+        WAKE.set()
     return {**_state(), "changed": changed}

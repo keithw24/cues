@@ -25,13 +25,15 @@ export async function configureLocalVision(
   stationId: string | null,
   fetcher: Fetch = fetch,
   base: string = LOCAL_VISION_URL,
+  /** Also make vision check the station's session now (after the teacher changed it). */
+  refresh = false,
 ): Promise<LocalVisionResult> {
   if (stationId !== null && !STATION_ID.test(stationId)) return "invalid";
   try {
     const response = await fetcher(`${base}/config`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ station_id: stationId }),
+      body: JSON.stringify(refresh ? { station_id: stationId, refresh } : { station_id: stationId }),
       credentials: "omit",
       signal: AbortSignal.timeout(3000),
     });
