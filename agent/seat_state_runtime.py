@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import threading
 import time
@@ -9,6 +10,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol
+from urllib.request import urlopen
 from uuid import UUID
 
 from agent.context_enricher import ContextEnricher
@@ -193,26 +195,10 @@ class SeatStatePipeline:
         if self._last_rows.get(snapshot.seat_id) == fingerprint:
             return None
         self._last_rows[snapshot.seat_id] = fingerprint
-        if snapshot.activity_id is None or snapshot.activity_id not in self.activities:
-            raise KeyError(f"unknown activity ID: {snapshot.activity_id!r}")
-        activity = self.activities[snapshot.activity_id]
         key = (snapshot.session_id, snapshot.seat_id, snapshot.activity_id)
-        evaluator = self._evaluators.get(key)
+        evaluator = self._evaluator_for(snapshot, key)
         if evaluator is None:
-            self._revision_started[key] = snapshot.updated_at
-            evaluator = self._evaluators[key] = ProgressEvaluator(
-                activity, window_seconds=self.progress_window_seconds
-            )
-        if evaluator.key is not None and evaluator.key[-1] != snapshot.session_revision:
-            if evaluator.last is not None and snapshot.updated_at <= evaluator.last:
-                return None
-            self._revision_started[key] = snapshot.updated_at
-            evaluator.reset()
-            self.router.reset(
-                session_id=snapshot.session_id,
-                seat_id=snapshot.seat_id,
-                activity_id=snapshot.activity_id,
-            )
+            return None
         previous_timestamp = evaluator.last
         observed_now = now if now is not None else self.clock()
         previous_progress = evaluator.state
@@ -222,22 +208,7 @@ class SeatStatePipeline:
         # become misleading history entries.
         if evaluator.last == snapshot.updated_at and evaluator.last != previous_timestamp:
             self.history.record(snapshot, progress)
-            if self.publisher is not None:
-                recent = [
-                    entry
-                    for entry in self.history.get_recent_progress_history(
-                        snapshot.session_id, snapshot.seat_id, snapshot.activity_id, limit=10
-                    )
-                    if entry.observed_at >= self._revision_started[key]
-                ]
-                try:
-                    self.publisher(snapshot, progress, recent)
-                except Exception as error:
-                    log.error(
-                        "Live progress publication failed seat=%s error=%s; check migration 012",
-                        snapshot.seat_id,
-                        type(error).__name__,
-                    )
+            self._publish_progress(snapshot, progress, key)
         escalation = evaluate_escalation(
             progress, snapshot.expression_context, config=self.escalation_config
         )
@@ -246,52 +217,10 @@ class SeatStatePipeline:
         gap = (
             (snapshot.updated_at - previous_timestamp).total_seconds() if previous_timestamp else 0
         )
-        reason = (
-            "stale_observation"
-            if age > evaluator.max_gap
-            else "future_observation"
-            if age < 0
-            else "tracking_unavailable"
-            if snapshot.tracking_valid is not True
-            else "completion_latched"
-            if progress.trend == "completed"
-            else "observation_gap"
-            if gap > evaluator.max_gap
-            else "insufficient_window"
-            if progress.trend == "unknown"
-            else "valid_window"
+        reason = observation_reason(snapshot, progress, age, gap, evaluator.max_gap)
+        self._log_transition(
+            snapshot, key, previous_progress, progress, escalation, request, age, gap, reason
         )
-        diagnostic = (
-            key,
-            snapshot.session_revision,
-            snapshot.status,
-            snapshot.tracking_valid,
-            progress.trend,
-            escalation.reason,
-            reason,
-        )
-        if self._diagnostics.get(snapshot.seat_id) != diagnostic:
-            self._diagnostics[snapshot.seat_id] = diagnostic
-            log.info(
-                "seat=%s session=%s activity=%s revision=%s tracking=%s score=%s "
-                "vision_status=%s progress=%s->%s stalled=%.2fs age=%.2fs gap=%.2fs "
-                "escalation=%s route=%s reason=%s",
-                snapshot.seat_id,
-                snapshot.session_id,
-                snapshot.activity_id,
-                snapshot.session_revision,
-                snapshot.tracking_valid,
-                snapshot.task_score,
-                snapshot.status,
-                previous_progress.trend,
-                progress.trend,
-                progress.stalled_seconds,
-                age,
-                gap,
-                escalation.reason or "none",
-                "evaluate" if request else "none",
-                reason,
-            )
         if request is None:
             return SeatStateProcessingResult(snapshot, progress, escalation)
         context = self.enricher.enrich(request)
@@ -306,6 +235,106 @@ class SeatStatePipeline:
             agent_result.pending_review.id if agent_result.pending_review else "none",
         )
         return SeatStateProcessingResult(snapshot, progress, escalation, request, agent_result)
+
+    def _evaluator_for(self, snapshot: SeatState, key: tuple) -> ProgressEvaluator | None:
+        """The seat's evaluator, created on first sight and reset when the revision changes.
+
+        None means the row is an out-of-order observation from before a revision change.
+        """
+        if snapshot.activity_id is None or snapshot.activity_id not in self.activities:
+            raise KeyError(f"unknown activity ID: {snapshot.activity_id!r}")
+        evaluator = self._evaluators.get(key)
+        if evaluator is None:
+            self._revision_started[key] = snapshot.updated_at
+            evaluator = self._evaluators[key] = ProgressEvaluator(
+                self.activities[snapshot.activity_id], window_seconds=self.progress_window_seconds
+            )
+        if evaluator.key is not None and evaluator.key[-1] != snapshot.session_revision:
+            if evaluator.last is not None and snapshot.updated_at <= evaluator.last:
+                return None
+            self._revision_started[key] = snapshot.updated_at
+            evaluator.reset()
+            self.router.reset(
+                session_id=snapshot.session_id,
+                seat_id=snapshot.seat_id,
+                activity_id=snapshot.activity_id,
+            )
+        return evaluator
+
+    def _publish_progress(self, snapshot: SeatState, progress: ProgressState, key: tuple) -> None:
+        if self.publisher is None:
+            return
+        recent = [
+            entry
+            for entry in self.history.get_recent_progress_history(
+                snapshot.session_id, snapshot.seat_id, snapshot.activity_id, limit=10
+            )
+            if entry.observed_at >= self._revision_started[key]
+        ]
+        try:
+            self.publisher(snapshot, progress, recent)
+        except Exception as error:
+            log.error(
+                "Live progress publication failed seat=%s error=%s; check migration 012",
+                snapshot.seat_id,
+                type(error).__name__,
+            )
+
+    def _log_transition(
+        self, snapshot, key, previous, progress, escalation, request, age, gap, reason
+    ) -> None:
+        """Log one line when a seat's diagnostic state changes, not on every row."""
+        diagnostic = (
+            key,
+            snapshot.session_revision,
+            snapshot.status,
+            snapshot.tracking_valid,
+            progress.trend,
+            escalation.reason,
+            reason,
+        )
+        if self._diagnostics.get(snapshot.seat_id) == diagnostic:
+            return
+        self._diagnostics[snapshot.seat_id] = diagnostic
+        log.info(
+            "seat=%s session=%s activity=%s revision=%s tracking=%s score=%s "
+            "vision_status=%s progress=%s->%s stalled=%.2fs age=%.2fs gap=%.2fs "
+            "escalation=%s route=%s reason=%s",
+            snapshot.seat_id,
+            snapshot.session_id,
+            snapshot.activity_id,
+            snapshot.session_revision,
+            snapshot.tracking_valid,
+            snapshot.task_score,
+            snapshot.status,
+            previous.trend,
+            progress.trend,
+            progress.stalled_seconds,
+            age,
+            gap,
+            escalation.reason or "none",
+            "evaluate" if request else "none",
+            reason,
+        )
+
+
+def observation_reason(
+    snapshot: SeatState, progress: ProgressState, age: float, gap: float, max_gap: float
+) -> str:
+    """Why an observation did or did not count toward progress, as one diagnostic word."""
+    if age > max_gap:
+        return "stale_observation"
+    if age < 0:
+        return "future_observation"
+    if snapshot.tracking_valid is not True:
+        return "tracking_unavailable"
+    if progress.trend == "completed":
+        return "completion_latched"
+    if gap > max_gap:
+        return "observation_gap"
+    if progress.trend == "unknown":
+        return "insufficient_window"
+    return "valid_window"
 
 
 class SeatStateRuntime:
@@ -324,6 +353,7 @@ class SeatStateRuntime:
         self.pipeline = pipeline
         self.poll_seconds = poll_seconds
         self.monotonic = time.monotonic
+        self._marks_failing = False
 
     def run_once(self) -> list[SeatStateProcessingResult]:
         rows = self.source.fetch()
@@ -334,7 +364,7 @@ class SeatStateRuntime:
                 self._marks_failing = False
             except Exception as error:
                 # For example migration 1500 is not applied yet: keep working, say so once.
-                if not getattr(self, "_marks_failing", False):
+                if not self._marks_failing:
                     log.error(
                         "Review marks unavailable (%s); apply migration 1500", type(error).__name__
                     )
@@ -363,16 +393,26 @@ class SeatStateRuntime:
             stop.wait(max(0.0, self.poll_seconds - (self.monotonic() - started)))
 
 
-def local_station():
-    """Read this laptop's authoritative vision assignment; unavailable means pause."""
-    import json
-    from urllib.request import urlopen
+VISION_CONFIG_URL = "http://127.0.0.1:8000/config"
+_last_station: str | None | bool = False  # False until the first answer, to log changes once
 
+
+def local_station() -> str | None:
+    """This laptop's vision station assignment. None means unavailable: the worker pauses.
+
+    A change (vision unreachable, no station yet, a station arriving) is logged once.
+    """
+    global _last_station
+    station = None
     try:
-        with urlopen("http://127.0.0.1:8000/config", timeout=2) as response:
-            station = json.load(response).get("station_id")
-        if isinstance(station, str) and station:
-            return station
+        with urlopen(VISION_CONFIG_URL, timeout=2) as response:
+            found = json.load(response).get("station_id")
+        station = found if isinstance(found, str) and found else None
     except Exception:
-        pass
-    return None
+        station = None
+    if station != _last_station:
+        _last_station = station
+        log.info(
+            "Vision station: %s", station or "unavailable (vision not running or no station set)"
+        )
+    return station
