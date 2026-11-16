@@ -21,6 +21,7 @@ import {
   StationSignInRequired,
 } from "@/lib/default-station";
 import { createDashboardClient } from "@/lib/supabase";
+import type { DashboardFeatures } from "@/lib/dashboard-features";
 import { startLocalVisionSync } from "@/lib/local-vision";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
@@ -107,52 +108,36 @@ function SignInCard() {
 
 export default function Dashboard({
   view = "classroom",
-  reviewPageEnabled = false,
-  liveProgressEnabled = false,
-  personObservationsEnabled = false,
-  sessionControlsEnabled = false,
+  features,
   stationId = "",
-  reviewsEnabled = false,
-  reviewActionsEnabled = false,
-  teacherLoginEnabled = false,
-  themeToggleEnabled = false,
-  hostedLocalFeedEnabled = false,
-  companionEnabled = false,
   hostedDashboardOrigin = "https://cues.nyc",
-  visionStationConfigEnabled = false,
-  healthStripEnabled = false,
-  interventionsEnabled = false,
-  resetPeopleEnabled = false,
-  reviewWaitingEnabled = false,
 }: {
   /** "classroom" (the default) or "review", the To review page. */
   view?: "classroom" | "review";
-  /** web.review_page: the To review page and its links. */
-  reviewPageEnabled?: boolean;
-  liveProgressEnabled?: boolean;
-  personObservationsEnabled?: boolean;
-  sessionControlsEnabled?: boolean;
+  /** Every feature flag, resolved on the server (lib/dashboard-features.ts). */
+  features: DashboardFeatures;
   /** Explicit dev/test override (CUES_STATION_OVERRIDE). Normally empty: a signed-in
    * teacher's own default station is used. */
   stationId?: string;
-  reviewsEnabled?: boolean;
-  reviewActionsEnabled?: boolean;
-  teacherLoginEnabled?: boolean;
-  themeToggleEnabled?: boolean;
-  hostedLocalFeedEnabled?: boolean;
-  /** web.companion: the Cues companion on the To review pill. */
-  companionEnabled?: boolean;
   hostedDashboardOrigin?: string;
-  visionStationConfigEnabled?: boolean;
-  /** web.health_strip: camera on/off, classroom set, updates arriving, other cameras. */
-  healthStripEnabled?: boolean;
-  /** web.interventions: the agent's suggested support, and approving one (migration 018). */
-  interventionsEnabled?: boolean;
-  /** web.reset_people: switching or restarting the activity puts everyone back to working. */
-  resetPeopleEnabled?: boolean;
-  /** web.review_waiting: To review also lists people the camera flagged who have no request yet. */
-  reviewWaitingEnabled?: boolean;
 }) {
+  const {
+    reviewPageEnabled,
+    liveProgressEnabled,
+    personObservationsEnabled,
+    sessionControlsEnabled,
+    reviewsEnabled,
+    reviewActionsEnabled,
+    teacherLoginEnabled,
+    themeToggleEnabled,
+    hostedLocalFeedEnabled,
+    companionEnabled,
+    visionStationConfigEnabled,
+    healthStripEnabled,
+    interventionsEnabled,
+    resetPeopleEnabled,
+    reviewWaitingEnabled,
+  } = features;
   const [observationNow, setObservationNow] = useState<number | null>(null);
   useEffect(() => {
     if (!personObservationsEnabled) return;

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { isEnabled } from "@/lib/flags";
 import Dashboard from "@/components/dashboard";
+import { dashboardFeatures } from "@/lib/dashboard-features";
 import { garamond } from "@/components/workspace-fonts";
 import "@/components/workspace.css";
 
@@ -14,18 +15,8 @@ export default async function ReviewPage() {
     <div className={`workspace ${garamond.variable}`}>
       <Dashboard
         view="review"
-        reviewPageEnabled
-        liveProgressEnabled={isEnabled("web.live_progress")}
-        personObservationsEnabled={isEnabled("web.person_observations")}
-        sessionControlsEnabled={isEnabled("web.session_controls")}
+        features={{ ...dashboardFeatures("review"), reviewPageEnabled: true }}
         stationId={process.env.CUES_STATION_OVERRIDE ?? ""}
-        reviewsEnabled={isEnabled("web.teacher_reviews")}
-        reviewActionsEnabled={isEnabled("web.teacher_review_actions")}
-        teacherLoginEnabled={isEnabled("web.teacher_login")}
-        themeToggleEnabled={isEnabled("web.theme_toggle")}
-        visionStationConfigEnabled={isEnabled("web.vision_station_config")}
-        interventionsEnabled={isEnabled("web.interventions")}
-        reviewWaitingEnabled={isEnabled("web.review_waiting")}
       />
     </div>
   );
