@@ -11,6 +11,7 @@ from typing import Protocol
 from dotenv import dotenv_values
 
 from agent.teacher_review import TeacherReview
+from shared.phone import is_e164
 
 
 class NotificationUnavailable(RuntimeError):
@@ -135,9 +136,7 @@ def spectrum_notifier(
                     raise
                 except Exception:
                     raise NotificationUnavailable("Teacher destination lookup failed") from None
-            import re
-
-            if not isinstance(phone, str) or not re.fullmatch(r"\+[1-9][0-9]{7,14}", phone):
+            if not is_e164(phone):
                 raise NotificationUnavailable(
                     "Teacher profile/static destination requires an E.164 phone"
                 )

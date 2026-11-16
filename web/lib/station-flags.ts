@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { SEAT_ID, STATION_ID } from "./ids.ts";
 
 /**
  * The "Last hour" timeline: when children were flagged.
@@ -11,8 +12,6 @@ export type FlagKind = "review" | "review_needed" | "no_progress";
 export type StationFlag = { id: string; seat_id: string; kind: FlagKind; at: string };
 
 const KINDS: readonly string[] = ["review", "review_needed", "no_progress"];
-const SEAT_ID = /^[A-Za-z0-9_-]{1,64}$/;
-const STATION_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export function parseStationFlags(data: unknown): StationFlag[] {
   if (!Array.isArray(data)) throw new Error("Invalid flags response");

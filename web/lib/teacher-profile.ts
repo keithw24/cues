@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { E164 } from "./ids.ts";
 
 /** public.teacher_profiles (migration 006). Supabase Auth stays the source of truth for email. */
 export type TeacherProfile = {
@@ -12,7 +13,6 @@ export type ProfileInput = {
 };
 
 const COLUMNS = "user_id,display_name,phone_number";
-const E164 = /^\+[1-9][0-9]{7,14}$/;
 const MAX_NAME = 80;
 
 export function cleanProfileInput(input: ProfileInput): ProfileInput {

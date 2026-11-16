@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { SEAT_ID } from "./ids.ts";
 
 /**
  * "Mark as reviewed": the teacher has checked in with a flagged child.
@@ -12,7 +13,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type SeatReviewResult = { closed: number };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SEAT_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const MARK_REVIEWED_ERRORS = {
   signIn: "Sign in as a teacher of this station to mark someone as reviewed.",

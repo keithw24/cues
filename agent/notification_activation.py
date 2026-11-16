@@ -2,11 +2,11 @@
 
 import json
 import os
-import re
 import subprocess
 from pathlib import Path
 
 from agent.notifications import NotificationUnavailable
+from shared.phone import is_e164
 
 
 def send_to_teacher(client, config: dict, root: Path, user_id: str, message: str) -> str:
@@ -31,8 +31,7 @@ def send_to_teacher(client, config: dict, root: Path, user_id: str, message: str
         raise NotificationUnavailable("Notification configuration unavailable")
     if (
         state.get("notification_opt_in") is not True
-        or not isinstance(phone, str)
-        or not re.fullmatch(r"\+[1-9][0-9]{7,14}", phone)
+        or not is_e164(phone)
         or state.get("notification_phone") != phone
         or state.get("photon_project_id") != project
         or not state.get("registration_attempt")

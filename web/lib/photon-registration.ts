@@ -1,12 +1,12 @@
 /** Server endpoint logic. Never import into a Client Component. */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { E164 } from "./ids.ts";
 
 type Config = { projectId?: string };
 type Dependencies = { admin: SupabaseClient; config: Config };
 const reply = (body: object, status = 200) => Response.json(body, {
   status, headers: { "Cache-Control": "no-store" },
 });
-const E164 = /^\+[1-9]\d{7,14}$/;
 const object = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 

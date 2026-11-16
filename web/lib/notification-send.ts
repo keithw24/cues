@@ -1,5 +1,6 @@
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {sendSpectrumMessage, SpectrumSendError, type SpectrumSendConfig} from "cues/send";
+import { E164 } from "./ids.ts";
 
 type Sender = typeof sendSpectrumMessage;
 /** Verified user ID comes from the endpoint; all destination facts come from Supabase. */
@@ -15,7 +16,7 @@ export async function sendOwnTestNotification(admin: SupabaseClient, config: Spe
   const phone = profile.data?.phone_number;
   const state = settings.data;
   if (profile.error || settings.error || !state || state.notification_opt_in !== true ||
-      typeof phone !== "string" || !/^\+[1-9]\d{7,14}$/.test(phone) ||
+      typeof phone !== "string" || !E164.test(phone) ||
       state.notification_phone !== phone || state.photon_project_id !== config.projectId ||
       !state.registration_attempt) throw new Error("Current notification consent is required.");
   // Registration status is intentionally not a pre-send gate.

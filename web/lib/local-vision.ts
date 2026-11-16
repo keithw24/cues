@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { STATION_ID } from "./ids.ts";
 
 /**
  * Tell this laptop's vision service which station the signed-in teacher uses.
@@ -8,8 +9,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * or user token is sent. Vision refuses anything that is not from this laptop.
  */
 export const LOCAL_VISION_URL = "http://127.0.0.1:8000";
-/** Same rule as lib/default-station.ts and vision/station.py. */
-export const STATION_ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** Re-send so a restarted vision service picks the station up again. */
 export const RESEND_MS = 5000;
 

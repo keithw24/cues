@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { STATION_ID } from "./ids.ts";
 
 /** Thrown when there is no signed-in teacher to find a classroom for. */
 export class StationSignInRequired extends Error {
@@ -10,7 +11,6 @@ export class StationSignInRequired extends Error {
 export type DefaultStation = { id: string; name: string | null; created: boolean };
 
 /** Station ids look like S1, S2, ... but any short URL-safe id is accepted. */
-const STATION_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export function parseDefaultStation(data: unknown): DefaultStation {
   const row = data as { station_id?: unknown; name?: unknown; created?: unknown } | null;

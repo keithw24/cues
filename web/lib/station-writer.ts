@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { STATION_ID } from "./ids.ts";
 
 /**
  * One camera per station. A second camera working for the same station is refused and
@@ -7,7 +8,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export type StationWriter = { seen_at: string; contested_at: string | null };
 
-const STATION_ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** The refusal and the holder's last renewal must be this close (both are database times). */
 const CONTESTED_WITHIN_MS = 10_000;
 /** The holder must have renewed recently by this browser's clock (a generous skew margin). */
