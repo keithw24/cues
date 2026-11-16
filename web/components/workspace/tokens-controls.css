@@ -1,0 +1,175 @@
+/* Teacher workspace. One quiet system shared with the landing page (Night,
+   the default) and the sign-in page (light): a blue gradient that fades into
+   the page, big plain numbers, small spaced captions, pills and round icon
+   buttons. Few surfaces, no decoration. The landing demo window reuses these
+   classes, always in the light palette. */
+
+.dashboard-shell {
+  /* Night: the landing page's navy. */
+  --ws-bg: #111a3a;
+  --ws-panel: rgb(255 255 255 / 0.045);
+  --ws-panel-solid: #172150;
+  --ws-tile: rgb(255 255 255 / 0.05);
+  --ws-tile-hover: rgb(255 255 255 / 0.085);
+  --ws-surface: rgb(255 255 255 / 0.08);
+  --ws-line: rgb(255 255 255 / 0.08);
+  --ws-ink: #eef1fb;
+  --ws-ink-soft: #aeb6cc;
+  --ws-ink-faint: #7c86a3;
+  --ws-blue: #8fa3ff;
+  --ws-blue-deep: #c6d0ff;
+  --ws-blue-soft: rgb(143 163 255 / 0.16);
+  --ws-done: #8fdcb0;
+  --ws-done-soft: rgb(143 220 176 / 0.13);
+  --ws-review: #f3b897;
+  --ws-review-soft: rgb(243 184 151 / 0.14);
+  --ws-primary: #eef1fb;
+  --ws-primary-ink: #0b1a4d;
+  --ws-pill: rgb(255 255 255 / 0.07);
+  --ws-pill-hover: rgb(255 255 255 / 0.12);
+  --ws-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  --ws-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ws-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23eef1fb'%3E%3Cpath d='M12 13.17l4.95-4.95 1.41 1.41L12 16 5.64 9.63l1.41-1.41z'/%3E%3C/svg%3E");
+  --ws-gutter: clamp(20px, 4vw, 48px);
+  /* Older names still read by the profile form. */
+  --ws-page-ink: var(--ws-ink);
+  --ws-page-soft: var(--ws-ink-soft);
+  --ring: var(--ws-blue);
+  min-height: 100dvh;
+  padding-left: 76px;
+  background: var(--ws-bg);
+  color: var(--ws-ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  overflow-x: clip;
+}
+/* Light: the sign-in page's canvas and white cards. The demo window on the
+   landing page always uses it. */
+:root[data-theme="light"] .dashboard-shell,
+.dashboard-shell.ws-demo {
+  --ws-bg: #f7f7f7;
+  --ws-panel: #ffffff;
+  --ws-panel-solid: #ffffff;
+  --ws-tile: #f6f6f8;
+  --ws-tile-hover: #efeff3;
+  --ws-surface: #ececf0;
+  --ws-line: rgb(11 13 18 / 0.07);
+  --ws-ink: #0b0d12;
+  --ws-ink-soft: #6b6f78;
+  --ws-ink-faint: #9a9da5;
+  --ws-blue: #425cc8;
+  --ws-blue-deep: #2f48ad;
+  --ws-blue-soft: #e9edfb;
+  --ws-done: #1d6b45;
+  --ws-done-soft: #e7f5ed;
+  --ws-review: #934d31;
+  --ws-review-soft: #fcf0e9;
+  --ws-primary: #0b0d12;
+  --ws-primary-ink: #ffffff;
+  --ws-pill: #ffffff;
+  --ws-pill-hover: #f1f1f4;
+  --ws-shadow:
+    0 0 0 1px rgb(11 13 18 / 0.04), 0 1px 2px rgb(11 13 18 / 0.04),
+    0 12px 32px -22px rgb(11 13 18 / 0.18);
+  --ws-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230b0d12'%3E%3Cpath d='M12 13.17l4.95-4.95 1.41 1.41L12 16 5.64 9.63l1.41-1.41z'/%3E%3C/svg%3E");
+}
+.dashboard-shell :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.dashboard-shell h1,
+.dashboard-shell h2,
+.dashboard-shell p {
+  margin: 0;
+}
+
+/* ---- Controls ---------------------------------------------------------- */
+.dashboard-shell button {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+.dashboard-shell .ws-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: scale, background-color, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .ws-pill svg {
+  width: 16px;
+  height: 16px;
+  margin-right: -2px;
+}
+.dashboard-shell .ws-pill.is-dark {
+  background: var(--ws-primary);
+  box-shadow: none;
+  color: var(--ws-primary-ink);
+}
+.dashboard-shell .ws-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dashboard-shell .ws-pill:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .ws-icon-button {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink-soft);
+  cursor: pointer;
+  transition-property: scale, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .ws-icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+.dashboard-shell .ws-icon-button:not(:disabled):active {
+  scale: 0.96;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .ws-pill:not(:disabled):hover,
+  .dashboard-shell .ws-icon-button:not(:disabled):hover {
+    background: var(--ws-pill-hover);
+    color: var(--ws-ink);
+  }
+  .dashboard-shell .ws-pill.is-dark:not(:disabled):hover {
+    background: var(--ws-primary);
+    color: var(--ws-primary-ink);
+    opacity: 0.88;
+  }
+}
+.ws-caption {
+  color: var(--ws-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+

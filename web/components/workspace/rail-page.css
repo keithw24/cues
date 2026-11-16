@@ -1,0 +1,396 @@
+/* ---- Rail -------------------------------------------------------------- */
+.dashboard-shell .workspace-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 76px;
+  padding: 22px 0 18px;
+}
+.dashboard-shell .rail-brand {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--ws-ink);
+  --cues-mark-accent: var(--ws-blue);
+}
+.dashboard-shell .sidebar-nav,
+.dashboard-shell .sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dashboard-shell .sidebar-bottom {
+  margin-top: auto;
+}
+.dashboard-shell .rail-link {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ws-pill);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink-soft);
+  cursor: pointer;
+  transition-property: scale, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .rail-link svg {
+  width: 19px;
+  height: 19px;
+}
+.dashboard-shell .rail-link:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .rail-link.is-current {
+  background: var(--ws-primary);
+  box-shadow: none;
+  color: var(--ws-primary-ink);
+}
+/* The name of each destination, beside its button on hover and focus. */
+.dashboard-shell .rail-link .nav-label {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--ws-primary);
+  color: var(--ws-primary-ink);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  translate: -4px -50%;
+  pointer-events: none;
+  transition-property: opacity, translate;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.dashboard-shell .rail-link:focus-visible .nav-label {
+  opacity: 1;
+  translate: 0 -50%;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .rail-link:not(.is-current):hover {
+    background: var(--ws-pill-hover);
+    color: var(--ws-ink);
+  }
+  .dashboard-shell .rail-link:hover .nav-label {
+    opacity: 1;
+    translate: 0 -50%;
+  }
+}
+
+/* ---- Page -------------------------------------------------------------- */
+.dashboard-shell .dashboard-main {
+  min-width: 0;
+  padding-bottom: 48px;
+}
+/* No banner: the page itself and a large title. The color comes from the
+   soft gradient behind the whole page (below). */
+.dashboard-shell .ws-hero {
+  display: grid;
+  gap: 28px;
+  padding: 64px var(--ws-gutter) 40px;
+}
+
+/* A large, soft blue, lavender and mint glow behind the content, as on the
+   reference: fixed, blurred once, never animated. Night uses it dimmer. */
+.dashboard-shell:not(.ws-demo) {
+  position: relative;
+  isolation: isolate;
+  --ws-glow-opacity: 0.55;
+}
+:root[data-theme="light"] .dashboard-shell:not(.ws-demo) {
+  --ws-glow-opacity: 1;
+}
+.dashboard-shell:not(.ws-demo)::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 0 76px;
+  z-index: -1;
+  background:
+    radial-gradient(
+      34% 36% at 44% 62%,
+      rgb(108 130 230 / 0.62),
+      transparent 72%
+    ),
+    radial-gradient(
+      28% 32% at 64% 46%,
+      rgb(172 150 238 / 0.5),
+      transparent 72%
+    ),
+    radial-gradient(
+      28% 26% at 58% 84%,
+      rgb(146 214 222 / 0.5),
+      transparent 72%
+    ),
+    radial-gradient(
+      36% 22% at 34% 8%,
+      rgb(140 160 240 / 0.28),
+      transparent 72%
+    );
+  filter: blur(56px);
+  opacity: var(--ws-glow-opacity);
+  pointer-events: none;
+}
+/* The title and the pill on its right share one center line. */
+.dashboard-shell .page-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dashboard-shell .ws-hero h1 {
+  color: var(--ws-ink);
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: clamp(40px, 5.5vw, 60px);
+  font-weight: 500;
+  line-height: 0.96;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .ws-subtitle {
+  margin-top: 10px;
+  color: var(--ws-ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+/* Session controls, under the title: the same pills as everything else. */
+.dashboard-shell .session-controls {
+  display: grid;
+  gap: 10px;
+}
+/* Controls in the header get a little more room than pills elsewhere. */
+.dashboard-shell .session-row .ws-pill {
+  height: 44px;
+  padding: 0 22px;
+}
+.dashboard-shell .session-row .ws-icon-button {
+  width: 44px;
+  height: 44px;
+}
+.dashboard-shell .session-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.dashboard-shell .session-controls select {
+  height: 44px;
+  min-width: 240px;
+  padding: 0 44px 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ws-pill) var(--ws-chevron) no-repeat right 14px center /
+    16px;
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
+  font-size: 14px;
+  font-weight: 500;
+  appearance: none;
+  cursor: pointer;
+}
+.dashboard-shell .session-controls select option {
+  color: #0b0d12;
+}
+.dashboard-shell .session-controls select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.dashboard-shell .session-line {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .session-line.is-error {
+  color: var(--ws-review);
+}
+/* The session could not load: the reason and the retry share one row, so the
+   refresh button never sits alone under it. */
+.dashboard-shell .session-controls.is-blocked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dashboard-shell .session-controls.is-blocked .session-line {
+  flex: 0 1 auto;
+  color: var(--ws-review);
+  font-weight: 500;
+  text-wrap: pretty;
+}
+.dashboard-shell .session-controls.is-blocked .session-row {
+  flex: none;
+}
+/* The activity controls and the camera button share one row under the title. */
+.dashboard-shell .hero-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* One camera per station: a second camera is being refused and paused. */
+.dashboard-shell .station-busy {
+  justify-self: start;
+  padding: 8px 14px;
+  border-radius: 18px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Camera health: a round "more" button (three dots) in the controls row, with a
+   status badge; the four words open beside it, and one sentence only when
+   something needs the teacher. */
+/* The strip's parts join the controls row: the button stays beside refresh,
+   and the checks and the sentence take their own lines under it. */
+.dashboard-shell .hero-controls > .health-strip,
+.dashboard-shell .hero-controls .health-row {
+  display: contents;
+}
+.dashboard-shell .hero-controls .health-pills,
+.dashboard-shell .hero-controls .health-problem-line {
+  flex: 0 0 100%;
+}
+.dashboard-shell .hero-controls .health-problem {
+  margin-top: -4px;
+}
+/* A long session error wraps inside its own item instead of pushing the
+   camera button away from refresh. */
+.dashboard-shell .hero-controls > .session-controls {
+  min-width: 0;
+  max-width: 100%;
+}
+/* Leave room for the camera button (44px + 12px gap) so it stays on the row. */
+.dashboard-shell .hero-controls > .session-controls:has(+ .health-strip) {
+  max-width: calc(100% - 56px);
+}
+.dashboard-shell .ws-hero > .hero-controls + .station-busy {
+  margin-top: -12px;
+}
+.dashboard-shell .health-more {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+.dashboard-shell .health-more svg {
+  width: 20px;
+  height: 20px;
+}
+.dashboard-shell .health-more .health-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  box-shadow: 0 0 0 2px var(--ws-panel-solid);
+}
+.dashboard-shell .health-dot {
+  flex: none;
+  transition: background-color 200ms ease;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ws-ink-faint);
+}
+.dashboard-shell .health-dot.is-good {
+  background: var(--ws-done);
+}
+.dashboard-shell .health-dot.is-warn {
+  background: var(--ws-review);
+}
+.dashboard-shell .health-strip ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dashboard-shell .health-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--ws-surface);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.dashboard-shell .health-label {
+  color: var(--ws-ink-soft);
+}
+.dashboard-shell .health-value {
+  font-weight: 600;
+}
+.dashboard-shell .health-item.is-good .health-value {
+  color: var(--ws-done);
+}
+.dashboard-shell .health-item.is-warn {
+  background: var(--ws-review-soft);
+}
+.dashboard-shell .health-item.is-warn .health-value {
+  color: var(--ws-review);
+}
+.dashboard-shell .health-problem {
+  margin: 8px 0 0;
+  padding: 8px 14px;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 18px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Approve a suggested support: one line of words, a menu, one button. */
+.dashboard-shell .intervention-pick label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .intervention-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dashboard-shell .intervention-row select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 14px;
+  border: 1px solid var(--ws-line);
+  border-radius: 999px;
+  background: var(--ws-surface);
+  color: var(--ws-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+/* A connection problem: one quiet line and a retry. */
+.dashboard-shell .notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 var(--ws-gutter) 16px;
+  padding: 10px 10px 10px 18px;
+  border-radius: 999px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 14px;
+  font-weight: 500;
+}
+

@@ -1,0 +1,144 @@
+/* ---- Theme switch in the nav ---- */
+.ln-theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.06);
+  color: var(--ln-ink-soft);
+  cursor: pointer;
+  transition-property: scale, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.ln-theme-toggle:active {
+  scale: 0.96;
+}
+.ln-theme-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+@media (hover: hover) {
+  .ln-theme-toggle:hover {
+    background: rgb(255 255 255 / 0.12);
+    color: var(--ln-ink);
+  }
+}
+
+/* ---- Light theme (web.theme_toggle): the original white, dotted page with
+   white cards; the blue-violet glows stay as soft tints. ---- */
+:root[data-theme="light"] .landing {
+  --ln-ink: #0b1a4d;
+  --ln-ink-soft: #4a5268;
+  --ln-ink-faint: #737a8f;
+  --ln-line: #e8eaf0;
+  --ln-surface: #f6f7fa;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #fafbfe 45%,
+    #eef1fb 88%,
+    #ffffff 100%
+  );
+}
+:root[data-theme="light"] .landing::before {
+  opacity: 0.55;
+}
+:root[data-theme="light"] .ln-hero::before {
+  opacity: 0.55;
+}
+:root[data-theme="light"] .ln-hero::after {
+  display: none;
+}
+:root[data-theme="light"] .ln-hero-dots {
+  background-image: radial-gradient(rgb(11 26 77 / 0.13) 1px, transparent 1px);
+}
+:root[data-theme="light"] .ln-brand-mark {
+  --cues-mark-accent: #425cc8;
+}
+:root[data-theme="light"] .ln-inline-chip {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgb(11 26 77 / 0.08),
+    0 2px 6px -2px rgb(11 26 77 / 0.12);
+}
+:root[data-theme="light"] .ln-inline-chip svg {
+  color: #425cc8;
+}
+:root[data-theme="light"] .ln-button-dark {
+  background: #0b1a4d;
+  color: #ffffff;
+}
+:root[data-theme="light"] .ln-button-outline {
+  border-color: rgb(11 26 77 / 0.2);
+}
+:root[data-theme="light"] .ln-card,
+:root[data-theme="light"] .ln-faq-list,
+:root[data-theme="light"] .ln-facts li {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgb(11 26 77 / 0.07),
+    0 18px 40px -22px rgb(11 26 77 / 0.25);
+}
+:root[data-theme="light"] .ln-step-icon {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgb(11 26 77 / 0.1);
+  color: #425cc8;
+}
+:root[data-theme="light"] .ln-cta h2 {
+  color: #0b1a4d;
+}
+:root[data-theme="light"] .ln-cta .ln-button-light {
+  background: #0b1a4d;
+  box-shadow: 0 10px 30px -10px rgb(11 26 77 / 0.5);
+  color: #ffffff;
+}
+:root[data-theme="light"] .ln-cta .ln-button-ghost {
+  border-color: rgb(11 26 77 / 0.2);
+  background: transparent;
+  color: #0b1a4d;
+}
+:root[data-theme="light"] .ln-cta::before {
+  opacity: 0.6;
+}
+:root[data-theme="light"] .ln-site-footer {
+  background: linear-gradient(180deg, transparent, #f1f3f9 45%);
+}
+/* The older preview card, when web.landing_demo is off. */
+:root[data-theme="light"] .ln-preview {
+  box-shadow:
+    0 0 0 1px rgb(11 26 77 / 0.06),
+    0 24px 60px -24px rgb(11 26 77 / 0.35);
+}
+:root[data-theme="light"] .ln-seats,
+:root[data-theme="light"] .ln-suggestion {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgb(11 26 77 / 0.06);
+}
+:root[data-theme="light"] .ln-chip {
+  background: #eceef3;
+}
+@media (hover: hover) {
+  :root[data-theme="light"] .ln-button-dark:hover,
+  :root[data-theme="light"] .ln-cta .ln-button-light:hover {
+    background: #1a2b66;
+  }
+  :root[data-theme="light"] .ln-button-outline:hover,
+  :root[data-theme="light"] .ln-cta .ln-button-ghost:hover {
+    background: var(--ln-surface);
+  }
+  }
+
+/* Light theme: the switch sits on white like the sign-in page's. */
+:root[data-theme="light"] .landing .ln-theme-toggle {
+  border-color: #e3e6ee;
+  background: #ffffff;
+}
+@media (hover: hover) {
+  :root[data-theme="light"] .landing .ln-theme-toggle:hover {
+    background: #f1f2f6;
+  }
+}

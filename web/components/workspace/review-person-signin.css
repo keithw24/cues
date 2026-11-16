@@ -1,0 +1,212 @@
+/* ---- To review page ----------------------------------------------------- */
+.dashboard-shell .review-page {
+  display: grid;
+  gap: 12px;
+  padding: 0 var(--ws-gutter);
+}
+.dashboard-shell .review-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dashboard-shell .review-card {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 26px;
+  border-radius: 28px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+}
+.dashboard-shell .review-index {
+  width: 24px;
+  color: var(--ws-ink-faint);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-shell .review-card .row-avatar {
+  background: var(--ws-tile);
+}
+.dashboard-shell .review-card-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.dashboard-shell .review-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dashboard-shell .review-card-title h2 {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .review-issue {
+  color: var(--ws-review);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dashboard-shell .review-card .person-why {
+  margin-top: 4px;
+  padding-top: 0;
+  border-top: 0;
+}
+.dashboard-shell .review-card-actions {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+.dashboard-shell .review-card-actions .review-action-buttons {
+  margin: 0;
+}
+.dashboard-shell .review-card-actions .mark-reviewed {
+  display: grid;
+  justify-items: end;
+}
+.dashboard-shell .review-card-time {
+  min-width: 64px;
+  color: var(--ws-ink-faint);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.dashboard-shell .review-clear {
+  margin: 0;
+  padding: 22px 26px;
+  border-radius: 28px;
+}
+@media (max-width: 900px) {
+  .dashboard-shell .review-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    padding: 18px;
+  }
+  .dashboard-shell .review-index {
+    display: none;
+  }
+  .dashboard-shell .review-card-actions {
+    grid-column: 1 / -1;
+    justify-items: start;
+  }
+  .dashboard-shell .review-card-actions .mark-reviewed {
+    justify-items: start;
+  }
+  .dashboard-shell .review-card-time {
+    grid-row: 1;
+    grid-column: 3;
+  }
+}
+
+/* ---- One person -------------------------------------------------------- */
+.dashboard-shell .person-status {
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dashboard-shell .person-request {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ws-panel-solid);
+  box-shadow: var(--ws-shadow);
+}
+.dashboard-shell .review-actions,
+.dashboard-shell .review-copy {
+  display: grid;
+  gap: 6px;
+}
+.dashboard-shell .review-prompt-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .review-prompt-detail {
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.dashboard-shell .review-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.dashboard-shell .person-note {
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+}
+.dashboard-shell .person-error {
+  color: var(--ws-review);
+  font-size: 13px;
+}
+.dashboard-shell .person-why {
+  border-top: 1px solid var(--ws-line);
+  padding-top: 10px;
+}
+.dashboard-shell .person-why summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+}
+.dashboard-shell .person-why summary::-webkit-details-marker {
+  display: none;
+}
+.dashboard-shell .person-why summary svg {
+  width: 16px;
+  height: 16px;
+  transition: rotate 150ms ease-out;
+}
+.dashboard-shell .person-why[open] summary svg {
+  rotate: 180deg;
+}
+.dashboard-shell .person-why p {
+  margin-top: 8px;
+  color: var(--ws-ink-soft);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.dashboard-shell .person-why .ws-caption {
+  letter-spacing: 0.06em;
+}
+
+/* ---- Signed out -------------------------------------------------------- */
+.dashboard-shell .ws-signin {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 14px;
+  min-height: 86dvh;
+  padding: 24px var(--ws-gutter);
+  text-align: center;
+}
+.dashboard-shell .ws-signin .login-companion {
+  margin: 0 0 14px;
+}
+.dashboard-shell .ws-signin h1 {
+  font-family: var(--font-garamond), Georgia, serif;
+  font-size: clamp(34px, 4.5vw, 46px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+}
+.dashboard-shell .ws-signin p {
+  max-width: 36ch;
+  margin-bottom: 10px;
+  color: var(--ws-ink-soft);
+  font-size: 15px;
+  line-height: 1.5;
+}
+

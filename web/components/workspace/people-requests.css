@@ -1,0 +1,444 @@
+/* ---- People and requests ----------------------------------------------- */
+/* Camera on the left, the class list beside it. */
+.dashboard-shell .monitor-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  align-items: start;
+  gap: 20px;
+  padding: 0 var(--ws-gutter);
+}
+/* Concentric corners: 28px panel = 16px rows + 12px padding. */
+.dashboard-shell .ws-panel {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 28px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+}
+.dashboard-shell .panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 14px;
+}
+/* Panel titles in one case: small caps with open spacing (CAMERA,
+   ATTENTION), so they read as labels and leave the large lowercase page
+   title as the one voice. */
+.dashboard-shell .panel-heading h2 {
+  color: var(--ws-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+/* A person opened in the panel keeps their name in normal case. */
+.dashboard-shell .panel-person .panel-heading h2 {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+.dashboard-shell .panel-heading h2:focus {
+  outline: none;
+}
+.dashboard-shell .ws-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-shell .panel-empty {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 36px 16px;
+  color: var(--ws-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: pretty;
+}
+.dashboard-shell .row-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dashboard-shell .ws-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--ws-tile);
+  color: var(--ws-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+div.ws-row {
+  cursor: default;
+}
+.dashboard-shell .ws-row[aria-pressed="true"] {
+  background: var(--ws-blue-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell button.ws-row:hover {
+    background: var(--ws-tile-hover);
+  }
+  .dashboard-shell button.ws-row[aria-pressed="true"]:hover {
+    background: var(--ws-blue-soft);
+  }
+}
+.row-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--ws-panel-solid);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.row-avatar.is-large {
+  width: 56px;
+  height: 56px;
+  font-size: 17px;
+}
+.row-body {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+.row-name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-caption {
+  overflow: hidden;
+  color: var(--ws-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.row-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+}
+.row-time {
+  color: var(--ws-ink-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.status-pill {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--ws-surface);
+  color: var(--ws-ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color 300ms ease-out,
+    color 300ms ease-out;
+}
+.status-pill.is-working {
+  background: var(--ws-blue-soft);
+  color: var(--ws-blue-deep);
+}
+.status-pill.is-done {
+  background: var(--ws-done-soft);
+  color: var(--ws-done);
+}
+.status-pill.is-review {
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+}
+
+.dashboard-shell .list-label {
+  margin: 8px 10px 8px;
+  color: var(--ws-ink-faint);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dashboard-shell .list-label:first-of-type {
+  margin-top: 0;
+}
+.dashboard-shell .row-list + .list-label {
+  margin-top: 18px;
+}
+.dashboard-shell .list-clear {
+  margin: 0 0 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--ws-done-soft);
+  color: var(--ws-done);
+  font-size: 14px;
+  font-weight: 500;
+}
+.dashboard-shell .list-clear + .list-label {
+  margin-top: 18px;
+}
+.dashboard-shell .list-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 999px;
+  background: var(--ws-review-soft);
+  color: var(--ws-review);
+  font-size: 13px;
+  font-weight: 500;
+}
+/* Attention sits beside the camera at the camera's height: it doesn't add to
+   the row's height (contain: size) and scrolls inside itself when long. */
+@media (min-width: 1001px) {
+  .dashboard-shell .monitor-workspace {
+    align-items: stretch;
+  }
+  .dashboard-shell .class-panel {
+    contain: size;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+.dashboard-shell .class-panel .ws-row {
+  min-height: 56px;
+  padding: 8px 12px;
+}
+/* An open row and its details read as one tile. */
+.dashboard-shell .row-list > li.is-open {
+  border-radius: 16px;
+  background: var(--ws-tile);
+}
+.dashboard-shell .row-list > li.is-open > .ws-row {
+  background: transparent;
+}
+.dashboard-shell .row-more {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px 66px;
+}
+
+/* ---- Header link, rail badge, side-panel person ------------------------- */
+/* TO REVIEW in the header: larger than the other pills, with an orange border. */
+/* TO REVIEW: the same pill as the other header buttons (44px, surface and
+   shadow). While someone is waiting it glows orange. */
+.dashboard-shell .review-link {
+  --ws-glow: rgb(232 116 31 / 0.45);
+  height: 44px;
+  padding: 0 22px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+:root:not([data-theme="light"]) .dashboard-shell .review-link {
+  --ws-glow: rgb(245 154 90 / 0.5);
+}
+.dashboard-shell .review-link .ws-count {
+  min-width: 22px;
+  height: 22px;
+  margin-right: -6px;
+  font-size: 12px;
+}
+.dashboard-shell .review-link.has-items {
+  box-shadow:
+    var(--ws-shadow),
+    0 0 0 1px var(--ws-glow),
+    0 0 22px 2px var(--ws-glow);
+}
+.dashboard-shell .rail-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ws-review);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-shell .panel-person .panel-heading {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding-left: 4px;
+}
+.dashboard-shell .panel-person .row-more {
+  padding: 0 10px 10px;
+}
+/* A ring in the person's status color around their initials. */
+.row-avatar.is-ring {
+  box-shadow: inset 0 0 0 2px var(--ring-color, var(--ws-line));
+}
+.row-avatar.is-ring,
+.strip-card.is-quiet .row-avatar {
+  --ring-color: var(--ws-line);
+}
+.strip-card.is-working .row-avatar {
+  --ring-color: var(--ws-blue);
+}
+.strip-card.is-done .row-avatar {
+  --ring-color: var(--ws-done);
+}
+.strip-card.is-review .row-avatar,
+.review-card .row-avatar {
+  --ring-color: var(--ws-review);
+}
+
+/* ---- Students, slid through under the camera ---------------------------- */
+.dashboard-shell .student-strip {
+  margin: 20px 0 0;
+  padding: 0 var(--ws-gutter);
+}
+/* Arrows sit on the row's ends, centered on the cards, only on a side that
+   has more. */
+.dashboard-shell .student-strip {
+  position: relative;
+}
+.dashboard-shell .strip-arrow {
+  position: absolute;
+  top: calc(50% - 4px);
+  z-index: 1;
+  translate: 0 -50%;
+  background: var(--ws-panel-solid);
+}
+.dashboard-shell .strip-arrow.is-before {
+  left: calc(var(--ws-gutter) - 14px);
+}
+.dashboard-shell .strip-arrow.is-after {
+  right: calc(var(--ws-gutter) - 14px);
+}
+.dashboard-shell .strip-arrow[hidden] {
+  display: none;
+}
+.dashboard-shell .strip-track {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
+  scrollbar-width: none;
+  list-style: none;
+}
+.dashboard-shell .strip-track::-webkit-scrollbar {
+  display: none;
+}
+/* Fade only the side that has more cards, so the row reads as scrollable. */
+.dashboard-shell .strip-track[data-more-after] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 64px), transparent);
+}
+.dashboard-shell .strip-track[data-more-before] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 64px), transparent);
+}
+.dashboard-shell .strip-track[data-more-before][data-more-after] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 64px,
+    #000 calc(100% - 64px),
+    transparent
+  );
+}
+.dashboard-shell .strip-track > li {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+.dashboard-shell .strip-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 248px;
+  min-height: 88px;
+  padding: 16px 18px;
+  border-radius: 24px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+  color: var(--ws-ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    scale 150ms ease-out;
+}
+.dashboard-shell .strip-card .row-avatar {
+  width: 48px;
+  height: 48px;
+  background: var(--ws-tile);
+  box-shadow: inset 0 0 0 2px var(--ring-color);
+  font-size: 14px;
+}
+.dashboard-shell .strip-card:not(:disabled):active {
+  scale: 0.96;
+}
+.dashboard-shell .strip-card[aria-pressed="true"] {
+  background: var(--ws-blue-soft);
+}
+.dashboard-shell .strip-status {
+  color: var(--ws-ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.dashboard-shell .strip-card.is-working .strip-status {
+  color: var(--ws-blue-deep);
+}
+.dashboard-shell .strip-card.is-done .strip-status {
+  color: var(--ws-done);
+}
+.dashboard-shell .strip-card.is-review .strip-status {
+  color: var(--ws-review);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-shell .strip-card:hover {
+    background: var(--ws-tile-hover);
+  }
+  .dashboard-shell .strip-card[aria-pressed="true"]:hover {
+    background: var(--ws-blue-soft);
+  }
+}
+.dashboard-shell .strip-empty {
+  border-radius: 24px;
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+}
+
