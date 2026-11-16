@@ -14,6 +14,12 @@ export type FeedState = {
  * (the signed-in teacher's own station). With none, every readable station is shown.
  */
 let subscriptionId = 0;
+const REFRESH_MIN_MS = 1500;
+type RealtimeChange = {
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+};
 
 export function watchDashboard(
   client: SupabaseClient,
@@ -32,6 +38,9 @@ export function watchDashboard(
   let fetching = false;
   let queued = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let lastRefreshAt = 0;
+  let initialDone = false;
+  let subscribedOnce = false;
   const abort = new AbortController();
   let state: FeedState = {
     snapshot: null,
@@ -51,6 +60,7 @@ export function watchDashboard(
       return;
     }
     fetching = true;
+    lastRefreshAt = Date.now();
     publish({ loading: true });
     try {
       const signal = AbortSignal.any([
@@ -104,6 +114,7 @@ export function watchDashboard(
       });
     } finally {
       fetching = false;
+      initialDone = true;
       publish({ loading: false });
       if (queued && !disposed) {
         queued = false;
@@ -111,12 +122,44 @@ export function watchDashboard(
       }
     }
   }
+  // A full reload is four reads, so it is the exception: first load, a reconnect, a seat we
+  // have not seen, or a row we cannot read. Run at most one per REFRESH_MIN_MS.
   function scheduleRefresh() {
-    if (disposed) return;
-    clearTimeout(timer);
+    if (disposed || timer !== undefined) return;
+    const wait = Math.max(100, lastRefreshAt + REFRESH_MIN_MS - Date.now());
     timer = setTimeout(() => {
+      timer = undefined;
       void refresh();
-    }, 100);
+    }, wait);
+  }
+  // A realtime event already carries the changed row: merge it into the snapshot we hold
+  // instead of re-reading the tables.
+  function applyChange(payload: RealtimeChange) {
+    const held = state.snapshot;
+    const row = payload.eventType === "DELETE" ? payload.old : payload.new;
+    const seatId = row?.seat_id;
+    if (!held || typeof seatId !== "string") return scheduleRefresh();
+    if (!held.seats.some((seat) => seat.id === seatId)) {
+      // Another station's person is not ours. A new person on our station needs the seats.
+      if (!scoped || seatId.startsWith(`${scoped}-`)) scheduleRefresh();
+      return;
+    }
+    if (payload.eventType === "DELETE") {
+      publish({
+        snapshot: { ...held, states: held.states.filter((s) => s.seat_id !== seatId) },
+      });
+      return;
+    }
+    try {
+      const parsed = parseSnapshot(
+        { seats: [], states: [row], activities: [], stations: [] },
+        personObservationsEnabled || liveProgressEnabled,
+      ).states[0];
+      const others = held.states.filter((s) => s.seat_id !== seatId);
+      publish({ snapshot: { ...held, states: [...others, parsed] } });
+    } catch {
+      scheduleRefresh();
+    }
   }
   // A fresh topic each time: a channel still leaving under the old topic
   // would otherwise be handed back and never report SUBSCRIBED.
@@ -124,12 +167,16 @@ export function watchDashboard(
   channel.on(
     "postgres_changes",
     { event: "*", schema: "public", table: "seat_state" },
-    scheduleRefresh,
+    (payload) => applyChange(payload as unknown as RealtimeChange),
   );
   channel.subscribe((status) => {
     if (status === "SUBSCRIBED") {
       publish({ connection: "connected" });
-      void refresh();
+      // The first load is already running; a reload is for a reconnect, whose gap the
+      // heartbeat would only fill a second later.
+      const reconnect = subscribedOnce || initialDone;
+      subscribedOnce = true;
+      if (reconnect) void refresh();
     } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status))
       publish({ connection: "disconnected" });
   });
