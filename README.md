@@ -17,8 +17,8 @@ flowchart TD
     C["Camera"] --> V["Vision: MediaPipe + HSEmotion (on the laptop)"]
     CF --> V
     SS --> V
-    V -->|"seat_state + events, ~every 1s per person"| DB[("Supabase")]
-    DB --> W["Agent worker: ProgressEvaluator, escalation, router"]
+    V -->|"one batch a second + one station_tick every 1.5s"| DB[("Supabase")]
+    DB -->|"one station_snapshot a second"| W["Agent worker: ProgressEvaluator, escalation, router"]
     W --> K["Deep Agent (Groq) -> request_teacher_review"]
     K --> R["teacher_reviews"]
     W -->|"evaluated progress"| DB
@@ -142,7 +142,7 @@ progress; Photon text on a new review; local Docker Supabase.
 | Item | Notes |
 |---|---|
 | Real-camera pass | Pointing, peace, fist; Mark as reviewed (timer restarts, new review only after a fresh stall); id stability; two laptops on two stations; the camera health strip and "waiting for review" list. Only the automated suites have run them. |
-| Write volume | Vision rewrites each person's `seat_state` row every second (about 3,600 writes an hour per person, plus lease and session reports). A 3-second heartbeat works only if the agent's observation-gap limit rises from 3s to 5s; a throttle for the dashboard's refreshes and station reports was also prototyped. Not applied. |
+| Hosted Supabase | Request volume was cut from about 70 to about 3 requests a second for 10 people (batched vision writes, one `station_tick`, one agent `station_snapshot`, dashboard merges realtime rows). Not yet measured against a hosted project: run `tests/smoke` against one and watch the dashboard request graph. |
 | Rotate exposed keys | A Groq key and a Cursor key were shown in logs earlier in the build. |
 | "Add a gesture" screen | The vision API (`/gestures`, `/templates/record`) exists; there is no dashboard screen, and a recorded gesture is not registered in `activities`. |
 | Interventions | Menu, suggestion and approval exist behind `agent.interventions` / `web.interventions` (off). Applying an approved support to a task is not built. |

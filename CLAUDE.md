@@ -46,7 +46,6 @@ Run the service and tools:
 
 ```bash
 uv run uvicorn vision.app:app          # service: /stream, /health, /config, /gestures, /templates
-uv run python -m vision.bench          # laptop benchmark
 uv run python -m vision.events --demo  # send one test event
 ```
 
@@ -65,6 +64,15 @@ What gates a change:
 2. Add a contract or smoke check for anything that crosses components, not a unit test.
 3. Every new feature ships behind a feature flag (next section).
 4. Merge to `main` only with CI green. `/code-review` is available when a second look helps.
+
+## Database traffic
+
+A hosted request costs 100-300 ms (about 5 ms locally), so never add a request per row, per person or per frame. The rules that keep it smooth:
+
+- **Writes go through `vision.events.Emitter`:** latest seat state wins, one batch per flush, bounded queue, an 8 second request timeout (`shared/supabase_client.py`). Never call `table(...).upsert` from a stage.
+- **Polling is one request per loop:** vision uses `station_tick`, the agent uses `station_snapshot`. Add what a loop needs to those functions instead of adding a second poll.
+- **The dashboard applies realtime rows** (`web/lib/dashboard-feed.ts`); a full reload is only for first load, reconnect or an unseen seat.
+- `tests/smoke/test_slow_database.py` fails if the writer builds a backlog at 300 ms latency.
 
 ## Feature flags
 
