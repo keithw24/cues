@@ -258,20 +258,6 @@ def main():
             print(f"[{name}] {line}", end="", flush=True)
 
     vision_env = os.environ.copy()
-    for stage in (
-        "HANDS",
-        "FACES",
-        "GESTURES",
-        "RAISE_HAND",
-        "EXPRESSION",
-        "TASK_STATUS",
-        "SUPABASE_EVENTS",
-        "ACTIVITY_SYNC",
-        "SESSION_LIFECYCLE",
-    ):
-        key = f"CUES_FLAG_VISION_{stage}"
-        if not vision_env.get(key):
-            vision_env[key] = "1"
     if profile == "demo":
         # The agent asks for a review after about this many seconds of stalling in demo
         # mode; make vision's Needs Review status arrive then too, not after 30 seconds.
@@ -285,15 +271,6 @@ def main():
         f"Camera index: {vision_env.get('CUES_CAMERA_INDEX', '0')}\n"
         "Dashboard: http://localhost:3000\n"
         "Vision health: http://127.0.0.1:8000/health",
-        flush=True,
-    )
-    print(
-        "Vision: "
-        + " ".join(
-            key.removeprefix("CUES_FLAG_VISION_").lower() + "=" + value
-            for key, value in vision_env.items()
-            if key.startswith("CUES_FLAG_VISION_") and value in ("0", "1", "true", "false")
-        ),
         flush=True,
     )
 

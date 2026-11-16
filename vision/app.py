@@ -21,7 +21,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 
-from vision import flags
 from vision.camera import camera_from_env
 from vision.pipeline import Pipeline, discover_stages
 
@@ -49,15 +48,11 @@ def mjpeg_parts(pipeline: Pipeline, max_frames: int | None = None) -> Iterator[b
 
 
 def include_routes(app: FastAPI, package: str = "vision.routes") -> None:
-    """Include every module's `router`, skipping modules whose FLAG is off."""
+    """Include every module's `router`."""
     pkg = importlib.import_module(package)
     for info in sorted(pkgutil.iter_modules(pkg.__path__), key=lambda m: m.name):
         module = importlib.import_module(f"{package}.{info.name}")
         router = getattr(module, "router", None)
-        flag = getattr(module, "FLAG", None)
-        if router is not None and flag is not None and not flags.enabled(flag):
-            log.info("skipped routes %s (flag %s is off)", info.name, flag)
-            continue
         if router is not None:
             app.include_router(router)
             log.info("loaded routes %s", info.name)

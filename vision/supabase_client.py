@@ -14,4 +14,13 @@ from shared.supabase_client import REPO_ROOT, get_client
 # Keep vision's existing root-env bootstrap; runtime config remains explicit.
 load_dotenv(REPO_ROOT / ".env")
 
-__all__ = ["REPO_ROOT", "get_client"]
+
+def online() -> bool:
+    """True when this laptop has database credentials: it follows the teacher's station and
+    session and writes to Supabase. False: offline, everything stays in vision/logs."""
+    import os
+
+    return bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
+
+
+__all__ = ["REPO_ROOT", "get_client", "online"]

@@ -28,14 +28,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from vision import activities, flags
+from vision import activities
 from vision.gestures.hand_pose import open_palm_facing
 from vision.grouping import GROUPING
 from vision.perception import Hand
 from vision.stages.s30_gestures import MatcherCache, score_gesture
 from vision.stages.s35_raise_hand import highest_hand, raise_confidence
 
-FLAG = "vision.gestures"
 SWITCH_SECONDS = 0.5
 # A shown gesture stays up this long after it stops being the candidate, so a
 # flickering hand detection does not make the green label blink off.
@@ -50,12 +49,12 @@ class Recognized:
 
 
 def all_gesture_ids() -> tuple[str, ...]:
-    """Every activity to detect: all of activities.json, raise_hand only if its flag is on."""
+    """Every activity to detect: all of activities.json."""
     ids = []
     for activity in activities.load_activities().values():
         if activity.check_type == "gesture":
             ids.append(activity.id)
-        elif activity.id == "raise_hand" and flags.enabled("vision.raise_hand"):
+        elif activity.id == "raise_hand":
             ids.append(activity.id)
     return tuple(ids)
 

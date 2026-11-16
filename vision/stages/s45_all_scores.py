@@ -24,8 +24,6 @@ from vision.grouping import GROUPING
 from vision.stages.s30_gestures import MatcherCache, score_gesture
 from vision.stages.s35_raise_hand import raise_confidence
 
-FLAG = "vision.all_scores"
-
 
 def all_scores_for(pid: str, ctx: dict, cache: MatcherCache) -> dict[str, float | None]:
     hands = ctx.get("hands", {}).get(pid, [])
@@ -61,5 +59,8 @@ class AllScoresStage:
         """Drawn by s90_overlay under each person's hand label."""
 
 
-def create_stage() -> AllScoresStage:
-    return AllScoresStage()
+def create_stage() -> AllScoresStage | None:
+    """A debugging readout, on only for `python -m vision.watch --all-scores`."""
+    import os
+
+    return AllScoresStage() if os.environ.get("CUES_ALL_SCORES") == "1" else None

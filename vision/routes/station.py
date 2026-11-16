@@ -27,8 +27,6 @@ from pydantic import BaseModel, ConfigDict
 
 from vision import station as station_module
 
-FLAG = "vision.station_config"
-
 LOOPBACK_PEERS = frozenset({"127.0.0.1", "::1", "::ffff:127.0.0.1"})
 LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost", "[::1]", "::1"})
 

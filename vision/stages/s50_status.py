@@ -33,7 +33,6 @@ from vision.grouping import GROUPING
 from vision.session_sync import frame_activity
 from vision.status import ExpressionTracker, SeatTracker, StatusEvent
 
-FLAG = "vision.task_status"
 SEAT_STATE_INTERVAL = 1.0
 RECENT_EVENTS = 20
 

@@ -61,10 +61,7 @@ def main():
         timing.prolonged_stall_seconds,
         options.get("poll_seconds", 1.0),
     )
-    from vision import flags
-
-    if flags.enabled("agent.live_progress"):
-        options["publish_progress"] = True
+    options["publish_progress"] = True
 
     from agent.notifications import current_spectrum_config, spectrum_env
 

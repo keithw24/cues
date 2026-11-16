@@ -22,7 +22,6 @@ from typing import Any, Protocol
 import cv2
 import numpy as np
 
-from vision import flags
 from vision.camera import Camera, Frame
 
 log = logging.getLogger(__name__)
@@ -79,8 +78,8 @@ def discover_stages(package: str = "vision.stages") -> list[Stage]:
     ctx output should sort after it (e.g. s20_faces after s10_hands) or simply
     tolerate missing keys.
 
-    A module that sets `FLAG = "vision.<feature>"` is skipped when that flag
-    is off, so its create_stage() never runs.
+    A create_stage() that returns None opts out (for example the session stage when
+    there is no database to follow).
     """
     pkg = importlib.import_module(package)
     stages: list[Stage] = []
@@ -89,11 +88,11 @@ def discover_stages(package: str = "vision.stages") -> list[Stage]:
         factory = getattr(module, "create_stage", None)
         if factory is None:
             continue
-        flag = getattr(module, "FLAG", None)
-        if flag is not None and not flags.enabled(flag):
-            log.info("skipped stage %s (flag %s is off)", info.name, flag)
+        stage = factory()
+        if stage is None:
+            log.info("skipped stage %s (not used in this mode)", info.name)
             continue
-        stages.append(factory())
+        stages.append(stage)
         log.info("loaded stage %s", info.name)
     return stages
 
@@ -228,5 +227,4 @@ class Pipeline:
             "errors": self.errors,
             "fps": round(self.loop_rate.rate(), 1),
             "stages": {name: round(m.rate(), 1) for name, m in self.stage_rates.items()},
-            "flags": flags.snapshot(),
         }

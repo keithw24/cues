@@ -26,7 +26,6 @@ from vision.gestures import templates as tpl
 from vision.gestures.matcher import calibrate_rejection
 from vision.gestures.normalize import is_reliable, normalize
 
-FLAG = "vision.gestures"
 SAMPLE_HZ = 10.0
 
 router = APIRouter(prefix="/templates", tags=["templates"])

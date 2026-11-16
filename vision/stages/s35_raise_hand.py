@@ -18,7 +18,6 @@ from vision.grouping import GROUPING
 from vision.perception import Match
 from vision.session_sync import frame_activity
 
-FLAG = "vision.raise_hand"
 ACTIVITY_ID = "raise_hand"
 # A wrist this many shoulder widths above the shoulder line scores 1.0. With
 # true (aspect-corrected) proportions, 1.0 is about the top of the head.

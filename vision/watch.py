@@ -1,9 +1,10 @@
 """Print what the vision pipeline sees, once a second, for each seat.
 
-    uv run python -m vision.watch --all-on                 # webcam + overlay window
-    uv run python -m vision.watch --all-on --no-window     # text only
-    uv run python -m vision.watch --all-on --task custom_gesture_01
-    CUES_CAMERA=fake uv run python -m vision.watch --all-on --seconds 5
+    uv run python -m vision.watch                 # webcam + overlay window
+    uv run python -m vision.watch --no-window     # text only
+    uv run python -m vision.watch --all-scores    # also every task's score
+    uv run python -m vision.watch --task custom_gesture_01
+    CUES_CAMERA=fake uv run python -m vision.watch --seconds 5
 
 Output per seat:
 
@@ -15,9 +16,8 @@ Output per seat:
       happiness: 0.21
       sadness: 0.04
 
-With vision.task_status on (it is, with --all-on), status changes are sent as
-events to vision/logs/*.jsonl, or to Supabase when vision.supabase_events is on,
-and the most recent ones are printed under "Recent events".
+Status changes are sent as events to Supabase when credentials are set, otherwise to
+vision/logs/*.jsonl, and the most recent ones are printed under "Recent events".
 """
 
 from __future__ import annotations
@@ -25,16 +25,6 @@ from __future__ import annotations
 import argparse
 import os
 import time
-
-PERCEPTION_FLAGS = (
-    "vision.hands",
-    "vision.faces",
-    "vision.gestures",
-    "vision.raise_hand",
-    "vision.expression",
-    "vision.task_status",
-    "vision.all_scores",
-)
 
 
 def format_seat(
@@ -132,9 +122,9 @@ class CameraWindow:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Print per-seat perception results.")
     parser.add_argument(
-        "--all-on",
+        "--all-scores",
         action="store_true",
-        help="turn on all perception stages for this run",
+        help="also read out every task's score for every person (debugging)",
     )
     parser.add_argument("--task", help="current task for everyone (default: CUES_TASK)")
     parser.add_argument("--seconds", type=float, help="stop after this many seconds")
@@ -152,28 +142,22 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.debug_overlay:
         os.environ["CUES_OVERLAY"] = "debug"
-    if args.all_on:
-        from vision import flags
+    if args.all_scores:
+        os.environ["CUES_ALL_SCORES"] = "1"
 
-        for name in PERCEPTION_FLAGS:
-            os.environ[flags.env_name(name)] = "1"
-
-    from vision import flags
     from vision.activities import TASKS
     from vision.camera import camera_from_env
     from vision.grouping import GROUPING
     from vision.pipeline import Pipeline, discover_stages
+    from vision.supabase_client import online
 
     if args.task:
-        if flags.enabled("vision.session_lifecycle"):
+        if online():
             parser.error(
-                "--task cannot override a teacher-managed session; "
-                "disable vision.session_lifecycle for local testing"
+                "--task cannot override a teacher-managed session; it works offline only "
+                "(unset SUPABASE_URL for local testing)"
             )
         TASKS.set_class_task(args.task)
-    off = [n for n in PERCEPTION_FLAGS if not flags.enabled(n)]
-    if off:
-        print(f"Off: {', '.join(off)}. Use --all-on or set CUES_FLAG_* to turn them on.\n")
 
     from vision.session_sync import sync_from_env
 

@@ -14,7 +14,6 @@ from vision.grouping import GROUPING
 from vision.people import person_color as seat_color
 from vision.perception import Face
 
-FLAG = "vision.faces"
 PADDING = 0.10
 
 

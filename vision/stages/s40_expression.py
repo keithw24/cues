@@ -20,8 +20,6 @@ import numpy as np
 from vision.grouping import GROUPING
 from vision.people import person_color as seat_color
 
-FLAG = "vision.expression"
-
 # HSEmotion enet_b0_8 class order (idx_to_class), lower-cased.
 LABELS = ("anger", "contempt", "disgust", "fear", "happiness", "neutral", "sadness", "surprise")
 WINDOW_SECONDS = 2.0

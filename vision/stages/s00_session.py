@@ -2,8 +2,6 @@
 
 from vision.session_sync import STATION_SESSION
 
-FLAG = "vision.session_lifecycle"
-
 
 class SessionStage:
     name = "session"
@@ -33,4 +31,7 @@ class SessionStage:
 
 
 def create_stage():
-    return SessionStage()
+    """Only with a database: offline, tasks come from CUES_TASK and nothing is paused."""
+    from vision.supabase_client import online
+
+    return SessionStage() if online() else None

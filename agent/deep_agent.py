@@ -221,11 +221,7 @@ missing data into unsupported claims.
 
 
 def _system_prompt() -> str:
-    """The instructions, plus the approved intervention menu when agent.interventions is on."""
-    from vision import flags
-
-    if not flags.enabled("agent.interventions"):
-        return SYSTEM_PROMPT
+    """The instructions, plus the approved intervention menu."""
     menu = "\n".join(f"- {key}: {label}" for key, label in INTERVENTION_MENU.items())
     return (
         SYSTEM_PROMPT
@@ -387,10 +383,6 @@ class CuesDeepAgent:
             Optionally suggest ONE support from the approved menu (keys listed in the
             instructions); it is only a suggestion and the teacher approves it.
             """
-            from vision import flags
-
-            if not flags.enabled("agent.interventions"):
-                suggested_intervention = None
             assessment = AgentAssessment(
                 decision="teacher_review_warranted",
                 rationale=rationale,

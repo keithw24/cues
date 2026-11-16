@@ -101,14 +101,17 @@ class ActiveStation:
 
 
 def from_env(env: Mapping[str, str] | None = None) -> ActiveStation:
-    from vision import flags
-
     env = os.environ if env is None else env
     override = env.get("CUES_STATION_ID", "").strip()
     if override:
         log.info("station pinned by CUES_STATION_ID=%s (dev/test override)", override)
         return ActiveStation(override, pinned=True)
-    if not flags.enabled("vision.station_config", env):
+    if env is os.environ:
+        from vision.supabase_client import online  # also loads the root .env
+
+        if not online():
+            return ActiveStation(LEGACY_STATION)  # offline: one fixed station, no dashboard
+    elif not (env.get("SUPABASE_URL") and env.get("SUPABASE_SERVICE_ROLE_KEY")):
         return ActiveStation(LEGACY_STATION)
     return ActiveStation(None)
 

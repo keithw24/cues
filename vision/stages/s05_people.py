@@ -5,7 +5,7 @@ Writes:
     ctx["person_ids"] -> every live id, including people out of view for less
                          than RELEASE_SECONDS (so status can report tracking_lost)
 
-This stage has no feature flag: every other stage depends on it.
+Every other stage depends on this one.
 """
 
 from __future__ import annotations

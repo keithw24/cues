@@ -19,8 +19,6 @@ from vision.people import person_color as seat_color
 from vision.perception import Match
 from vision.session_sync import frame_activity
 
-FLAG = "vision.gestures"
-
 
 class MatcherCache:
     """Loads a Matcher per activity and reloads it when its template file changes."""

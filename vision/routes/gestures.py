@@ -21,8 +21,6 @@ from pydantic import BaseModel, Field
 from vision import activities
 from vision.gestures import templates as tpl
 
-FLAG = "vision.custom_gestures"
-
 router = APIRouter(prefix="/gestures", tags=["gestures"])
 
 

@@ -146,14 +146,6 @@ def vision(supabase_stack, teacher):
         "SUPABASE_URL": supabase_stack.api_url,
         "SUPABASE_SERVICE_ROLE_KEY": supabase_stack.secret_key,
         "CUES_CAMERA": "fake",
-        "CUES_FLAG_VISION_SESSION_LIFECYCLE": "1",
-        "CUES_FLAG_VISION_SUPABASE_EVENTS": "1",
-        "CUES_FLAG_VISION_HANDS": "0",
-        "CUES_FLAG_VISION_FACES": "0",
-        "CUES_FLAG_VISION_GESTURES": "0",
-        "CUES_FLAG_VISION_EXPRESSION": "0",
-        "CUES_FLAG_VISION_RAISE_HAND": "0",
-        "CUES_FLAG_VISION_TASK_STATUS": "0",
         "CUES_STATION_ID": "",
     }
     process = subprocess.Popen(

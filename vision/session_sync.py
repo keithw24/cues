@@ -214,18 +214,14 @@ class StationSessionSync:
 def sync_from_env() -> StationSessionSync | None:
     """The station tick for this laptop, or None when there is nothing to follow.
 
-    Follows vision.station.STATION; one camera per station (the lease). With the session
-    lifecycle off (offline development) there is no database and tasks come from CUES_TASK.
+    Follows vision.station.STATION; one camera per station (the lease). Offline (no
+    credentials) there is no database and tasks come from CUES_TASK.
     """
-    from vision import flags
     from vision.station_lease import StationLease
     from vision.supabase_client import get_client
 
-    if not flags.enabled("vision.session_lifecycle"):
-        return None
     STATION_SESSION.invalidate()
     client = get_client()
     if client is None:
-        log.warning("session lifecycle enabled without station credentials; tasks stay paused")
         return None
     return StationSessionSync(client, lease=StationLease(client))

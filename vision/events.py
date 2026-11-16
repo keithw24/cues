@@ -242,24 +242,18 @@ def _current_station() -> str:
 
 
 def emitter_from_env() -> Emitter:
-    """Supabase when the `vision.supabase_events` flag is on and keys are set;
-    otherwise local JSONL. JSONL is always the fallback.
+    """Supabase when SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set; otherwise local
+    JSONL. JSONL is always the fallback.
 
     The station is vision.station.STATION (the dashboard's station, or the CUES_STATION_ID
     dev override). Under Supabase every row carries the session the station tick pinned for
     its frame, so the emitter's own session id is only a placeholder; offline (JSONL only)
     it labels the run.
     """
-    from vision import flags
     from vision.supabase_client import get_client
 
     local = JsonlSink()
-    client = get_client() if flags.enabled("vision.supabase_events") else None
-    if client is not None and not flags.enabled("vision.session_lifecycle"):
-        raise RuntimeError(
-            "vision.supabase_events needs vision.session_lifecycle: the session comes from "
-            "the station tick. Turn both on, or turn supabase_events off."
-        )
+    client = get_client()  # None offline (no credentials): local files only
     sink: Sink = SupabaseSink(client) if client is not None else local
     emitter = Emitter(
         sink,

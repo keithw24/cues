@@ -17,8 +17,6 @@ from vision.grouping import GROUPING
 from vision.people import person_color as seat_color
 from vision.perception import Hand
 
-FLAG = "vision.hands"
-
 # MediaPipe hand skeleton (pairs of landmark indices).
 CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 4),
