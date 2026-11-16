@@ -18,13 +18,10 @@ export function TeacherReviewActions({
   client,
   review,
   onResolved,
-  interventionsEnabled = false,
 }: {
   client: SupabaseClient;
   review: TeacherReview;
   onResolved: (review: TeacherReview) => void;
-  /** web.interventions: show the suggested support and let the teacher approve one. */
-  interventionsEnabled?: boolean;
 }) {
   const [support, setSupport] = useState<InterventionKey | "">(
     review.suggested_intervention ?? "",
@@ -79,8 +76,7 @@ export function TeacherReviewActions({
   if (review.status !== "pending") return null;
   return (
     <div className="review-actions">
-      {interventionsEnabled ? (
-        <div className="intervention-pick">
+      <div className="intervention-pick">
           <label htmlFor={`support-${review.id}`}>
             {review.suggested_intervention
               ? "Cues suggests a support. You decide."
@@ -114,7 +110,6 @@ export function TeacherReviewActions({
             </button>
           </div>
         </div>
-      ) : null}
       <div className="review-action-buttons" aria-busy={saving !== null}>
         <button
           type="button"

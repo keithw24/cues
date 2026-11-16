@@ -6,11 +6,10 @@ import { cameraConflict, readStationWriter } from "@/lib/station-writer";
 export function useCameraConflict(
   client: SupabaseClient | null,
   station: string,
-  sessionControlsEnabled: boolean,
 ) {
   const [conflict, setConflict] = useState(false);
   useEffect(() => {
-    if (!client || !station || !sessionControlsEnabled) return;
+    if (!client || !station) return;
     let disposed = false;
     // One read at a time (a read can take up to 12s, the poll is 5s), so an
     // old answer never overwrites a newer one; a failed read keeps the last.
@@ -41,6 +40,6 @@ export function useCameraConflict(
       // Never carry one classroom's warning over to the next.
       setConflict(false);
     };
-  }, [client, station, sessionControlsEnabled]);
+  }, [client, station]);
   return conflict;
 }

@@ -46,18 +46,8 @@ const headings: Record<"signin" | "signup", Record<Step, string>> = {
 
 export default function TeacherLogin({
   mode = "signin",
-  signupEnabled = false,
-  phoneEnabled = false,
-  profileEnabled = false,
-  themeToggleEnabled = false,
 }: {
   mode?: "signin" | "signup";
-  signupEnabled?: boolean;
-  /** Ask for a mobile number Photon can text alerts to. */
-  phoneEnabled?: boolean;
-  /** Move the sign-up number into teacher_profiles once signed in. */
-  profileEnabled?: boolean;
-  themeToggleEnabled?: boolean;
 }) {
   const router = useRouter();
   const signingUp = mode === "signup";
@@ -89,7 +79,7 @@ export default function TeacherLogin({
           : step === "password"
             ? password.length >= (signingUp ? MIN_PASSWORD : 1) && !!client
             : false;
-  const askPhone = signingUp && phoneEnabled;
+  const askPhone = signingUp;
 
   function back() {
     setError(null);
@@ -105,7 +95,7 @@ export default function TeacherLogin({
   }
 
   async function enterClassroom() {
-    if (profileEnabled && client)
+    if (client)
       // Best effort: the classroom still opens, and the profile page can retry.
       await syncSignupProfile(client).catch(() => null);
     router.push("/dashboard");
@@ -176,11 +166,9 @@ export default function TeacherLogin({
     <Link className="auth-switch" href="/login">
       Log in
     </Link>
-  ) : signupEnabled ? (
-    <Link className="auth-switch" href="/signup">
+  ) : (<Link className="auth-switch" href="/signup">
       Sign up
-    </Link>
-  ) : null;
+    </Link>);
 
   return (
     <main id="main-content" className="auth-page">
@@ -200,9 +188,7 @@ export default function TeacherLogin({
           </Link>
         )}
         <div className="auth-header-actions">
-          {themeToggleEnabled ? (
-            <ThemeToggle pageDefault="light" className="auth-theme-toggle" />
-          ) : null}
+          <ThemeToggle pageDefault="light" className="auth-theme-toggle" />
           {switchLink}
         </div>
       </header>

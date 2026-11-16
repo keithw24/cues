@@ -23,9 +23,6 @@ type CameraHealthProps = {
   inView: number;
   /** Another camera is being refused on this station (from its writer row). */
   conflict: boolean;
-  /** web.hosted_local_feed: the hosted dashboard may read this laptop's service. */
-  hostedEnabled?: boolean;
-  hostedOrigin?: string;
 };
 
 /** The strip's live state. */
@@ -34,8 +31,6 @@ function useCameraHealth({
   updatedAt,
   inView,
   conflict,
-  hostedEnabled = false,
-  hostedOrigin,
 }: CameraHealthProps): { health: CameraHealth; summary: HealthSummary } {
   const [vision, setVision] = useState<LocalVisionReading | null>(null);
   // The clock starts on the first poll (in the effect), never during render.
@@ -44,9 +39,8 @@ function useCameraHealth({
   const [localReadable, setLocalReadable] = useState<boolean | null>(null);
   useEffect(() => {
     let disposed = false;
-    // Only a page allowed to reach this laptop (localhost, or the hosted origin with
-    // web.hosted_local_feed) reads its vision service, as the video feed does.
-    const readable = mayConnectLocalFeed(window.location.origin, hostedEnabled, hostedOrigin);
+    // Only a page served from this laptop reads its vision service, as the video feed does.
+    const readable = mayConnectLocalFeed(window.location.origin);
     queueMicrotask(() => {
       if (!disposed) setLocalReadable(readable);
     });
@@ -66,7 +60,7 @@ function useCameraHealth({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [hostedEnabled, hostedOrigin]);
+  }, []);
   const health = cameraHealth({
     vision,
     station,

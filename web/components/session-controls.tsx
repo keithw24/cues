@@ -25,13 +25,11 @@ export function SessionControls({
   client,
   station,
   onActivity,
-  teacherLoginEnabled = false,
   resetPeople = null,
 }: {
   client: SupabaseClient;
   station: string;
   onActivity: (label: string) => void;
-  teacherLoginEnabled?: boolean;
   /** web.reset_people: switching or restarting the activity puts everyone back to working, so
    * the requests still open for the people in `seatIds` are closed too, and the refresh button
    * restarts the current activity. Null: the button only reloads the session, as before. */
@@ -279,7 +277,7 @@ export function SessionControls({
   // No station yet (still being found, or none set up): no controls and no
   // caption; the classroom panels say what is happening.
   if (!station) return null;
-  if (!user && teacherLoginEnabled)
+  if (!user)
     return (
       <Link className="ws-pill is-dark" href="/login">
         Teacher sign in

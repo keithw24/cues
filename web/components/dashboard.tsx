@@ -20,14 +20,12 @@ import {
 } from "@/components/dashboard/use-saved-marks";
 import {
   INITIAL_REVIEWS,
-  DISABLED_REVIEWS,
 } from "@/lib/teacher-review-feed";
 import {
   activityLabel,
   groupReviewsBySeat,
   type TeacherReview,
 } from "@/lib/teacher-reviews";
-import type { DashboardFeatures } from "@/lib/dashboard-features";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import { PersonDetails } from "@/components/person-panel";
@@ -91,60 +89,24 @@ function SignInCard() {
 
 export default function Dashboard({
   view = "classroom",
-  features,
   stationId = "",
-  hostedDashboardOrigin = "https://cues.nyc",
 }: {
   /** "classroom" (the default) or "review", the To review page. */
   view?: "classroom" | "review";
-  /** Every feature flag, resolved on the server (lib/dashboard-features.ts). */
-  features: DashboardFeatures;
   /** Explicit dev/test override (CUES_STATION_OVERRIDE). Normally empty: a signed-in
    * teacher's own default station is used. */
   stationId?: string;
-  hostedDashboardOrigin?: string;
 }) {
-  const {
-    reviewPageEnabled,
-    liveProgressEnabled,
-    personObservationsEnabled,
-    sessionControlsEnabled,
-    reviewsEnabled,
-    reviewActionsEnabled,
-    teacherLoginEnabled,
-    themeToggleEnabled,
-    hostedLocalFeedEnabled,
-    companionEnabled,
-    visionStationConfigEnabled,
-    healthStripEnabled,
-    interventionsEnabled,
-    resetPeopleEnabled,
-    reviewWaitingEnabled,
-  } = features;
-  const observationNow = useObservationClock(personObservationsEnabled);
+  const observationNow = useObservationClock();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const listHeading = useRef<HTMLHeadingElement>(null);
 
   const resolvedReviewIds = useRef(new Set<string>());
   const { client, configurationError, resolvesStation, account, station } =
-    useTeacherStation({
-      stationId,
-      sessionControlsEnabled,
-      teacherLoginEnabled,
-      reviewActionsEnabled,
-      visionStationConfigEnabled,
-    });
+    useTeacherStation({ stationId });
   const [markedSeats, setMarkedSeats] = useSavedMarks(station);
   const { feed, setFeed, reviews, setReviews, retryFeed, retryReviews } =
-    useDashboardFeeds({
-    client,
-    station,
-    personObservationsEnabled,
-    liveProgressEnabled,
-    reviewsEnabled,
-    interventionsEnabled,
-    resolvedReviewIds,
-  });
+    useDashboardFeeds({ client, station, resolvedReviewIds });
   const shownStation = useRef(station);
   useEffect(() => {
     // Another station (account switch, sign-out): drop the old station's rows now.
@@ -153,12 +115,12 @@ export default function Dashboard({
     queueMicrotask(() => {
       setFeed(INITIAL_FEED);
       setSelectedId(null);
-      setReviews(reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS);
+      setReviews(INITIAL_REVIEWS);
     });
-  }, [station, reviewsEnabled, setFeed, setReviews]);
+  }, [station, setFeed, setReviews]);
 
   const signedOut =
-    teacherLoginEnabled && resolvesStation && account.state === "signed-out";
+    resolvesStation && account.state === "signed-out";
   // Without a station there is nothing to load yet: say why, not "error".
   const waitingForStation =
     resolvesStation && !station && !configurationError;
@@ -174,7 +136,7 @@ export default function Dashboard({
   const nameOf = (seatId: string) =>
     seats.find((seat) => seat.id === seatId)?.display_name ?? "A student";
   const observationOptions: ObservationOptions = {
-    enabled: personObservationsEnabled,
+    enabled: true,
     now: observationNow,
     connected: feed.connection === "connected" && !feed.error,
   };
@@ -192,7 +154,6 @@ export default function Dashboard({
     isFresh(seat.state, observationOptions),
   );
   const reviewsLive =
-    reviewsEnabled &&
     !configurationError &&
     reviews.reviews !== null &&
     !reviews.error &&
@@ -209,8 +170,8 @@ export default function Dashboard({
     : activityNames.length > 1
       ? "Several activities"
       : (activityNames[0] ?? "No activity yet");
-  const sessionLive = Boolean(sessionControlsEnabled && client);
-  const conflict = useCameraConflict(client, station, sessionControlsEnabled);
+  const sessionLive = Boolean(client);
+  const conflict = useCameraConflict(client, station);
   // With session controls, the activity picker itself shows the activity.
   const activity = observationActivity;
 
@@ -233,7 +194,7 @@ export default function Dashboard({
   // To review so the two agree. Only once the review feed is live, so no one is
   // shown twice while requests are still loading.
   const { flagged: flaggedOnly, count: waitingCount } = reviewQueue({
-    enabled: reviewWaitingEnabled,
+    enabled: true,
     live: reviewsLive,
     people: inView,
     flagged: (seat) => present(seat).needsReview,
@@ -248,7 +209,6 @@ export default function Dashboard({
     seats,
     observationNow,
     reviewsLive,
-    reviewWaitingEnabled,
     hasSnapshot: Boolean(feed.snapshot),
   });
   // Attention lists them too (web.review_waiting), under the requests, so the
@@ -257,7 +217,6 @@ export default function Dashboard({
   // Marked as reviewed, but the camera hasn't reset them yet: not "All clear"
   // while their card still reads Needs Review.
   const catchingUp =
-    reviewWaitingEnabled &&
     reviewsLive &&
     inView.some(
       (seat) => markedSeats.has(seat.id) && present(seat).needsReview,
@@ -304,7 +263,6 @@ export default function Dashboard({
   // The review feed failed or dropped: the notice says so, and no "All clear"
   // or "Checking…" shows under it.
   const reviewNotice =
-    reviewsEnabled &&
     !configurationError &&
     Boolean(reviews.error || reviews.connection === "disconnected");
   const pageHeading = useRef<HTMLHeadingElement>(null);
@@ -369,7 +327,7 @@ export default function Dashboard({
       <p className="person-note" role="status">
         Marked as reviewed. They’ll show as working again in a moment.
       </p>
-    ) : reviewActionsEnabled && client && sessionId ? (
+    ) : client && sessionId ? (
       <MarkReviewedButton
         key={seatId}
         client={client}
@@ -389,7 +347,7 @@ export default function Dashboard({
       <p className="person-note" role="status">
         Saved. They’ll show as working again in a moment.
       </p>
-    ) : reviewActionsEnabled && client && sessionId ? (
+    ) : client && sessionId ? (
       <FlagDecisionButtons
         key={seatId}
         client={client}
@@ -428,9 +386,8 @@ export default function Dashboard({
             presentation={presentation}
             reviews={pending}
             stale={!!reviews.error || reviews.connection === "disconnected"}
-            client={reviewActionsEnabled ? client : null}
+            client={client}
             onResolved={resolved}
-            interventionsEnabled={interventionsEnabled}
             actions={(flaggedIdSet.has(seatId) && pending.length === 0
               ? flagDecisions
               : markReviewedButton)(
@@ -466,9 +423,6 @@ export default function Dashboard({
   return (
     <div className="dashboard-shell">
       <WorkspaceSidebar
-        accountEnabled={teacherLoginEnabled}
-        themeToggle={themeToggleEnabled}
-        reviewPage={reviewPageEnabled}
         reviewCount={waitingCount}
       />
       <main id="main-content" className="dashboard-main">
@@ -491,9 +445,8 @@ export default function Dashboard({
                     <WorkspaceIcon name="back" />
                     Back to classroom
                   </Link>
-                ) : reviewPageEnabled ? (
-                  <Link
-                    className={`ws-pill review-link${waitingCount ? " has-items" : ""}${companionEnabled ? " has-companion" : ""}`}
+                ) : (<Link
+                    className={`ws-pill review-link${waitingCount ? " has-items" : ""} has-companion`}
                     href="/review"
                   >
                     TO REVIEW
@@ -501,32 +454,26 @@ export default function Dashboard({
                       // With the companion, keyed so a new count pops in.
                       <span
                         className="ws-count"
-                        key={companionEnabled ? waitingCount : undefined}
+                        key={waitingCount}
                       >
                         {waitingCount}
                       </span>
                     ) : null}
-                    {companionEnabled ? (
-                      <ReviewCompanion
+                    <ReviewCompanion
                         count={companionCount}
                         rememberAs={station}
                       />
-                    ) : null}
-                  </Link>
-                ) : null}
+                  </Link>)}
               </header>
               {view !== "review" &&
-              ((sessionLive && client) || (healthStripEnabled && station)) ? (
+              ((sessionLive && client) || station) ? (
                 <div className="hero-controls">
                   {sessionLive && client ? (
                     <SessionControls
                       client={client}
                       station={station}
                       onActivity={ignoreActivity}
-                      teacherLoginEnabled={teacherLoginEnabled}
-                      resetPeople={
-                        resetPeopleEnabled
-                          ? {
+                      resetPeople={{
                               seatIds: reviewGroups.map((group) => group.seat_id),
                               // Flagged people without a request have nothing to close, but
                               // their "No suggestion yet" card goes with everyone else's.
@@ -537,24 +484,20 @@ export default function Dashboard({
                                 // Everyone starts over: nobody is still "just lost".
                                 forgetLostPeople();
                               },
-                            }
-                          : null
-                      }
+                            }}
                     />
                   ) : null}
-                  {healthStripEnabled && station ? (
+                  {station ? (
                     <CameraHealthStrip
                       station={station}
                       updatedAt={seats.map((seat) => seat.state?.updated_at)}
                       inView={inView.length}
                       conflict={conflict}
-                      hostedEnabled={hostedLocalFeedEnabled}
-                      hostedOrigin={hostedDashboardOrigin}
                     />
                   ) : null}
                 </div>
               ) : null}
-              {view !== "review" && sessionLive && conflict && !healthStripEnabled ? (
+              {view !== "review" && sessionLive && conflict && false ? (
                 <p className="station-busy" role="status">
                   {CAMERA_CONFLICT_MESSAGE}
                 </p>
@@ -591,13 +534,12 @@ export default function Dashboard({
                 nameOf={nameOf}
                 activityName={activityName}
                 decisions={(lead) =>
-                  reviewActionsEnabled && client ? (
+                  client ? (
                     <TeacherReviewActions
                       key={lead.id}
                       client={client}
                       review={lead}
                       onResolved={resolved}
-                      interventionsEnabled={interventionsEnabled}
                     />
                   ) : null
                 }
@@ -609,7 +551,7 @@ export default function Dashboard({
                 emptyText={
                   reviewNotice
                     ? null
-                    : !reviewsEnabled || configurationError
+                    : configurationError
                       ? "Cues will list people here when someone may need you."
                       : reviewsLive
                         ? "All clear. No one needs you right now."
@@ -619,7 +561,7 @@ export default function Dashboard({
             ) : (
               <>
             <div className="monitor-workspace">
-              <LocalClassroomFeed hostedEnabled={hostedLocalFeedEnabled} hostedOrigin={hostedDashboardOrigin} />
+              <LocalClassroomFeed />
               <section
                 className="ws-panel class-panel"
                 aria-labelledby="class-heading"
@@ -675,7 +617,7 @@ export default function Dashboard({
                   emptyText={
                     reviewNotice
                       ? null
-                      : !reviewsEnabled || configurationError
+                      : configurationError
                         ? "Cues will ask here when someone may need you."
                         : reviewsLive
                           ? catchingUp

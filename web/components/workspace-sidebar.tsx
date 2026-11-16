@@ -10,15 +10,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 // sign-out, the classroom camera and alerts live). Labels show on hover and
 // focus, and screen readers always hear them.
 export function WorkspaceSidebar({
-  accountEnabled = false,
-  themeToggle = false,
-  reviewPage = false,
   reviewCount = 0,
 }: {
-  accountEnabled?: boolean;
-  themeToggle?: boolean;
-  /** web.review_page: show the To review link. */
-  reviewPage?: boolean;
   /** People waiting, shown as a dot count on the To review link. */
   reviewCount?: number;
 }) {
@@ -38,8 +31,7 @@ export function WorkspaceSidebar({
           <WorkspaceIcon name="classroom" />
           <span className="nav-label">Classroom</span>
         </Link>
-        {reviewPage ? (
-          <Link href="/review" {...current("/review")}>
+        <Link href="/review" {...current("/review")}>
             <WorkspaceIcon name="review" />
             <span className="nav-label">
               To review
@@ -51,18 +43,13 @@ export function WorkspaceSidebar({
               </span>
             ) : null}
           </Link>
-        ) : null}
-        {accountEnabled ? (
-          <Link href="/settings/profile" {...current("/settings")}>
+        <Link href="/settings/profile" {...current("/settings")}>
             <WorkspaceIcon name="account" />
             <span className="nav-label">Profile</span>
           </Link>
-        ) : null}
       </nav>
       <div className="sidebar-bottom">
-        {themeToggle ? (
-          <ThemeToggle pageDefault="dark" className="rail-link" />
-        ) : null}
+        <ThemeToggle pageDefault="dark" className="rail-link" />
       </div>
     </aside>
   );

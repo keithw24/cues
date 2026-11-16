@@ -24,9 +24,7 @@ type RealtimeChange = {
 export function watchDashboard(
   client: SupabaseClient,
   notify: (state: FeedState) => void,
-  personObservationsEnabled = false,
   station?: string,
-  liveProgressEnabled = false,
 ) {
   const scoped = station?.trim() ?? "";
   if (station !== undefined && !scoped) {
@@ -79,8 +77,7 @@ export function watchDashboard(
           .from("seat_state")
           .select(
             "seat_id,session_id,activity_id,status,task_score,updated_at,session_revision" +
-              (liveProgressEnabled ? ",evaluated_progress" : "") +
-              ((personObservationsEnabled || liveProgressEnabled) ? ",tracking_valid,expression_context" : ""),
+              ",evaluated_progress,tracking_valid,expression_context",
           )
           .abortSignal(signal),
         client.from("activities").select("id,name").abortSignal(signal),
@@ -104,7 +101,7 @@ export function watchDashboard(
           activities: activities.data,
           stations: stations.data,
         },
-        personObservationsEnabled || liveProgressEnabled,
+        true,
       );
       publish({ snapshot, error: null });
     } catch {
@@ -153,7 +150,7 @@ export function watchDashboard(
     try {
       const parsed = parseSnapshot(
         { seats: [], states: [row], activities: [], stations: [] },
-        personObservationsEnabled || liveProgressEnabled,
+        true,
       ).states[0];
       const others = held.states.filter((s) => s.seat_id !== seatId);
       publish({ snapshot: { ...held, states: [...others, parsed] } });

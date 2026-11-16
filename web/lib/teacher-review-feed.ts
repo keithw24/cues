@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   parseTeacherReviews,
   pendingReviews,
-  REVIEW_COLUMNS,
   REVIEW_COLUMNS_WITH_INTERVENTIONS,
   type TeacherReview,
 } from "./teacher-reviews.ts";
@@ -38,12 +37,10 @@ export const SIGN_IN_TO_SEE_REVIEWS =
 export function watchTeacherReviews(
   client: SupabaseClient,
   notify: (state: ReviewFeedState) => void,
-  enabled: boolean,
   station?: string,
-  interventions = false,
 ) {
   const scoped = station?.trim() ?? "";
-  if (!enabled || (station !== undefined && !scoped)) {
+  if (station !== undefined && !scoped) {
     notify(DISABLED_REVIEWS);
     return { refresh: async () => {}, disconnect() {}, dispose() {} };
   }
@@ -104,7 +101,7 @@ export function watchTeacherReviews(
         // sessions; listing every session id would grow the URL without bound.
         const read = await client
           .from("teacher_reviews")
-          .select(interventions ? REVIEW_COLUMNS_WITH_INTERVENTIONS : REVIEW_COLUMNS)
+          .select(REVIEW_COLUMNS_WITH_INTERVENTIONS)
           .eq("status", "pending")
           .abortSignal(signal());
         if (read.error) throw new Error("Review read failed");

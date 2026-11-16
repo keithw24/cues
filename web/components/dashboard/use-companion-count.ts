@@ -12,7 +12,6 @@ type Inputs = {
   seats: SeatView[];
   observationNow: number | null;
   reviewsLive: boolean;
-  reviewWaitingEnabled: boolean;
   hasSnapshot: boolean;
 };
 
@@ -26,7 +25,6 @@ export function useCompanionCount({
   seats,
   observationNow,
   reviewsLive,
-  reviewWaitingEnabled,
   hasSnapshot,
 }: Inputs) {
   // What the companion follows. With flagged people counted, wait for the
@@ -69,7 +67,7 @@ export function useCompanionCount({
     setDroppedFlagged(unexplained);
   const companionCount =
     reviewsLive &&
-    (!reviewWaitingEnabled || (hasSnapshot && unexplained.length === 0))
+    ((hasSnapshot && unexplained.length === 0))
       ? waitingCount
       : null;
   const forgetLostPeople = () => setDroppedFlagged([]);

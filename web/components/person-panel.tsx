@@ -33,7 +33,6 @@ export function PersonDetails({
   client,
   onResolved,
   actions,
-  interventionsEnabled = false,
 }: {
   id: string;
   /** Null when the camera has no row for this person right now. */
@@ -46,8 +45,6 @@ export function PersonDetails({
   onResolved: (review: TeacherReview) => void;
   /** "Mark as reviewed", shown while this person is flagged or has a request. */
   actions?: React.ReactNode;
-  /** web.interventions */
-  interventionsEnabled?: boolean;
 }) {
   const review = reviews[0];
   return (
@@ -77,7 +74,6 @@ export function PersonDetails({
               client={client}
               review={review}
               onResolved={onResolved}
-              interventionsEnabled={interventionsEnabled}
             />
           ) : (
             <p className="person-note">

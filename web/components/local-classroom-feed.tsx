@@ -12,7 +12,7 @@ const VIDEO_KEY = "cues-video";
  * overlay (a box and label per person, hand points). The browser reads this
  * laptop's loopback stream directly; frames never cross the app server or
  * leave the laptop. Off, it is one slim strip. */
-export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin = "https://cues.nyc"}: {hostedEnabled?: boolean; hostedOrigin?: string}) {
+export default function LocalClassroomFeed() {
   const [connection, setConnection] = useState<
     "off" | "connecting" | "live" | "error"
   >("off");
@@ -23,7 +23,7 @@ export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin 
     } catch {}
   };
   const connect = () => {
-    if (!mayConnectLocalFeed(window.location.origin, hostedEnabled, hostedOrigin)) {
+    if (!mayConnectLocalFeed(window.location.origin)) {
       setConnection("error");
       return;
     }
@@ -40,11 +40,11 @@ export default function LocalClassroomFeed({hostedEnabled = false, hostedOrigin 
     try {
       on = localStorage.getItem(VIDEO_KEY) === "on";
     } catch {}
-    if (on && mayConnectLocalFeed(window.location.origin, hostedEnabled, hostedOrigin)) {
+    if (on && mayConnectLocalFeed(window.location.origin)) {
       const timer = setTimeout(() => setConnection("connecting"), 0);
       return () => clearTimeout(timer);
     }
-  }, [hostedEnabled, hostedOrigin]);
+  }, []);
   const streaming = connection === "connecting" || connection === "live";
   // The stream is still showing after a tab switch (the browser keeps the connection), but the
   // image's load event does not fire again for a stream it already has, which left "Connecting…"

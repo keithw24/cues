@@ -16,26 +16,16 @@ export type Account =
 
 type Options = {
   stationId: string;
-  sessionControlsEnabled: boolean;
-  teacherLoginEnabled: boolean;
-  reviewActionsEnabled: boolean;
-  visionStationConfigEnabled: boolean;
 };
 
 /** The Supabase client and the station this dashboard is about: the override, else the
  * signed-in teacher's own default station. Also keeps this laptop's vision on that station. */
 export function useTeacherStation({
   stationId,
-  sessionControlsEnabled,
-  teacherLoginEnabled,
-  reviewActionsEnabled,
-  visionStationConfigEnabled,
 }: Options) {
   const [client] = useState(() => {
     try {
-      return createDashboardClient(
-        sessionControlsEnabled || teacherLoginEnabled || reviewActionsEnabled,
-      );
+      return createDashboardClient(true);
     } catch {
       return null;
     }
@@ -45,7 +35,7 @@ export function useTeacherStation({
   // default station (created on first sign-in). Empty while signed out or still loading.
   const stationOverride = stationId.trim();
   const resolvesStation =
-    !stationOverride && (sessionControlsEnabled || teacherLoginEnabled);
+    !stationOverride;
   const [account, setAccount] = useState<Account>({ state: "checking" });
   const station =
     stationOverride || (account.state === "ready" ? account.station : "");
@@ -53,9 +43,9 @@ export function useTeacherStation({
   // The result isn't shown as a caption: the camera card itself says when the
   // camera can't be reached.
   useEffect(() => {
-    if (!visionStationConfigEnabled || !client || !station) return;
+    if (!client || !station) return;
     return startLocalVisionSync(client, station);
-  }, [client, station, visionStationConfigEnabled]);
+  }, [client, station]);
   useEffect(() => {
     if (!client || !resolvesStation) return;
     let disposed = false;

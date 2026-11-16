@@ -34,14 +34,7 @@ const copy: Record<State, { heading: string; hint: string }> = {
 };
 
 /** Where the link in Supabase's confirmation email lands. */
-export default function SignupConfirmed({
-  profileEnabled = false,
-  themeToggleEnabled = false,
-}: {
-  /** Move the sign-up number into teacher_profiles once signed in. */
-  profileEnabled?: boolean;
-  themeToggleEnabled?: boolean;
-}) {
+export default function SignupConfirmed() {
   const [state, setState] = useState<State>("confirming");
 
   useEffect(() => {
@@ -63,7 +56,7 @@ export default function SignupConfirmed({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
-        if (!error && profileEnabled)
+        if (!error)
           await syncSignupProfile(client).catch(() => null);
         if (!cancelled) setState(error ? "failed" : "done");
       } catch {
@@ -74,7 +67,7 @@ export default function SignupConfirmed({
     return () => {
       cancelled = true;
     };
-  }, [profileEnabled]);
+  }, []);
 
   return (
     <main id="main-content" className="auth-page">
@@ -83,9 +76,7 @@ export default function SignupConfirmed({
           <CuesMark size={28} />
           Cues
         </Link>
-        {themeToggleEnabled ? (
-          <ThemeToggle pageDefault="light" className="auth-theme-toggle" />
-        ) : null}
+        <ThemeToggle pageDefault="light" className="auth-theme-toggle" />
       </header>
       <section className="auth-content" aria-labelledby="auth-heading">
         <Companion size={92} busy={state === "confirming"} />
