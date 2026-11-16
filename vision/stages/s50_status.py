@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from vision import activities
@@ -57,6 +58,21 @@ def format_event(seat_id: str, activity_id: str, event: StatusEvent) -> str:
     if event.payload:
         parts.append(" ".join(f"{k}={v}" for k, v in event.payload.items()))
     return " ".join(parts)
+
+
+@dataclass(frozen=True)
+class _FrameSeen:
+    """What this frame saw and which session it belongs to, read once per frame."""
+
+    t: float
+    session_id: object
+    session_revision: int | None
+    matches: dict
+    hands: dict
+    faces: dict
+    expressions: dict
+    people: dict
+    scorable: dict
 
 
 class StatusStage:
@@ -111,93 +127,112 @@ class StatusStage:
             self._session_key = None
             self._station_generation = generation
         if station_id is None:
-            ctx.update(status={}, events=[], last_event={})
-            return  # no teacher station yet: nothing is written
-        session = ctx.get("session") if ctx.get("session_managed") else None
-        if session is not None and session.station_id != station_id:
-            session = None
-        if ctx.get("session_managed"):
-            if session is None:
-                # Paused (sync lapsed, session ended, no activity): write nothing, but keep
-                # each person's status. A brief sync gap must not send a flagged or finished
-                # child back to working; a new session or revision still resets.
-                self._paused = True
-                self._drop_released(ctx)  # a released id must not pass its status on
-                ctx.update(status={}, events=[], last_event={})
-                return
-            key = (session.id, session.revision)
-            if key != self._session_key:
-                self._reset()
-                self._session_key = key
-            elif self._paused and self._last_processed_t is not None:
-                # Same session after a pause: the paused time was not observed.
-                gap = frame.timestamp - self._last_processed_t
-                for tracker in self._trackers.values():
-                    tracker.shift(gap)
-                for expression in self._expression.values():
-                    expression.shift(gap)
-            self._paused = False
-            self._last_processed_t = frame.timestamp
+            self._publish_nothing(ctx)  # no teacher station yet: nothing is written
+            return
+        managed = bool(ctx.get("session_managed"))
+        session = self._frame_session(frame, ctx, station_id) if managed else None
+        if managed and session is None:
+            # Paused (sync lapsed, session ended, no activity): write nothing, but keep
+            # each person's status. A brief sync gap must not send a flagged or finished
+            # child back to working; a new session or revision still resets.
+            self._paused = True
+            self._drop_released(ctx)  # a released id must not pass its status on
+            self._publish_nothing(ctx)
+            return
+        if managed:
+            self._resume(session, frame)
         self.emitter.station_id = station_id
+        seen = _FrameSeen(
+            t=frame.timestamp,
+            session_id=session.id if session else self.emitter.session_id,
+            session_revision=session.revision if session else None,
+            matches=ctx.get("match", {}),
+            hands=ctx.get("hands", {}),
+            faces=ctx.get("faces", {}),
+            expressions=ctx.get("expression", {}),
+            people=ctx.get("people", {}),
+            scorable=ctx.get("scorable", {}),
+        )
         prefix = f"{station_id}-"
-        session_id = session.id if session else self.emitter.session_id
-        session_revision = session.revision if session else None
-        t = frame.timestamp
-        matches = ctx.get("match", {})
-        hands = ctx.get("hands", {})
-        faces = ctx.get("faces", {})
-        expressions = ctx.get("expression", {})
         for seat in self.zones.ids(ctx):
-            if not seat.startswith(prefix):
-                continue  # an id from another station's tracker; never written
-            activity_id = frame_activity(self.tasks, seat, ctx)
-            if activity_id is None:
-                continue
-            activity = activities.get(activity_id)
-            tracker = self._trackers.get(seat)
-            marked = self.marks.get(session_id, seat)
-            if tracker is None or tracker.activity.id != activity.id:
-                tracker = self._trackers[seat] = SeatTracker(seat, activity)
-                tracker.acknowledged_at = marked  # a mark from before this tracker is old news
-            elif marked is not None and (
-                tracker.acknowledged_at is None or marked > tracker.acknowledged_at
-            ):
-                # The teacher marked this child reviewed: back to working, timers restart.
-                tracker.acknowledge(marked)
-            match = matches.get(seat)
-            score = match.score if match is not None and match.activity_id == activity.id else None
-            visible = seat in faces or seat in ctx.get("people", {})
-            in_hand = seat in hands
-            # A gesture task counts toward no progress only if Cues can score it (gestures
-            # and hands on, examples recorded); rule tasks always can.
-            judgeable = activity.check_type != "gesture" or ctx.get("scorable", {}).get(
-                activity.id, False
-            )
-            events = tracker.update(t, score, in_hand, visible, judgeable=judgeable)
-            expr_tracker = self._expression.setdefault(seat, ExpressionTracker())
-            events += expr_tracker.update(t, expressions.get(seat))
-            when = observed_at(t)
-            for event in events:
-                self._send_event(seat, activity.id, event, when, session_id, session_revision)
-                self._last_event[seat] = (event.type, t)
-            # Tracked now = the person, their face or their hand is seen in this frame.
-            tracking_valid = (visible or in_hand) and tracker.status != "tracking_lost"
-            expression = expr_tracker.context(t, expressions.get(seat))
-            self._maybe_send_state(
-                seat,
-                tracker,
-                score,
-                expression,
-                tracking_valid,
-                t,
-                when,
-                session_id,
-                session_revision,
-            )
+            if seat.startswith(prefix):  # an id from another station's tracker is never written
+                self._update_seat(seat, ctx, seen)
         self._drop_released(ctx)
         ctx["status"] = {seat: tr.status for seat, tr in self._trackers.items()}
         ctx["events"] = list(self.recent)
-        ctx["last_event"] = {s: e for s, (e, when) in self._last_event.items() if t - when < 3.0}
+        ctx["last_event"] = {
+            s: e for s, (e, when) in self._last_event.items() if seen.t - when < 3.0
+        }
+
+    @staticmethod
+    def _publish_nothing(ctx) -> None:
+        ctx.update(status={}, events=[], last_event={})
+
+    def _frame_session(self, frame, ctx, station_id):
+        """This frame's pinned session for the station, or None when none may be used."""
+        session = ctx.get("session")
+        return session if session is not None and session.station_id == station_id else None
+
+    def _resume(self, session, frame) -> None:
+        """Enter a frame inside a live session: reset on a new session or revision, and skip
+        the time the camera was paused so it never counts toward a hold."""
+        key = (session.id, session.revision)
+        if key != self._session_key:
+            self._reset()
+            self._session_key = key
+        elif self._paused and self._last_processed_t is not None:
+            # Same session after a pause: the paused time was not observed.
+            gap = frame.timestamp - self._last_processed_t
+            for tracker in self._trackers.values():
+                tracker.shift(gap)
+            for expression in self._expression.values():
+                expression.shift(gap)
+        self._paused = False
+        self._last_processed_t = frame.timestamp
+
+    def _update_seat(self, seat: str, ctx, seen: _FrameSeen) -> None:
+        activity_id = frame_activity(self.tasks, seat, ctx)
+        if activity_id is None:
+            return
+        activity = activities.get(activity_id)
+        tracker = self._trackers.get(seat)
+        marked = self.marks.get(seen.session_id, seat)
+        if tracker is None or tracker.activity.id != activity.id:
+            tracker = self._trackers[seat] = SeatTracker(seat, activity)
+            tracker.acknowledged_at = marked  # a mark from before this tracker is old news
+        elif marked is not None and (
+            tracker.acknowledged_at is None or marked > tracker.acknowledged_at
+        ):
+            # The teacher marked this child reviewed: back to working, timers restart.
+            tracker.acknowledge(marked)
+        match = seen.matches.get(seat)
+        score = match.score if match is not None and match.activity_id == activity.id else None
+        visible = seat in seen.faces or seat in seen.people
+        in_hand = seat in seen.hands
+        # A gesture task counts toward no progress only if Cues can score it (gestures
+        # and hands on, examples recorded); rule tasks always can.
+        judgeable = activity.check_type != "gesture" or seen.scorable.get(activity.id, False)
+        events = tracker.update(seen.t, score, in_hand, visible, judgeable=judgeable)
+        expr_tracker = self._expression.setdefault(seat, ExpressionTracker())
+        events += expr_tracker.update(seen.t, seen.expressions.get(seat))
+        when = observed_at(seen.t)
+        for event in events:
+            self._send_event(seat, activity.id, event, when, seen.session_id, seen.session_revision)
+            self._last_event[seat] = (event.type, seen.t)
+        # Tracked now = the person, their face or their hand is seen in this frame.
+        tracking_valid = (visible or in_hand) and tracker.status != "tracking_lost"
+        expression = expr_tracker.context(seen.t, seen.expressions.get(seat))
+        self._maybe_send_state(
+            seat,
+            tracker,
+            score,
+            expression,
+            tracking_valid,
+            seen.t,
+            when,
+            seen.session_id,
+            seen.session_revision,
+        )
 
     def _drop_released(self, ctx) -> None:
         live = set(self.zones.ids(ctx))
