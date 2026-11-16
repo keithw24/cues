@@ -175,7 +175,7 @@ def main(argv: list[str] | None = None) -> None:
     if off:
         print(f"Off: {', '.join(off)}. Use --all-on or set CUES_FLAG_* to turn them on.\n")
 
-    from vision.activity_sync import sync_from_env
+    from vision.session_sync import sync_from_env
 
     sync = None if args.task else sync_from_env()  # --task wins over the app
     if sync is not None:

@@ -148,8 +148,6 @@ def vision(supabase_stack, teacher):
         "CUES_CAMERA": "fake",
         "CUES_FLAG_VISION_SESSION_LIFECYCLE": "1",
         "CUES_FLAG_VISION_SUPABASE_EVENTS": "1",
-        "CUES_FLAG_VISION_ACTIVITY_SYNC": "0",
-        "CUES_FLAG_VISION_REVIEW_MARKS": "1",
         "CUES_FLAG_VISION_HANDS": "0",
         "CUES_FLAG_VISION_FACES": "0",
         "CUES_FLAG_VISION_GESTURES": "0",

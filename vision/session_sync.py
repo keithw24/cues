@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -20,6 +21,8 @@ log = logging.getLogger(__name__)
 # under the one-camera writer lease (station_lease.TTL_SECONDS, 10s), so this camera stops
 # writing before another camera can take the station over.
 SESSION_LEASE_SECONDS = 7.0
+# One tick a poll: lease, report, session and marks in a single request.
+POLL_SECONDS = 1.5
 
 
 @dataclass(frozen=True)
@@ -78,15 +81,25 @@ def frame_activity(tasks, seat_id: str, ctx: dict) -> str | None:
 
 
 class StationSessionSync:
-    """Polls the active session of the station this laptop works for.
+    """Polls the station tick: one request that holds the one-camera lease, reports what this
+    camera is doing, and returns the station's session and the teacher's review marks.
 
     `station` is a vision.station.ActiveStation (the dashboard's station) or a
     fixed station id. With no station yet, nothing is read or reported. A poll
     that started before a station change is discarded, never confirmed.
     """
 
-    def __init__(self, client, station=None, state=STATION_SESSION, poll_seconds=1.0, lease=None):
+    def __init__(
+        self,
+        client,
+        station=None,
+        state=STATION_SESSION,
+        poll_seconds=POLL_SECONDS,
+        lease=None,
+        marks=None,
+    ):
         from vision import station as station_module
+        from vision.review_marks import MARKS
 
         if station is None:
             station = station_module.STATION
@@ -97,91 +110,81 @@ class StationSessionSync:
         self.station_id: str | None = station.get()
         self.state = state
         self.poll_seconds = poll_seconds
-        # One camera per station (vision.station_lease). None = no guard (older setups, tests).
+        self.marks = marks if marks is not None else MARKS
+        # One camera per station (vision.station_lease). None = no guard (tests).
         self.lease = lease
         self._leased_station: str | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
-    def _report(self, session: Session | None, status: str, error: str | None = None):
-        self.client.rpc(
-            "report_station_session",
-            {
-                "p_station_id": self.station_id,
-                "p_session_id": str(session.id) if session else None,
-                "p_revision": session.revision if session else None,
-                "p_activity_id": session.current_activity_id
-                if session and status != "idle"
-                else None,
-                "p_status": status,
-                "p_error": error,
-                "p_supported_activity_ids": list(activities.load_activities()),
-            },
-        ).execute()
+    def _tick(self, station_id: str) -> dict:
+        writer = self.lease.writer_id if self.lease is not None else uuid.uuid4()
+        ttl = self.lease.ttl if self.lease is not None else 10
+        return (
+            self.client.rpc(
+                "station_tick",
+                {
+                    "p_station_id": station_id,
+                    "p_writer_id": str(writer),
+                    "p_ttl_seconds": ttl,
+                    "p_supported_activity_ids": list(activities.load_activities()),
+                },
+            )
+            .execute()
+            .data
+        )
+
+    def _pause(self) -> None:
+        self.state.invalidate()
+        self.marks.clear()
 
     def check_once(self) -> Session | None:
         station_id, generation = self.station.snapshot()
         self.station_id = station_id
         if station_id is None:
-            self.state.invalidate()  # no teacher station yet: tasks stay paused
+            self._pause()  # no teacher station yet: tasks stay paused
             self._release_lease()
             return None
-        started = self.state.clock()  # before the writer claim: the lease starts here
+        started = self.state.clock()  # before the tick: the lease starts here
         try:
-            if self.lease is not None:
-                if self._leased_station not in (None, station_id):
-                    self._release_lease()  # the station changed: hand the old one over
-                self._leased_station = station_id
-                if not self.lease.claim(station_id):
-                    # Another camera holds this station. Pause (read nothing, write nothing)
-                    # and try again on the next poll; this one takes over when it stops.
-                    self.state.invalidate()
-                    return None
-            rows = (
-                self.client.table("sessions")
-                .select("id,station_id,current_activity_id,started_at,ended_at,revision")
-                .eq("station_id", self.station_id)
-                .is_("ended_at", "null")
-                .limit(2)
-                .execute()
-                .data
-            )
-            if len(rows) > 1:
-                raise ValueError("ambiguous active station session")
-            if not rows:
-                rows = (
-                    self.client.table("sessions")
-                    .select("id,station_id,current_activity_id,started_at,ended_at,revision")
-                    .eq("station_id", self.station_id)
-                    .order("started_at", desc=True)
-                    .limit(1)
-                    .execute()
-                    .data
-                )
-            session = Session.model_validate(rows[0]) if rows else None
-            if session and session.station_id != self.station_id:
+            if self._leased_station not in (None, station_id):
+                self._release_lease()  # the station changed: hand the old one over
+            self._leased_station = station_id
+            tick = self._tick(station_id)
+            if self.lease is not None and not self.lease.apply(station_id, tick):
+                # Another camera holds this station: pause and try again on the next poll.
+                self._pause()
+                return None
+            raw = tick.get("session")
+            session = Session.model_validate(raw) if raw else None
+            if session and session.station_id != station_id:
                 raise ValueError("station mismatch")
             if session and not session.ended_at and session.current_activity_id:
                 try:
                     activities.get(session.current_activity_id)
                 except KeyError:
-                    self.state.invalidate()
-                    self._report(session, "error", "unsupported_activity")
+                    self._pause()  # the tick already reported unsupported_activity
                     return None
-                status = "ready"
-            else:
-                status = "idle"
-            # A failed acknowledgement must not claim that the station is ready.
-            self._report(session, status)
             if self._stop.is_set() or self.station.generation != generation:
-                self.state.invalidate()  # stopped, or the station changed mid-poll
+                self._pause()  # stopped, or the station changed mid-poll
                 return None
             self.state.confirm(session, checked_at=started)
+            self._apply_marks(session, tick.get("marks") or [])
             return session
         except Exception:
-            self.state.invalidate()
+            self._pause()
             log.warning("station session sync unavailable; task processing paused")
             raise
+
+    def _apply_marks(self, session: Session | None, marks: list[dict]) -> None:
+        if session is None or session.ended_at is not None:
+            self.marks.clear()
+            return
+        from vision.review_marks import parse_time
+
+        self.marks.replace(
+            str(session.id), {m["seat_id"]: parse_time(m["marked_at"]) for m in marks}
+        )
 
     def start(self) -> None:
         self._thread = threading.Thread(target=self._loop, name="station-session-sync", daemon=True)
@@ -206,3 +209,23 @@ class StationSessionSync:
             except Exception:
                 pass  # Already sanitized/logged; retry without blocking the camera.
             self._stop.wait(self.poll_seconds)
+
+
+def sync_from_env() -> StationSessionSync | None:
+    """The station tick for this laptop, or None when there is nothing to follow.
+
+    Follows vision.station.STATION; one camera per station (the lease). With the session
+    lifecycle off (offline development) there is no database and tasks come from CUES_TASK.
+    """
+    from vision import flags
+    from vision.station_lease import StationLease
+    from vision.supabase_client import get_client
+
+    if not flags.enabled("vision.session_lifecycle"):
+        return None
+    STATION_SESSION.invalidate()
+    client = get_client()
+    if client is None:
+        log.warning("session lifecycle enabled without station credentials; tasks stay paused")
+        return None
+    return StationSessionSync(client, lease=StationLease(client))

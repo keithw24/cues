@@ -126,7 +126,7 @@ name is an error. `/health` on vision lists its current flags.
 - **"Station is in use by another camera":** a second camera or laptop holds the station; close it or sign in with its own account.
 - **Port in use:** the launcher frees 3000 and 8000 when it can verify they are this repo's.
 - **Supabase ports taken:** another local Supabase project is running; `supabase stop --project-id <name>`.
-- **Dashboard still shows "Needs Review" after Mark as reviewed:** vision must be running with `vision.review_marks` on (the default).
+- **Dashboard still shows "Needs Review" after Mark as reviewed:** vision must be running; it reads the mark through its station tick.
 - **Missing Supabase configuration:** the backend needs the secret key in the root `.env`; public keys are not enough.
 
 ## Status

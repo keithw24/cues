@@ -4,10 +4,12 @@ Seat rows are named by station and person number (S1-P1), so two cameras working
 same station overwrite each other's rows and appear as phantom people. Each camera process
 claims its station with a random writer id (a lease the database enforces, migration 1700).
 While another camera holds a fresh lease this one is refused: it pauses (reads nothing,
-writes nothing), keeps retrying about once a second, and takes over when the other camera
-stops (it releases at once) or crashes (its lease expires after TTL_SECONDS).
+writes nothing), keeps retrying, and takes over when the other camera stops (it releases at
+once) or crashes (its lease expires after TTL_SECONDS).
 
-Only a random id and a station name are sent; no frames, scores or identities.
+The claim itself is part of the station tick (session_sync): this module holds the writer id,
+interprets the tick's answer and releases the lease. Only a random id and a station name are
+sent; no frames, scores or identities.
 """
 
 from __future__ import annotations
@@ -47,13 +49,6 @@ class LeaseStatus:
 STATUS = LeaseStatus()
 
 
-def _function_missing(error: Exception) -> bool:
-    """The database function is not there yet (migration 1700 not applied)."""
-    code = getattr(error, "code", None)
-    message = str(error)
-    return code in ("PGRST202", "42883") or "Could not find the function" in message
-
-
 class StationLease:
     """This process's claim on a station. A new random id on every start."""
 
@@ -63,41 +58,16 @@ class StationLease:
         self.ttl = ttl
         self.writer_id = uuid.uuid4()
         self._warned_refused = False
-        self._warned_missing = False
 
-    def claim(self, station_id: str) -> bool:
-        """True when this camera may use the station. Network errors propagate (the caller
-        treats them like any failed sync: paused, retried)."""
-        try:
-            data = (
-                self.client.rpc(
-                    "claim_station_writer",
-                    {
-                        "p_station_id": station_id,
-                        "p_writer_id": str(self.writer_id),
-                        "p_ttl_seconds": self.ttl,
-                    },
-                )
-                .execute()
-                .data
-            )
-        except Exception as error:
-            if _function_missing(error):
-                # Migration 1700 is not applied: do not stop working, but say so once.
-                if not self._warned_missing:
-                    log.warning("one-camera-per-station guard unavailable: apply migration 1700")
-                    self._warned_missing = True
-                self.status.set(False)
-                return True
-            raise
-        granted = bool(isinstance(data, dict) and data.get("granted"))
-        if granted:
+    def apply(self, station_id: str, tick: dict) -> bool:
+        """Record the answer to a station tick. True when this camera may use the station."""
+        if tick.get("granted"):
             if self._warned_refused:
                 log.info("station %s: this camera now holds it", station_id)
             self._warned_refused = False
             self.status.set(False)
             return True
-        held = data.get("held_seconds_ago") if isinstance(data, dict) else None
+        held = tick.get("held_seconds_ago")
         self.status.set(True, held if isinstance(held, (int, float)) else None)
         if not self._warned_refused:
             log.warning(
