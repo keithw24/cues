@@ -1,0 +1,62 @@
+name: ci
+
+# The only automated checks: the contract tests and the end-to-end smoke test, both run
+# against a real local Supabase (Docker) started inside the job.
+on:
+  pull_request:
+  push:
+    branches: [main, refactor]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install Python and dependencies
+        run: |
+          uv python install
+          uv sync --locked
+
+      # OpenCV and MediaPipe need these system libraries on Ubuntu.
+      - name: Install system libraries
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0
+
+      # Applies every migration in supabase/migrations and seeds supabase/seed.sql.
+      - name: Start local Supabase
+        run: supabase start
+
+      # A skipped test must not count as a pass: any skip fails the job.
+      - name: Contract and smoke tests
+        run: |
+          set -o pipefail
+          uv run pytest tests -q -rs 2>&1 | tee pytest.log
+          if grep -qi "skipped" pytest.log; then
+            echo "::error::Tests were skipped (is the local Supabase running?)"
+            exit 1
+          fi
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
