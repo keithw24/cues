@@ -142,7 +142,7 @@ progress; Photon text on a new review; local Docker Supabase.
 | Item | Notes |
 |---|---|
 | Real-camera pass | Pointing, peace, fist; Mark as reviewed (timer restarts, new review only after a fresh stall); id stability; two laptops on two stations; the camera health strip and "waiting for review" list. Only the automated suites have run them. |
-| Hosted Supabase | Request volume was cut from about 70 to about 3 requests a second for 10 people (batched vision writes, one `station_tick`, one agent `station_snapshot`, dashboard merges realtime rows). Not yet measured against a hosted project: run `tests/smoke` against one and watch the dashboard request graph. |
+| Hosted Supabase | Request volume was estimated (from the code, not measured) to fall from about 70 to about 4 requests a second for 10 people (batched vision writes, one `station_tick`, one agent `station_snapshot`, dashboard merges realtime rows). Not yet measured against a hosted project: run `tests/smoke` against one and watch the dashboard request graph. |
 | Rotate exposed keys | A Groq key and a Cursor key were shown in logs earlier in the build. |
 | "Add a gesture" screen | The vision API (`/gestures`, `/templates/record`) exists; there is no dashboard screen, and a recorded gesture is not registered in `activities`. |
 | Interventions | Menu, suggestion and approval exist behind `agent.interventions` / `web.interventions` (off). Applying an approved support to a task is not built. |

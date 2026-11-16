@@ -99,7 +99,7 @@ class SupabaseSink:
             self.client.table("seat_state").upsert(group, on_conflict="seat_id").execute()
 
 
-FLUSH_INTERVAL = 0.5  # seconds between batches
+FLUSH_INTERVAL = 1.0  # seconds between batches: one request a second per kind, like the heartbeat
 MAX_EVENTS_QUEUED = 500  # beyond this the oldest events are dropped, never the camera's time
 
 
