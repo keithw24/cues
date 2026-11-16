@@ -12,7 +12,7 @@ sign-offs. Any task may edit any folder.
 | Vision service (camera, MediaPipe, HSEmotion, task events) | `vision/` |
 | Dashboard, app backend, Supabase product integration | `web/`, `supabase/` |
 | Agent / routing, rules engine, Deep Agent, LLM integration, Photon | `agent/`, `cues/` |
-| Shared contracts and helpers: CI, this file, feature flags | `shared/`, `.github/`, `CLAUDE.md`, `flags.json`, `.claude/agents/` |
+| Shared contracts and helpers, CI, this file | `shared/`, `.github/`, `CLAUDE.md` |
 
 ## Environment
 
@@ -62,7 +62,7 @@ What gates a change:
    - **Smoke test** (`tests/smoke/`): the whole workflow end to end on the local Supabase.
    Both need `supabase start` (Docker). They are skipped, loudly, when it is not running.
 2. Add a contract or smoke check for anything that crosses components, not a unit test.
-3. Every new feature ships behind a feature flag (next section).
+3. There are no feature flags: a feature is in the code or it is not. Turn a misbehaving one off by reverting its commit.
 4. Merge to `main` only with CI green. `/code-review` is available when a second look helps.
 
 ## Database traffic
@@ -74,40 +74,9 @@ A hosted request costs 100-300 ms (about 5 ms locally), so never add a request p
 - **The dashboard applies realtime rows** (`web/lib/dashboard-feed.ts`); a full reload is only for first load, reconnect or an unseen seat.
 - `tests/smoke/test_slow_database.py` fails if the writer builds a backlog at 300 ms latency.
 
-## Feature flags
+## Online and offline
 
-Every feature can be turned on and off without a code change. This lets the team switch off a feature that misbehaves during the demo, and merge unfinished features safely.
-
-**Registry.** All flags are listed in `flags.json` at the repo root. Example entry (T5 will add this one):
-
-```json
-"vision.hands": {
-  "description": "MediaPipe hand tracking and seat assignment",
-  "default": false,
-  "owner": "keith",
-  "ticket": "T5"
-}
-```
-
-- Name: `<area>.<feature>`, matching `^(vision|web|agent)\.[a-z0-9_]+$`.
-- Every entry has `description` (text), `default` (true or false), `owner` and `ticket`. 
-
-**Override.** An environment variable overrides the default: the flag name in upper case, with dots replaced by underscores, prefixed with `CUES_FLAG_`. Example: `CUES_FLAG_VISION_HANDS=0` turns hand tracking off.
-- `1` or `true` means on; `0` or `false` means off; any other value is an error.
-- The web app reads `NEXT_PUBLIC_CUES_FLAG_...` for flags the browser needs. If both forms are set, `CUES_FLAG_...` wins on the server.
-
-**Reading flags.** Each area has one helper and only reads flags through it: `vision/flags.py`, `agent/flags.py`, `web/lib/flags.ts`. Each helper reads `flags.json`, applies the overrides, and treats an unknown flag name as an error.
-
-**Status:** `vision/flags.py` exists. The vision stage and route loaders skip modules whose `FLAG` is off, and `/health` lists every vision flag's current value. `web/lib/flags.ts` exists too. `agent/flags.py` is not built yet: the agent worker reads its flag (`agent.live_progress`) through `vision/flags.py`. Until `agent/flags.py` exists, an agent feature either reuses that helper or ships with a flag-off fallback path.
-
-**Rules for every feature PR:**
-1. Add the feature's flag to `flags.json` in the same PR.
-2. A new flag starts with `"default": false`. Change it to `true` once you have checked it works (on real hardware, if the feature needs a camera or model). That can happen in the same PR if the PR records the check.
-3. When the flag is off, the feature's code does not run, and everything else still starts and works. Two patterns:
-   - **A whole module** (a stage or router in `vision/`): the module sets `FLAG = "vision.<feature>"`, and the loader skips it when the flag is off.
-   - **A behaviour inside code that always runs** (for example, sending events to Supabase instead of only to local files): check the flag where the choice is made. The flag-off path is the fallback.
-4. Check the flag-off path still starts and works: run `tests/smoke` with the flag set to `0`, or extend it.
-5. Infrastructure that every feature needs (the service skeleton, CI, the flag helper itself) does not get a flag.
+Vision is online when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set (root `.env`): it follows the signed-in teacher's station and session and writes to Supabase. Without them it is offline: one fixed station `S1`, the task from `CUES_TASK`, and everything written to `vision/logs/` only. `vision/supabase_client.py` `online()` is the one place that decides.
 
 ## Docs
 

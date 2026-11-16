@@ -90,7 +90,6 @@ the local database; `supabase stop` shuts it down.
 |---|---|
 | `CUES_CAMERA_INDEX` | Webcam number (default 0; a USB camera is often 1) |
 | `CUES_CAMERA` | `fake` for camera-free startup |
-| `CUES_FLAG_<AREA>_<NAME>` | Override a feature flag from `flags.json` with `1` or `0` |
 | `CUES_USE_STATIC_TEACHER_PHONE` | `1` sends alerts to `SPECTRUM_TEACHER_PHONE` (testing); `0` looks up the session owner's saved phone (`demo.sh` forces 0) |
 | `CUES_OVERLAY` | `debug` draws every stage's detail on the video |
 | `CUES_PALM_FLIP` | `1` if a camera mirrors its output |
@@ -113,12 +112,12 @@ uv run pytest tests/smoke -s   # vision follows a session, a stalled child becom
 CI (`.github/workflows/ci.yml`) starts a local Supabase and runs both; a skipped test fails it.
 Web checks: `cd web && npx tsc --noEmit && npm run lint && npm run build`.
 
-## Feature flags
+## Online and offline
 
-Every feature has a flag in `flags.json`, default off unless noted there. `CUES_FLAG_VISION_HANDS=0`
-turns hand tracking off; the dashboard reads `NEXT_PUBLIC_CUES_FLAG_...` for flags the browser needs.
-Each area reads flags only through its helper (`vision/flags.py`, `web/lib/flags.ts`); an unknown
-name is an error. `/health` on vision lists its current flags.
+There are no feature flags. Vision is online when the root `.env` has `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY`: it follows the teacher's station and session and writes to Supabase.
+Without them it runs offline on station `S1`, takes the task from `CUES_TASK`, and writes only to
+`vision/logs/`. `python -m vision.watch --all-scores` prints every task's score while debugging.
 
 ## Troubleshooting
 
