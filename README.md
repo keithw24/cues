@@ -141,10 +141,10 @@ progress; Photon text on a new review; local Docker Supabase.
 | Item | Notes |
 |---|---|
 | Real-camera pass | Pointing, peace, fist; Mark as reviewed (timer restarts, new review only after a fresh stall); id stability; two laptops on two stations; the camera health strip and "waiting for review" list. Only the automated suites have run them. |
-| Hosted Supabase | Measured locally for 10 people (vision + agent, demo timings): 32.9 requests a second on `main`, 7.2 on this branch. The dashboard no longer re-reads on live updates. The largest remaining source is evaluated progress (3.5/s). Not yet run against a hosted project: apply the migrations, run `tests/smoke` against it and watch its request graph. |
+| Hosted Supabase | Measured locally for 10 people (vision + agent, demo timings, 20 s): 32.9 requests a second on `main`, 4.7 on this branch. Progress is written only when a trend changes, so that share falls toward zero once a class settles. The dashboard no longer re-reads on live updates. Not yet run against a hosted project: apply the migrations, run `tests/smoke` against it and watch its request graph. |
 | Rotate exposed keys | A Groq key and a Cursor key were shown in logs earlier in the build. |
 | "Add a gesture" screen | The vision API (`/gestures`, `/templates/record`) exists; there is no dashboard screen, and a recorded gesture is not registered in `activities`. |
-| Interventions | Menu, suggestion and approval exist behind `agent.interventions` / `web.interventions` (off). Applying an approved support to a task is not built. |
+| Interventions | The agent suggests one support from the approved menu and the teacher approves it (covered by `tests/smoke`). Applying an approved support to a task is not built. |
 | Database one-writer rule | The one-camera guard is enforced in vision only; add a `writer_id` check to `seat_state` writes. |
 | Review evidence | While a review is open, later evaluations are dropped, so the teacher never sees newer evidence. |
 | History | Progress and prompt history are in memory and lost on restart. |

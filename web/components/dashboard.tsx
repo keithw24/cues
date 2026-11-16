@@ -4,6 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { seatViews, type SeatView } from "@/lib/dashboard";
+import { agentIsAlive } from "@/lib/progress-context";
 import {
   INITIAL_FEED,
   useDashboardFeeds,
@@ -135,10 +136,13 @@ export default function Dashboard({
     );
   const nameOf = (seatId: string) =>
     seats.find((seat) => seat.id === seatId)?.display_name ?? "A student";
+  // The agent's heartbeat, read with the station every 15 s by the session controls.
+  const [agentSeenAt, setAgentSeenAt] = useState<string | null>(null);
   const observationOptions: ObservationOptions = {
     enabled: true,
     now: observationNow,
     connected: feed.connection === "connected" && !feed.error,
+    agentAlive: agentIsAlive(agentSeenAt, observationNow),
   };
   const present = (seat: SeatView) =>
     observationPresentation(seat.state, observationOptions);
@@ -473,6 +477,7 @@ export default function Dashboard({
                       client={client}
                       station={station}
                       onActivity={ignoreActivity}
+                      onRuntime={(runtime) => setAgentSeenAt(runtime?.agent_seen_at ?? null)}
                       resetPeople={{
                               seatIds: reviewGroups.map((group) => group.seat_id),
                               // Flagged people without a request have nothing to close, but

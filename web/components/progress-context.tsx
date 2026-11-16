@@ -16,7 +16,17 @@ export function ProgressContext({
   scope?: { session_id: string; seat_id: string; activity_id: string | null };
 }) {
   const matched = scope ? matchingTaskObservation(observation, scope) : null;
-  const progress = evaluatedProgress(matched, observationOptions?.now ?? undefined);
+  const progress = evaluatedProgress(
+    matched,
+    observationOptions?.now ?? undefined,
+    observationOptions?.agentAlive ?? false,
+  );
+  const now = observationOptions?.now ?? null;
+  // The stall in progress is measured from when the backend says it began.
+  const stall =
+    progress?.trend === "stalled" && progress.stalled_since && now !== null
+      ? Math.max(0, (now - Date.parse(progress.stalled_since)) / 1000)
+      : progress?.stalled_seconds;
   return (
     <section
       className="detail-section progress-context"
@@ -38,7 +48,7 @@ export function ProgressContext({
         </div>
         <div>
           <dt>Current stall</dt>
-          <dd>{progress ? `${progress.stalled_seconds.toFixed(1)} seconds` : "Unavailable"}</dd>
+          <dd>{stall !== undefined ? `${stall.toFixed(1)} seconds` : "Unavailable"}</dd>
         </div>
       </dl>
       <p>Recent progress: {progress?.recent.map(entry => entry.progress.trend).join(" → ") || "No fresh evaluated history available."}</p>

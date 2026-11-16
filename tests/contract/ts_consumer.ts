@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { parseSnapshot, statuses } from "../../web/lib/dashboard.ts";
 import { parseSession, parseStationRuntime } from "../../web/lib/session-controls.ts";
 import { parseTeacherReviews } from "../../web/lib/teacher-reviews.ts";
+import { agentIsAlive, evaluatedProgress } from "../../web/lib/progress-context.ts";
 
 const [kind, file, station] = process.argv.slice(2);
 const data = JSON.parse(readFileSync(file, "utf8"));
@@ -27,6 +28,17 @@ switch (kind) {
   case "runtime": {
     const runtime = parseStationRuntime(data.station_runtime, station);
     out({ status: runtime?.status ?? null });
+    break;
+  }
+  case "progress": {
+    // What a dashboard row shows, exactly as the dashboard decides it.
+    const row = parseSnapshot(
+      { seats: [], states: [data.row], activities: [], stations: [] },
+      true,
+    ).states[0];
+    const shown = evaluatedProgress(row, data.now, agentIsAlive(data.agent_seen_at, data.now));
+    out({ visible: shown !== null, trend: shown?.trend ?? null,
+          stalled_since: shown?.stalled_since ?? null, recent: shown?.recent.length ?? 0 });
     break;
   }
   case "reviews":

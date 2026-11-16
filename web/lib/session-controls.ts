@@ -17,6 +17,8 @@ export type StationRuntime = {
   status: "ready" | "idle" | "error";
   error: "unsupported_activity" | null;
   updated_at: string;
+  /** Last time the agent read this station (its heartbeat); null before it ever has. */
+  agent_seen_at: string | null;
 };
 export type SessionSnapshot = {
   latest_session?: Session | null;
@@ -102,7 +104,9 @@ export function parseStationRuntime(
     !["ready", "idle", "error"].includes(r.status) ||
     (r.error !== null && r.error !== "unsupported_activity") ||
     typeof r.updated_at !== "string" ||
-    !Number.isFinite(Date.parse(r.updated_at))
+    !Number.isFinite(Date.parse(r.updated_at)) ||
+    (r.agent_seen_at != null &&
+      (typeof r.agent_seen_at !== "string" || !Number.isFinite(Date.parse(r.agent_seen_at))))
   )
     throw new Error("Unexpected response from your classroom camera");
   return {
@@ -113,6 +117,7 @@ export function parseStationRuntime(
     status: r.status,
     error: r.error,
     updated_at: r.updated_at,
+    agent_seen_at: r.agent_seen_at ?? null,
   };
 }
 /** Heartbeat is acknowledgement of configuration, never camera/model readiness. */

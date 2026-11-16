@@ -12,6 +12,8 @@ export type ObservationOptions = {
   enabled: boolean;
   now: number | null;
   connected: boolean;
+  /** The agent read this station recently (its heartbeat): its evaluations may be shown. */
+  agentAlive?: boolean;
 };
 /** Whether the station camera reported this person within the last five seconds. */
 export function isFresh(
@@ -77,7 +79,7 @@ export function observationPresentation(
         "Tracking validity has not been provided for this observation.",
       );
   }
-  const evaluated = evaluatedProgress(state, options?.now ?? undefined);
+  const evaluated = evaluatedProgress(state, options?.now ?? undefined, options?.agentAlive ?? false);
   return {
     label: evaluated?.trend === "stalled" ? "Stalled" : evaluated?.trend === "improving" ? "Improving" : statuses[state.status].label,
     detail: evaluated?.trend === "stalled" ? "Valid task observations show sustained lack of progress." : statuses[state.status].detail,

@@ -110,6 +110,8 @@ class Teacher:
     def cleanup(self):
         station = self.station.replace("'", "''")
         for statement in (
+            f"delete from interventions where review_id in (select id from teacher_reviews "
+            f"where session_id in (select id from sessions where station_id = '{station}'))",
             f"delete from teacher_reviews where session_id in "
             f"(select id from sessions where station_id = '{station}')",
             f"delete from seat_review_marks where session_id in "
@@ -245,6 +247,7 @@ def review_call():
                 "name": "request_teacher_review",
                 "args": {
                     "rationale": "The child has not progressed on the task.",
+                    "suggested_intervention": "show_example",
                     "evidence_used": ["current_progress"],
                 },
             }
@@ -321,8 +324,20 @@ def test_a_stalled_child_becomes_a_review_the_teacher_can_see_and_close(
         publish_progress=True,
     )
 
+    # Count what the agent publishes: progress is written only when it changes.
+    published: list[str] = []
+    publish = runtime.pipeline.publisher
+
+    def counting_publisher(snapshot, progress, recent, stalled_since=None):
+        published.append(progress.trend)
+        return publish(snapshot, progress, recent, stalled_since)
+
+    runtime.pipeline.publisher = counting_publisher
+    processed = 0
+
     def pending():
-        runtime.run_once()
+        nonlocal processed
+        processed += len(runtime.run_once())
         return teacher.read("teacher_reviews?status=eq.pending&select=*")
 
     try:
@@ -342,14 +357,25 @@ def test_a_stalled_child_becomes_a_review_the_teacher_can_see_and_close(
     assert message == f"Cues: Seat {teacher.seat} may need attention. Open Cues to review."
     assert idempotency_key == review["id"]
 
-    # --- the agent published evaluated progress through seat_state (live progress)
+    # --- evaluated progress: published only on change, with the stall's start time
+    assert processed > len(published), (processed, published)
+    assert all(a != b for a, b in zip(published, published[1:], strict=False)), published
     state = teacher.read(f"seat_state?seat_id=eq.{teacher.seat}&select=*")[0]
-    assert state["evaluated_progress"] and state["evaluated_progress"]["trend"] in (
-        "stalled",
-        "unknown",
-        "improving",
-        "completed",
-    )
+    progress = state["evaluated_progress"]
+    assert progress["trend"] == "stalled" and progress["stalled_since"], progress
+    trends = [entry["progress"]["trend"] for entry in progress["recent"]]
+    assert all(a != b for a, b in zip(trends, trends[1:], strict=False)), trends
+
+    # --- the dashboard shows it while the agent is alive, and hides it once it goes quiet
+    station = teacher.rpc("read_station_session", {"p_station_id": teacher.station})
+    seen = station["station_runtime"]["agent_seen_at"]
+    assert seen, "the agent's station read did not stamp agent_seen_at"
+    run_parser("runtime", station, teacher.station)
+    seen_ms = datetime.fromisoformat(seen).timestamp() * 1000
+    shown = run_parser("progress", {"row": state, "now": seen_ms + 1000, "agent_seen_at": seen})
+    assert shown["visible"] and shown["trend"] == "stalled", shown
+    hidden = run_parser("progress", {"row": state, "now": seen_ms + 25000, "agent_seen_at": seen})
+    assert not hidden["visible"], hidden
 
     # --- the dashboard reads all of it back through its real parsers
     snapshot = {
@@ -360,6 +386,15 @@ def test_a_stalled_child_becomes_a_review_the_teacher_can_see_and_close(
     }
     assert run_parser("snapshot", snapshot)["states"] >= 1
     assert run_parser("reviews", teacher.read("teacher_reviews?select=*"))["reviews"] == 1
+
+    # --- the suggested support: from the approved menu, approved by the teacher
+    assert review["suggested_intervention"] == "show_example"
+    approved = teacher.rpc(
+        "approve_review_intervention", {"review_id": review["id"], "action": None}
+    )
+    assert approved["action"] == "show_example"
+    status = teacher.read(f"teacher_reviews?id=eq.{review['id']}&select=status")[0]["status"]
+    assert status == "confirmed"
 
     # --- the teacher marks the child reviewed: the review closes and the agent side sees it
     teacher.rpc("mark_seat_reviewed", {"p_session_id": session["id"], "p_seat_id": teacher.seat})

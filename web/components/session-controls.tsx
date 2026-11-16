@@ -12,6 +12,7 @@ import {
   sessionOwnership,
   stationSyncLabel,
   type SessionSnapshot,
+  type StationRuntime,
 } from "@/lib/session-controls";
 
 const RESET_LABEL = "Put everyone back to working";
@@ -25,11 +26,14 @@ export function SessionControls({
   client,
   station,
   onActivity,
+  onRuntime,
   resetPeople = null,
 }: {
   client: SupabaseClient;
   station: string;
   onActivity: (label: string) => void;
+  /** The station's runtime row each time the session is read (agent heartbeat included). */
+  onRuntime?: (runtime: StationRuntime | null) => void;
   /** web.reset_people: switching or restarting the activity puts everyone back to working, so
    * the requests still open for the people in `seatIds` are closed too, and the refresh button
    * restarts the current activity. Null: the button only reloads the session, as before. */
@@ -44,6 +48,11 @@ export function SessionControls({
   });
   const [user, setUser] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null);
+  // The latest listener, read from the session effect without making it a dependency.
+  const runtimeListener = useRef(onRuntime);
+  useEffect(() => {
+    runtimeListener.current = onRuntime;
+  });
   const [selection, setSelection] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<
@@ -109,6 +118,7 @@ export function SessionControls({
           return;
         loaded = true;
         setSnapshot(next);
+        runtimeListener.current?.(next.station_runtime ?? null);
         setSelection((previous) =>
           previous && next.activities.some((a) => a.id === previous)
             ? previous
