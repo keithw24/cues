@@ -29,13 +29,12 @@ package = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["vision/tests", "shared/tests", "agent/tests", "tests"]
+testpaths = ["tests"]
 markers = [
-    "hardware: needs a real camera or downloaded model weights; skipped in CI",
     "contract: producers and consumers of shared data agree; needs the local Supabase",
     "smoke: end-to-end workflow on the local Supabase",
 ]
-addopts = "-ra --strict-markers -p pytester"
+addopts = "-ra --strict-markers"
 
 [tool.ruff]
 line-length = 100

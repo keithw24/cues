@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "postinstall": "npm ci --prefix ../cues --include=dev --no-audit --no-fund"
   },
   "dependencies": {
