@@ -5,24 +5,27 @@ import dynamic from "next/dynamic";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { seatViews, type SeatView } from "@/lib/dashboard";
 import {
+  INITIAL_FEED,
+  useDashboardFeeds,
+} from "@/components/dashboard/use-dashboard-feeds";
+import { useCompanionCount } from "@/components/dashboard/use-companion-count";
+import { useCameraConflict } from "@/components/dashboard/use-camera-conflict";
+import { useObservationClock } from "@/components/dashboard/use-observation-clock";
+import { useTeacherStation } from "@/components/dashboard/use-teacher-station";
+import {
+  useDropClearedMarks,
+  useSavedMarks,
+} from "@/components/dashboard/use-saved-marks";
+import {
   INITIAL_REVIEWS,
   DISABLED_REVIEWS,
-  watchTeacherReviews,
-  type ReviewFeedState,
 } from "@/lib/teacher-review-feed";
 import {
   activityLabel,
   groupReviewsBySeat,
   type TeacherReview,
 } from "@/lib/teacher-reviews";
-import { watchDashboard, type FeedState } from "@/lib/dashboard-feed";
-import {
-  resolveDefaultStation,
-  StationSignInRequired,
-} from "@/lib/default-station";
-import { createDashboardClient } from "@/lib/supabase";
 import type { DashboardFeatures } from "@/lib/dashboard-features";
-import { startLocalVisionSync } from "@/lib/local-vision";
 import { SessionControls } from "@/components/session-controls";
 import LocalClassroomFeed from "@/components/local-classroom-feed";
 import { PersonDetails } from "@/components/person-panel";
@@ -36,17 +39,12 @@ import { ReviewCompanion } from "@/components/review-companion";
 import { ReviewCard, WaitingReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
 import {
-  readMarked,
   reviewIssueLine,
   reviewQueue,
   stripEntries,
-  unexplainedDrops,
-  writeMarked,
 } from "@/lib/classroom-view";
 import {
   CAMERA_CONFLICT_MESSAGE,
-  cameraConflict,
-  readStationWriter,
 } from "@/lib/station-writer";
 import {
   inCameraView,
@@ -67,12 +65,6 @@ const Companion = dynamic(() => import("@/components/login-companion"), {
 });
 
 const ignoreActivity = () => {};
-const INITIAL: FeedState = {
-  snapshot: null,
-  connection: "connecting",
-  loading: true,
-  error: null,
-};
 type Presentation = ReturnType<typeof observationPresentation>;
 const statusTone = (presentation: Presentation): PersonTone =>
   presentation.needsReview
@@ -82,14 +74,6 @@ const statusTone = (presentation: Presentation): PersonTone =>
       : presentation.currentStatus === "in_progress"
         ? "working"
         : "quiet";
-
-/** Who the dashboard is for: unknown until the sign-in check returns. */
-type Account =
-  | { state: "checking" }
-  | { state: "signed-out" }
-  | { state: "finding" }
-  | { state: "ready"; station: string }
-  | { state: "error"; message: string };
 
 /** The signed-out classroom: one calm question, as on the sign-in page. */
 function SignInCard() {
@@ -138,202 +122,41 @@ export default function Dashboard({
     resetPeopleEnabled,
     reviewWaitingEnabled,
   } = features;
-  const [observationNow, setObservationNow] = useState<number | null>(null);
-  useEffect(() => {
-    if (!personObservationsEnabled) return;
-    const tick = () => setObservationNow(Date.now());
-    const initial = setTimeout(tick, 0);
-    const timer = setInterval(tick, 1000);
-    const visible = () => {
-      if (!document.hidden) tick();
-    };
-    document.addEventListener("visibilitychange", visible);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", visible);
-    };
-  }, [personObservationsEnabled]);
-  const [feed, setFeed] = useState<FeedState>(INITIAL);
-  const [attempt, setAttempt] = useState(0);
+  const observationNow = useObservationClock(personObservationsEnabled);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [markedSeats, setMarkedSeats] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
   const listHeading = useRef<HTMLHeadingElement>(null);
-  const [reviews, setReviews] = useState<ReviewFeedState>(
-    reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS,
-  );
+
   const resolvedReviewIds = useRef(new Set<string>());
-  const [reviewAttempt, setReviewAttempt] = useState(0);
-  const [client] = useState(() => {
-    try {
-      return createDashboardClient(
-        sessionControlsEnabled || teacherLoginEnabled || reviewActionsEnabled,
-      );
-    } catch {
-      return null;
-    }
+  const { client, configurationError, resolvesStation, account, station } =
+    useTeacherStation({
+      stationId,
+      sessionControlsEnabled,
+      teacherLoginEnabled,
+      reviewActionsEnabled,
+      visionStationConfigEnabled,
+    });
+  const [markedSeats, setMarkedSeats] = useSavedMarks(station);
+  const { feed, setFeed, reviews, setReviews, retryFeed, retryReviews } =
+    useDashboardFeeds({
+    client,
+    station,
+    personObservationsEnabled,
+    liveProgressEnabled,
+    reviewsEnabled,
+    interventionsEnabled,
+    resolvedReviewIds,
   });
-  const configurationError = client === null;
-  // The station this dashboard is about: the override, else the signed-in teacher's own
-  // default station (created on first sign-in). Empty while signed out or still loading.
-  const stationOverride = stationId.trim();
-  const resolvesStation =
-    !stationOverride && (sessionControlsEnabled || teacherLoginEnabled);
-  const [account, setAccount] = useState<Account>({ state: "checking" });
-  const station =
-    stationOverride || (account.state === "ready" ? account.station : "");
-  // Marks are shared with the other page through this tab's storage, per
-  // classroom, so a person marked on To review is not offered again (or named
-  // in Attention) on the classroom page while the camera catches up.
-  // Write only once this classroom's saved marks are in memory, so neither a
-  // station switch nor a re-run effect (Strict Mode) writes the wrong set.
-  const [marksLoadedFor, setMarksLoadedFor] = useState("");
-  useEffect(() => {
-    if (!station) return;
-    let saved: string[] = [];
-    try {
-      saved = readMarked(window.sessionStorage, station);
-    } catch {}
-    queueMicrotask(() => {
-      setMarkedSeats(new Set(saved));
-      setMarksLoadedFor(station);
-    });
-  }, [station]);
-  useEffect(() => {
-    if (!station || marksLoadedFor !== station) return;
-    try {
-      writeMarked(window.sessionStorage, station, markedSeats);
-    } catch {}
-  }, [station, marksLoadedFor, markedSeats]);
-  // Tell this laptop's vision service the signed-in teacher's resolved station.
-  // The result isn't shown as a caption: the camera card itself says when the
-  // camera can't be reached.
-  useEffect(() => {
-    if (!visionStationConfigEnabled || !client || !station) return;
-    return startLocalVisionSync(client, station);
-  }, [client, station, visionStationConfigEnabled]);
-  useEffect(() => {
-    if (!client || !resolvesStation) return;
-    let disposed = false;
-    let latest = 0;
-    const resolve = async (signedIn: boolean) => {
-      const mine = ++latest;
-      if (!signedIn) {
-        setAccount({ state: "signed-out" });
-        return;
-      }
-      setAccount({ state: "finding" });
-      try {
-        const found = await resolveDefaultStation(client);
-        if (!disposed && mine === latest)
-          setAccount({ state: "ready", station: found.id });
-      } catch (cause) {
-        if (disposed || mine !== latest) return;
-        setAccount(
-          cause instanceof StationSignInRequired
-            ? { state: "signed-out" }
-            : {
-                state: "error",
-                message:
-                  cause instanceof Error
-                    ? cause.message
-                    : "Your classroom camera could not be loaded.",
-              },
-        );
-      }
-    };
-    const initial = latest;
-    // undefined until the first read: tab focus fires SIGNED_IN again for the
-    // same teacher, which must not reset the classroom.
-    let userId: string | null | undefined;
-    void client.auth.getSession().then(({ data }) => {
-      if (disposed || latest !== initial) return;
-      userId = data.session?.user.id ?? null;
-      void resolve(Boolean(data.session));
-    });
-    const { data } = client.auth.onAuthStateChange((event, session) => {
-      if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
-      const next = session?.user.id ?? null;
-      if (userId !== undefined && next === userId) return;
-      userId = next;
-      ++latest; // Immediately invalidate in-flight work for the previous identity.
-      // A different account: never keep the previous teacher's station on screen.
-      setAccount(session ? { state: "finding" } : { state: "signed-out" });
-      // Defer: Supabase calls inside this callback can deadlock the auth lock.
-      setTimeout(() => {
-        if (!disposed) void resolve(Boolean(session));
-      }, 0);
-    });
-    return () => {
-      disposed = true;
-      data.subscription.unsubscribe();
-    };
-  }, [client, resolvesStation]);
   const shownStation = useRef(station);
   useEffect(() => {
     // Another station (account switch, sign-out): drop the old station's rows now.
     if (shownStation.current === station) return;
     shownStation.current = station;
     queueMicrotask(() => {
-      setFeed(INITIAL);
+      setFeed(INITIAL_FEED);
       setSelectedId(null);
       setReviews(reviewsEnabled ? INITIAL_REVIEWS : DISABLED_REVIEWS);
     });
-  }, [station, reviewsEnabled]);
-  useEffect(() => {
-    if (!client) return;
-    const subscription = watchDashboard(
-      client,
-      (state) => {
-        if (personObservationsEnabled)
-          setFeed((previous) => ({
-            ...state,
-            snapshot: station ? (state.snapshot ?? previous.snapshot) : null,
-          }));
-        else setFeed(state);
-      },
-      personObservationsEnabled,
-      station,
-      liveProgressEnabled,
-    );
-    const offline = () => subscription.disconnect();
-    const online = () => setAttempt((n) => n + 1);
-    window.addEventListener("offline", offline);
-    window.addEventListener("online", online);
-    return () => {
-      window.removeEventListener("offline", offline);
-      window.removeEventListener("online", online);
-      subscription.dispose();
-    };
-  }, [attempt, client, personObservationsEnabled, station, liveProgressEnabled]);
-  useEffect(() => {
-    if (!client) return;
-    const subscription = watchTeacherReviews(
-      client,
-      (state) =>
-        setReviews({
-          ...state,
-          reviews:
-            state.reviews?.filter(
-              (review) => !resolvedReviewIds.current.has(review.id),
-            ) ?? null,
-        }),
-      reviewsEnabled,
-      station,
-      interventionsEnabled,
-    );
-    const offline = () => subscription.disconnect();
-    const online = () => setReviewAttempt((n) => n + 1);
-    window.addEventListener("offline", offline);
-    window.addEventListener("online", online);
-    return () => {
-      window.removeEventListener("offline", offline);
-      window.removeEventListener("online", online);
-      subscription.dispose();
-    };
-  }, [client, reviewsEnabled, reviewAttempt, station, interventionsEnabled]);
+  }, [station, reviewsEnabled, setFeed, setReviews]);
 
   const signedOut =
     teacherLoginEnabled && resolvesStation && account.state === "signed-out";
@@ -388,41 +211,7 @@ export default function Dashboard({
       ? "Several activities"
       : (activityNames[0] ?? "No activity yet");
   const sessionLive = Boolean(sessionControlsEnabled && client);
-  // One camera per station: while a second camera is being refused (and paused), say so.
-  const [conflict, setConflict] = useState(false);
-  useEffect(() => {
-    if (!client || !station || !sessionControlsEnabled) return;
-    let disposed = false;
-    // One read at a time (a read can take up to 12s, the poll is 5s), so an
-    // old answer never overwrites a newer one; a failed read keeps the last.
-    let inFlight = false;
-    // The last writer read; while reads fail it is re-checked against the
-    // clock, so the warning still expires once the other camera goes quiet.
-    let lastWriter: Awaited<ReturnType<typeof readStationWriter>> | null = null;
-    const check = () => {
-      if (lastWriter && !disposed)
-        setConflict(cameraConflict(lastWriter, Date.now()));
-      if (inFlight) return;
-      inFlight = true;
-      void readStationWriter(client, station)
-        .then((writer) => {
-          lastWriter = writer;
-          if (!disposed) setConflict(cameraConflict(writer, Date.now()));
-        })
-        .catch(() => {})
-        .finally(() => {
-          inFlight = false;
-        });
-    };
-    check();
-    const timer = setInterval(check, 5000);
-    return () => {
-      disposed = true;
-      clearInterval(timer);
-      // Never carry one classroom's warning over to the next.
-      setConflict(false);
-    };
-  }, [client, station, sessionControlsEnabled]);
+  const conflict = useCameraConflict(client, station, sessionControlsEnabled);
   // With session controls, the activity picker itself shows the activity.
   const activity = observationActivity;
 
@@ -440,17 +229,7 @@ export default function Dashboard({
     )
     .map((seat) => seat.id)
     .join(",");
-  useEffect(() => {
-    if (stillFlagged === null) return;
-    const keep = new Set(stillFlagged ? stillFlagged.split(",") : []);
-    queueMicrotask(() =>
-      setMarkedSeats((previous) =>
-        [...previous].every((id) => keep.has(id))
-          ? previous
-          : new Set([...previous].filter((id) => keep.has(id))),
-      ),
-    );
-  }, [stillFlagged]);
+  useDropClearedMarks(stillFlagged, setMarkedSeats);
   // People whose row reads Needs Review but who have no request yet: listed on
   // To review so the two agree. Only once the review feed is live, so no one is
   // shown twice while requests are still loading.
@@ -462,49 +241,17 @@ export default function Dashboard({
     askedSeatIds: reviewGroups.map((group) => group.seat_id),
     marked: markedSeats,
   });
-  // What the companion follows. With flagged people counted, wait for the
-  // camera data too, so a count that is about to grow never reads as cleared.
-  // A flagged person who drops out of the count only because the camera lost
-  // them or went quiet (not a mark, a request or a reset) makes the companion
-  // rest until they are back or resolved: that is not a cleared queue.
-  const flaggedIds = flaggedOnly.map((seat) => seat.id).join(",");
-  const [countedFlagged, setCountedFlagged] = useState(flaggedIds);
-  const [droppedFlagged, setDroppedFlagged] = useState<readonly string[]>([]);
-  const nowFlagged = new Set(flaggedIds ? flaggedIds.split(",") : []);
-  const dropReasons = {
-    marked: markedSeats,
-    asked: new Set(reviewGroups.map((group) => group.seat_id)),
-    row: (id: string) => seats.find((seat) => seat.id === id)?.state ?? undefined,
-    clock: observationNow,
-  };
-  if (flaggedIds !== countedFlagged) {
-    setCountedFlagged(flaggedIds);
-    setDroppedFlagged((previous) =>
-      unexplainedDrops(
-        [
-          ...new Set([
-            ...previous,
-            ...(countedFlagged ? countedFlagged.split(",") : []),
-          ]),
-        ],
-        nowFlagged,
-        dropReasons,
-      ),
-    );
-  }
-  const unexplained = unexplainedDrops(droppedFlagged, nowFlagged, dropReasons);
-  // Forget anyone who has since been resolved (or timed out), so a later loss
-  // of someone no longer flagged never makes the companion rest.
-  if (
-    flaggedIds === countedFlagged &&
-    unexplained.length !== droppedFlagged.length
-  )
-    setDroppedFlagged(unexplained);
-  const companionCount =
-    reviewsLive &&
-    (!reviewWaitingEnabled || (feed.snapshot && unexplained.length === 0))
-      ? waitingCount
-      : null;
+  const { companionCount, forgetLostPeople } = useCompanionCount({
+    flaggedOnly,
+    waitingCount,
+    markedSeats,
+    askedSeatIds: reviewGroups.map((group) => group.seat_id),
+    seats,
+    observationNow,
+    reviewsLive,
+    reviewWaitingEnabled,
+    hasSnapshot: Boolean(feed.snapshot),
+  });
   // Attention lists them too (web.review_waiting), under the requests, so the
   // cards and Attention always agree. They stay until the teacher answers.
   const flaggedIdSet = new Set(flaggedOnly.map((seat) => seat.id));
@@ -789,7 +536,7 @@ export default function Dashboard({
                                   applyMarked,
                                 );
                                 // Everyone starts over: nobody is still "just lost".
-                                setDroppedFlagged([]);
+                                forgetLostPeople();
                               },
                             }
                           : null
@@ -829,7 +576,7 @@ export default function Dashboard({
                     type="button"
                     className="ws-pill"
                     disabled={feed.loading}
-                    onClick={() => setAttempt((n) => n + 1)}
+                    onClick={() => retryFeed()}
                   >
                     Try again
                   </button>
@@ -848,7 +595,7 @@ export default function Dashboard({
                       type="button"
                       className="ws-pill"
                       disabled={reviews.loading}
-                      onClick={() => setReviewAttempt((n) => n + 1)}
+                      onClick={() => retryReviews()}
                     >
                       Try again
                     </button>
@@ -977,7 +724,7 @@ export default function Dashboard({
                       type="button"
                       className="ws-pill"
                       disabled={reviews.loading}
-                      onClick={() => setReviewAttempt((n) => n + 1)}
+                      onClick={() => retryReviews()}
                     >
                       Try again
                     </button>
