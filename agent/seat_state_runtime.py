@@ -22,15 +22,11 @@ from agent.escalation import (
     evaluate_escalation,
 )
 from agent.progress import ProgressEvaluator, ProgressState
-from agent.progress_history import ProgressHistoryStore
+from agent.progress_history import ProgressHistoryEntry, ProgressHistoryStore
 from agent.router import AgentEvaluationRequest, EvaluationRouter
 from shared.contracts import Activity, SeatState
 
 log = logging.getLogger(__name__)
-
-# Evaluated progress is rewritten at most this often while its trend is unchanged. The
-# dashboard treats it as fresh for five seconds.
-PROGRESS_HEARTBEAT_SECONDS = 3.0
 
 
 class SeatStateSource(Protocol):
@@ -128,7 +124,8 @@ class SeatStatePipeline:
         self.clock = clock if clock is not None else lambda: datetime.now(UTC)
         self._evaluators: dict[tuple[UUID, str, str], ProgressEvaluator] = {}
         self._last_rows: dict[str, str] = {}
-        self._published: dict[str, tuple[str, datetime]] = {}
+        self._published: dict[tuple, tuple[str, datetime | None]] = {}
+        self._transitions: dict[tuple, list[ProgressHistoryEntry]] = {}
         self._diagnostics: dict[str, tuple] = {}
         self._marks_seen: dict[tuple[UUID, str], datetime] = {}
         self._marks_primed = False
@@ -158,6 +155,7 @@ class SeatStatePipeline:
             if key[0] == session_id and key[1] == seat_id:
                 evaluator.reset()
                 self._revision_started[key] = marked_at
+                self._forget_published(key)
                 self.router.reset(session_id=session_id, seat_id=seat_id, activity_id=key[2])
 
     def process_row(
@@ -232,6 +230,7 @@ class SeatStatePipeline:
             if evaluator.last is not None and snapshot.updated_at <= evaluator.last:
                 return None
             self._revision_started[key] = snapshot.updated_at
+            self._forget_published(key)
             evaluator.reset()
             self.router.reset(
                 session_id=snapshot.session_id,
@@ -241,33 +240,39 @@ class SeatStatePipeline:
         return evaluator
 
     def _publish_progress(self, snapshot: SeatState, progress: ProgressState, key: tuple) -> None:
+        """Publish evaluated progress only when the dashboard would see a difference: the trend
+        changed, or the stall started at a new time (a fresh stall, a reset after Mark as
+        reviewed or a new revision). The dashboard shows the stall as time since
+        `stalled_since` and judges freshness from the agent's station heartbeat, so an
+        unchanged evaluation is never rewritten."""
         if self.publisher is None:
             return
-        # Publish when the trend changes, else once per PROGRESS_HEARTBEAT_SECONDS: the
-        # dashboard only needs it to stay fresh, not to be rewritten every observation.
-        last = self._published.get(snapshot.seat_id)
-        if (
-            last is not None
-            and last[0] == progress.trend
-            and (snapshot.updated_at - last[1]).total_seconds() < PROGRESS_HEARTBEAT_SECONDS
-        ):
+        evaluator = self._evaluators[key]
+        stalled_since = evaluator.started if progress.trend == "stalled" else None
+        state = (progress.trend, stalled_since)
+        if self._published.get(key) == state:
             return
-        self._published[snapshot.seat_id] = (progress.trend, snapshot.updated_at)
-        recent = [
-            entry
-            for entry in self.history.get_recent_progress_history(
-                snapshot.session_id, snapshot.seat_id, snapshot.activity_id, limit=10
-            )
-            if entry.observed_at >= self._revision_started[key]
-        ]
+        transitions = [
+            *self._transitions.get(key, []),
+            ProgressHistoryEntry(observed_at=snapshot.updated_at, progress=progress),
+        ][-10:]
         try:
-            self.publisher(snapshot, progress, recent)
+            accepted = self.publisher(snapshot, progress, transitions, stalled_since)
         except Exception as error:
             log.error(
                 "Live progress publication failed seat=%s error=%s; check migration 012",
                 snapshot.seat_id,
                 type(error).__name__,
             )
+            return
+        # Not accepted: vision wrote a newer row first. Try again with the next row.
+        if accepted is not False:
+            self._published[key] = state
+            self._transitions[key] = transitions
+
+    def _forget_published(self, key: tuple) -> None:
+        self._published.pop(key, None)
+        self._transitions.pop(key, None)
 
     def _log_transition(
         self, snapshot, key, previous, progress, escalation, request, age, gap, reason

@@ -7,7 +7,7 @@ class SupabaseProgressPublisher:
     def __init__(self, client):
         self.client = client
 
-    def __call__(self, snapshot, progress, recent):
+    def __call__(self, snapshot, progress, recent, stalled_since=None):
         return (
             self.client.rpc(
                 "publish_task_progress",
@@ -19,6 +19,7 @@ class SupabaseProgressPublisher:
                     "p_observed_at": snapshot.updated_at.isoformat(),
                     "p_progress": {
                         **asdict(progress),
+                        "stalled_since": stalled_since.isoformat() if stalled_since else None,
                         "recent": [entry.model_dump(mode="json") for entry in recent[-10:]],
                     },
                 },
