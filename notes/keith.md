@@ -126,7 +126,7 @@ uv run python -m vision.watch --all-on --task custom_gesture_01
 CUES_CAMERA=fake uv run python -m vision.watch --all-on --seconds 5
 uv run python -m vision.record custom_gesture_01 target --takes 3
 uv run python -m vision.record custom_gesture_01 rest --takes 2
-uv run pytest vision
+uv run pytest tests     # contract + smoke; needs `supabase start`
 ```
 
 Registry flags default off: vision.hands, faces, gestures, expression, raise_hand,

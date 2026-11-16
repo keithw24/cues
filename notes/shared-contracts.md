@@ -48,7 +48,7 @@ writes, feature flag, and local fallback are preserved.
 Checks from the root:
 
 ```bash
-uv run pytest shared/tests
+uv run pytest tests/contract   # needs `supabase start`
 uv run ruff check shared
 uv run ruff format --check shared
 ```

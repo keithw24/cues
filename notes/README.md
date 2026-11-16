@@ -2,6 +2,12 @@
 
 Everything except `README.md`, `STARTUP.md` and the tool-bound files (`CLAUDE.md`, `AGENTS.md`, `.github/pull_request_template.md`, `.claude/`) lives here. When behaviour, a command, a flag or a table changes, update the doc that describes it in the same PR (see CLAUDE.md, "Where the docs live").
 
+> **Tests.** The unit tests (`vision/tests`, `agent/tests`, `shared/tests`, `web/tests`,
+> `supabase/tests`) were deleted on the `refactor` branch. The only automated checks are
+> `tests/contract` and `tests/smoke` (see CLAUDE.md, "Commands"). The dated work logs in this
+> folder still mention the old tests and commands; they describe what was true then. The old
+> tests are in git history, for example `git show 869ab99:vision/tests/`.
+
 ## Start here
 
 | Doc | What it is |

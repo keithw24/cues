@@ -4,10 +4,9 @@
 
 All 20 migrations below are applied to the hosted project and none are pending (checked against
 the Supabase migration ledger with `scripts/supabase-migrations.py list` on 2026-11-14). Every
-migration passes a fresh replay on a local PostgreSQL with minimal Auth stubs
-(`supabase/tests/test_migration_replay.py`; this is SQL replay, not full Auth/Realtime
-emulation). Per-feature SQL tests are in `supabase/tests/`; they need PostgreSQL's `initdb`,
-`pg_ctl` and `psql` on the PATH and are run by the `supabase` CI workflow.
+migration is applied by `supabase start` on a local stack, and `tests/contract` checks that the
+code's columns and RPC calls match the resulting schema (the per-feature SQL tests that used to
+live in `supabase/tests/` were deleted; see the note in `notes/README.md`).
 
 | Migration | Adds |
 |---|---|
