@@ -373,6 +373,7 @@ def test_a_stalled_child_becomes_a_review_the_teacher_can_see_and_close(
     teacher.rpc("mark_seat_reviewed", {"p_session_id": session["id"], "p_seat_id": teacher.seat})
     closed = teacher.read(f"teacher_reviews?id=eq.{review['id']}&select=status")[0]["status"]
     assert closed != "pending"
+    source.fetch()  # the next poll brings the mark with the snapshot
     marks = source.fetch_marks()
     assert (session_id, teacher.seat) in marks
     assert not teacher.read("teacher_reviews?status=eq.pending&select=id")

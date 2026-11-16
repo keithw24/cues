@@ -28,6 +28,10 @@ from shared.contracts import Activity, SeatState
 
 log = logging.getLogger(__name__)
 
+# Evaluated progress is rewritten at most this often while its trend is unchanged. The
+# dashboard treats it as fresh for five seconds.
+PROGRESS_HEARTBEAT_SECONDS = 3.0
+
 
 class SeatStateSource(Protocol):
     """Read the latest row for each seat; implementations do not make decisions."""
@@ -36,7 +40,13 @@ class SeatStateSource(Protocol):
 
 
 class SupabaseSeatStateSource:
-    """Poll current SeatState rows through the existing backend Supabase client."""
+    """The station's current SeatState rows, read through the backend Supabase client.
+
+    One request per poll: the station_snapshot function returns the active session, this
+    session's rows (already filtered to its revision and activity) and the teacher's review
+    marks together. At hosted latency five separate reads outlast the poll interval, skip
+    rows and read as a tracking gap.
+    """
 
     FIELDS = (
         "seat_id,session_id,activity_id,status,updated_at,tracking_valid,"
@@ -46,69 +56,37 @@ class SupabaseSeatStateSource:
     def __init__(self, client, station_provider=None) -> None:
         self.client = client
         self.station_provider = station_provider
-        self._session_id: str | None = None  # the active session found by the last fetch()
+        self._marks: dict[tuple[UUID, str], datetime] = {}
 
     def fetch(self) -> Sequence[Mapping[str, Any]]:
         if self.station_provider is None:
             raise RuntimeError("A local station provider is required for live SeatState polling")
         station = self.station_provider()
         if not station:
+            self._marks = {}
             return []
-        sessions = (
-            self.client.table("sessions")
-            .select("id,current_activity_id,revision")
-            .eq("station_id", station)
-            .is_("ended_at", "null")
-            .execute()
-            .data
-            or []
-        )
-        if len(sessions) != 1:
-            self._session_id = None
-            return []
-        session = sessions[0]
-        self._session_id = session["id"]
-        seats = (
-            self.client.table("seats").select("id").eq("station_id", station).execute().data or []
-        )
-        ids = {row["id"] for row in seats}
-        rows = (
-            self.client.table("seat_state")
-            .select(self.FIELDS)
-            .eq("session_id", session["id"])
-            .execute()
-            .data
-            or []
+        snapshot = (
+            self.client.rpc("station_snapshot", {"p_station_id": station}).execute().data or {}
         )
         if self.station_provider() != station:
+            self._marks = {}
             return []
-        return [
-            row
-            for row in rows
-            if row["seat_id"] in ids
-            and row.get("session_revision") == session["revision"]
-            and row.get("activity_id") == session["current_activity_id"]
-        ]
+        session = snapshot.get("session")
+        if not session:
+            self._marks = {}
+            return []
+        session_id = UUID(str(session["id"]))
+        self._marks = {
+            (session_id, mark["seat_id"]): datetime.fromisoformat(
+                mark["marked_at"].replace("Z", "+00:00")
+            )
+            for mark in snapshot.get("marks") or []
+        }
+        return snapshot.get("rows") or []
 
     def fetch_marks(self) -> dict[tuple[UUID, str], datetime]:
-        """The teacher's "Mark as reviewed" marks for the active session (seat id and time)."""
-        if self._session_id is None:
-            return {}
-        rows = (
-            self.client.table("seat_review_marks")
-            .select("seat_id,marked_at")
-            .eq("session_id", self._session_id)
-            .execute()
-            .data
-            or []
-        )
-        session_id = UUID(str(self._session_id))
-        return {
-            (session_id, row["seat_id"]): datetime.fromisoformat(
-                row["marked_at"].replace("Z", "+00:00")
-            )
-            for row in rows
-        }
+        """The teacher's "Mark as reviewed" marks from the last fetch (no request)."""
+        return self._marks
 
 
 @dataclass(frozen=True)
@@ -150,6 +128,7 @@ class SeatStatePipeline:
         self.clock = clock if clock is not None else lambda: datetime.now(UTC)
         self._evaluators: dict[tuple[UUID, str, str], ProgressEvaluator] = {}
         self._last_rows: dict[str, str] = {}
+        self._published: dict[str, tuple[str, datetime]] = {}
         self._diagnostics: dict[str, tuple] = {}
         self._marks_seen: dict[tuple[UUID, str], datetime] = {}
         self._marks_primed = False
@@ -264,6 +243,16 @@ class SeatStatePipeline:
     def _publish_progress(self, snapshot: SeatState, progress: ProgressState, key: tuple) -> None:
         if self.publisher is None:
             return
+        # Publish when the trend changes, else once per PROGRESS_HEARTBEAT_SECONDS: the
+        # dashboard only needs it to stay fresh, not to be rewritten every observation.
+        last = self._published.get(snapshot.seat_id)
+        if (
+            last is not None
+            and last[0] == progress.trend
+            and (snapshot.updated_at - last[1]).total_seconds() < PROGRESS_HEARTBEAT_SECONDS
+        ):
+            return
+        self._published[snapshot.seat_id] = (progress.trend, snapshot.updated_at)
         recent = [
             entry
             for entry in self.history.get_recent_progress_history(
