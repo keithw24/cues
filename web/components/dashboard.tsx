@@ -8,6 +8,8 @@ import {
   INITIAL_FEED,
   useDashboardFeeds,
 } from "@/components/dashboard/use-dashboard-feeds";
+import { AttentionList } from "@/components/dashboard/attention-list";
+import { ReviewPageList } from "@/components/dashboard/review-page-list";
 import { useCompanionCount } from "@/components/dashboard/use-companion-count";
 import { useCameraConflict } from "@/components/dashboard/use-camera-conflict";
 import { useObservationClock } from "@/components/dashboard/use-observation-clock";
@@ -36,10 +38,8 @@ import {
 import { TeacherReviewActions } from "@/components/teacher-review-actions";
 import { CameraHealthStrip } from "@/components/camera-health-strip";
 import { ReviewCompanion } from "@/components/review-companion";
-import { ReviewCard, WaitingReviewCard } from "@/components/review-card";
 import { StudentStrip } from "@/components/student-strip";
 import {
-  reviewIssueLine,
   reviewQueue,
   stripEntries,
 } from "@/lib/classroom-view";
@@ -55,7 +55,6 @@ import {
 import { WorkspaceSidebar } from "@/components/workspace-sidebar";
 import { WorkspaceIcon } from "@/components/workspace-icon";
 import {
-  ReviewRowContent,
   type PersonTone,
 } from "@/components/workspace-rows";
 
@@ -585,83 +584,38 @@ export default function Dashboard({
             ) : null}
 
             {view === "review" ? (
-              <section className="review-page" aria-label="To review">
-                {reviewsEnabled &&
-                !configurationError &&
-                (reviews.error || reviews.connection === "disconnected") ? (
-                  <div className="list-notice" role="alert">
-                    <p>Couldn’t check for new requests.</p>
-                    <button
-                      type="button"
-                      className="ws-pill"
-                      disabled={reviews.loading}
-                      onClick={() => retryReviews()}
-                    >
-                      Try again
-                    </button>
-                  </div>
-                ) : null}
-                {reviewGroups.length || flaggedOnly.length ? (
-                  <ol className="review-list">
-                    {reviewGroups.map((group, index) => {
-                      const lead = group.reviews[0];
-                      const visible = inView.some(
-                        (seat) => seat.id === group.seat_id,
-                      );
-                      return (
-                        <ReviewCard
-                          key={group.seat_id}
-                          headingId={`review-card-${group.seat_id}`}
-                          index={index + 1}
-                          name={nameOf(group.seat_id)}
-                          issue={reviewIssueLine(
-                            activityName(lead.activity_id),
-                            visible,
-                            group.reviews.length,
-                          )}
-                          review={lead}
-                          elevated={group.elevated}
-                          decisions={
-                            reviewActionsEnabled && client ? (
-                              <TeacherReviewActions
-                                key={lead.id}
-                                client={client}
-                                review={lead}
-                                onResolved={resolved}
-                                interventionsEnabled={interventionsEnabled}
-                              />
-                            ) : null
-                          }
-                          mark={markReviewedButton(lead.session_id, group.seat_id)}
-                        />
-                      );
-                    })}
-                    {flaggedOnly.map((seat, index) => (
-                      <WaitingReviewCard
-                        key={seat.id}
-                        headingId={`review-card-${seat.id}`}
-                        index={reviewGroups.length + index + 1}
-                        name={seat.display_name}
-                        issue={reviewIssueLine(seat.activity, true, 1)}
-                        mark={flagDecisions(
-                          seat.state?.session_id ?? null,
-                          seat.id,
-                        )}
-                      />
-                    ))}
-                  </ol>
-                ) : (
-                  reviewNotice ? null : (
-                    <p className="list-clear review-clear" role="status">
-                      {!reviewsEnabled || configurationError
-                        ? "Cues will list people here when someone may need you."
-                        : reviewsLive
-                          ? "All clear. No one needs you right now."
-                          : "Checking…"}
-                    </p>
-                  )
-                )}
-              </section>
+              <ReviewPageList
+                groups={reviewGroups}
+                flagged={flaggedOnly}
+                inView={inView}
+                nameOf={nameOf}
+                activityName={activityName}
+                decisions={(lead) =>
+                  reviewActionsEnabled && client ? (
+                    <TeacherReviewActions
+                      key={lead.id}
+                      client={client}
+                      review={lead}
+                      onResolved={resolved}
+                      interventionsEnabled={interventionsEnabled}
+                    />
+                  ) : null
+                }
+                markReviewed={markReviewedButton}
+                flagDecisions={flagDecisions}
+                feedProblem={reviewNotice}
+                feedLoading={reviews.loading}
+                onRetry={retryReviews}
+                emptyText={
+                  reviewNotice
+                    ? null
+                    : !reviewsEnabled || configurationError
+                      ? "Cues will list people here when someone may need you."
+                      : reviewsLive
+                        ? "All clear. No one needs you right now."
+                        : "Checking…"
+                }
+              />
             ) : (
               <>
             <div className="monitor-workspace">
@@ -703,89 +657,33 @@ export default function Dashboard({
                   </div>
                 ) : (
                   <>
-                <header className="panel-heading">
-                  <h2 id="class-heading" ref={listHeading} tabIndex={-1}>
-                    Attention
-                  </h2>
-                  {reviewsLive && waitingCount ? (
-                    <span className="ws-count">
-                      {waitingCount}
-                      <span className="sr-only"> waiting</span>
-                    </span>
-                  ) : null}
-                </header>
-
-                {reviewsEnabled &&
-                !configurationError &&
-                (reviews.error || reviews.connection === "disconnected") ? (
-                  <div className="list-notice" role="alert">
-                    <p>Couldn’t check for new requests.</p>
-                    <button
-                      type="button"
-                      className="ws-pill"
-                      disabled={reviews.loading}
-                      onClick={() => retryReviews()}
-                    >
-                      Try again
-                    </button>
-                  </div>
-                ) : null}
-
-                {reviewGroups.length || flaggedOnly.length ? (
-                  <ul className="row-list">
-                    {reviewGroups.map((group) => {
-                      const seat = seats.find((s) => s.id === group.seat_id);
-                      const visible = inView.some((s) => s.id === group.seat_id);
-                      return row(
-                        group.seat_id,
-                        <ReviewRowContent
-                          name={nameOf(group.seat_id)}
-                          meta={
-                            !visible
-                              ? "Not in view"
-                              : mixedActivities && seat
-                                ? seat.activity
-                                : ""
-                          }
-                          time={group.latest}
-                          elevated={group.elevated}
-                        />,
-                        visible && seat ? present(seat) : null,
-                        group.reviews,
-                      );
-                    })}
-                    {flaggedOnly.map((seat) =>
-                      row(
-                        seat.id,
-                        <ReviewRowContent
-                          name={seat.display_name}
-                          meta={
-                            mixedActivities
-                              ? `${seat.activity} · flagged by the camera`
-                              : "Flagged by the camera"
-                          }
-                          time={seat.state?.updated_at ?? ""}
-                          timeLabel="Now"
-                          elevated={false}
-                        />,
-                        present(seat),
-                        [],
-                      ),
-                    )}
-                  </ul>
-                ) : (
-                  reviewNotice ? null : (
-                    <p className="panel-empty" role="status">
-                      {!reviewsEnabled || configurationError
+                <AttentionList
+                  headingRef={listHeading}
+                  groups={reviewGroups}
+                  flagged={flaggedOnly}
+                  seats={seats}
+                  inView={inView}
+                  mixedActivities={mixedActivities}
+                  nameOf={nameOf}
+                  present={present}
+                  renderRow={row}
+                  waitingCount={waitingCount}
+                  showCount={reviewsLive}
+                  feedProblem={reviewNotice}
+                  feedLoading={reviews.loading}
+                  onRetry={retryReviews}
+                  emptyText={
+                    reviewNotice
+                      ? null
+                      : !reviewsEnabled || configurationError
                         ? "Cues will ask here when someone may need you."
                         : reviewsLive
                           ? catchingUp
                             ? "Marked as reviewed. The camera will catch up in a moment."
                             : "All clear. Cues will ask when someone may need you."
-                          : "Checking…"}
-                    </p>
-                  )
-                )}
+                          : "Checking…"
+                  }
+                />
                   </>
                 )}
               </section>
