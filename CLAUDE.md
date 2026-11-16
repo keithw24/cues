@@ -2,46 +2,45 @@
 
 Cues helps a special-education teacher see which students need help. A local camera pipeline watches simple tasks (raise hand, thumbs up, teacher-recorded gestures), a rules engine decides when an event matters, an AI agent suggests support, and the teacher approves every change. The full spec is `notes/PRD-cues.md`.
 
-## Repo layout and owners
+## Repo layout
 
-| Area | Folder | Owner |
-|---|---|---|
-| Vision service (camera, MediaPipe, HSEmotion, task events) | `vision/` | Keith |
-| Frontend, app backend, station page, Supabase schema | `web/` dashboard and Supabase product integration | Evan |
-| Agent / routing, rules engine, Deep Agent, LLM integration, Photon | `agent/` | Michelle |
-| Shared: CI, this file, feature flags | `.github/`, `CLAUDE.md`, `flags.json`, `.claude/agents/` | everyone |
+This is now a personal project (the hackathon is over), so there are no area owners and no
+sign-offs. Any task may edit any folder.
 
-Only edit another owner's folder when the task needs it, and say so in the PR.
+| Area | Folder |
+|---|---|
+| Vision service (camera, MediaPipe, HSEmotion, task events) | `vision/` |
+| Dashboard, app backend, Supabase product integration | `web/`, `supabase/` |
+| Agent / routing, rules engine, Deep Agent, LLM integration, Photon | `agent/`, `cues/` |
+| Shared contracts and helpers: CI, this file, feature flags | `shared/`, `.github/`, `CLAUDE.md`, `flags.json`, `.claude/agents/` |
 
 ## Environment
 
-One shared Python environment for the whole repo, set up by Michelle: `pyproject.toml` and `uv.lock` at the root, Python 3.11 (`.python-version`). Run `uv sync` once. Add Python dependencies only to the root `pyproject.toml` with `uv add`; don't create per-folder Python projects. Secrets go in the root `.env`; copy `.env.example`. The vision service reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from it. Optional vision settings, also in `.env` or the shell: `CUES_CAMERA_INDEX` (webcam number, default 0), `CUES_CAMERA=fake`, `CUES_STATION_ID` (dev/test override only: normally the signed-in teacher's dashboard sends the station to `POST 127.0.0.1:8000/config`; with the override set, vision refuses any other station) and `CUES_SESSION_ID` (legacy/smoke commands only: with the session lifecycle on, which the launcher does by default, vision follows the station's active session from Supabase). The web app has its own `web/package.json`.
+One shared Python environment for the whole repo, `pyproject.toml` and `uv.lock` at the root, Python 3.11 (`.python-version`). Run `uv sync` once. Add Python dependencies only to the root `pyproject.toml` with `uv add`; don't create per-folder Python projects. Secrets go in the root `.env`; copy `.env.example`. The vision service reads `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from it. Optional vision settings, also in `.env` or the shell: `CUES_CAMERA_INDEX` (webcam number, default 0), `CUES_CAMERA=fake`, `CUES_STATION_ID` (dev/test override only: normally the signed-in teacher's dashboard sends the station to `POST 127.0.0.1:8000/config`; with the override set, vision refuses any other station) and `CUES_SESSION_ID` (legacy/smoke commands only: with the session lifecycle on, which the launcher does by default, vision follows the station's active session from Supabase). The web app has its own `web/package.json`.
 
 ## Commands (vision)
 
 Run from the repo root.
 
-Checks. CI runs three workflows, each only when its own paths change:
+Checks. There are no unit tests. CI (`.github/workflows/ci.yml`) starts a local Supabase in Docker and runs two suites, and a skipped test fails the job:
 
-| Workflow | Runs when | What it runs |
-|---|---|---|
-| `vision` | `vision/`, `shared/`, `agent/`, `flags.json`, `pyproject.toml`, `uv.lock` | `ruff check` and `ruff format --check` on `vision shared agent`, then `pytest vision shared/tests agent/tests` |
-| `web` | `web/`, `cues/`, `flags.json` | in `web/`: `npm ci`, `npx next typegen`, `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` |
-| `supabase` | `supabase/`, `pyproject.toml`, `uv.lock` | `ruff` on `supabase`, then `pytest supabase` against a real PostgreSQL (replays every migration). A skipped database test fails the step |
+| Suite | What it proves |
+|---|---|
+| `tests/contract` | Every column and RPC call in the code exists in the real schema, the Python contracts fit their tables, and what Python produces is accepted by the dashboard's TypeScript parsers |
+| `tests/smoke` | The whole workflow works end to end: vision follows a session, a stalled child becomes a review, the teacher text is built, the dashboard reads it back, Mark as reviewed closes it |
 
-The same checks locally, from the repo root:
+Both need Docker and the Supabase CLI. Locally, from the repo root:
 
 ```bash
-uv run pytest vision shared/tests agent/tests   # unit tests (hardware tests skipped)
-CUES_HARDWARE=1 uv run pytest vision            # include camera / model tests
-uv run ruff check vision shared agent
-uv run ruff format --check vision shared agent
-(cd web && npx next typegen && npx tsc --noEmit && npm run lint && npm test && npm run build)
-# Database tests need PostgreSQL's initdb, pg_ctl and psql on the PATH. On a Mac with Homebrew:
-PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH" LC_ALL=en_US.UTF-8 uv run pytest supabase
+supabase start                 # once; applies every migration and the seed
+uv run pytest tests            # contract + smoke (about 10s)
+uv run pytest tests/contract   # or one suite
+uv run pytest tests/smoke -s
+(cd web && npx next typegen && npx tsc --noEmit && npm run lint && npm run build)
+uv run ruff check vision shared agent tests
 ```
 
-Fix formatting (rewrites files): `uv run ruff format vision`
+Fix formatting (rewrites files): `uv run ruff format vision agent shared tests`
 
 Run the service and tools:
 
@@ -52,22 +51,20 @@ uv run python -m vision.events --demo  # send one test event
 ```
 
 
-## Workflow: personal branches and scoped PRs
+## Workflow
 
-`notes/archive/TEAM_WORKFLOW.md` defines the current branches and ownership: `keith` for CV, `evan` for frontend/app backend, `michelle` for agent/routing, and `main` for integration.
+Work happens on the `refactor` branch (cut from `main`). Keep each commit scoped to one change.
+There is no PR template, ticket ID or reviewer sign-off to satisfy. What does gate a change:
 
-1. Work on your personal branch and keep each change scoped to one task.
-2. Follow `notes/archive/TEAM_WORKFLOW.md` for synchronizing with `main` and resolving conflicts on your branch before integration.
-3. Fill in the PR template:
-   - the ticket ID, and its Verify step copied word for word (the ticket list is not in the repo, so the PR body is where reviewers read it);
-   - what it delivers, and how it was verified;
-   - the feature flag, if any;
-   - the files owned.
-   List any check CI cannot run (camera, Supabase, Photon) as an unticked box with the exact command and the name of the person who will run it.
-4. PRs that are worked on at the same time must not edit the same files. One exception: `flags.json` is shared. Each PR only adds its own entry and rebases if another PR's entry conflicts.
-5. CI (`.github/workflows/`) must pass. Tests that need a camera or model weights use `@pytest.mark.hardware` and are skipped in CI. CI only runs for paths that have a workflow (`vision`, `web`, `supabase`). "No checks reported" is fine for a PR that changes none of those paths (for example notes or docs only). Don't make the `vision`, `web` or `supabase` check a required status check: PRs that skip it would wait on it forever.
-6. Every new feature ships behind a feature flag (next section).
-7. Before any merge, run the pre-merge review (section after next).
+1. The commands above pass, in particular the two cross-component suites:
+   - **Contract tests** (`tests/contract/`): every producer and consumer of shared data (vision
+     events, `seat_state`, RPC arguments, selected columns, TypeScript parsers) agrees with the
+     Python contracts in `shared/` and with the live database schema.
+   - **Smoke test** (`tests/smoke/`): the whole workflow end to end on the local Supabase.
+   Both need `supabase start` (Docker). They are skipped, loudly, when it is not running.
+2. Add a contract or smoke check for anything that crosses components, not a unit test.
+3. Every new feature ships behind a feature flag (next section).
+4. Before any merge to `main`, run the pre-merge review (section after next).
 
 ## Feature flags
 
@@ -85,7 +82,7 @@ Every feature can be turned on and off without a code change. This lets the team
 ```
 
 - Name: `<area>.<feature>`, matching `^(vision|web|agent)\.[a-z0-9_]+$`.
-- Every entry has `description` (text), `default` (true or false), `owner` and `ticket`. A test in `vision/tests/` checks this.
+- Every entry has `description` (text), `default` (true or false), `owner` and `ticket`. 
 
 **Override.** An environment variable overrides the default: the flag name in upper case, with dots replaced by underscores, prefixed with `CUES_FLAG_`. Example: `CUES_FLAG_VISION_HANDS=0` turns hand tracking off.
 - `1` or `true` means on; `0` or `false` means off; any other value is an error.
@@ -101,7 +98,7 @@ Every feature can be turned on and off without a code change. This lets the team
 3. When the flag is off, the feature's code does not run, and everything else still starts and works. Two patterns:
    - **A whole module** (a stage or router in `vision/`): the module sets `FLAG = "vision.<feature>"`, and the loader skips it when the flag is off.
    - **A behaviour inside code that always runs** (for example, sending events to Supabase instead of only to local files): check the flag where the choice is made. The flag-off path is the fallback.
-4. Add a test that runs with the flag off and checks that the service still works.
+4. Check the flag-off path still starts and works: run `tests/smoke` with the flag set to `0`, or extend it.
 5. Infrastructure that every feature needs (the service skeleton, CI, the flag helper itself) does not get a flag.
 
 ## Pre-merge review
@@ -164,7 +161,7 @@ These come from the PRD and are not optional.
 - Messages contain the minimum necessary information only: no images or raw camera data, no expression labels, no diagnoses, no unnecessary personal details.
 
 **Shared contracts**
-- The event shape in PRD §17.1 and the tables in §17.3 are shared by all three areas. A change to them updates `vision/`, `web/`, `agent/` and PRD §17 in one PR, and the PR body records sign-off from Keith, Evan and Michelle.
+- The event shape in PRD §17.1 and the tables in §17.3 are shared by vision, web and agent. A change to them updates all three and PRD §17 in one commit, and `tests/contract/` must pass: it is the sign-off.
 
 ## Pushing
 
