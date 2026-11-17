@@ -135,7 +135,7 @@ start/end and activity picker; one camera per station; person tracking by positi
 and teacher-recorded gestures on the laptop; raise-hand; stall detection and agent review requests;
 persistent reviews with Approve / Not needed (each also marks the child reviewed; people flagged before Cues asks keep a single Mark as reviewed); live evaluated
 progress; Photon text on a new review; local Docker Supabase; the data behind long-term insights
-(see Insights data below).
+(see Insights data below) and the Insights page.
 
 **Open work**
 
@@ -148,7 +148,7 @@ progress; Photon text on a new review; local Docker Supabase; the data behind lo
 | Interventions | The agent suggests one support from the approved menu and the teacher approves it (covered by `tests/smoke`). Applying an approved support to a task is not built. |
 | Database one-writer rule | The one-camera guard is enforced in vision only; add a `writer_id` check to `seat_state` writes. |
 | Review evidence | While a review is open, later evaluations are dropped, so the teacher never sees newer evidence. |
-| Insights page | The data is built (migration `20261114002100`, `teacher_insights`, `web/lib/insights.ts`); the page itself is not: route, sidebar link, charts and the pattern notes. A session shows in insights only once it has ended. |
+| Insights page | Built at `/insights` (sidebar link): glance cards, weekly bars, why Cues asked, how check-ins ended, supports and whether progress resumed, activities, weekday-by-hour. Not built: the written "patterns worth a look" notes. A session shows only once it has ended. |
 | History | Progress and prompt history are in memory and lost on restart. |
 | Person ids | By position only, so a person who leaves for 10+ seconds or two who swap seats can change ids. |
 | Refactor leftovers | The dashboard header and hero controls are still inline in `web/components/dashboard.tsx`. |

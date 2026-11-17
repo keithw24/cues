@@ -6,7 +6,7 @@ import { WorkspaceIcon } from "@/components/workspace-icon";
 import CuesMark from "@/components/cues-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-// A quiet rail of round buttons: Classroom, To review (when on), then the teacher's Profile (where
+// A quiet rail of round buttons: Classroom, To review, Insights, then the teacher's Profile (where
 // sign-out, the classroom camera and alerts live). Labels show on hover and
 // focus, and screen readers always hear them.
 export function WorkspaceSidebar({
@@ -43,6 +43,10 @@ export function WorkspaceSidebar({
               </span>
             ) : null}
           </Link>
+        <Link href="/insights" {...current("/insights")}>
+          <WorkspaceIcon name="insights" />
+          <span className="nav-label">Insights</span>
+        </Link>
         <Link href="/settings/profile" {...current("/settings")}>
             <WorkspaceIcon name="account" />
             <span className="nav-label">Profile</span>
