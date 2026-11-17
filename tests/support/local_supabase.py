@@ -76,6 +76,44 @@ def execute(statement: str) -> None:
         raise RuntimeError(out.stderr.strip())
 
 
+def function_source(name: str) -> str:
+    """The body of a public function (every overload), as the database stores it."""
+    rows = sql(
+        "select prosrc from pg_proc "
+        f"where pronamespace = 'public'::regnamespace and proname = '{name}'"
+    )
+    assert rows, f"the database has no function {name!r}"
+    return "\n".join(row["prosrc"] for row in rows)
+
+
+def may_execute(role: str, name: str) -> list[bool]:
+    """Whether `role` may run each overload of the public function `name`."""
+    rows = sql(
+        f"select has_function_privilege('{role}', p.oid, 'execute') as ok from pg_proc p "
+        f"where p.pronamespace = 'public'::regnamespace and p.proname = '{name}'"
+    )
+    assert rows, f"the database has no function {name!r}"
+    return [row["ok"] for row in rows]
+
+
+def insert_and_roll_back(table: str, rows: list[dict]) -> None:
+    """Insert rows exactly as a producer sends them, then undo it all.
+
+    Every column check, trigger and guard of the real table runs; nothing is left behind.
+    Raises RuntimeError with the database's own message when a row is refused.
+    """
+    statements = ["begin"]
+    for row in rows:
+        columns = ", ".join(row)
+        literal = json.dumps(row).replace("'", "''")
+        statements.append(
+            f"insert into public.{table} ({columns}) select {columns} "
+            f"from jsonb_populate_record(null::public.{table}, '{literal}'::jsonb)"
+        )
+    statements.append("rollback")
+    execute("; ".join(statements))
+
+
 def http(method: str, path: str, body=None, *, key: str, token: str | None = None):
     """Call the local API (auth, PostgREST, RPC). Returns (status, parsed JSON or text)."""
     s = stack()

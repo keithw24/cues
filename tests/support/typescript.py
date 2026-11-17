@@ -1,4 +1,4 @@
-"""Run the dashboard's real TypeScript parsers from Python tests."""
+"""Run the dashboard's real TypeScript code from Python tests."""
 
 import json
 import subprocess
@@ -10,7 +10,10 @@ RUNNER = ROOT / "tests/contract/ts_consumer.ts"
 
 
 def run_parser(kind: str, data, station: str = "") -> dict:
-    """Feed `data` to the TypeScript parser `kind`; raises AssertionError with its message."""
+    """Feed `data` to the dashboard code `kind` (see ts_consumer.ts) and return what it made of it.
+
+    Raises AssertionError with the TypeScript error when the dashboard rejects the data.
+    """
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
         json.dump(data, handle)
     try:
