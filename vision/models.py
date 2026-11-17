@@ -30,10 +30,6 @@ MODEL_URLS = {
         "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
         "pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
     ),
-    "blaze_face_short_range.tflite": (
-        "https://storage.googleapis.com/mediapipe-models/face_detector/"
-        "blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
-    ),
 }
 
 HSEMOTION_MODEL = "enet_b0_8_best_vgaf"
@@ -116,18 +112,6 @@ def pose_landmarker(num_poses: int = 4, video: bool = True):
         min_tracking_confidence=0.6,
     )
     return PoseLandmarker.create_from_options(options)
-
-
-def face_detector(min_confidence: float = 0.5):
-    """MediaPipe short-range face detector in IMAGE mode."""
-    from mediapipe.tasks.python import BaseOptions
-    from mediapipe.tasks.python.vision import FaceDetector, FaceDetectorOptions
-
-    options = FaceDetectorOptions(
-        base_options=BaseOptions(model_asset_path=str(model_path("blaze_face_short_range.tflite"))),
-        min_detection_confidence=min_confidence,
-    )
-    return FaceDetector.create_from_options(options)
 
 
 def expression_recognizer():

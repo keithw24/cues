@@ -3,9 +3,9 @@
 For each tracked person this stage draws, in that person's colour:
 
 1. A box around their face, labelled with their id and the strongest
-   expression probability, e.g. "P1  neutral 0.61". The face box is smoothed
-   between face detections and kept for FACE_GRACE_SECONDS after a missed
-   detection, so it does not jump or flicker.
+   expression probability, e.g. "P1  neutral 0.61". The face box comes from
+   s20_faces (already filtered there) and is kept for FACE_GRACE_SECONDS after
+   the head points go missing, so it does not flicker.
 2. Their one hand (the hand the gesture or raise-hand score is for, or their
    highest hand): the full MediaPipe skeleton (21 points and the lines between
    them) and a box around it, labelled with the task and score, e.g.

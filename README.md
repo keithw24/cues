@@ -31,7 +31,9 @@ flowchart TD
 ```
 
 - **Vision** (`vision/`, FastAPI on :8000) reads the camera, tracks people by position only, scores
-  the current task and publishes structured status. `/stream` (MJPEG) is the local video, read
+  the current task and publishes structured status. Each person's face crop for the expression
+  model is built from their own tracked pose head points (nose, eyes, ears, mouth), filtered and
+  turned upright, so there is no separate face detector and no face-to-person matching. `/stream` (MJPEG) is the local video, read
   directly by the browser.
 - **Agent worker** (`agent/`) polls `seat_state` for the station's active session, tracks progress,
   and asks the LLM only when a stall is long enough. Groq `openai/gpt-oss-20b` is the demo model;

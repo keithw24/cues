@@ -11,9 +11,10 @@ Vision groups everything by person (there is no fixed-seat mode):
    keeps the same id (S1-P1, S1-P2, ...) while they stay roughly in place. This
    is position tracking only: nothing about who the person is is stored, and
    there is no face recognition.
-4. PeopleGrouping assigns MediaPipe hands and faces to the person they belong
-   to, so the later stages (gestures, raise-hand, expression, status) work per
-   person exactly as they worked per seat.
+4. PeopleGrouping assigns MediaPipe hands to the person they belong to. Faces
+   need no matching: s20_faces builds each person's face from their own pose
+   head points. So the later stages (gestures, raise-hand, expression,
+   status) work per person exactly as they worked per seat.
 
 An id stays "live" for RELEASE_SECONDS after the person was last seen, so the
 status stage can report tracking_lost for them. After that the id is released
@@ -245,7 +246,7 @@ class PersonTracker:
 
 
 class PeopleGrouping:
-    """Assigns hands and faces to tracked people. Same interface as SeatZones."""
+    """Assigns hands to tracked people. Same interface as SeatZones."""
 
     mode = "people"
 
@@ -269,15 +270,6 @@ class PeopleGrouping:
         if best is not None:
             return best
         return self._inside_box(hx, hy, ctx)
-
-    def face_owner(self, cx: float, cy: float, box, ctx) -> str | None:
-        """The person whose pose nose is inside this face box (normalised)."""
-        x0, y0, x1, y1 = box
-        for pid, person in ctx.get("people", {}).items():
-            nx, ny, _ = person.point(NOSE)
-            if x0 <= nx <= x1 and y0 <= ny <= y1:
-                return pid
-        return self._inside_box(cx, cy, ctx)
 
     def anchor(self, seat_id: str, ctx, w: int, h: int, row: int = 0) -> tuple[int, int] | None:
         """Where to draw text for this person: inside the top of their box."""
