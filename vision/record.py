@@ -44,8 +44,8 @@ def pick_hand(hands: list):
 class AllHands:
     """Grouping for recording: every detected hand counts, whoever it belongs to."""
 
-    def hand_owner(self, hand_points, ctx=None) -> str:
-        return "any"
+    def assign_hands(self, hands, ctx=None) -> list[str]:
+        return ["any"] * len(hands)
 
 
 def mediapipe_image(rgb):

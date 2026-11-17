@@ -29,7 +29,7 @@ import numpy as np
 
 from vision.camera import ASPECT
 
-MAX_PEOPLE = 4
+MAX_PEOPLE = 6  # the pose model returns at most this many people; more would be dropped unevenly
 RELEASE_SECONDS = 10.0
 MIN_IOU = 0.2
 MAX_RELATIVE_JUMP = 0.6  # centre may move up to 0.6 x the box size between matches
@@ -38,6 +38,13 @@ MIN_VISIBILITY = 0.5
 MIN_UPPER_POINTS = 4
 UPPER_BODY = list(range(0, 17))  # nose, eyes, ears, mouth, shoulders, elbows, wrists
 SMOOTHING = 0.4  # weight of the new box; the rest comes from the previous box
+# A hand belongs to a person only if it lies this close (in shoulder widths) to one of that
+# person's wrists that the pose model really sees. Two people's hands rarely agree this well.
+HAND_REACH = 0.6
+WRIST_VISIBILITY = 0.3  # pose wrists below this are guesses, never a reason to claim a hand
+# Someone who left may be matched to a new box only if it appears this close (in box sizes)
+# to where they were. Further away it is a different person and gets its own id.
+RETURN_RELATIVE_DISTANCE = 1.0
 MISS_GRACE_SECONDS = 0.25  # keep showing a person this long after a missed frame
 # A new id must be matched this many times to count as a real person. A track that
 # never got there is a stray detection and is dropped after GHOST_SECONDS, not 10 s.
@@ -145,13 +152,15 @@ class PersonTracker:
        does not jitter.
     5. Unmatched boxes: if one mostly overlaps a box already tracked this frame
        it is a duplicate detection of the same person and is dropped. Otherwise
-       it takes over the id of someone who left and was tracked for a while (the
-       nearest one), or else gets the lowest free id.
+       it takes over the id of someone who left and was tracked for a while, but
+       only if it appeared close to where they were (RETURN_RELATIVE_DISTANCE);
+       or else it gets the lowest free id.
     6. A new id that is never matched again (fewer than CONFIRM_HITS frames)
        is a stray detection and is released after GHOST_SECONDS.
-    7. Return the people seen now, plus people missed for less than
-       MISS_GRACE_SECONDS (shown at their last position), so one missed frame
-       does not make a person vanish.
+    7. Return the confirmed people (CONFIRM_HITS matches) seen now, plus those missed
+       for less than MISS_GRACE_SECONDS (shown at their last position), so one
+       missed frame does not make a person vanish. A track that is not yet
+       confirmed is never reported, so a stray detection is not counted as a person.
     """
 
     station_id: str = "S1"
@@ -212,7 +221,7 @@ class PersonTracker:
         return {
             tid: Person(tid, tr.box, tr.landmarks)
             for tid, tr in self.tracks.items()
-            if t - tr.last_seen <= MISS_GRACE_SECONDS
+            if tr.hits >= CONFIRM_HITS and t - tr.last_seen <= MISS_GRACE_SECONDS
         }
 
     def _returning(self, box, t: float, used: set[str]):
@@ -220,7 +229,7 @@ class PersonTracker:
 
         Ids are by position only, so this is a guess, not an identity: among people
         who left (not seen for MISS_GRACE_SECONDS, not matched this frame), prefer
-        long-tracked ones (strays are not people) and then the nearest.
+        long-tracked ones (strays are not people) and then the nearest, if it is near enough.
         """
         lost = [
             tr
@@ -231,11 +240,18 @@ class PersonTracker:
             return None
         lost = [tr for tr in lost if tr.hits >= ESTABLISHED_HITS] or lost
         cx, cy = centre(box)
-        return min(lost, key=lambda tr: float(np.hypot(*(np.subtract(centre(tr.box), (cx, cy))))))
+
+        def near(tr: _Track) -> float:
+            size = max(tr.box[2] - tr.box[0], tr.box[3] - tr.box[1], 1e-3)
+            return float(np.hypot(*(np.subtract(centre(tr.box), (cx, cy))))) / size
+
+        best = min(lost, key=near)
+        return best if near(best) <= RETURN_RELATIVE_DISTANCE else None
 
     @property
     def live_ids(self) -> list[str]:
-        return sorted(self.tracks, key=lambda tid: int(tid.rsplit("P", 1)[1]))
+        confirmed = [tid for tid, tr in self.tracks.items() if tr.hits >= CONFIRM_HITS]
+        return sorted(confirmed, key=lambda tid: int(tid.rsplit("P", 1)[1]))
 
     def _new_id(self) -> str | None:
         for n in range(1, MAX_PEOPLE + 1):
@@ -256,20 +272,33 @@ class PeopleGrouping:
     def ids(self, ctx) -> list[str]:
         return list(ctx.get("person_ids", []))
 
-    def hand_owner(self, hand_points: np.ndarray, ctx) -> str | None:
-        """The person whose pose wrist is closest to this hand's wrist."""
-        hx, hy = float(hand_points[0, 0]), float(hand_points[0, 1])
-        best, best_d = None, None
+    def assign_hands(self, hands: list[np.ndarray], ctx) -> list[str | None]:
+        """The person each hand belongs to (None for a hand nobody can claim).
+
+        A hand goes to a person only through a wrist the pose model really sees
+        (visibility >= WRIST_VISIBILITY) within HAND_REACH shoulder widths of the hand's
+        wrist. Every wrist takes at most one hand, nearest pairs first, so a person
+        has at most two hands and a neighbour's hand can no longer be matched to
+        someone because it happens to lie inside their box.
+        """
+        pairs = []  # (distance, hand index, person id, wrist index)
         for pid, person in ctx.get("people", {}).items():
-            limit = max(person.shoulder_width, 0.05)  # reach scales with body size
+            reach = max(person.shoulder_width, 0.05) * HAND_REACH
             for wrist in (LEFT_WRIST, RIGHT_WRIST):
-                wx, wy, _ = person.point(wrist)
-                d = float(np.hypot((wx - hx) * ASPECT, wy - hy))
-                if d <= limit and (best_d is None or d < best_d):
-                    best, best_d = pid, d
-        if best is not None:
-            return best
-        return self._inside_box(hx, hy, ctx)
+                wx, wy, visibility = person.point(wrist)
+                if visibility < WRIST_VISIBILITY:
+                    continue
+                for i, points in enumerate(hands):
+                    d = float(np.hypot((wx - points[0, 0]) * ASPECT, wy - points[0, 1]))
+                    if d <= reach:
+                        pairs.append((d, i, pid, wrist))
+        owners: list[str | None] = [None] * len(hands)
+        used_wrists: set[tuple[str, int]] = set()
+        for _, i, pid, wrist in sorted(pairs):
+            if owners[i] is None and (pid, wrist) not in used_wrists:
+                owners[i] = pid
+                used_wrists.add((pid, wrist))
+        return owners
 
     def anchor(self, seat_id: str, ctx, w: int, h: int, row: int = 0) -> tuple[int, int] | None:
         """Where to draw text for this person: inside the top of their box."""
@@ -280,14 +309,6 @@ class PeopleGrouping:
 
     def color(self, seat_id: str) -> tuple[int, int, int]:
         return person_color(seat_id)
-
-    @staticmethod
-    def _inside_box(x: float, y: float, ctx) -> str | None:
-        for pid, person in ctx.get("people", {}).items():
-            x0, y0, x1, y1 = person.box
-            if x0 <= x <= x1 and y0 <= y <= y1:
-                return pid
-        return None
 
 
 def grouping_from_env() -> PeopleGrouping:

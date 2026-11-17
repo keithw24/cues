@@ -31,11 +31,14 @@ def hands_from_result(result, zones=GROUPING, ctx=None) -> dict[str, list[Hand]]
     """Convert a MediaPipe HandLandmarkerResult into Hand lists per seat or person."""
     by_seat: dict[str, list[Hand]] = {}
     gesture_lists = getattr(result, "gestures", None) or [[] for _ in result.hand_landmarks]
-    for landmarks, handedness, gestures in zip(
-        result.hand_landmarks, result.handedness, gesture_lists, strict=False
+    found = [
+        np.array([[p.x, p.y, p.z] for p in landmarks], dtype=np.float32)
+        for landmarks in result.hand_landmarks
+    ]
+    owners = zones.assign_hands(found, ctx)  # all hands at once: each wrist takes one hand
+    for points, seat, handedness, gestures in zip(
+        found, owners, result.handedness, gesture_lists, strict=False
     ):
-        points = np.array([[p.x, p.y, p.z] for p in landmarks], dtype=np.float32)
-        seat = zones.hand_owner(points, ctx)
         if seat is None:
             continue
         side = handedness[0].category_name if handedness else "Right"
