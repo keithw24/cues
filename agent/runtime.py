@@ -34,8 +34,8 @@ def review_store_from_env(
 ) -> TeacherReviewStorage:
     """Resolve backend credentials locally; never put config into model context.
 
-    Nonempty process env wins. Root .env wins over web/.env.local fallback.
-    An explicit env_file replaces default file discovery (useful for deployment
+    Nonempty process env wins over the root .env, the one env file for the whole repo.
+    An explicit env_file replaces that default file (useful for deployment
     and isolated tests). It does not override process environment variables.
     """
     if offline:
@@ -46,26 +46,11 @@ def review_store_from_env(
             raise RuntimePersistenceError("The configured backend env file does not exist.")
         config = dict(dotenv_values(env_file))
     else:
-        config = dict(dotenv_values(REPO_ROOT / "web/.env.local"))
-        # Photon/Spectrum is its own nested SDK project. Only its backend
-        # configuration is imported here; none of these values enter model or
-        # frontend context.
-        config.update(
-            {
-                k: v
-                for k, v in dotenv_values(REPO_ROOT / "cues/.env").items()
-                if (k.startswith("SPECTRUM_") or k == "CUES_USE_STATIC_TEACHER_PHONE")
-                and v is not None
-                and v.strip()
-            }
-        )
-        config.update(
-            {
-                k: v
-                for k, v in dotenv_values(REPO_ROOT / ".env").items()
-                if v is not None and v.strip()
-            }
-        )
+        config = {
+            k: v
+            for k, v in dotenv_values(REPO_ROOT / ".env").items()
+            if v is not None and v.strip()
+        }
     # Empty template values loaded by the compatibility client must not erase
     # a valid local fallback. Use offline=True to intentionally disable storage.
     config.update({k: v for k, v in os.environ.items() if v.strip()})
@@ -95,13 +80,13 @@ def review_store_from_env(
         ) from None
     log.info("Teacher review storage: Supabase")
     if notifier is None:
-        # Default discovery re-reads cues/.env on each send (credentials saved after
+        # Default discovery re-reads the root .env on each send (credentials saved after
         # startup work without a restart). An explicit env_file is used as given.
         notifier = spectrum_notifier(
             config,
             REPO_ROOT,
             client=client,
-            reread_env=REPO_ROOT / "cues/.env" if env_file is None else None,
+            reread_env=REPO_ROOT / ".env" if env_file is None else None,
             pinned=spectrum_env() if env_file is None else None,
         )
     return SupabaseTeacherReviewStore(client, notifier=notifier)

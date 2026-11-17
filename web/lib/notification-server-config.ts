@@ -6,7 +6,7 @@ import path from "node:path";
 export function notificationServerConfig() {
   const root = path.resolve(process.cwd(), process.cwd().endsWith(path.sep + "web") ? ".." : ".");
   const config: Record<string, string> = {};
-  for (const file of [".env", "cues/.env"]) {
+  for (const file of [".env"]) {
     try {Object.assign(config, parseEnv(readFileSync(path.join(root, file), "utf8")));}
     catch { /* Hosted deployments use backend environment variables only. */ }
   }

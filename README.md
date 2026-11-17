@@ -58,20 +58,20 @@ supabase start               # local Postgres + Auth + Realtime; applies every m
 supabase status              # prints the URL and keys for the next step
 ```
 
-Put these in the root `.env` (backend only, never commit it; `.env.example` lists the rest):
+Copy `.env.example` to `.env` at the repo root. It is the one env file: vision, the agent, the
+dashboard, the text-message sender and the scripts all read it (never commit it). Fill in the
+Supabase values from `supabase status` and your `GROQ_API_KEY`:
 
 ```
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SERVICE_ROLE_KEY=<secret key from supabase status>
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key from supabase status>
 GROQ_API_KEY=<your key>
 ```
 
-and these in `web/.env.local` (browser-safe):
-
-```
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key from supabase status>
-```
+The `NEXT_PUBLIC_` pair is sent to the browser; the service-role key never is. Restart the
+dashboard after editing `.env`; values already set in your shell win over the file.
 
 Then:
 
@@ -97,7 +97,7 @@ the local database; `supabase stop` shuts it down.
 | `CUES_PALM_FLIP` | `1` if a camera mirrors its output |
 | `CUES_STATION_ID` / `CUES_SESSION_ID` | Dev/test overrides only; normally the dashboard sends the station |
 
-Text messages need `SPECTRUM_PROJECT_ID` and `SPECTRUM_PROJECT_SECRET` in `cues/.env`, the
+Text messages need `SPECTRUM_PROJECT_ID` and `SPECTRUM_PROJECT_SECRET` in `.env`, the
 teacher to opt in under Settings > Profile, and the number added to Users on the Spectrum
 website.
 

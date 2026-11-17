@@ -55,7 +55,7 @@ def spectrum_env(environ=None) -> dict:
 def current_spectrum_config(
     startup: dict, reread_env: Path | None = None, pinned: dict | None = None
 ) -> dict:
-    """The startup config, with reread_env (normally cues/.env) read again so a
+    """The startup config, with reread_env (normally the root .env) read again so a
     long-running worker picks up Photon credentials saved after it started.
     pinned holds the values that outrank that file (the process environment as
     it was at startup); it is a snapshot, so later shell changes don't leak in."""
@@ -94,7 +94,7 @@ def spectrum_notifier(
             if not all(config.get(name) for name in names):
                 raise NotificationUnavailable(
                     "Spectrum project credentials are missing: set SPECTRUM_PROJECT_ID "
-                    "and SPECTRUM_PROJECT_SECRET in cues/.env"
+                    "and SPECTRUM_PROJECT_SECRET in the root .env"
                 )
             mode = str(config.get("CUES_USE_STATIC_TEACHER_PHONE", "0"))
             if mode not in ("0", "1"):

@@ -4,7 +4,7 @@ import json
 import os
 import subprocess
 
-from dotenv import dotenv_values, load_dotenv
+from dotenv import load_dotenv
 
 from shared.supabase_client import REPO_ROOT, get_client
 
@@ -35,13 +35,6 @@ def main():
     except Exception:
         raise SystemExit("Supabase teacher destination lookup failed; no message sent.") from None
     env = dict(os.environ)
-    env.update(
-        {
-            k: v
-            for k, v in dotenv_values(REPO_ROOT / "cues/.env").items()
-            if k.startswith("SPECTRUM_") and v
-        }
-    )
     env.pop("SPECTRUM_TEACHER_PHONE", None)
     env["CUES_USE_STATIC_TEACHER_PHONE"] = "0"
     env["CUES_SPECTRUM_DEBUG"] = "1"

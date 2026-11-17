@@ -32,8 +32,7 @@ def main():
     parser.add_argument("action", choices=("list", "repair-history", "dry-run", "push"))
     action = parser.parse_args().action
     config = {}
-    for path in (ROOT / ".env", ROOT / "web/.env", ROOT / "web/.env.local"):
-        config.update({k: v for k, v in dotenv_values(path).items() if v})
+    config.update({k: v for k, v in dotenv_values(ROOT / ".env").items() if v})
     config.update({k: v for k, v in os.environ.items() if v})
     url = config.get("DATABASE_URL") or config.get("POSTGRES_URL")
     api = config.get("SUPABASE_URL") or config.get("NEXT_PUBLIC_SUPABASE_URL")

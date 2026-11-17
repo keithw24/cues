@@ -2,7 +2,11 @@ import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
 import { sendSpectrumMessage, SpectrumSendError } from "./send.ts";
 
-loadEnvFile(fileURLToPath(new URL("../.env", import.meta.url)));
+// The repo has one env file, at the root. Python passes the settings it needs in the
+// process environment; this only fills in what is missing when run by hand.
+try {
+  loadEnvFile(fileURLToPath(new URL("../../.env", import.meta.url)));
+} catch { /* No root .env: the environment already holds everything. */ }
 async function main() {
   let input = "";
   for await (const chunk of process.stdin) input += chunk;

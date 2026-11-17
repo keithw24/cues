@@ -37,7 +37,6 @@ vision/**/*.avi
 # Logs anywhere
 *.log
 logs/
-cues/.env
 
 # Root-level installs are never needed: web/ and cues/ own their dependencies
 /node_modules/

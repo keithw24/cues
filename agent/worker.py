@@ -65,11 +65,11 @@ def main():
 
     from agent.notifications import current_spectrum_config, spectrum_env
 
-    spectrum = current_spectrum_config({}, REPO_ROOT / "cues/.env", spectrum_env())
+    spectrum = current_spectrum_config({}, REPO_ROOT / ".env", spectrum_env())
     if not all(spectrum.get(n) for n in ("SPECTRUM_PROJECT_ID", "SPECTRUM_PROJECT_SECRET")):
-        # Not fatal: cues/.env is read again on every send, so saving it later is enough.
+        # Not fatal: the root .env is read again on every send, so saving it later is enough.
         logging.warning(
-            "Teacher text alerts: cues/.env has no SPECTRUM_PROJECT_ID/SECRET yet; "
+            "Teacher text alerts: .env has no SPECTRUM_PROJECT_ID/SECRET yet; "
             "alerts fail until it is saved (no restart needed)"
         )
     else:
