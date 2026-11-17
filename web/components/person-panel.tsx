@@ -15,16 +15,6 @@ import { WorkspaceIcon } from "@/components/workspace-icon";
 // and Cues' request if there is one. Model details (its own words and what it
 // looked at) wait behind "Why?". No expression labels or scores are shown; the
 // rationale is the agent's own text, written under its no-diagnosis rules.
-function clock(at: string) {
-  const date = new Date(at);
-  const today = new Date().toDateString() === date.toDateString();
-  return new Intl.DateTimeFormat(undefined, {
-    ...(today ? {} : { month: "short", day: "numeric" }),
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
 export function PersonDetails({
   id,
   presentation,
@@ -32,6 +22,7 @@ export function PersonDetails({
   stale,
   client,
   onResolved,
+  onMarked,
   actions,
 }: {
   id: string;
@@ -43,7 +34,8 @@ export function PersonDetails({
   /** Present only when review decisions can be saved. */
   client: SupabaseClient | null;
   onResolved: (review: TeacherReview) => void;
-  /** "Mark as reviewed", shown while this person is flagged or has a request. */
+  onMarked?: (seatId: string) => void;
+  /** "Mark as reviewed", shown while this person is flagged with no request. */
   actions?: React.ReactNode;
 }) {
   const review = reviews[0];
@@ -55,10 +47,9 @@ export function PersonDetails({
       {presentation?.needsReview && !review ? actions : null}
       {review ? (
         <div className="person-request">
-          <p className="ws-caption">
-            Cues asked · {clock(review.created_at)}
-            {review.priority === "elevated" ? " · Urgent" : ""}
-          </p>
+          {review.priority === "elevated" ? (
+            <p className="ws-caption">Urgent</p>
+          ) : null}
           <div className="review-copy">
             <p className="review-prompt-title">{reviewPrompt.title}</p>
             <p className="review-prompt-detail">{reviewPrompt.detail}</p>
@@ -74,6 +65,7 @@ export function PersonDetails({
               client={client}
               review={review}
               onResolved={onResolved}
+              onMarked={onMarked}
             />
           ) : (
             <p className="person-note">
@@ -95,7 +87,6 @@ export function PersonDetails({
               </p>
             ) : null}
           </details>
-          {actions}
           {reviews.length > 1 ? (
             <p className="person-note">
               {reviews.length - 1} more after this one.

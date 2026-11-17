@@ -412,10 +412,11 @@ def test_a_stalled_child_becomes_a_review_the_teacher_can_see_and_close(
     status = teacher.read(f"teacher_reviews?id=eq.{review['id']}&select=status")[0]["status"]
     assert status == "confirmed"
 
-    # --- the teacher marks the child reviewed: the review closes and the agent side sees it
+    # --- Approve is also the check-in: the dashboard follows the approval with the mark, so
+    # the review stays "confirmed" (the mark closes only pending ones) and the agent side sees it
     teacher.rpc("mark_seat_reviewed", {"p_session_id": session["id"], "p_seat_id": teacher.seat})
     closed = teacher.read(f"teacher_reviews?id=eq.{review['id']}&select=status")[0]["status"]
-    assert closed != "pending"
+    assert closed == "confirmed"
     source.fetch()  # the next poll brings the mark with the snapshot
     marks = source.fetch_marks()
     assert (session_id, teacher.seat) in marks

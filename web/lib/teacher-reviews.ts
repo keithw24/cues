@@ -176,13 +176,13 @@ export const decisionLabels: Record<AssessmentDecision, string> = {
  * meaning explicit (Cues flags a possible support need, the teacher agrees or
  * disagrees). No diagnosis, and no claim about why a student is stuck. */
 export const resolutionLabels: Record<"confirmed" | "dismissed", string> = {
-  confirmed: "Support needed",
-  dismissed: "No support needed",
+  confirmed: "Approved",
+  dismissed: "Not needed",
 };
 export const reviewPrompt = {
   title: "Student may need support",
   detail:
-    "They haven’t made progress on this task for a while. Check in, then tell Cues what you decided.",
+    "No progress on this task for a while.",
 } as const;
 export const priorityLabels: Record<ReviewPriority, string> = {
   normal: "Normal priority",

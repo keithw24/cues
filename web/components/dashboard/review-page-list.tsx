@@ -14,7 +14,6 @@ type Props = {
   activityName: (activityId: string) => string;
   /** The teacher's decision buttons for a group's lead review, or null. */
   decisions: (lead: ReviewGroup["reviews"][number]) => ReactNode;
-  markReviewed: (sessionId: string | null, seatId: string) => ReactNode;
   flagDecisions: (sessionId: string | null, seatId: string) => ReactNode;
   feedProblem: boolean;
   feedLoading: boolean;
@@ -31,7 +30,6 @@ export function ReviewPageList({
   nameOf,
   activityName,
   decisions,
-  markReviewed,
   flagDecisions,
   feedProblem,
   feedLoading,
@@ -62,7 +60,6 @@ export function ReviewPageList({
                 review={lead}
                 elevated={group.elevated}
                 decisions={decisions(lead)}
-                mark={markReviewed(lead.session_id, group.seat_id)}
               />
             );
           })}

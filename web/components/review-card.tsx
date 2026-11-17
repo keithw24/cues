@@ -26,7 +26,6 @@ export function ReviewCard({
   review,
   elevated,
   decisions,
-  mark,
 }: {
   /** Id for the name heading, so focus can return to this card. */
   headingId: string;
@@ -39,10 +38,8 @@ export function ReviewCard({
   /** The person's most urgent pending review. */
   review: TeacherReview;
   elevated: boolean;
-  /** Support needed / No support needed, when decisions can be saved. */
+  /** Approve / Not needed, when decisions can be saved. Either one marks the child reviewed. */
   decisions: ReactNode;
-  /** Mark as reviewed, or its confirmation. */
-  mark: ReactNode;
 }) {
   return (
     <li className="review-card" data-elevated={elevated || undefined}>
@@ -78,7 +75,6 @@ export function ReviewCard({
       </div>
       <div className="review-card-actions">
         {decisions}
-        {mark}
       </div>
       <time className="review-card-time" dateTime={review.created_at}>
         {clock(review.created_at)}

@@ -392,6 +392,10 @@ export default function Dashboard({
             stale={!!reviews.error || reviews.connection === "disconnected"}
             client={client}
             onResolved={resolved}
+            onMarked={(marked) => {
+              applyMarked(marked);
+              settleRow(marked);
+            }}
             actions={(flaggedIdSet.has(seatId) && pending.length === 0
               ? flagDecisions
               : markReviewedButton)(
@@ -545,10 +549,13 @@ export default function Dashboard({
                       client={client}
                       review={lead}
                       onResolved={resolved}
+            onMarked={(marked) => {
+              applyMarked(marked);
+              settleRow(marked);
+            }}
                     />
                   ) : null
                 }
-                markReviewed={markReviewedButton}
                 flagDecisions={flagDecisions}
                 feedProblem={reviewNotice}
                 feedLoading={reviews.loading}
@@ -596,6 +603,10 @@ export default function Dashboard({
                       stale={false}
                       client={null}
                       onResolved={resolved}
+            onMarked={(marked) => {
+              applyMarked(marked);
+              settleRow(marked);
+            }}
                       actions={markReviewedButton(
                         selectedPerson.state?.session_id ?? null,
                         selectedPerson.id,

@@ -26,8 +26,8 @@ flowchart TD
     R --> P["Photon / Spectrum text message"]
     D --> X{"Teacher"}
     P --> X
-    X -->|"Support needed / No support needed"| RR["resolve_teacher_review"]
-    X -->|"Mark as reviewed"| MR["mark_seat_reviewed: child back to Working"]
+    X -->|"Approve / Not needed"| RR["approve_review_intervention / resolve_teacher_review"]
+    X -->|"either answer, then"| MR["mark_seat_reviewed: child back to Working"]
 ```
 
 - **Vision** (`vision/`, FastAPI on :8000) reads the camera, tracks people by position only, scores
@@ -106,7 +106,7 @@ There are no unit tests. Two suites check that the parts work together; both nee
 ```bash
 uv run pytest tests/contract   # code, Python contracts, TypeScript parsers and the schema agree
 uv run pytest tests/smoke -s   # vision follows a session, a stalled child becomes a review,
-                               # the dashboard reads it, Mark as reviewed closes it
+                               # the dashboard reads it, the mark after Approve resets the child
 ```
 
 CI (`.github/workflows/ci.yml`) starts a local Supabase and runs both; a skipped test fails it.
@@ -133,7 +133,7 @@ Without them it runs offline on station `S1`, takes the task from `CUES_TASK`, a
 **Working** (checked by the contract and smoke tests): teacher sign-in and default station; session
 start/end and activity picker; one camera per station; person tracking by position; built-in gestures
 and teacher-recorded gestures on the laptop; raise-hand; stall detection and agent review requests;
-persistent reviews with Support needed / No support needed and Mark as reviewed; live evaluated
+persistent reviews with Approve / Not needed (each also marks the child reviewed; people flagged before Cues asks keep a single Mark as reviewed); live evaluated
 progress; Photon text on a new review; local Docker Supabase.
 
 **Open work**

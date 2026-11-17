@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { resolutionLabels, type TeacherReview } from "@/lib/teacher-reviews";
+import type { TeacherReview } from "@/lib/teacher-reviews";
+import { markSeatReviewed } from "@/lib/seat-review";
 import {
   INTERVENTION_MENU,
   approveIntervention,
@@ -18,10 +19,13 @@ export function TeacherReviewActions({
   client,
   review,
   onResolved,
+  onMarked,
 }: {
   client: SupabaseClient;
   review: TeacherReview;
   onResolved: (review: TeacherReview) => void;
+  /** Called once the child is also marked reviewed (back to working, timer restarted). */
+  onMarked?: (seatId: string) => void;
 }) {
   const [support, setSupport] = useState<InterventionKey | "">(
     review.suggested_intervention ?? "",
@@ -42,7 +46,11 @@ export function TeacherReviewActions({
     setSaving(status);
     setError(null);
     try {
-      onResolved(await resolveTeacherReview(client, review, status));
+      const resolved = await resolveTeacherReview(client, review, status);
+      // Either answer is the teacher's check-in: put the child back to working too.
+      await markSeatReviewed(client, review.session_id, review.seat_id);
+      onResolved(resolved);
+      onMarked?.(review.seat_id);
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -62,8 +70,10 @@ export function TeacherReviewActions({
     setError(null);
     try {
       await approveIntervention(client, review.id, support);
-      // Approving also confirms the review: it leaves the queue like "Support needed".
+      // Approving also confirms the review and is the teacher's check-in: reset the child.
+      await markSeatReviewed(client, review.session_id, review.seat_id);
       onResolved({ ...review, status: "confirmed", resolved_at: new Date().toISOString() });
+      onMarked?.(review.seat_id);
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Couldn’t save that. Try again.",
@@ -74,58 +84,47 @@ export function TeacherReviewActions({
     }
   }
   if (review.status !== "pending") return null;
+  const busy = !authenticated || saving !== null;
   return (
     <div className="review-actions">
       <div className="intervention-pick">
-          <label htmlFor={`support-${review.id}`}>
-            {review.suggested_intervention
-              ? "Cues suggests a support. You decide."
-              : "Choose a support to approve."}
-          </label>
-          <div className="intervention-row">
-            <select
-              id={`support-${review.id}`}
-              value={support}
-              disabled={!authenticated || saving !== null}
-              onChange={(event) => {
-                const value = event.target.value;
-                setSupport(isInterventionKey(value) ? value : "");
-              }}
-            >
-              <option value="">Pick a support…</option>
-              {(Object.keys(INTERVENTION_MENU) as InterventionKey[]).map((key) => (
-                <option key={key} value={key}>
-                  {INTERVENTION_MENU[key]}
-                  {key === review.suggested_intervention ? " (suggested)" : ""}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="ws-pill is-dark"
-              disabled={!authenticated || saving !== null || !support}
-              onClick={() => void approve()}
-            >
-              {saving === "approve" ? "Saving…" : "Approve support"}
-            </button>
-          </div>
+        <div className="intervention-row">
+          <select
+            id={`support-${review.id}`}
+            aria-label="Support"
+            value={support}
+            disabled={busy}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSupport(isInterventionKey(value) ? value : "");
+            }}
+          >
+            <option value="">Pick a support…</option>
+            {(Object.keys(INTERVENTION_MENU) as InterventionKey[]).map((key) => (
+              <option key={key} value={key}>
+                {key === review.suggested_intervention ? "Suggested: " : ""}
+                {INTERVENTION_MENU[key]}
+              </option>
+            ))}
+          </select>
         </div>
+      </div>
       <div className="review-action-buttons" aria-busy={saving !== null}>
         <button
           type="button"
           className="ws-pill is-dark"
-          disabled={!authenticated || saving !== null}
-          onClick={() => void resolve("confirmed")}
+          disabled={busy || !support}
+          onClick={() => void approve()}
         >
-          {saving === "confirmed" ? "Saving…" : resolutionLabels.confirmed}
+          {saving === "approve" ? "Saving…" : "Approve"}
         </button>
         <button
           type="button"
           className="ws-pill"
-          disabled={!authenticated || saving !== null}
+          disabled={busy}
           onClick={() => void resolve("dismissed")}
         >
-          {saving === "dismissed" ? "Saving…" : resolutionLabels.dismissed}
+          {saving === "dismissed" ? "Saving…" : "Not needed"}
         </button>
       </div>
       {!authenticated ? (
