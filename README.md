@@ -134,7 +134,8 @@ Without them it runs offline on station `S1`, takes the task from `CUES_TASK`, a
 start/end and activity picker; one camera per station; person tracking by position; built-in gestures
 and teacher-recorded gestures on the laptop; raise-hand; stall detection and agent review requests;
 persistent reviews with Approve / Not needed (each also marks the child reviewed; people flagged before Cues asks keep a single Mark as reviewed); live evaluated
-progress; Photon text on a new review; local Docker Supabase.
+progress; Photon text on a new review; local Docker Supabase; the data behind long-term insights
+(see Insights data below).
 
 **Open work**
 
@@ -147,9 +148,18 @@ progress; Photon text on a new review; local Docker Supabase.
 | Interventions | The agent suggests one support from the approved menu and the teacher approves it (covered by `tests/smoke`). Applying an approved support to a task is not built. |
 | Database one-writer rule | The one-camera guard is enforced in vision only; add a `writer_id` check to `seat_state` writes. |
 | Review evidence | While a review is open, later evaluations are dropped, so the teacher never sees newer evidence. |
+| Insights page | The data is built (migration `20261114002100`, `teacher_insights`, `web/lib/insights.ts`); the page itself is not: route, sidebar link, charts and the pattern notes. A session shows in insights only once it has ended. |
 | History | Progress and prompt history are in memory and lost on restart. |
 | Person ids | By position only, so a person who leaves for 10+ seconds or two who swap seats can change ids. |
 | Refactor leftovers | The dashboard header and hero controls are still inline in `web/components/dashboard.tsx`. |
+
+**Insights data.** When a session ends, a database trigger writes one `session_summaries` row per
+activity (how long it ran, check-ins asked, how each ended, supports approved and whether a success
+followed within 5 minutes, which evidence was used, decision times). It holds class-level counts
+only: no seat, no child, no expression data. `teacher_insights(p_from, p_to, p_activity, p_tz)`
+returns one teacher's page in one request. Ending a session also deletes raw `events` older than 90
+days (never those of a running session), so the summaries are the long-term record. After pulling,
+apply the migration with `supabase migration up` (it also summarizes existing ended sessions).
 
 **Ideas:** end-of-session summary; gesture tuning screen; per-session reports; moving gestures,
 object-state tasks, voice (all optional); more than one camera per classroom (decided not now).

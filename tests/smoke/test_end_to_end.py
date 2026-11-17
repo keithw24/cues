@@ -20,14 +20,14 @@ import sys
 import threading
 import time
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage
 from pydantic import Field
 
-from shared.contracts import Activity, SeatState
+from shared.contracts import Activity, InsightsSummary, SeatState
 from tests.support import local_supabase as db
 from tests.support.typescript import run_parser
 
@@ -422,4 +422,62 @@ def test_a_stalled_child_becomes_a_review_the_teacher_can_see_and_close(
     assert (session_id, teacher.seat) in marks
     assert not teacher.read("teacher_reviews?status=eq.pending&select=id")
 
+    # --- the session ends: it is summarized for the long term, and raw events older than 90
+    # days go (a recent event stays). The page reads one answer from teacher_insights.
+    station_sql = teacher.station.replace("'", "''")
+    # The session guard rejects stray observations, so write these two as the database owner
+    # with triggers off, the way a restored backup would carry old rows.
+    db.execute(
+        "set session_replication_role = replica; "
+        "insert into events (session_id, station_id, seat_id, type, created_at) values "
+        f"(gen_random_uuid(), '{station_sql}', '{teacher.seat}', 'attempt_miss', "
+        "now() - interval '100 days'), "
+        f"(gen_random_uuid(), '{station_sql}', '{teacher.seat}', 'attempt_miss', "
+        "now() - interval '2 days')"
+    )
     teacher.end_session(session)
+    ages = db.sql(
+        f"select created_at < now() - interval '90 days' as old from events "
+        f"where station_id = '{station_sql}' and session_id <> '{session['id']}'"
+    )
+    assert ages == [{"old": False}], ages
+    now = datetime.now(UTC)
+    summary = teacher.rpc(
+        "teacher_insights",
+        {
+            "p_from": (now - timedelta(days=1)).isoformat(),
+            "p_to": (now + timedelta(days=1)).isoformat(),
+            "p_activity": None,
+            "p_tz": "UTC",
+        },
+    )
+    insights = InsightsSummary.model_validate(summary)
+    # The earlier test in this module also ran (and ended) a session for the same teacher.
+    ended = db.sql(
+        f"select count(*) as n from sessions where teacher_id = '{teacher.id}' "
+        "and ended_at is not null"
+    )[0]["n"]
+    assert insights.totals.sessions == ended >= 1
+    assert insights.totals.reviews_raised == 1
+    assert insights.totals.confirmed == 1 and insights.totals.approved_supports == 1
+    assert insights.totals.median_decision_seconds is not None
+    assert [s.action for s in insights.supports] == ["show_example"]
+    assert "current_progress" in insights.evidence
+    assert [a.activity_id for a in insights.activities] == ["raise_hand"]
+    assert sum(h.count for h in insights.heat) == 1
+    assert run_parser("insights", summary)["reviews"] == 1
+    # Another teacher's page never includes this one's sessions.
+    other = Teacher(supabase_stack)
+    try:
+        nobody = other.rpc(
+            "teacher_insights",
+            {
+                "p_from": (now - timedelta(days=1)).isoformat(),
+                "p_to": (now + timedelta(days=1)).isoformat(),
+                "p_activity": None,
+                "p_tz": "UTC",
+            },
+        )
+        assert nobody["totals"]["reviews_raised"] == 0 and nobody["totals"]["sessions"] == 0
+    finally:
+        other.cleanup()

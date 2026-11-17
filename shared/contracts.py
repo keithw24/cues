@@ -99,6 +99,12 @@ InterventionKey = Literal[
 ]
 
 
+# What the agent may say it looked at when it asked for a review (teacher_reviews.evidence_used).
+EvidenceSource = Literal[
+    "current_progress", "activity", "recent_progress_history", "prompt_history"
+]
+
+
 class _Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
@@ -195,3 +201,111 @@ class Session(_Contract):
     started_at: AwareDatetime
     ended_at: AwareDatetime | None
     revision: Annotated[int, Field(ge=0, strict=True)]
+
+
+class SupportUse(_Contract):
+    """Approvals of one support, and how many were followed by a success within 5 minutes."""
+
+    approved: Annotated[int, Field(ge=1)]
+    resumed: Annotated[int, Field(ge=0)]
+
+    @model_validator(mode="after")
+    def resumed_within_approved(self) -> Self:
+        if self.resumed > self.approved:
+            raise ValueError("resumed cannot exceed approved")
+        return self
+
+
+class SessionSummary(_Contract):
+    """One ended session and activity, kept after raw events are pruned. Class-level only:
+    no seat, no child, no expression data."""
+
+    session_id: UUID
+    activity_id: Identifier
+    teacher_id: UUID
+    started_at: AwareDatetime
+    class_seconds: Annotated[int, Field(ge=0)] = 0
+    reviews_raised: Annotated[int, Field(ge=0)] = 0
+    confirmed: Annotated[int, Field(ge=0)] = 0
+    dismissed: Annotated[int, Field(ge=0)] = 0
+    reviewed: Annotated[int, Field(ge=0)] = 0
+    expired: Annotated[int, Field(ge=0)] = 0
+    pending: Annotated[int, Field(ge=0)] = 0
+    supports: dict[InterventionKey, SupportUse] = Field(default_factory=dict)
+    evidence: dict[EvidenceSource, Annotated[int, Field(ge=1)]] = Field(default_factory=dict)
+    decision_seconds: list[Annotated[int, Field(ge=0)]] = Field(default_factory=list)
+    raised_at: list[AwareDatetime] = Field(default_factory=list)
+    summarized_at: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def outcomes_add_up(self) -> Self:
+        total = self.confirmed + self.dismissed + self.reviewed + self.expired + self.pending
+        if total != self.reviews_raised:
+            raise ValueError("outcomes must add up to reviews_raised")
+        if len(self.raised_at) != self.reviews_raised:
+            raise ValueError("raised_at needs one time per review")
+        return self
+
+
+class InsightsTotals(_Contract):
+    sessions: Annotated[int, Field(ge=0)]
+    class_seconds: Annotated[int, Field(ge=0)]
+    reviews_raised: Annotated[int, Field(ge=0)]
+    confirmed: Annotated[int, Field(ge=0)]
+    dismissed: Annotated[int, Field(ge=0)]
+    reviewed: Annotated[int, Field(ge=0)]
+    expired: Annotated[int, Field(ge=0)]
+    pending: Annotated[int, Field(ge=0)]
+    approved_supports: Annotated[int, Field(ge=0)]
+    median_decision_seconds: Duration | None
+
+
+class InsightsWeek(_Contract):
+    week_start: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    sessions: Annotated[int, Field(ge=0)]
+    reviews_raised: Annotated[int, Field(ge=0)]
+
+
+class InsightsSupport(_Contract):
+    action: InterventionKey
+    approved: Annotated[int, Field(ge=0)]
+    resumed: Annotated[int, Field(ge=0)]
+
+
+class InsightsActivity(_Contract):
+    activity_id: Identifier
+    name: Identifier
+    class_seconds: Annotated[int, Field(ge=0)]
+    reviews_raised: Annotated[int, Field(ge=0)]
+
+
+class InsightsHeat(_Contract):
+    dow: Annotated[int, Field(ge=0, le=6)]
+    hour: Annotated[int, Field(ge=0, le=23)]
+    count: Annotated[int, Field(ge=1)]
+
+
+class InsightsRange(_Contract):
+    from_: AwareDatetime = Field(alias="from")
+    to: AwareDatetime
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+class InsightsPrevious(_Contract):
+    sessions: Annotated[int, Field(ge=0)]
+    reviews_raised: Annotated[int, Field(ge=0)]
+
+
+class InsightsSummary(_Contract):
+    """What teacher_insights() returns: a teacher's own sessions rolled up. Counts for the
+    classroom, never per child, never a score."""
+
+    range: InsightsRange
+    totals: InsightsTotals
+    previous: InsightsPrevious
+    weekly: list[InsightsWeek]
+    supports: list[InsightsSupport]
+    evidence: dict[EvidenceSource, Annotated[int, Field(ge=1)]]
+    activities: list[InsightsActivity]
+    heat: list[InsightsHeat]

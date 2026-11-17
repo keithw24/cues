@@ -2,11 +2,18 @@
 
 import shutil
 from datetime import UTC, datetime
+from typing import get_args
 from uuid import uuid4
 
 import pytest
 
-from shared.contracts import ExpressionContext, SeatState, SeatStatus
+from shared.contracts import (
+    EvidenceSource,
+    ExpressionContext,
+    InsightsSummary,
+    SeatState,
+    SeatStatus,
+)
 from tests.contract.fixtures import fixture_rows
 from tests.support.typescript import run_parser
 
@@ -76,3 +83,56 @@ def test_the_dashboard_parser_rejects_what_the_contract_forbids():
     snapshot = {"seats": [], "states": [bad], "activities": [], "stations": []}
     with pytest.raises(AssertionError, match="rejected"):
         run_parser("snapshot", snapshot)
+
+
+def test_dashboard_evidence_vocabulary_equals_the_python_contract():
+    assert set(run_parser("vocabulary", {})["evidence"]) == set(get_args(EvidenceSource))
+
+
+def insights() -> dict:
+    now = datetime.now(UTC).isoformat()
+    return InsightsSummary.model_validate(
+        {
+            "range": {"from": now, "to": now},
+            "totals": {
+                "sessions": 2,
+                "class_seconds": 900,
+                "reviews_raised": 3,
+                "confirmed": 1,
+                "dismissed": 1,
+                "reviewed": 1,
+                "expired": 0,
+                "pending": 0,
+                "approved_supports": 1,
+                "median_decision_seconds": 42.5,
+            },
+            "previous": {"sessions": 1, "reviews_raised": 2},
+            "weekly": [{"week_start": "2026-11-09", "sessions": 2, "reviews_raised": 3}],
+            "supports": [{"action": "show_example", "approved": 1, "resumed": 1}],
+            "evidence": {"current_progress": 3, "activity": 2},
+            "activities": [
+                {
+                    "activity_id": "raise_hand",
+                    "name": "Raise hand",
+                    "class_seconds": 900,
+                    "reviews_raised": 3,
+                }
+            ],
+            "heat": [{"dow": 2, "hour": 10, "count": 3}],
+        }
+    ).model_dump(mode="json", by_alias=True)
+
+
+def test_an_insights_summary_python_produces_is_accepted_by_the_dashboard_parser():
+    assert run_parser("insights", insights())["reviews"] == 3
+
+
+def test_the_insights_parser_rejects_what_the_contract_forbids():
+    for broken in (
+        {"supports": [{"action": "give_a_grade", "approved": 1, "resumed": 0}]},
+        {"evidence": {"facial_expression": 2}},
+        {"heat": [{"dow": 7, "hour": 10, "count": 1}]},
+        {"weekly": [{"week_start": "last week", "sessions": 1, "reviews_raised": 1}]},
+    ):
+        with pytest.raises(AssertionError, match="rejected"):
+            run_parser("insights", insights() | broken)

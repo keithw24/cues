@@ -4,7 +4,8 @@
 import { readFileSync } from "node:fs";
 import { parseSnapshot, statuses } from "../../web/lib/dashboard.ts";
 import { parseSession, parseStationRuntime } from "../../web/lib/session-controls.ts";
-import { parseTeacherReviews } from "../../web/lib/teacher-reviews.ts";
+import { evidenceLabels, parseTeacherReviews } from "../../web/lib/teacher-reviews.ts";
+import { parseInsights } from "../../web/lib/insights.ts";
 import { agentIsAlive, evaluatedProgress } from "../../web/lib/progress-context.ts";
 
 const [kind, file, station] = process.argv.slice(2);
@@ -13,7 +14,7 @@ const out = (value: object) => console.log(JSON.stringify({ ok: true, ...value }
 
 switch (kind) {
   case "vocabulary":
-    out({ statuses: Object.keys(statuses) });
+    out({ statuses: Object.keys(statuses), evidence: Object.keys(evidenceLabels) });
     break;
   case "snapshot": {
     const snapshot = parseSnapshot(data, true);
@@ -44,6 +45,11 @@ switch (kind) {
   case "reviews":
     out({ reviews: parseTeacherReviews(data).length });
     break;
+  case "insights": {
+    const insights = parseInsights(data);
+    out({ reviews: insights.totals.reviews_raised, supports: insights.supports.length });
+    break;
+  }
   default:
     throw new Error(`unknown kind ${kind}`);
 }

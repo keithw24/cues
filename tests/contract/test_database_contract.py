@@ -10,7 +10,7 @@ from collections import defaultdict
 
 import pytest
 
-from shared.contracts import Activity, Event, SeatState, Session
+from shared.contracts import Activity, Event, SeatState, Session, SessionSummary
 from tests.contract import scan
 from tests.support import local_supabase as db
 
@@ -86,7 +86,13 @@ def test_every_rpc_call_matches_a_database_function(columns, functions):
 
 @pytest.mark.parametrize(
     ("model", "table"),
-    [(Event, "events"), (SeatState, "seat_state"), (Session, "sessions"), (Activity, "activities")],
+    [
+        (Event, "events"),
+        (SeatState, "seat_state"),
+        (Session, "sessions"),
+        (Activity, "activities"),
+        (SessionSummary, "session_summaries"),
+    ],
 )
 def test_python_contract_fields_are_columns_and_required_columns_are_fields(columns, model, table):
     table_columns = columns[table]
