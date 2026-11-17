@@ -52,7 +52,7 @@ uv run python -m vision.events --demo  # send one test event
 
 ## Workflow
 
-Work happens on the `refactor` branch (cut from `main`). Keep each commit scoped to one change.
+`main` is the default branch of `keithw24/cues`. Work on a short branch cut from it and merge back once CI is green. Keep each commit scoped to one change.
 What gates a change:
 
 1. The commands above pass, in particular the two cross-component suites:
