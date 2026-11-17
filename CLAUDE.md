@@ -113,8 +113,11 @@ These are the product's non-negotiables.
 
 ## Pushing
 
-If `git push` over SSH is refused, push over HTTPS with the `gh` login:
+`origin` is `https://github.com/keithw24/cues.git`; plain `git push` works because this repo's
+git config uses the `gh` login for github.com. If a push is refused, push with it explicitly:
 
 ```bash
-git -c credential.helper= -c credential.helper='!gh auth git-credential' push -u https://github.com/michelliez/cues.git <branch>
+git -c credential.helper= -c credential.helper='!gh auth git-credential' push -u https://github.com/keithw24/cues.git <branch>
 ```
+
+The old `michelliez/cues` repo is the remote `michelliez` (fetch-only reference).
