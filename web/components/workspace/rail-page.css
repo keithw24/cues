@@ -80,6 +80,11 @@
   opacity: 1;
   translate: 0 -50%;
 }
+/* First visit: every label shows for a few seconds. */
+.dashboard-shell .workspace-sidebar[data-hint] .rail-link .nav-label {
+  opacity: 1;
+  translate: 0 -50%;
+}
 @media (hover: hover) and (pointer: fine) {
   .dashboard-shell .rail-link:not(.is-current):hover {
     background: var(--ws-pill-hover);
@@ -162,7 +167,7 @@
 .dashboard-shell .ws-subtitle {
   margin-top: 10px;
   color: var(--ws-ink-soft);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
@@ -210,7 +215,7 @@
 }
 .dashboard-shell .session-line {
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 .dashboard-shell .session-line.is-error {
   color: var(--ws-review);
@@ -246,7 +251,7 @@
   border-radius: 18px;
   background: var(--ws-review-soft);
   color: var(--ws-review);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
 }
@@ -324,7 +329,7 @@
   padding: 6px 14px;
   border-radius: 999px;
   background: var(--ws-surface);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 .dashboard-shell .health-label {
@@ -350,7 +355,7 @@
   border-radius: 18px;
   background: var(--ws-review-soft);
   color: var(--ws-review);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
 }
@@ -360,7 +365,7 @@
   display: block;
   margin-bottom: 6px;
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 .dashboard-shell .intervention-row {
   display: flex;

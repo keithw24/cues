@@ -15,7 +15,7 @@
   height: 32px;
   margin: -6px 0;
   padding: 0 14px;
-  font-size: 13px;
+  font-size: 14px;
 }
 /* The camera's own shape, 16:9, so the frame fills it with no bars. Its
    size comes from the column, never from the video. */
@@ -78,7 +78,7 @@
 }
 .dashboard-shell .settings-main > .page-intro p {
   color: var(--ws-ink-soft);
-  font-size: 17px;
+  font-size: 16px;
 }
 .dashboard-shell .settings-list {
   display: grid;
@@ -124,12 +124,12 @@
   min-width: 0;
 }
 .dashboard-shell .settings-row-body strong {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
 }
 .dashboard-shell .settings-row-body span {
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 .dashboard-shell .settings-row > svg {
   flex: none;
@@ -139,7 +139,7 @@
 }
 .dashboard-shell .settings-row-error {
   color: var(--ws-review);
-  font-size: 13px;
+  font-size: 14px;
 }
 @media (hover: hover) and (pointer: fine) {
   .dashboard-shell a.settings-row:hover {
@@ -155,7 +155,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 40px;
+  height: 44px;
   padding: 0 18px;
   border-radius: 999px;
   background: var(--ws-pill);

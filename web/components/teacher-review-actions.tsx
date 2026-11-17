@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TeacherReview } from "@/lib/teacher-reviews";
 import { markSeatReviewed } from "@/lib/seat-review";
+import { useUndoWindow } from "@/components/use-undo-window";
 import {
   INTERVENTION_MENU,
   approveIntervention,
@@ -31,6 +32,7 @@ export function TeacherReviewActions({
     review.suggested_intervention ?? "",
   );
   const locked = useRef(false);
+  const undo = useUndoWindow();
   const [saving, setSaving] = useState<ReviewResolution | "approve" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
@@ -40,8 +42,13 @@ export function TeacherReviewActions({
     });
     return () => data.subscription.unsubscribe();
   }, [client]);
-  async function resolve(status: ReviewResolution) {
-    if (!authenticated || locked.current || review.status !== "pending") return;
+  function resolve(status: ReviewResolution) {
+    if (!authenticated || locked.current || undo.pending) return;
+    if (review.status !== "pending") return;
+    undo.start("Marked not needed.", () => commitResolve(status));
+  }
+  async function commitResolve(status: ReviewResolution) {
+    if (locked.current) return;
     locked.current = true;
     setSaving(status);
     setError(null);
@@ -62,14 +69,18 @@ export function TeacherReviewActions({
       setSaving(null);
     }
   }
-  async function approve() {
-    if (!authenticated || locked.current || review.status !== "pending") return;
-    if (!isInterventionKey(support)) return;
+  function approve() {
+    if (!authenticated || locked.current || undo.pending) return;
+    if (review.status !== "pending" || !isInterventionKey(support)) return;
+    undo.start("Support approved.", () => commitApprove(support));
+  }
+  async function commitApprove(choice: InterventionKey) {
+    if (locked.current) return;
     locked.current = true;
     setSaving("approve");
     setError(null);
     try {
-      await approveIntervention(client, review.id, support);
+      await approveIntervention(client, review.id, choice);
       // Approving also confirms the review and is the teacher's check-in: reset the child.
       await markSeatReviewed(client, review.session_id, review.seat_id);
       onResolved({ ...review, status: "confirmed", resolved_at: new Date().toISOString() });
@@ -84,7 +95,7 @@ export function TeacherReviewActions({
     }
   }
   if (review.status !== "pending") return null;
-  const busy = !authenticated || saving !== null;
+  const busy = !authenticated || saving !== null || undo.pending !== null;
   return (
     <div className="review-actions">
       <div className="intervention-pick">
@@ -114,7 +125,7 @@ export function TeacherReviewActions({
           type="button"
           className="ws-pill is-dark"
           disabled={busy || !support}
-          onClick={() => void approve()}
+          onClick={approve}
         >
           {saving === "approve" ? "Saving…" : "Approve"}
         </button>
@@ -122,11 +133,19 @@ export function TeacherReviewActions({
           type="button"
           className="ws-pill"
           disabled={busy}
-          onClick={() => void resolve("dismissed")}
+          onClick={() => resolve("dismissed")}
         >
           {saving === "dismissed" ? "Saving…" : "Not needed"}
         </button>
       </div>
+      {undo.pending ? (
+        <p className="person-note" role="status">
+          {undo.pending} Saving in a moment.{" "}
+          <button type="button" className="text-link" onClick={undo.cancel}>
+            Undo
+          </button>
+        </p>
+      ) : null}
       {!authenticated ? (
         <p className="person-note" role="status">
           Sign in to record your decision.

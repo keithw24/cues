@@ -4,24 +4,19 @@
   --background: #ffffff;
   --foreground: #20252d;
   --paper: #ffffff;
-  --muted: #f2f4f7;
   --muted-foreground: #626b78;
   --line: #e6e9ee;
-  --accent: #edf3fb;
-  --accent-foreground: #173f72;
   --ring: #245899;
   --primary: #173f72;
   --primary-foreground: #ffffff;
   --card: #ffffff;
-  --review: #934d31;
-  --review-soft: #fcf0e9;
-  --radius: 12px;
   --control-radius: 8px;
   --control-height: 38px;
+  /* Type scale: caption, body, section, title. Workspace CSS uses only these. */
   --text-caption: 12px;
   --text-body: 14px;
   --text-section: 16px;
-  --surface-hover: #f5f7fa;
+  --text-title: 20px;
 }
 @theme inline {
   --color-background: var(--background);
@@ -223,5 +218,17 @@ h3 {
   }
   button {
     transition: none;
+  }
+}
+/* Pages outside the workspace (landing, sign-in, profile): no motion for
+   people who ask for none. The workspace has its own gentler fades. */
+@media (prefers-reduced-motion: reduce) {
+  :where(body *):not(.dashboard-shell *),
+  :where(body *):not(.dashboard-shell *)::before,
+  :where(body *):not(.dashboard-shell *)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

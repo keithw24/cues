@@ -27,7 +27,7 @@
    title as the one voice. */
 .dashboard-shell .panel-heading h2 {
   color: var(--ws-ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -51,7 +51,7 @@
   border-radius: 999px;
   background: var(--ws-review-soft);
   color: var(--ws-review);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -111,14 +111,14 @@ div.ws-row {
   background: var(--ws-panel-solid);
   box-shadow: var(--ws-shadow);
   color: var(--ws-ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 .row-avatar.is-large {
   width: 56px;
   height: 56px;
-  font-size: 17px;
+  font-size: 16px;
 }
 .row-body {
   display: grid;
@@ -128,7 +128,7 @@ div.ws-row {
 }
 .row-name {
   overflow: hidden;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: -0.01em;
   text-overflow: ellipsis;
@@ -137,7 +137,7 @@ div.ws-row {
 .row-caption {
   overflow: hidden;
   color: var(--ws-ink-faint);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-overflow: ellipsis;
@@ -184,7 +184,7 @@ div.ws-row {
 .dashboard-shell .list-label {
   margin: 8px 10px 8px;
   color: var(--ws-ink-faint);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -217,7 +217,7 @@ div.ws-row {
   border-radius: 999px;
   background: var(--ws-review-soft);
   color: var(--ws-review);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 /* Attention sits beside the camera at the camera's height: it doesn't add to
@@ -289,7 +289,7 @@ div.ws-row {
   border-radius: 999px;
   background: var(--ws-review);
   color: #ffffff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -414,7 +414,7 @@ div.ws-row {
 }
 .dashboard-shell .strip-status {
   color: var(--ws-ink-soft);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;

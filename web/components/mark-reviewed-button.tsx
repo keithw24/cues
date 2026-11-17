@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { markSeatReviewed } from "@/lib/seat-review";
 import { resolutionLabels } from "@/lib/teacher-reviews";
+import { useUndoWindow } from "@/components/use-undo-window";
 
 /**
  * "Mark as reviewed" for a flagged child. It closes their open review requests on every
@@ -100,6 +101,7 @@ export function FlagDecisionButtons({
   seatId: string;
   onDecided?: (seatId: string) => void;
 }) {
+  const undo = useUndoWindow();
   const locked = useRef(false);
   const [saving, setSaving] = useState<"confirmed" | "dismissed" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -110,8 +112,12 @@ export function FlagDecisionButtons({
     });
     return () => data.subscription.unsubscribe();
   }, [client]);
-  async function decide(choice: "confirmed" | "dismissed") {
-    if (!authenticated || locked.current) return;
+  function decide(choice: "confirmed" | "dismissed") {
+    if (!authenticated || locked.current || undo.pending) return;
+    undo.start(`${resolutionLabels[choice]}.`, () => commit(choice));
+  }
+  async function commit(choice: "confirmed" | "dismissed") {
+    if (locked.current) return;
     locked.current = true;
     setSaving(choice);
     setError(null);
@@ -133,20 +139,28 @@ export function FlagDecisionButtons({
         <button
           type="button"
           className="ws-pill is-dark"
-          disabled={!authenticated || saving !== null}
-          onClick={() => void decide("confirmed")}
+          disabled={!authenticated || saving !== null || undo.pending !== null}
+          onClick={() => decide("confirmed")}
         >
           {saving === "confirmed" ? "Saving…" : resolutionLabels.confirmed}
         </button>
         <button
           type="button"
           className="ws-pill"
-          disabled={!authenticated || saving !== null}
-          onClick={() => void decide("dismissed")}
+          disabled={!authenticated || saving !== null || undo.pending !== null}
+          onClick={() => decide("dismissed")}
         >
           {saving === "dismissed" ? "Saving…" : resolutionLabels.dismissed}
         </button>
       </div>
+      {undo.pending ? (
+        <p className="person-note" role="status">
+          {undo.pending} Saving in a moment.{" "}
+          <button type="button" className="text-link" onClick={undo.cancel}>
+            Undo
+          </button>
+        </p>
+      ) : null}
       {!authenticated ? (
         <p className="person-note" role="status">
           Sign in to record your decision.

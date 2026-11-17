@@ -51,7 +51,7 @@ body .dashboard-shell.ws-demo {
   right: -4px;
   min-width: 16px;
   height: 16px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .ws-demo-main {
   min-width: 0;
@@ -71,7 +71,7 @@ body .dashboard-shell.ws-demo {
 }
 .dashboard-shell.ws-demo .ws-subtitle {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 14px;
 }
 /* The activity controls, drawn as in the classroom (not interactive here). */
 .dashboard-shell.ws-demo .session-controls {
@@ -83,7 +83,7 @@ body .dashboard-shell.ws-demo {
 .dashboard-shell.ws-demo .session-row .ws-pill {
   height: 34px;
   padding: 0 14px;
-  font-size: 13px;
+  font-size: 14px;
   cursor: default;
 }
 .dashboard-shell.ws-demo .session-row .ws-icon-button {
@@ -103,7 +103,7 @@ body .dashboard-shell.ws-demo {
   background: var(--ws-pill);
   box-shadow: var(--ws-shadow);
   color: var(--ws-ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 }
 .dashboard-shell .ws-demo-select svg {
@@ -114,7 +114,7 @@ body .dashboard-shell.ws-demo {
 .dashboard-shell.ws-demo .review-link {
   height: 34px;
   padding: 0 14px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .dashboard-shell.ws-demo .monitor-workspace {
   grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
@@ -144,7 +144,7 @@ body .dashboard-shell.ws-demo {
 }
 .dashboard-shell.ws-demo .panel-empty {
   padding: 24px 10px;
-  font-size: 13px;
+  font-size: 14px;
 }
 /* The camera, illustrated: a dim room with one outlined box and label per
    person, as the vision overlay draws them. Never video. */
@@ -199,7 +199,7 @@ body .dashboard-shell.ws-demo {
   border-radius: 8px 0 8px 0;
   background: var(--box-color, #8fa3ff);
   color: #0b0d12;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   transition: background-color 300ms ease-out;
@@ -230,7 +230,7 @@ body .dashboard-shell.ws-demo {
   font-size: 14px;
 }
 .dashboard-shell .ws-demo-strip .strip-status {
-  font-size: 10px;
+  font-size: 12px;
 }
 /* A request arrives and leaves: opacity and a 6px rise, once per change. */
 .dashboard-shell.ws-demo .ws-demo-arrive {

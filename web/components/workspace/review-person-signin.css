@@ -41,7 +41,7 @@
   gap: 10px;
 }
 .dashboard-shell .review-card-title h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 500;
   letter-spacing: -0.015em;
 }
@@ -123,7 +123,7 @@
   gap: 6px;
 }
 .dashboard-shell .review-prompt-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.015em;
 }
@@ -141,11 +141,11 @@
 }
 .dashboard-shell .person-note {
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 .dashboard-shell .person-error {
   color: var(--ws-review);
-  font-size: 13px;
+  font-size: 14px;
 }
 .dashboard-shell .person-why {
   border-top: 1px solid var(--ws-line);
@@ -156,7 +156,7 @@
   align-items: center;
   gap: 4px;
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   list-style: none;
   cursor: pointer;
@@ -175,7 +175,7 @@
 .dashboard-shell .person-why p {
   margin-top: 8px;
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
 }
 .dashboard-shell .person-why .ws-caption {
@@ -206,7 +206,7 @@
   max-width: 36ch;
   margin-bottom: 10px;
   color: var(--ws-ink-soft);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
 }
 

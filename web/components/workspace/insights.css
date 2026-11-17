@@ -15,7 +15,7 @@
 .dashboard-shell .ins-caption {
   margin-top: 10px;
   color: var(--ws-ink-faint);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -23,7 +23,7 @@
 .dashboard-shell .ins-hint,
 .dashboard-shell .ins-detail {
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
 }
 .dashboard-shell .ins-detail {
@@ -77,7 +77,7 @@
 .dashboard-shell .ins-kpi-number small {
   margin-left: 3px;
   color: var(--ws-ink-soft);
-  font-size: 18px;
+  font-size: 16px;
   letter-spacing: 0;
 }
 .dashboard-shell .ins-card {
@@ -86,7 +86,7 @@
 }
 .dashboard-shell .ins-card h2 {
   margin-bottom: 4px;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -137,7 +137,7 @@
   gap: 10px;
   margin-top: 8px;
   color: var(--ws-ink-faint);
-  font-size: 11px;
+  font-size: 12px;
 }
 .dashboard-shell .ins-axis span {
   flex: 1;
@@ -176,7 +176,7 @@
   grid-template-columns: minmax(96px, 150px) minmax(0, 1fr) 32px;
   align-items: center;
   gap: 12px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .dashboard-shell .ins-track {
   height: 10px;
@@ -232,7 +232,7 @@
   padding: 0;
   list-style: none;
   color: var(--ws-ink-soft);
-  font-size: 13px;
+  font-size: 14px;
 }
 .dashboard-shell .ins-keys li {
   display: flex;
@@ -262,7 +262,7 @@
   padding: 0 0 10px;
   border-top: 0;
   color: var(--ws-ink-faint);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -298,7 +298,7 @@
   display: grid;
   gap: 5px;
   color: var(--ws-ink-faint);
-  font-size: 11px;
+  font-size: 12px;
 }
 .dashboard-shell .ins-heat-head,
 .dashboard-shell .ins-heat-row {

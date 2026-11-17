@@ -392,8 +392,14 @@
   .dashboard-shell .sidebar-nav {
     margin-left: auto;
   }
+  /* Hidden to the eye, still read aloud: never display: none. */
   .dashboard-shell .rail-link .nav-label {
-    display: none;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    opacity: 0;
   }
   .dashboard-shell .ws-hero {
     padding-top: 28px;

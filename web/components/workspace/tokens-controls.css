@@ -55,7 +55,7 @@
   --ws-line: rgb(11 13 18 / 0.07);
   --ws-ink: #0b0d12;
   --ws-ink-soft: #6b6f78;
-  --ws-ink-faint: #9a9da5;
+  --ws-ink-faint: #686c75;
   --ws-blue: #425cc8;
   --ws-blue-deep: #2f48ad;
   --ws-blue-soft: #e9edfb;
@@ -97,7 +97,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 40px;
+  height: 44px;
   padding: 0 18px;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -135,8 +135,8 @@
   display: inline-grid;
   flex: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   background: var(--ws-pill);
   box-shadow: var(--ws-shadow);
@@ -167,7 +167,7 @@
 }
 .ws-caption {
   color: var(--ws-ink-faint);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
