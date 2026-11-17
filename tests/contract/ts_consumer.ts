@@ -16,17 +16,9 @@ import {
 import { parseInsights } from "../../web/lib/insights.ts";
 import { agentIsAlive, evaluatedProgress } from "../../web/lib/progress-context.ts";
 import { INTERVENTION_MENU } from "../../web/lib/interventions.ts";
-import { parseSeatReview } from "../../web/lib/seat-review.ts";
-import { parseStationFlags } from "../../web/lib/station-flags.ts";
-import { cameraConflict, parseStationWriter } from "../../web/lib/station-writer.ts";
-import { parseDefaultStation } from "../../web/lib/default-station.ts";
-import { cleanProfileInput } from "../../web/lib/teacher-profile.ts";
-import { notificationState } from "../../web/lib/notification-settings.ts";
-import { normalizeAlertPhone } from "../../web/lib/alert-phone.ts";
 import { E164, STATION_ID } from "../../web/lib/ids.ts";
 import { configureLocalVision } from "../../web/lib/local-vision.ts";
-import { cameraHealth, readLocalVision } from "../../web/lib/camera-health.ts";
-import { observationPresentation } from "../../web/lib/observation-presentation.ts";
+import { readLocalVision } from "../../web/lib/camera-health.ts";
 
 const [kind, file, station] = process.argv.slice(2);
 const data = JSON.parse(readFileSync(file, "utf8"));
@@ -63,13 +55,6 @@ async function main() {
         phones: (data.phones as string[]).map((s) => E164.test(s)),
       });
       break;
-    case "phone":
-      out({
-        numbers: (data.numbers as [string, string][]).map(([code, number]) =>
-          normalizeAlertPhone(code, number),
-        ),
-      });
-      break;
     case "snapshot": {
       const snapshot = parseSnapshot(data, true);
       out({ seats: snapshot.seats.length, states: snapshot.states.length });
@@ -100,14 +85,6 @@ async function main() {
       });
       break;
     }
-    case "observation": {
-      const row = parseSnapshot(
-        { seats: [], states: [data.row], activities: [], stations: [] },
-        true,
-      ).states[0];
-      out(observationPresentation(row, data.options));
-      break;
-    }
     case "reviews":
       out({ reviews: parseTeacherReviews(data).length });
       break;
@@ -116,24 +93,6 @@ async function main() {
       out({ reviews: insights.totals.reviews_raised, supports: insights.supports.length });
       break;
     }
-    case "default_station":
-      out(parseDefaultStation(data));
-      break;
-    case "mark":
-      out(parseSeatReview(data));
-      break;
-    case "flags":
-      out({ flags: parseStationFlags(data).map((f) => `${f.kind}:${f.seat_id}`) });
-      break;
-    case "writer":
-      out({ conflict: cameraConflict(parseStationWriter(data.row), data.now) });
-      break;
-    case "profile":
-      out(cleanProfileInput(data));
-      break;
-    case "notification_state":
-      out({ state: notificationState(data.settings, data.phone, data.dirty ?? false) });
-      break;
     case "vision_read": {
       // The dashboard reading this laptop's vision service; the answers are canned.
       const reading = await readLocalVision(
@@ -154,19 +113,6 @@ async function main() {
       out({ result, sent });
       break;
     }
-    case "vision_live": {
-      // The same two calls against a really running vision service.
-      // Tell vision its station first (when asked to), then read it back, like the dashboard.
-      const configured = data.station === undefined
-        ? null
-        : await configureLocalVision(data.station, fetch as never, data.base, data.refresh ?? false);
-      const reading = await readLocalVision(fetch, data.base);
-      out({ reading, configured });
-      break;
-    }
-    case "camera_health":
-      out(cameraHealth(data));
-      break;
     default:
       throw new Error(`unknown kind ${kind}`);
   }

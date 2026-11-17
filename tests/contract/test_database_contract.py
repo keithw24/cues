@@ -425,6 +425,15 @@ def test_teacher_functions_need_a_signed_in_teacher(supabase_stack, name):
     assert all(db.may_execute("authenticated", name)), f"a teacher cannot run {name}"
 
 
+@pytest.mark.parametrize(
+    "name", ["approve_review_intervention", "resolve_teacher_review", "mark_seat_reviewed"]
+)
+def test_the_backend_cannot_decide_for_the_teacher(supabase_stack, name):
+    """Approving, answering and marking a child are the teacher's: not callable with the
+    backend's own key either."""
+    assert not any(db.may_execute("service_role", name)), f"the backend may run {name}"
+
+
 # ---- 5. What the code reads back is a column it stores ---------------------------------------
 
 

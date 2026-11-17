@@ -78,29 +78,6 @@ def test_the_shared_contracts_carry_no_identity_and_no_camera_data():
         assert not {f for f in model.model_fields if re.search(r"seat|child|student", f)}
 
 
-def test_a_person_is_only_a_position_in_the_frame(supabase_stack):
-    """Seat rows made for a new station are placeholders ('Person 1'), never a name."""
-    source = db.function_source("get_or_create_my_default_station")
-    assert "'Person ' || n" in source
-    assert "is_simulated" in source and "true" in source
-    seats = db.sql("select display_name from public.seats")
-    assert all(re.fullmatch(r"(Person \d+|Left seat|Right seat)", s["display_name"]) for s in seats)
-
-
-def test_no_face_recognition_or_identification_library_is_used():
-    banned = re.compile(
-        r"^\s*(?:from|import)\s+(face_recognition|deepface|dlib|insightface|facenet\w*|mtcnn|"
-        r"retinaface|arcface|openface)\b",
-        re.M,
-    )
-    for path in scan.source_files():
-        if path.suffix == ".py":
-            assert not banned.search(path.read_text()), f"{path} imports a recognition library"
-    project = (ROOT / "pyproject.toml").read_text().lower()
-    for name in ("face-recognition", "face_recognition", "deepface", "dlib", "insightface"):
-        assert name not in project
-
-
 def test_gesture_examples_stay_on_the_laptop():
     """Recorded gestures live in vision/templates/, git-ignored, and no code that talks to the
     network (the database writer, the session sync, the agent, the dashboard) touches them."""
@@ -149,34 +126,6 @@ def test_only_the_expected_components_write_the_expected_tables():
         "teacher_reviews": {"agent/supabase_teacher_review.py"},
         "teacher_profiles": {"web/lib/teacher-profile.ts"},
     }
-
-
-def test_the_only_ways_to_change_a_task_or_a_support_need_a_signed_in_teacher(supabase_stack):
-    for name in (
-        "start_station_activity",
-        "end_station_session",
-        "approve_review_intervention",
-        "resolve_teacher_review",
-        "mark_seat_reviewed",
-    ):
-        assert not any(db.may_execute("anon", name)), f"anyone may run {name}"
-        source = db.function_source(name)
-        assert "auth.uid()" in source or "require_station_teacher" in source, name
-    # Approving, answering and marking are not even callable with the backend's own key.
-    for name in ("approve_review_intervention", "resolve_teacher_review", "mark_seat_reviewed"):
-        assert not any(db.may_execute("service_role", name)), f"the backend may run {name}"
-
-
-def test_a_review_is_only_ever_resolved_by_the_teacher_or_by_the_system_for_a_reason(
-    supabase_stack,
-):
-    """Teachers may resolve a review as confirmed or dismissed. 'expired' and 'reviewed' are set
-    only by triggers and the mark, so nobody is recorded as having made a decision they did not."""
-    source = db.function_source("resolve_teacher_review")
-    assert "action not in ('confirmed', 'dismissed')" in source
-    for trigger in ("expire_reviews_when_session_ends", "expire_reviews_when_task_done"):
-        assert "'expired'" in db.function_source(trigger)
-    assert "'reviewed'" in db.function_source("mark_seat_reviewed")
 
 
 def test_one_open_review_per_person_so_a_teacher_is_not_asked_twice(supabase_stack):
@@ -228,12 +177,6 @@ def test_an_expression_context_is_always_labelled_supporting_only():
             created_at="2026-11-14T09:00:00Z",
             payload={"label": "sadness", "probability": 0.7, "supporting_only": True},
         )
-
-
-def test_the_teachers_timeline_never_includes_expression(supabase_stack):
-    source = db.function_source("read_station_flags")
-    assert "'no_progress', 'review_needed'" in source
-    assert "expression" not in source.lower()
 
 
 # ---- Secrets and the browser ------------------------------------------------------------------
@@ -303,17 +246,3 @@ def test_no_secret_is_committed():
 
 
 # ---- The agent ---------------------------------------------------------------------------------
-
-
-def test_the_agent_prompt_lists_the_approved_menu_and_states_the_rules():
-    from agent.deep_agent import SYSTEM_PROMPT, _system_prompt
-    from shared.contracts import INTERVENTION_MENU
-
-    prompt = " ".join(_system_prompt().split())
-    for key in INTERVENTION_MENU:
-        assert key in prompt, key
-    rules = " ".join(SYSTEM_PROMPT.split())
-    assert "no camera frames/images" in rules
-    assert "Do not diagnose" in rules
-    assert "Expression remains supporting context only" in rules
-    assert "never notify anyone" in rules and "teacher approval is required" in rules

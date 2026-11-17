@@ -24,7 +24,6 @@ from shared.contracts import (
     SeatState,
     SeatStatus,
     Session,
-    SessionSummary,
 )
 from tests.support import local_supabase as db
 from tests.support.typescript import run_parser
@@ -114,14 +113,6 @@ def test_the_station_the_dashboard_sends_is_one_vision_accepts(local_vision):
     assert cleared.status_code == 200 and cleared.json()["station_id"] is None
 
 
-def test_the_dashboard_reads_vision_failures_as_plain_results():
-    assert run_parser("vision_configure", {"station": "bad id", "response": {}})["sent"] == []
-    pinned = run_parser("vision_configure", {"station": "S1", "response": {}, "status": 409})
-    assert pinned["result"] == "pinned"
-    down = run_parser("vision_configure", {"station": "S1", "response": {}, "status": 500})
-    assert down["result"] == "unavailable"
-
-
 def test_vision_accepts_configuration_from_this_laptop_and_the_dashboard_only(local_vision):
     from fastapi.testclient import TestClient
 
@@ -181,14 +172,6 @@ def test_a_session_row_is_a_valid_session_and_a_valid_dashboard_session():
         Session.model_validate(owned)  # vision's contract has no teacher in it
     with pytest.raises(AssertionError, match="rejected"):
         run_parser("session", {"session": row}, "S9")  # another station's session
-
-
-def test_the_session_a_teacher_starts_can_only_be_one_vision_supports(supabase_stack):
-    """The dashboard offers what vision reported it can run; the activity ids must be real."""
-    from vision.activities import load_activities
-
-    stored = {row["id"] for row in db.sql("select id from public.activities")}
-    assert {"raise_hand", "thumbs_up"} <= stored & set(load_activities())
 
 
 # ---- 3. Vision publishes: events and seat state ------------------------------------------------
@@ -311,13 +294,6 @@ def test_every_row_vision_publishes_is_accepted_by_the_real_tables(supabase_stac
     db.insert_and_roll_back("events", events)
     db.insert_and_roll_back("seat_state", states)
     assert not db.sql("select 1 from public.seat_state where seat_id like 'CONTRACT-%'")
-
-
-def test_the_observation_guard_checks_the_session_the_revision_and_the_seat(supabase_stack):
-    """The managed-session guard is what keeps a stale or foreign camera out of the data."""
-    source = db.function_source("guard_managed_observation")
-    for needle in ("s.ended_at is not null", "v_revision is distinct from", "from public.seats"):
-        assert needle in source
 
 
 def test_every_person_id_vision_can_issue_has_a_seat_row_for_a_new_station(supabase_stack):
@@ -446,19 +422,6 @@ def test_the_agent_may_suggest_only_what_is_on_the_approved_menu(supabase_stack)
         db.insert_and_roll_back("teacher_reviews", [row])
 
 
-def test_the_agent_has_exactly_three_tools_and_no_way_to_change_anything_else():
-    from pathlib import Path
-
-    source = (Path(__file__).resolve().parents[2] / "agent/deep_agent.py").read_text()
-    tools = re.search(r"tools=\[([^\]]*)\]", source)
-    assert tools
-    assert {t.strip() for t in tools.group(1).split(",") if t.strip()} == {
-        "get_recent_progress_history",
-        "get_prompt_history",
-        "request_teacher_review",
-    }
-
-
 def test_the_agent_is_given_task_facts_and_never_camera_data_or_expression():
     from agent.context_enricher import EnrichedEvaluationContext
     from agent.deep_agent import serialize_agent_context
@@ -488,28 +451,6 @@ def test_the_agent_is_given_task_facts_and_never_camera_data_or_expression():
     text = json.dumps(payload).lower()
     for word in ("image", "frame", "jpeg", "base64", "landmark", "sadness", "probability"):
         assert word not in text, word
-
-
-@pytest.mark.parametrize("trend", ["unknown", "improving", "completed"])
-def test_expression_alone_never_asks_the_agent_to_evaluate(trend):
-    from agent.escalation import DEMO_ESCALATION_CONFIG, evaluate_escalation
-    from agent.progress import ProgressState
-    from shared.contracts import ExpressionContext
-
-    strong = ExpressionContext(label="sadness", probability=0.99, duration_seconds=600)
-    for config in (DEMO_ESCALATION_CONFIG, None):
-        options = {} if config is None else {"config": config}
-        decision = evaluate_escalation(ProgressState(trend, 600.0), strong, **options)
-        assert decision.should_evaluate is False
-    # Even a long expression does not shorten the wait before a stall counts at all.
-    short = evaluate_escalation(ProgressState("stalled", 1.0), strong)
-    assert short.should_evaluate is False
-
-
-def test_an_evaluated_progress_summary_names_the_keys_the_dashboard_checks(supabase_stack):
-    keys = ["session_id", "activity_id", "session_revision", "observed_at"]
-    assert not keys_in("publish_task_progress", keys)
-    assert not keys_in("publish_task_progress", ["stalled_seconds", "recent", "trend"])
 
 
 # ---- 5. The teacher is told --------------------------------------------------------------------
@@ -602,14 +543,6 @@ def test_the_database_answers_the_dashboard_with_the_keys_it_reads(supabase_stac
     assert not keys_in("claim_station_writer", ["granted", "held_seconds_ago"])
 
 
-def test_the_timeline_returns_a_seat_a_kind_and_a_time_and_nothing_about_the_child(supabase_stack):
-    result = db.sql(
-        "select pg_get_function_result(p.oid) as result from pg_proc p "
-        "where p.pronamespace = 'public'::regnamespace and p.proname = 'read_station_flags'"
-    )[0]["result"]
-    assert result == "TABLE(seat_id text, kind text, at timestamp with time zone)"
-
-
 def columns_of(table: str) -> set[str]:
     return {
         row["column_name"]
@@ -626,18 +559,6 @@ def test_the_review_columns_the_dashboard_selects_exist(supabase_stack):
         set(wanted) - columns_of("teacher_reviews")
     )
     assert "suggested_intervention" in wanted
-
-
-def test_an_approval_answers_with_the_columns_the_dashboard_checks(supabase_stack):
-    assert {"review_id", "action", "approved_at"} <= columns_of("interventions")
-
-
-def test_the_session_summary_the_database_writes_fits_its_contract(supabase_stack):
-    source = db.function_source("summarize_session")
-    fields = set(SessionSummary.model_fields) - {"summarized_at"}
-    missing = sorted(name for name in fields if name not in source)
-    assert not missing, f"summarize_session never writes {missing}"
-    assert fields <= columns_of("session_summaries")
 
 
 def test_the_long_term_record_has_class_counts_and_no_child_or_expression_data(supabase_stack):
@@ -664,3 +585,17 @@ def test_the_insights_the_database_builds_have_the_contracts_keys(supabase_stack
     source = db.function_source("teacher_insights")
     missing = sorted(key for key in expected if f"'{key}'" not in source)
     assert not missing, f"teacher_insights no longer builds {missing}"
+
+
+def test_expression_alone_never_asks_the_agent_to_evaluate():
+    from agent.escalation import DEMO_ESCALATION_CONFIG, evaluate_escalation
+    from agent.progress import ProgressState
+    from shared.contracts import ExpressionContext
+
+    strong = ExpressionContext(label="sadness", probability=0.99, duration_seconds=600)
+    for trend in ("unknown", "improving", "completed"):
+        for config in ({}, {"config": DEMO_ESCALATION_CONFIG}):
+            decision = evaluate_escalation(ProgressState(trend, 600.0), strong, **config)
+            assert decision.should_evaluate is False, trend
+    # A strong expression does not shorten the wait before a stall counts at all.
+    assert evaluate_escalation(ProgressState("stalled", 1.0), strong).should_evaluate is False

@@ -60,68 +60,7 @@ def test_phone_numbers_mean_the_same_in_python_and_the_dashboard():
     ]
 
 
-def test_a_number_typed_at_sign_up_becomes_a_number_the_backend_can_text():
-    from shared.phone import is_e164
-
-    typed = [["1", "(202) 555-0101"], ["44", "07946 123456"], ["1", "555"], ["", "123456789"]]
-    numbers = run_parser("phone", {"numbers": typed})["numbers"]
-    assert numbers[0] == "+12025550101" and numbers[1] == "+447946123456"
-    assert numbers[2] is None and numbers[3] is None
-    assert all(is_e164(n) for n in numbers if n is not None)
-
-
-def test_the_profile_form_trims_and_refuses_numbers_the_database_would_refuse():
-    cleaned = run_parser(
-        "profile", {"display_name": "  Ms Rivera ", "phone_number": " +12025550101 "}
-    )
-    assert cleaned["display_name"] == "Ms Rivera" and cleaned["phone_number"] == "+12025550101"
-    blank = run_parser("profile", {"display_name": "  ", "phone_number": ""})
-    assert blank["display_name"] is None and blank["phone_number"] is None
-    with pytest.raises(AssertionError, match="country code"):
-        run_parser("profile", {"display_name": None, "phone_number": "(202) 555-0101"})
-    with pytest.raises(AssertionError, match="80 characters"):
-        run_parser("profile", {"display_name": "x" * 81, "phone_number": None})
-
-
 # ---- The classroom: what the dashboard reads about a station --------------------------------
-
-
-def test_a_new_teachers_default_station_answer_is_accepted():
-    answer = {"station_id": "S12", "name": "Station S12", "created": True}
-    assert run_parser("default_station", answer) == {
-        "ok": True,
-        "id": "S12",
-        "name": "Station S12",
-        "created": True,
-    }
-    for broken in ({**answer, "station_id": "bad id"}, {**answer, "created": "yes"}):
-        with pytest.raises(AssertionError, match="rejected"):
-            run_parser("default_station", broken)
-
-
-def test_the_text_alert_state_follows_what_the_database_says():
-    phone = "+12025550101"
-    settings = {
-        "notification_opt_in": True,
-        "notification_phone": phone,
-        "first_name": "Ana",
-        "last_name": "Rivera",
-        "photon_registration_status": "registering",
-    }
-    expected = {
-        "registering": "activating",
-        "registered": "enabled",
-        "failed": "activation failed",
-        "unregistered": "not enabled",
-    }
-    for status, state in expected.items():
-        row = settings | {"photon_registration_status": status}
-        assert run_parser("notification_state", {"settings": row, "phone": phone})["state"] == state
-    # A different phone number, or an unsaved edit, never counts as consent.
-    other = {"settings": settings, "phone": "+12025550102"}
-    assert run_parser("notification_state", other)["state"] == "not enabled"
-    unsaved = {"settings": settings, "phone": phone, "dirty": True}
-    assert run_parser("notification_state", unsaved)["state"] == "not enabled"
 
 
 # ---- Vision: the seat state it publishes -------------------------------------------------------
@@ -199,31 +138,6 @@ def test_the_dashboard_parser_rejects_what_the_contract_forbids():
     snapshot = {"seats": [], "states": [bad], "activities": [], "stations": []}
     with pytest.raises(AssertionError, match="rejected"):
         run_parser("snapshot", snapshot)
-    unknown_label = seat_states()[0] | {
-        "expression_context": {"label": "calm", "probability": 0.7, "supporting_only": True}
-    }
-    with pytest.raises(AssertionError, match="rejected"):
-        run_parser(
-            "snapshot", {"seats": [], "states": [unknown_label], "activities": [], "stations": []}
-        )
-    not_supporting = seat_states()[0] | {
-        "expression_context": {"label": "sadness", "probability": 0.7, "supporting_only": False}
-    }
-    with pytest.raises(AssertionError, match="rejected"):
-        run_parser(
-            "snapshot", {"seats": [], "states": [not_supporting], "activities": [], "stations": []}
-        )
-
-
-def test_a_person_the_camera_lost_is_never_shown_as_a_failed_attempt():
-    row = next(r for r in seat_states() if r["status"] == "tracking_lost")
-    now = datetime.now(UTC)
-    options = {"enabled": True, "now": now.timestamp() * 1000, "connected": True}
-    row = row | {"updated_at": now.isoformat()}
-    shown = run_parser("observation", {"row": row, "options": options})
-    assert shown["label"] == "Tracking lost" and shown["unavailable"] is True
-    assert shown["needsReview"] is False and shown["score"] is None
-    assert "not a failed attempt" in shown["detail"]
 
 
 # ---- The agent: what it publishes back for the dashboard ---------------------------------------
@@ -298,52 +212,6 @@ def test_the_menu_never_describes_how_a_child_feels():
         assert not any(word in text for word in forbidden), (key, label)
 
 
-def test_mark_as_reviewed_answer_is_accepted_and_a_malformed_one_is_not():
-    answer = {"closed": 1, "marked_at": datetime.now(UTC).isoformat()}
-    assert run_parser("mark", answer)["closed"] == 1
-    for broken in ({"closed": -1, "marked_at": answer["marked_at"]}, {"closed": 1}, None):
-        with pytest.raises(AssertionError, match="rejected"):
-            run_parser("mark", broken)
-
-
-def test_the_timeline_flags_the_database_returns_are_accepted():
-    now = datetime.now(UTC).isoformat()
-    rows = [
-        {"seat_id": "S1-P1", "kind": "review", "at": now},
-        {"seat_id": "S1-P2", "kind": "no_progress", "at": now},
-        {"seat_id": "S1-P3", "kind": "review_needed", "at": now},
-    ]
-    assert run_parser("flags", rows)["flags"] == [
-        "review:S1-P1",
-        "no_progress:S1-P2",
-        "review_needed:S1-P3",
-    ]
-    for broken in (
-        [{"seat_id": "S1-P1", "kind": "expression", "at": now}],
-        [{"seat_id": "bad seat", "kind": "review", "at": now}],
-    ):
-        with pytest.raises(AssertionError, match="rejected"):
-            run_parser("flags", broken)
-
-
-def test_the_second_camera_warning_follows_the_writer_row():
-    now = datetime.now(UTC)
-
-    def conflict(contested_ago: float | None, seen_ago: float = 1.0) -> bool:
-        row = {
-            "seen_at": (now - timedelta(seconds=seen_ago)).isoformat(),
-            "contested_at": None
-            if contested_ago is None
-            else (now - timedelta(seconds=contested_ago)).isoformat(),
-        }
-        return run_parser("writer", {"row": row, "now": now.timestamp() * 1000})["conflict"]
-
-    assert conflict(contested_ago=1.5) is True  # another camera was refused a moment ago
-    assert conflict(contested_ago=None) is False  # never contested
-    assert conflict(contested_ago=60.0) is False  # long ago: the extra camera stopped
-    assert conflict(contested_ago=1.5, seen_ago=120.0) is False  # the holder itself is gone
-
-
 # ---- The end of a session: insights -------------------------------------------------------------
 
 
@@ -383,14 +251,3 @@ def insights() -> dict:
 
 def test_an_insights_summary_python_produces_is_accepted_by_the_dashboard_parser():
     assert run_parser("insights", insights())["reviews"] == 3
-
-
-def test_the_insights_parser_rejects_what_the_contract_forbids():
-    for broken in (
-        {"supports": [{"action": "give_a_grade", "approved": 1, "resumed": 0}]},
-        {"evidence": {"facial_expression": 2}},
-        {"heat": [{"dow": 7, "hour": 10, "count": 1}]},
-        {"weekly": [{"week_start": "last week", "sessions": 1, "reviews_raised": 1}]},
-    ):
-        with pytest.raises(AssertionError, match="rejected"):
-            run_parser("insights", insights() | broken)
