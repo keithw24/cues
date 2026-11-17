@@ -17,6 +17,11 @@ insert into public.stations (id, name) values ('S1', 'Demo station') on conflict
 insert into public.seats (id, station_id, side, display_name, is_simulated)
 values ('S1-L', 'S1', 'left', 'Left seat', true), ('S1-R', 'S1', 'right', 'Right seat', true)
 on conflict (id) do nothing;
+-- One seat per person id vision can issue (vision.people.MAX_PEOPLE = 6), as stations made
+-- by get_or_create_my_default_station have.
+insert into public.seats (id, station_id, side, display_name, is_simulated)
+select 'S1-P' || n, 'S1', null, 'Person ' || n, true from generate_series(1, 6) n
+on conflict (id) do nothing;
 insert into public.sessions (id, current_activity_id)
 values ('00000000-0000-4000-8000-000000000001', 'raise_hand') on conflict (id) do nothing;
 insert into public.seat_state (seat_id, session_id, activity_id, status)

@@ -39,9 +39,10 @@ jobs:
           uv python install
           uv sync --locked
 
-      # OpenCV and MediaPipe need these system libraries on Ubuntu.
+      # OpenCV and MediaPipe need these system libraries on Ubuntu (libegl1 and libgles2: the
+      # tracking smoke test imports MediaPipe, which loads libEGL).
       - name: Install system libraries
-        run: sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0 libegl1 libgles2
 
       # Applies every migration in supabase/migrations and seeds supabase/seed.sql.
       - name: Start local Supabase
