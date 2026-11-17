@@ -91,6 +91,9 @@
 :root[data-theme="light"] .ln-cta h2 {
   color: #0b1a4d;
 }
+:root[data-theme="light"] .ln-cta .ln-cta-sub {
+  color: #3d4a78;
+}
 :root[data-theme="light"] .ln-cta .ln-button-light {
   background: #0b1a4d;
   box-shadow: 0 10px 30px -10px rgb(11 26 77 / 0.5);

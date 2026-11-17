@@ -63,7 +63,11 @@ export default function Landing() {
         <LandingFaq />
 
         <section className="ln-cta" aria-labelledby="cta-heading" data-reveal>
-          <h2 id="cta-heading">a little support. more room to teach.</h2>
+          <h2 id="cta-heading">quiet help for a busy classroom.</h2>
+          <p className="ln-cta-sub">
+            Cues shows who needs you. You decide what happens next. Student camera
+            images stay on your laptop.
+          </p>
           <div className="ln-actions">
             <Link className="ln-button ln-button-light" href={start}>
               Get Started

@@ -442,7 +442,7 @@ export default function Dashboard({
               <header className="page-intro">
                 <div>
                   <h1 id="classroom-heading" ref={pageHeading} tabIndex={-1}>
-                    {view === "review" ? "to review" : "your classroom"}
+                    {view === "review" ? "review" : "classroom"}
                   </h1>
                   {view === "review" || sessionLive ? null : (
                     <p className="ws-subtitle">{activity}</p>

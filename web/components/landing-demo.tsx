@@ -161,7 +161,7 @@ export default function LandingDemo({ companion = false }: { companion?: boolean
         <div className="ws-demo-main">
           <div className="ws-hero">
             <header className="page-intro">
-              <h1>your classroom</h1>
+              <h1>classroom</h1>
               <span
                 className={`ws-pill review-link${companion ? " has-companion" : ""}${frame.review ? " has-items" : ""}`}
               >
